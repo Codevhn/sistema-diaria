@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La Diaria — v3.2 Responsive</title>
+  <link rel="stylesheet" href="./style.css" />
+
+
+</head>
+
+<body class="layout">
+  <aside class="sidebar expanded" id="sidebar">
+    <div class="brand">LD v3.2</div>
+    <button data-view="day"><span>🏠</span><i>Panel del día</i></button>
+    <button data-view="hypo"><span>🧩</span><i>Hipótesis</i></button>
+    <button data-view="analysis"><span>📊</span><i>Escenarios</i></button>
+    <button data-view="geometry"><span>✴️</span><i>Cruceta/Triángulo</i></button>
+    <button data-view="memory"><span>🧠</span><i>Memoria</i></button>
+    <button data-view="guide"><span>📘</span><i>Guía de los Sueños</i></button>
+    <button data-view="config"><span>⚙️</span><i>Configuración</i></button>
+    <button data-view="maint"><span>🛠️</span><i>Mantenimiento</i></button>
+  </aside>
+
+  <main class="content">
+    <header class="top">
+      <h1>Sistema</h1>
+      <button id="btn-toggle-sidebar" class="menu-btn">☰</button>
+      <div class="badge">v3.2 • Oscuro + Dorado</div>
+    </header>
+
+    <!-- PANEL DEL DÍA -->
+    <section id="view-day" class="view">
+      <h2>Panel del día</h2>
+      <div class="row">
+        <label>Fecha <input type="date" id="day-fecha" /></label>
+        <label>País
+          <select id="day-pais">
+            <option>HN</option>
+            <option>NI</option>
+            <option>SV</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="triple">
+        <div class="slot">
+          <div class="slot-title">11 AM</div>
+          <div class="ball-row">
+            <div class="ball" id="b-11">--</div>
+            <div class="sym" id="s-11"></div>
+          </div>
+          <div class="row">
+            <input id="n-11" placeholder="00-99" />
+            <label style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="test-11" /> Modo prueba
+            </label>
+            <button id="save-11">Guardar</button>
+          </div>
+          <button class="ghost" data-hypo="11AM">Agregar hipótesis para 11 AM</button>
+        </div>
+
+        <div class="slot">
+          <div class="slot-title">3 PM</div>
+          <div class="ball-row">
+            <div class="ball" id="b-3">--</div>
+            <div class="sym" id="s-3"></div>
+          </div>
+          <div class="row">
+            <input id="n-3" placeholder="00-99" />
+            <label style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="test-3" /> Modo prueba
+            </label>
+            <button id="save-3">Guardar</button>
+          </div>
+          <button class="ghost" data-hypo="3PM">Agregar hipótesis para 3 PM</button>
+        </div>
+
+        <div class="slot">
+          <div class="slot-title">9 PM</div>
+          <div class="ball-row">
+            <div class="ball" id="b-9">--</div>
+            <div class="sym" id="s-9"></div>
+          </div>
+          <div class="row">
+            <input id="n-9" placeholder="00-99" />
+            <label style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" id="test-9" /> Modo prueba
+            </label>
+            <button id="save-9">Guardar</button>
+          </div>
+          <button class="ghost" data-hypo="9PM">Agregar hipótesis para 9 PM</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:20px;">
+        <button id="btn-aprender-dia">Registrar resultados del día (aprendizaje)</button>
+        <span class="hint">
+          Confirma/Refuta hipótesis pendientes según los resultados válidos de la fecha seleccionada.
+        </span>
+      </div>
+    </section>
+
+    <!-- HIPÓTESIS -->
+    <section id="view-hypo" class="view hidden">
+      <h2>Hipótesis manuales</h2>
+      <div class="row">
+        <label>Fecha <input type="date" id="h-fecha" /></label>
+        <label>Turno
+          <select id="h-turno">
+            <option>11AM</option>
+            <option>3PM</option>
+            <option>9PM</option>
+          </select>
+        </label>
+        <label>Número <input id="h-numero" placeholder="00-99" /></label>
+      </div>
+      <div class="row">
+        <label style="flex:1">
+          Texto / Razón
+          <textarea id="h-texto" rows="3" placeholder="Describe tu hipótesis..."></textarea>
+        </label>
+      </div>
+      <button id="h-guardar">Guardar hipótesis</button>
+      <h3>Historial</h3>
+      <div id="h-list"></div>
+    </section>
+
+    <!-- ESCENARIOS -->
+    <section id="view-analysis" class="view hidden">
+      <h2>Escenarios y recomendación</h2>
+      <button id="btn-analizar">Analizar</button>
+      <p class="hint">
+        La <b>confianza (conf)</b> es una ponderación heurística (0–100%).
+      </p>
+      <div class="cards" id="result-escenarios"></div>
+      <div class="cards" id="result-recomendacion"></div>
+
+      <div id="transform-panel" class="card">
+        <div class="card-head">🔄 Transformaciones Visuales</div>
+        <div class="row">
+          <input id="t-numero" placeholder="Ej. 25" />
+          <button id="t-ver">Ver transformaciones</button>
+        </div>
+        <div id="t-output"></div>
+      </div>
+    </section>
+
+    <!-- GEOMETRÍA -->
+    <section id="view-geometry" class="view hidden">
+      <h2>Cruceta / Triángulo (visual)</h2>
+      <div class="row">
+        <label>Fecha <input type="date" id="g-fecha" /></label>
+        <button id="g-generar">Generar</button>
+      </div>
+      <div class="geom-wrap">
+        <div class="geom-card">
+          <h3>Cruceta</h3>
+          <div id="g-cruceta" class="cruceta"></div>
+        </div>
+        <div class="geom-card">
+          <h3>Triángulo invertido</h3>
+          <div id="g-tri" class="tri"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MEMORIA -->
+    <section id="view-memory" class="view hidden">
+      <h2>Memoria simbólica</h2>
+      <button id="toggle-tech">Mostrar/Ocultar modo técnico</button>
+      <pre id="mem-out" class="hidden"></pre>
+    </section>
+
+    <!-- GUÍA -->
+    <section id="view-guide" class="view hidden">
+      <h2>Guía de los Sueños</h2>
+      <p class="hint">
+        Explora todos los números (00–99), sus símbolos, familias y polaridades. <br />
+        Los espacios vacíos están reservados para las imágenes futuras de cada símbolo.
+      </p>
+      <div id="guide-grid" class="guide-grid"></div>
+    </section>
+
+    <!-- CONFIGURACIÓN -->
+    <section id="view-config" class="view hidden">
+      <h2>Configuración</h2>
+      <p>• Sidebar expandido con nombres.</p>
+      <p>• Tema oscuro con acentos dorados y esferas animadas.</p>
+    </section>
+
+    <!-- MANTENIMIENTO -->
+    <section id="view-maint" class="view hidden">
+      <h2>Mantenimiento</h2>
+      <div class="card">
+        <div class="card-head">Duplicados</div>
+        <div class="row">
+          <button id="btn-list-dup">Revisar duplicados</button>
+          <button id="btn-marktest-dup">Marcar seleccionados como modo prueba</button>
+          <button id="btn-delete-dup">Eliminar seleccionados</button>
+        </div>
+        <div id="dup-out" class="card-body"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { mostrarGuia } from "./src/guide-grid.js";
+    import { DB } from "./src/storage.js";
+    import { importarManual } from "./src/importer.js";
+    import { registrarHechos, crearHipotesis, registrarResultado } from "./src/narrative.js";
+    import { analizarYProponer } from "./src/reasoning.js";
+    import { generarCruceta, generarTrianguloInvertido, dibujarTrianguloInvertido } from "./src/geometry.js";
+    import { cargarGuia, GUIA, getColorPolaridad } from "./src/loader.js";
+    import { detectarPatrones } from "./src/pattern-detector.js";
+    import { revisarDuplicados, marcarGrupoComoTest, borrarIds } from "./src/maintenance.js";
+    import { mostrarTransformaciones } from "./src/transform-visual.js";
+
+    await cargarGuia();
+
+    const todayISO = new Date().toISOString().slice(0, 10);
+    ["day-fecha", "h-fecha", "g-fecha"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = todayISO;
+    });
+
+    // ✅ Cambio de vistas
+    const views = { day: "view-day", hypo: "view-hypo", analysis: "view-analysis", geometry: "view-geometry", memory: "view-memory", guide: "view-guide", config: "view-config", maint: "view-maint" };
+    document.querySelectorAll(".sidebar button").forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
+        const id = views[b.dataset.view];
+        const el = document.getElementById(id);
+        if (!el) return console.warn("Vista no encontrada:", id);
+        el.classList.remove("hidden");
+        if (id === "view-guide") mostrarGuia();
+      };
+    });
+
+    // ✅ Toggle de sidebar móvil
+    const sidebar = document.getElementById("sidebar");
+    const toggleBtn = document.getElementById("btn-toggle-sidebar");
+    if (toggleBtn && sidebar) {
+      toggleBtn.addEventListener("click", () => {
+        sidebar.classList.toggle("show-mobile");
+      });
+    }
+
+  </script>
+</body>
+
+</html>

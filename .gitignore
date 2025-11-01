@@ -1,0 +1,45 @@
+# =========================================================
+# Sistema Predictivo "La Diaria" — Git Ignore
+# Mantiene fuera del control de versiones los archivos
+# generados localmente o temporales, pero conserva
+# toda la data, lógica, y base simbólica del sistema.
+# =========================================================
+
+# 🔹 Dependencias (solo si hay Node o Live Server)
+node_modules/
+package-lock.json
+
+# 🔹 Archivos temporales del entorno o sistema operativo
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# 🔹 Caché y configuraciones del editor
+.vscode/
+.idea/
+*.code-workspace
+
+# 🔹 Archivos de pruebas locales o backups
+*.bak
+*.old
+*.backup
+*.orig
+
+# 🔹 Builds o previsualizaciones (si se generan)
+dist/
+build/
+out/
+
+# 🔹 Evita subir imágenes o assets grandes temporales
+assets/temp/
+assets/cache/
+
+# 🔹 Evita ocultar la data esencial
+# data/
+# db/
+# facts/
+# hypotheses/
+# sessions/
+# (no se ignoran porque son parte del sistema)
+

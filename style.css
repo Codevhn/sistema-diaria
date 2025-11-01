@@ -1,0 +1,657 @@
+/* === LA DIARIA v3.2 — Tema Oscuro + Dorado === */
+:root {
+  --bg: #0e1117;
+  --bg2: #141923;
+  --text: #f2f2f2;
+  --gold: #d4a72c;
+  --gold-light: #f0c75e;
+  --border: #2b2f3a;
+  --red: #e04c41;
+  --green: #48d06d;
+}
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  display: flex;
+  min-height: 100vh;
+}
+.sidebar {
+  background: var(--bg2);
+  width: 230px;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+.sidebar .brand {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gold-light);
+  text-align: center;
+  margin-bottom: 20px;
+}
+.sidebar button {
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  padding: 10px 20px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.sidebar button:hover {
+  background: rgba(212, 167, 44, 0.15);
+  color: var(--gold-light);
+}
+.content {
+  margin-left: 230px;
+  flex: 1;
+  padding: 25px 40px;
+  overflow-y: auto;
+}
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 15px;
+}
+.menu-btn {
+  display: none;
+}
+.badge {
+  background: var(--bg2);
+  border: 1px solid var(--gold);
+  color: var(--gold-light);
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+.row label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  flex: 1;
+}
+input,
+select,
+textarea,
+button {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+button {
+  cursor: pointer;
+  transition: 0.2s;
+}
+button:hover {
+  background: rgba(212, 167, 44, 0.2);
+  border-color: var(--gold);
+}
+button.ghost {
+  background: none;
+  border: 1px dashed var(--gold);
+  color: var(--gold-light);
+  margin-top: 6px;
+}
+button.ghost:hover {
+  background: rgba(212, 167, 44, 0.1);
+}
+.view {
+  display: block;
+}
+.view.hidden {
+  display: none;
+}
+.triple {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.slot {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 15px;
+}
+.slot-title {
+  font-weight: bold;
+  color: var(--gold-light);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.ball-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.ball {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--gold-light);
+  background: radial-gradient(circle at 30% 30%, #1b1f2a, #0e1117);
+  animation: pulse 3s infinite;
+}
+.ball.small {
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+  border-width: 2px;
+  animation: none;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(212, 167, 44, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(212, 167, 44, 0.9);
+  }
+}
+.sym {
+  font-size: 15px;
+  opacity: 0.8;
+}
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 15px;
+}
+.card-head {
+  color: var(--gold-light);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.card-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pill {
+  border: 1px solid var(--gold);
+  border-radius: 16px;
+  padding: 3px 9px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pill.gold {
+  background: rgba(212, 167, 44, 0.15);
+}
+.hint {
+  font-size: 13px;
+  opacity: 0.8;
+}
+.geom-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 25px;
+  margin-top: 15px;
+}
+.geom-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  flex: 1;
+  min-width: 300px;
+}
+.c-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 4px 0;
+}
+#mem-out {
+  background: #0c0f14;
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.hidden {
+  display: none;
+}
+.symbol-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+  font-size: 13px;
+}
+.symbol-tag .fam {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.simb-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 20px;
+  padding: 15px;
+}
+.simb-card h3 {
+  color: var(--gold-light);
+  margin-bottom: 8px;
+}
+.simb-card button.btn-simb {
+  background: rgba(212, 167, 44, 0.15);
+  border: 1px solid var(--gold);
+  color: var(--gold-light);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.simb-card button.btn-simb:hover {
+  background: rgba(212, 167, 44, 0.25);
+}
+.simb-result span.gold {
+  color: var(--gold-light);
+  font-weight: 600;
+}
+.simb-result span.positiva {
+  color: var(--green);
+  font-weight: 600;
+}
+.simb-result span.negativa {
+  color: var(--red);
+  font-weight: 600;
+}
+.simb-result span.neutral {
+  color: var(--gold-light);
+  font-weight: 600;
+}
+.simb-result .desc {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+#transform-panel {
+  margin-top: 25px;
+}
+#t-output svg {
+  width: 100%;
+  max-width: 620px;
+  margin-top: 10px;
+  display: block;
+}
+#t-output .desc {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+#t-output p {
+  margin: 2px 0;
+}
+/* === GUÍA DE LOS SUEÑOS === */
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding-bottom: 50px;
+}
+
+.guide-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.25s, border-color 0.25s;
+}
+
+.guide-card:hover {
+  border-color: var(--gold);
+  transform: scale(1.03);
+}
+
+.guide-num {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  text-shadow: 0 0 6px rgba(212, 167, 44, 0.4);
+}
+
+.guide-sym {
+  font-size: 15px;
+  color: var(--gold-light);
+  font-weight: 600;
+}
+
+.guide-fam {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.guide-img {
+  width: 70px;
+  height: 70px;
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.02);
+  transition: 0.25s;
+}
+
+.guide-card:hover .guide-img {
+  transform: scale(1.08);
+  border-color: var(--gold);
+}
+
+.img-placeholder {
+  font-size: 12px;
+  opacity: 0.4;
+  color: var(--text);
+}
+
+.guide-card:hover .guide-num {
+  text-shadow: 0 0 10px var(--gold-light);
+  transform: scale(1.1);
+  transition: 0.25s;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 14px;
+  opacity: 0.85;
+  margin-top: 8px;
+  margin-bottom: 15px;
+}
+.legend .dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.legend .green {
+  background: #48d06d;
+}
+.legend .gold {
+  background: #d4a72c;
+}
+.legend .red {
+  background: #e04c41;
+}
+/* === MODAL DE CONFIRMACIÓN === */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  transition: opacity 0.25s ease;
+}
+.modal.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-content {
+  background: var(--bg2);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  padding: 20px 24px;
+  width: 90%;
+  max-width: 400px;
+  color: var(--text);
+  box-shadow: 0 0 25px rgba(212, 167, 44, 0.25);
+  animation: modalPop 0.3s ease;
+}
+
+.modal-head h3 {
+  color: var(--gold);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.modal-body p {
+  margin: 6px 0;
+  line-height: 1.4;
+}
+
+.modal-foot {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-foot button {
+  background: var(--gold);
+  border: none;
+  color: #000;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.modal-foot button:hover {
+  background: var(--gold-light);
+}
+
+@keyframes modalPop {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* === TABLA DE HISTORIAL === */
+.table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.table-history {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-history thead {
+  background: var(--bg3, #1a1a1a);
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-history th,
+.table-history td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table-history tr:hover {
+  background: rgba(212, 167, 44, 0.05);
+}
+
+.table-history td.num {
+  font-weight: 700;
+  color: var(--gold-light);
+  font-size: 15px;
+}
+.table-history td.sym {
+  color: var(--gold);
+  font-weight: 600;
+}
+.table-history td.test {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* =========================================================
+   📱 RESPONSIVE DESIGN (v3.x)
+   ========================================================= */
+
+/* Pantallas medianas (tablets) */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 180px;
+  }
+  .content {
+    margin-left: 180px;
+    padding: 15px;
+  }
+  .triple {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .table-history th,
+  .table-history td {
+    font-size: 13px;
+    padding: 6px 8px;
+  }
+}
+
+/* Extra pequeño (≤480px) */
+@media (max-width: 480px) {
+  .sidebar button span {
+    font-size: 16px;
+  }
+  .ball {
+    width: 50px;
+    height: 50px;
+    font-size: 18px;
+  }
+  .slot-title {
+    font-size: 14px;
+  }
+  .hint {
+    font-size: 12px;
+  }
+  .guide-num {
+    font-size: 24px;
+  }
+  .guide-sym {
+    font-size: 13px;
+  }
+}
+
+/* === Ajustes responsive garantizados === */
+@media (max-width: 768px) {
+  body.layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -240px;
+    width: 220px;
+    height: 100%;
+    background: #161616;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 20px 0;
+    border-right: 1px solid #2a2a2a;
+    transition: left 0.3s ease;
+    z-index: 1000;
+  }
+
+  .sidebar.show-mobile {
+    left: 0;
+  }
+
+  .menu-btn {
+    display: block !important;
+    background: none;
+    border: none;
+    color: #d4a72c;
+    font-size: 26px;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .content {
+    margin-left: 0;
+    padding: 16px;
+  }
+
+  header.top h1 {
+    font-size: 18px;
+  }
+
+  .triple {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .guide-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+
+  .table-history {
+    min-width: 600px;
+    font-size: 12px;
+  }
+}

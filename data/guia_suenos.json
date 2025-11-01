@@ -1,0 +1,566 @@
+{
+  "92": {
+    "simbolo": "Águila",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "18": {
+    "simbolo": "Ángel",
+    "familia": "espiritual",
+    "elemento": "ser",
+    "polaridad": "positiva"
+  },
+  "56": {
+    "simbolo": "Árbol",
+    "familia": "naturaleza",
+    "elemento": "planta",
+    "polaridad": "positiva"
+  },
+  "72": {
+    "simbolo": "Arco",
+    "familia": "arma",
+    "elemento": "objeto",
+    "polaridad": "neutra"
+  },
+  "99": {
+    "simbolo": "Aretes",
+    "familia": "accesorio",
+    "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+  "22": {
+    "simbolo": "Ataúd",
+    "familia": "muerte",
+    "elemento": "objeto",
+    "polaridad": "negativa"
+  },
+  "00": {
+    "simbolo": "Avión",
+    "familia": "transporte",
+    "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+  "98": {
+    "simbolo": "Bailes",
+    "familia": "social",
+    "elemento": "evento",
+    "polaridad": "positiva"
+  },
+  "25": {
+    "simbolo": "Balanza",
+    "familia": "justicia",
+    "elemento": "objeto",
+    "polaridad": "neutra"
+  },
+  "26": {
+    "simbolo": "Bandera",
+    "familia": "patria",
+    "elemento": "símbolo",
+    "polaridad": "positiva"
+  },
+  "47": {
+    "simbolo": "Banco",
+    "familia": "trabajo",
+    "elemento": "lugar",
+    "polaridad": "neutra"
+  },
+  "30": {
+    "simbolo": "Bolo",
+    "familia": "conducta",
+    "elemento": "persona",
+    "polaridad": "negativa"
+  },
+  "83": {
+    "simbolo": "Bote",
+    "familia": "transporte",
+    "elemento": "objeto",
+    "polaridad": "neutra"
+  },
+  "14": {
+    "simbolo": "Boda",
+    "familia": "relaciones",
+    "elemento": "evento",
+    "polaridad": "positiva"
+  },
+  "89": {
+    "simbolo": "Búho",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "neutra"
+  },
+  "85": {
+    "simbolo": "Casa",
+    "familia": "hogar",
+    "elemento": "lugar",
+    "polaridad": "positiva"
+  },
+  "94": {
+    "simbolo": "Carro",
+    "familia": "transporte",
+    "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+  "33": {
+    "simbolo": "Carpintero",
+    "familia": "oficio",
+    "elemento": "persona",
+    "polaridad": "neutra"
+  },
+  "93": {
+    "simbolo": "Cartero",
+    "familia": "oficio",
+    "elemento": "persona",
+    "polaridad": "positiva"
+  },
+  "12": {
+    "simbolo": "Caballo",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "96": {
+    "simbolo": "Dinero",
+    "familia": "riqueza",
+    "elemento": "concepto",
+    "polaridad": "positiva"
+  },
+  "66": {
+    "simbolo": "Diablo",
+    "familia": "espiritual",
+    "elemento": "ser",
+    "polaridad": "negativa"
+  },
+  "60": {
+    "simbolo": "Dragón",
+    "familia": "mitología",
+    "elemento": "ser",
+    "polaridad": "neutra"
+  },
+  "74": {
+    "simbolo": "Edificio",
+    "familia": "estructura",
+    "elemento": "lugar",
+    "polaridad": "neutra"
+  },
+  "06": {
+    "simbolo": "Elefante",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "05": {
+    "simbolo": "Embarazada",
+    "familia": "vida",
+    "elemento": "persona",
+    "polaridad": "positiva"
+  },
+  "82": {
+    "simbolo": "Escuela",
+    "familia": "educación",
+    "elemento": "lugar",
+    "polaridad": "positiva"
+  },
+  "20": {
+    "simbolo": "Espejo",
+    "familia": "reflexión",
+    "elemento": "objeto",
+    "polaridad": "neutra"
+  },
+  "48": {
+    "simbolo": "Estrella",
+    "familia": "cielo",
+    "elemento": "astro",
+    "polaridad": "positiva"
+  },
+  "46": {
+    "simbolo": "Familia",
+    "familia": "hogar",
+    "elemento": "concepto",
+    "polaridad": "positiva"
+  },
+  "73": {
+    "simbolo": "Fuego",
+    "familia": "naturaleza",
+    "elemento": "elemento",
+    "polaridad": "neutra"
+  },
+  "79": {
+    "simbolo": "Flores",
+    "familia": "naturaleza",
+    "elemento": "planta",
+    "polaridad": "positiva"
+  },
+  "87": {
+    "simbolo": "León",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "54": {
+    "simbolo": "Licor",
+    "familia": "vicio",
+    "elemento": "sustancia",
+    "polaridad": "negativa"
+  },
+  "53": {
+    "simbolo": "Llanta",
+    "familia": "objeto",
+    "elemento": "transporte",
+    "polaridad": "neutra"
+  },
+  "42": {
+    "simbolo": "Madre",
+    "familia": "familia",
+    "elemento": "persona",
+    "polaridad": "positiva"
+  },
+  "19": {
+    "simbolo": "Mariposa",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "44": {
+    "simbolo": "Mesas",
+    "familia": "hogar",
+    "elemento": "objeto",
+    "polaridad": "neutra"
+  },
+  "64": {
+    "simbolo": "Mueble",
+    "familia": "hogar",
+    "elemento": "objeto",
+    "polaridad": "neutra"
+  },
+  "02": {
+    "simbolo": "Mujer",
+    "familia": "persona",
+    "elemento": "humano",
+    "polaridad": "positiva"
+  },
+  "03": {
+    "simbolo": "Muerto",
+    "familia": "muerte",
+    "elemento": "persona",
+    "polaridad": "negativa"
+  },
+  "34": {
+    "simbolo": "Música",
+    "familia": "arte",
+    "elemento": "concepto",
+    "polaridad": "positiva"
+  },
+  "07": {
+    "simbolo": "Navaja",
+    "familia": "arma",
+    "elemento": "objeto",
+    "polaridad": "negativa"
+  },
+  "41": {
+    "simbolo": "Novia",
+    "familia": "relaciones",
+    "elemento": "persona",
+    "polaridad": "positiva"
+  },
+  "67": {
+    "simbolo": "Vaca",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "15": {
+    "simbolo": "Ratón",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "neutra"
+  },
+  "75": {
+    "simbolo": "Reina",
+    "familia": "poder",
+    "elemento": "persona",
+    "polaridad": "positiva"
+  },
+  "86": {
+    "simbolo": "Reloj",
+    "familia": "tiempo",
+    "elemento": "objeto",
+    "polaridad": "neutra"
+  },
+  "81": {
+    "simbolo": "Rieles",
+    "familia": "transporte",
+    "elemento": "objeto",
+    "polaridad": "neutra"
+  },
+  "37": {
+    "simbolo": "Suerte",
+    "familia": "destino",
+    "elemento": "concepto",
+    "polaridad": "positiva"
+  },
+  "59": {
+    "simbolo": "Selva",
+    "familia": "naturaleza",
+    "elemento": "lugar",
+    "polaridad": "neutra"
+  },
+  "69": {
+    "simbolo": "Soldado",
+    "familia": "militar",
+    "elemento": "persona",
+    "polaridad": "neutra"
+  },
+  "49": {
+    "simbolo": "Sombra",
+    "familia": "concepto",
+    "elemento": "fenómeno",
+    "polaridad": "neutra"
+  },
+  "24": {
+    "simbolo": "Sapo",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "neutra"
+  },
+  "76": {
+    "simbolo": "Palomas",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "35": {
+    "simbolo": "Virgen",
+    "familia": "espiritual",
+    "elemento": "ser",
+    "polaridad": "positiva"
+  },
+  "63": {
+    "simbolo": "Coco",
+    "familia": "alimento",
+    "elemento": "fruta",
+    "polaridad": "positiva"
+  },
+  "39": {
+    "simbolo": "Jabón",
+    "familia": "higiene",
+    "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+  "27": {
+    "simbolo": "Juego",
+    "familia": "diversión",
+    "elemento": "actividad",
+    "polaridad": "positiva"
+  },
+  "17": {
+    "simbolo": "Joven",
+    "familia": "persona",
+    "elemento": "humano",
+    "polaridad": "positiva"
+  },
+  "23": {
+    "simbolo": "Mono",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "neutra"
+  },
+  "11": {
+    "simbolo": "Perro",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "31": {
+    "simbolo": "Alacrán",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "negativa"
+  },
+  "04": {
+    "simbolo": "Tigre",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "neutra"
+  },
+  "78": {
+    "simbolo": "Tienda",
+    "familia": "comercio",
+    "elemento": "lugar",
+    "polaridad": "positiva"
+  },
+  "21": {
+    "simbolo": "Pájaro",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "09": {
+    "simbolo": "Hombre",
+    "familia": "persona",
+    "elemento": "humano",
+    "polaridad": "neutra"
+  },
+  "13": {
+    "simbolo": "Gato",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "28": {
+    "simbolo": "Gallo",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "61": {
+    "simbolo": "Guerra",
+    "familia": "conflicto",
+    "elemento": "concepto",
+    "polaridad": "negativa"
+  },
+  "68": {
+    "simbolo": "Ladrón",
+    "familia": "conducta",
+    "elemento": "persona",
+    "polaridad": "negativa"
+  },
+  "62": {
+    "simbolo": "Lagarto",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "neutra"
+  },
+  "90": {
+    "simbolo": "Lentes",
+    "familia": "visión",
+    "elemento": "objeto",
+    "polaridad": "neutra"
+  },
+  "16": {
+    "simbolo": "Niña",
+    "familia": "persona",
+    "elemento": "humano",
+    "polaridad": "positiva"
+  },
+  "29": {
+    "simbolo": "Padre",
+    "familia": "familia",
+    "elemento": "persona",
+    "polaridad": "positiva"
+  },
+  "51": {
+    "simbolo": "Policía",
+    "familia": "autoridad",
+    "elemento": "persona",
+    "polaridad": "neutra"
+  },
+  "38": {
+    "simbolo": "Pistola",
+    "familia": "arma",
+    "elemento": "objeto",
+    "polaridad": "negativa"
+  },
+  "88": {
+    "simbolo": "Platos",
+    "familia": "hogar",
+    "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+  "65": {
+    "simbolo": "Pintura",
+    "familia": "arte",
+    "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+  "01": {
+    "simbolo": "Pies",
+    "familia": "cuerpo",
+    "elemento": "parte",
+    "polaridad": "neutra"
+  },
+  "52": {
+    "simbolo": "Zorrillo",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "negativa"
+  },
+  "71": {
+    "simbolo": "Zapatos",
+    "familia": "ropa",
+    "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+  "58": {
+    "simbolo": "Venado",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "32": {
+    "simbolo": "Culebra",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "negativa"
+  },
+  "08": {
+    "simbolo": "Conejo",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "84": {
+    "simbolo": "Coronas",
+    "familia": "poder",
+    "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+  "55": {
+    "simbolo": "Olas",
+    "familia": "naturaleza",
+    "elemento": "fenómeno",
+    "polaridad": "neutra"
+  },
+  "70": {
+    "simbolo": "Oro",
+    "familia": "riqueza",
+    "elemento": "material",
+    "polaridad": "positiva"
+  },
+  "91": {
+    "simbolo": "Tortuga",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
+  "97": {
+    "simbolo": "Viejito",
+    "familia": "persona",
+    "elemento": "humano",
+    "polaridad": "neutra"
+  },
+  "36": {
+    "simbolo": "Viejita",
+    "familia": "persona",
+    "elemento": "humano",
+    "polaridad": "neutra"
+  },
+  "77": {
+    "simbolo": "Humo",
+    "familia": "naturaleza",
+    "elemento": "fenómeno",
+    "polaridad": "neutra"
+  },
+  "10": {
+    "simbolo": "Anillo",
+    "familia": "amor",
+    "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+  "50": {
+    "simbolo": "Luna nueva",
+    "familia": "cielo",
+    "elemento": "astro",
+    "polaridad": "positiva"
+  }
+}
