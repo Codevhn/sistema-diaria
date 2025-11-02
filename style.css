@@ -469,6 +469,7 @@ button.ghost:hover {
   margin-top: 18px;
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 
 .modal-foot button {

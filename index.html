@@ -202,6 +202,24 @@
         </div>
         <div id="dup-out" class="card-body"></div>
       </div>
+      <div class="card" style="margin-top:15px;">
+        <div class="card-head">Todos los sorteos registrados</div>
+        <div class="row">
+          <button id="btn-list-all">Ver todos</button>
+        </div>
+        <div id="all-out" class="card-body"></div>
+      </div>
+      <div class="card" style="margin-top:15px;">
+        <div class="card-head">Reiniciar base de datos</div>
+        <div class="row">
+          <button id="btn-nuke" style="background:#e04c41;border-color:#e04c41;color:#fff;">
+            ⚠️ Borrar todo (reiniciar)
+          </button>
+        </div>
+        <p class="hint">Usa con precaución: eliminará todos los sorteos, hipótesis y reglas.</p>
+      </div>
+
+
     </section>
   </main>
 
@@ -209,7 +227,7 @@
     import { mostrarGuia } from "./src/guide-grid.js";
     import { DB } from "./src/storage.js";
     import { importarManual } from "./src/importer.js";
-    import { registrarHechos, crearHipotesis, registrarResultado } from "./src/narrative.js";
+    import { crearHipotesis, registrarResultado } from "./src/narrative.js";
     import { analizarYProponer } from "./src/reasoning.js";
     import { generarCruceta, generarTrianguloInvertido, dibujarTrianguloInvertido } from "./src/geometry.js";
     import { cargarGuia, GUIA, getColorPolaridad } from "./src/loader.js";
@@ -220,21 +238,484 @@
     await cargarGuia();
 
     const todayISO = new Date().toISOString().slice(0, 10);
-    ["day-fecha", "h-fecha", "g-fecha"].forEach(id => {
+    ["day-fecha", "h-fecha", "g-fecha"].forEach((id) => {
       const el = document.getElementById(id);
       if (el && !el.value) el.value = todayISO;
     });
 
+    const SLOT_CONFIG = [
+      {
+        key: "11AM",
+        inputId: "n-11",
+        buttonId: "save-11",
+        checkboxId: "test-11",
+        ballId: "b-11",
+        symId: "s-11",
+      },
+      {
+        key: "3PM",
+        inputId: "n-3",
+        buttonId: "save-3",
+        checkboxId: "test-3",
+        ballId: "b-3",
+        symId: "s-3",
+      },
+      {
+        key: "9PM",
+        inputId: "n-9",
+        buttonId: "save-9",
+        checkboxId: "test-9",
+        ballId: "b-9",
+        symId: "s-9",
+      },
+    ];
+
+    const formatNumber = (n) => String(n).padStart(2, "0");
+
+    const getSymbol = (numero) => {
+      const entry = GUIA[formatNumber(numero)];
+      return entry?.simbolo || "";
+    };
+
+    const getFilters = () => ({
+      fecha: document.getElementById("day-fecha")?.value,
+      pais: document.getElementById("day-pais")?.value,
+    });
+
+    function pickDraw(draws, fecha, pais, horario) {
+      if (!fecha || !pais) return null;
+      const matching = draws
+        .filter((d) => d.fecha === fecha && d.pais === pais && d.horario === horario)
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      if (!matching.length) return null;
+      return matching
+        .slice()
+        .reverse()
+        .find((d) => !d.isTest) ?? matching[matching.length - 1];
+    }
+
+    function applyDrawToSlot(config, draw) {
+      const ball = document.getElementById(config.ballId);
+      const sym = document.getElementById(config.symId);
+      if (!ball || !sym) return;
+      if (!draw) {
+        ball.textContent = "--";
+        ball.classList.remove("small");
+        ball.removeAttribute("data-numero");
+        ball.style.borderColor = "";
+        ball.style.color = "";
+        sym.textContent = "";
+        sym.removeAttribute("title");
+        return;
+      }
+      const numero = formatNumber(draw.numero);
+      const color = getColorPolaridad(draw.numero);
+      ball.textContent = numero;
+      ball.dataset.numero = numero;
+      ball.classList.toggle("small", !!draw.isTest);
+      ball.style.borderColor = color;
+      ball.style.color = color;
+      sym.textContent = getSymbol(draw.numero);
+      sym.title = draw.isTest ? "Modo prueba" : sym.textContent || "";
+    }
+
+    async function refreshSlots() {
+      const { fecha, pais } = getFilters();
+      const draws = await DB.listDraws({ excludeTest: false });
+      SLOT_CONFIG.forEach((config) => {
+        const draw = pickDraw(draws, fecha, pais, config.key);
+        applyDrawToSlot(config, draw);
+      });
+    }
+
+    SLOT_CONFIG.forEach((config) => {
+      const btn = document.getElementById(config.buttonId);
+      if (!btn) return;
+      btn.addEventListener("click", async () => {
+        const { fecha, pais } = getFilters();
+        if (!fecha || !pais) {
+          alert("Selecciona fecha y país antes de guardar.");
+          return;
+        }
+        const input = document.getElementById(config.inputId);
+        const raw = input?.value.trim() ?? "";
+        if (!/^\d{1,2}$/.test(raw)) {
+          alert("Ingresa un número válido (00-99).");
+          return;
+        }
+        const numero = parseInt(raw, 10);
+        if (numero < 0 || numero > 99) {
+          alert("El número debe estar entre 00 y 99.");
+          return;
+        }
+        const testCheck = document.getElementById(config.checkboxId);
+        const opts = testCheck?.checked ? { source: "test" } : {};
+        try {
+          await importarManual({ fecha, pais, horario: config.key, numero }, opts);
+          input.value = "";
+          if (testCheck) testCheck.checked = false;
+          await refreshSlots();
+        } catch (err) {
+          console.error("saveDraw error", err);
+          alert(`No se pudo guardar el sorteo: ${err.message}`);
+        }
+      });
+    });
+
+    const dayFecha = document.getElementById("day-fecha");
+    const dayPais = document.getElementById("day-pais");
+    dayFecha?.addEventListener("change", refreshSlots);
+    dayPais?.addEventListener("change", refreshSlots);
+
+    const btnAprender = document.getElementById("btn-aprender-dia");
+    btnAprender?.addEventListener("click", async () => {
+      const { fecha, pais } = getFilters();
+      if (!fecha || !pais) {
+        alert("Selecciona fecha y país para procesar el aprendizaje.");
+        return;
+      }
+      const draws = (await DB.listDraws({ excludeTest: true })).filter(
+        (d) => d.fecha === fecha && d.pais === pais
+      );
+      if (!draws.length) {
+        alert("No hay sorteos reales registrados para esa fecha y país.");
+        return;
+      }
+      try {
+        for (const draw of draws) {
+          const simbolo = getSymbol(draw.numero);
+          await registrarResultado(draw.numero, simbolo);
+        }
+        await refreshHypotesis();
+        alert("Hipótesis actualizadas con los resultados del día.");
+      } catch (err) {
+        console.error("aprendizaje error", err);
+        alert(`Error al registrar resultados: ${err.message}`);
+      }
+    });
+
+    async function refreshHypotesis() {
+      const cont = document.getElementById("h-list");
+      if (!cont) return;
+      const hyps = await DB._getAll("hypotheses");
+      if (!hyps.length) {
+        cont.innerHTML = "<p class='hint'>Aún no hay hipótesis registradas.</p>";
+        return;
+      }
+      hyps.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      cont.innerHTML = "";
+      for (const h of hyps) {
+        const card = document.createElement("div");
+        card.className = "card";
+        const estado = h.estado || "pendiente";
+        const fecha = h.fecha || "(sin fecha)";
+        const turno = h.turno || "";
+        const razones = (h.razones || []).filter(Boolean).join(" · ") || "Sin notas";
+        card.innerHTML = `
+          <div class="card-head">${formatNumber(h.numero)} ${h.simbolo || getSymbol(h.numero)
+          } · <span style="text-transform:capitalize">${estado}</span></div>
+          <div class="card-body" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <span class="hint">Fecha: ${fecha} ${turno ? "• " + turno : ""}</span>
+            <span class="hint">Notas: ${razones}</span>
+          </div>
+        `;
+        cont.appendChild(card);
+      }
+    }
+
+    const btnHipotesis = document.getElementById("h-guardar");
+    btnHipotesis?.addEventListener("click", async () => {
+      const fecha = document.getElementById("h-fecha")?.value;
+      const turno = document.getElementById("h-turno")?.value;
+      const numeroRaw = document.getElementById("h-numero")?.value.trim() ?? "";
+      const texto = document.getElementById("h-texto")?.value.trim() ?? "";
+      if (!/^\d{1,2}$/.test(numeroRaw)) {
+        alert("Ingresa un número válido (00-99) para la hipótesis.");
+        return;
+      }
+      const numero = parseInt(numeroRaw, 10);
+      try {
+        await crearHipotesis(numero, getSymbol(numero), texto, { fecha, turno });
+        const txt = document.getElementById("h-texto");
+        if (txt) txt.value = "";
+        await refreshHypotesis();
+        alert("Hipótesis guardada.");
+      } catch (err) {
+        console.error("crearHipotesis error", err);
+        alert(`No se pudo guardar la hipótesis: ${err.message}`);
+      }
+    });
+
+    const btnAnalizar = document.getElementById("btn-analizar");
+    const resultEscenarios = document.getElementById("result-escenarios");
+    const resultRecomendacion = document.getElementById("result-recomendacion");
+
+    btnAnalizar?.addEventListener("click", async () => {
+      if (resultEscenarios) resultEscenarios.innerHTML = "<p class='hint'>Analizando…</p>";
+      if (resultRecomendacion) resultRecomendacion.innerHTML = "";
+      try {
+        const analisis = await analizarYProponer(GUIA);
+        const patrones = await detectarPatrones();
+
+        renderEscenarios(analisis.escenarios || [], patrones);
+        renderRecomendaciones(analisis.recomendacion || [], analisis.nota);
+      } catch (err) {
+        console.error("analizar error", err);
+        if (resultEscenarios)
+          resultEscenarios.innerHTML = `<p class='hint'>No se pudo completar el análisis: ${err.message}</p>`;
+      }
+    });
+
+    function renderEscenarios(escenarios, patrones) {
+      if (!resultEscenarios) return;
+      resultEscenarios.innerHTML = "";
+      if (patrones?.mensaje) {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="card-head">Tendencias recientes</div>
+          <div class="card-body" style="flex-direction:column;gap:6px;align-items:flex-start;">
+            <span class="hint">${patrones.mensaje}</span>
+          </div>
+        `;
+        resultEscenarios.appendChild(card);
+      }
+      if (!escenarios.length) {
+        resultEscenarios.innerHTML += "<p class='hint'>No hay escenarios disponibles. Registra sorteos para obtener proyecciones.</p>";
+        return;
+      }
+      for (const esc of escenarios) {
+        const card = document.createElement("div");
+        card.className = "card";
+        const conf = Math.round((esc.confianza || 0) * 100);
+        const body = document.createElement("div");
+        body.className = "card-body";
+        body.style.flexDirection = "column";
+        body.style.gap = "6px";
+        body.style.alignItems = "flex-start";
+        const lista = document.createElement("div");
+        lista.style.display = "flex";
+        lista.style.flexWrap = "wrap";
+        lista.style.gap = "8px";
+        for (const cand of esc.candidatos || []) {
+          const pill = document.createElement("div");
+          pill.className = "pill gold";
+          pill.style.borderColor = getColorPolaridad(cand.numero);
+          pill.innerHTML = `<span>${formatNumber(cand.numero)}</span><span>${cand.simbolo || getSymbol(cand.numero) || ""
+            }</span>`;
+          pill.title = (cand.razones || []).join(" · ") || "";
+          lista.appendChild(pill);
+        }
+        card.innerHTML = `
+          <div class="card-head">${esc.nombre || "Escenario"} — conf ${conf}%</div>
+        `;
+        body.appendChild(lista);
+        if (esc.explicacion) {
+          const hint = document.createElement("span");
+          hint.className = "hint";
+          hint.textContent = esc.explicacion;
+          body.appendChild(hint);
+        }
+        card.appendChild(body);
+        resultEscenarios.appendChild(card);
+      }
+    }
+
+    function renderRecomendaciones(recomendacion, nota) {
+      if (!resultRecomendacion) return;
+      resultRecomendacion.innerHTML = "";
+      if (!recomendacion.length) {
+        resultRecomendacion.innerHTML = "<p class='hint'>Sin recomendaciones por el momento.</p>";
+        return;
+      }
+      const card = document.createElement("div");
+      card.className = "card";
+      const body = document.createElement("div");
+      body.className = "card-body";
+      body.style.display = "flex";
+      body.style.flexWrap = "wrap";
+      body.style.gap = "10px";
+      for (const cand of recomendacion) {
+        const pill = document.createElement("div");
+        pill.className = "pill gold";
+        pill.style.borderColor = getColorPolaridad(cand.numero);
+        pill.innerHTML = `<span>${formatNumber(cand.numero)}</span><span>${cand.simbolo || getSymbol(cand.numero) || ""
+          }</span>`;
+        pill.title = (cand.razones || []).join(" · ") || "";
+        body.appendChild(pill);
+      }
+      if (nota) {
+        const hint = document.createElement("span");
+        hint.className = "hint";
+        hint.textContent = nota;
+        body.appendChild(hint);
+      }
+      card.innerHTML = `<div class="card-head">Recomendación consolidada</div>`;
+      card.appendChild(body);
+      resultRecomendacion.appendChild(card);
+    }
+
+    const toggleTech = document.getElementById("toggle-tech");
+    const memOut = document.getElementById("mem-out");
+    toggleTech?.addEventListener("click", async () => {
+      if (!memOut) return;
+      memOut.classList.toggle("hidden");
+      if (!memOut.classList.contains("hidden")) {
+        const draws = await DB.listDraws({ excludeTest: false });
+        memOut.textContent = JSON.stringify(draws.slice(-50), null, 2);
+      }
+    });
+
+    const btnTransform = document.getElementById("t-ver");
+    btnTransform?.addEventListener("click", () => {
+      const raw = document.getElementById("t-numero")?.value.trim() ?? "";
+      const numero = parseInt(raw, 10);
+      mostrarTransformaciones(numero);
+    });
+
+    const btnGeometria = document.getElementById("g-generar");
+    btnGeometria?.addEventListener("click", () => {
+      const fecha = document.getElementById("g-fecha")?.value;
+      if (!fecha) {
+        alert("Selecciona una fecha para generar la cruceta/triángulo.");
+        return;
+      }
+      const cruceta = generarCruceta(fecha);
+      renderCruceta(cruceta);
+      const niveles = generarTrianguloInvertido(fecha);
+      const contTri = document.getElementById("g-tri");
+      if (contTri) dibujarTrianguloInvertido(contTri, niveles);
+    });
+
+    function renderCruceta(data) {
+      const cont = document.getElementById("g-cruceta");
+      if (!cont) return;
+      cont.innerHTML = `
+        <div class="c-row">
+          <div class="ball small">${formatNumber(data.norte)}</div>
+        </div>
+        <div class="c-row">
+          <div class="ball small">${formatNumber(data.oeste)}</div>
+          <div class="ball small">${formatNumber(data.centro)}</div>
+          <div class="ball small">${formatNumber(data.este)}</div>
+        </div>
+        <div class="c-row">
+          <div class="ball small">${formatNumber(data.sur)}</div>
+        </div>
+      `;
+    }
+
+    const btnDup = document.getElementById("btn-list-dup");
+    const btnMarkTestDup = document.getElementById("btn-marktest-dup");
+    const btnDeleteDup = document.getElementById("btn-delete-dup");
+    const dupOut = document.getElementById("dup-out");
+
+    btnDup?.addEventListener("click", refreshDuplicados);
+
+    btnMarkTestDup?.addEventListener("click", async () => {
+      const ids = getSelectedDupIds();
+      if (!ids.length) {
+        alert("Selecciona al menos un registro duplicado.");
+        return;
+      }
+      try {
+        await marcarGrupoComoTest(ids);
+        await refreshDuplicados();
+        await refreshSlots();
+      } catch (err) {
+        console.error("mark dup error", err);
+        alert(`No se pudo marcar como prueba: ${err.message}`);
+      }
+    });
+
+    btnDeleteDup?.addEventListener("click", async () => {
+      const ids = getSelectedDupIds();
+      if (!ids.length) {
+        alert("Selecciona registros para eliminar.");
+        return;
+      }
+      if (!confirm("¿Eliminar los registros seleccionados?")) return;
+      try {
+        await borrarIds(ids);
+        await refreshDuplicados();
+        await refreshSlots();
+      } catch (err) {
+        console.error("delete dup error", err);
+        alert(`No se pudieron eliminar los registros: ${err.message}`);
+      }
+    });
+
+    async function refreshDuplicados() {
+      if (!dupOut) return;
+      dupOut.innerHTML = "<p class='hint'>Buscando duplicados…</p>";
+      try {
+        const grupos = await revisarDuplicados();
+        if (!grupos.length) {
+          dupOut.innerHTML = "<p class='hint'>Sin duplicados detectados.</p>";
+          return;
+        }
+        dupOut.innerHTML = "";
+        grupos.forEach((group, idx) => {
+          const box = document.createElement("div");
+          box.className = "card";
+          box.style.width = "100%";
+          box.style.marginBottom = "10px";
+          const head = document.createElement("div");
+          head.className = "card-head";
+          head.textContent = `Grupo #${idx + 1}`;
+          const list = document.createElement("div");
+          list.className = "card-body";
+          list.style.flexDirection = "column";
+          list.style.alignItems = "flex-start";
+          group.forEach((reg) => {
+            const label = document.createElement("label");
+            label.className = "symbol-tag";
+            label.innerHTML = `
+              <input type="checkbox" value="${reg.id}" />
+              <span>${formatNumber(reg.numero)}</span>
+              <span>${reg.fecha} ${reg.horario} ${reg.pais}</span>
+              <span class="hint">${reg.isTest ? "test" : "real"}</span>
+            `;
+            list.appendChild(label);
+          });
+          box.appendChild(head);
+          box.appendChild(list);
+          dupOut.appendChild(box);
+        });
+      } catch (err) {
+        console.error("dup error", err);
+        dupOut.innerHTML = `<p class='hint'>No se pudieron obtener duplicados: ${err.message}</p>`;
+      }
+    }
+
+    function getSelectedDupIds() {
+      if (!dupOut) return [];
+      return Array.from(dupOut.querySelectorAll("input[type='checkbox']:checked"))
+        .map((el) => parseInt(el.value, 10))
+        .filter((n) => !Number.isNaN(n));
+    }
+
     // ✅ Cambio de vistas
-    const views = { day: "view-day", hypo: "view-hypo", analysis: "view-analysis", geometry: "view-geometry", memory: "view-memory", guide: "view-guide", config: "view-config", maint: "view-maint" };
-    document.querySelectorAll(".sidebar button").forEach(b => {
+    const views = {
+      day: "view-day",
+      hypo: "view-hypo",
+      analysis: "view-analysis",
+      geometry: "view-geometry",
+      memory: "view-memory",
+      guide: "view-guide",
+      config: "view-config",
+      maint: "view-maint",
+    };
+    document.querySelectorAll(".sidebar button").forEach((b) => {
       b.onclick = () => {
-        document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
+        document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
         const id = views[b.dataset.view];
         const el = document.getElementById(id);
         if (!el) return console.warn("Vista no encontrada:", id);
         el.classList.remove("hidden");
         if (id === "view-guide") mostrarGuia();
+        if (id === "view-hypo") refreshHypotesis();
+        if (id === "view-maint") refreshDuplicados();
       };
     });
 
@@ -247,7 +728,189 @@
       });
     }
 
+    await refreshHypotesis();
+    await refreshSlots();
+
+    // === SISTEMA DE MODALES UNIFICADO ===
+    function mostrarModal(titulo, mensaje, opciones = {}) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById("sys-modal");
+        const tEl = document.getElementById("modal-title");
+        const mEl = document.getElementById("modal-msg");
+        const okBtn = document.getElementById("modal-ok");
+        const cancelBtn = document.getElementById("modal-cancel");
+
+        if (!modal) return resolve(false);
+
+        // Personalizar texto
+        tEl.textContent = titulo || "Confirmar acción";
+        mEl.textContent = mensaje || "¿Deseas continuar?";
+        okBtn.textContent = opciones.okText || "Aceptar";
+        cancelBtn.textContent = opciones.cancelText || "Cancelar";
+
+        // Mostrar modal
+        modal.classList.remove("hidden");
+
+        // Manejo de cierre
+        const cerrar = (res) => {
+          modal.classList.add("hidden");
+          okBtn.onclick = cancelBtn.onclick = null;
+          resolve(res);
+        };
+
+        okBtn.onclick = () => cerrar(true);
+        cancelBtn.onclick = () => cerrar(false);
+      });
+    }
+
+    // === Notificación breve (sin botones, tipo toast simple) ===
+    function mostrarAviso(mensaje) {
+      const modal = document.getElementById("sys-modal");
+      const tEl = document.getElementById("modal-title");
+      const mEl = document.getElementById("modal-msg");
+      const okBtn = document.getElementById("modal-ok");
+      const cancelBtn = document.getElementById("modal-cancel");
+
+      tEl.textContent = "Aviso";
+      mEl.textContent = mensaje;
+      okBtn.textContent = "Cerrar";
+      cancelBtn.style.display = "none";
+      modal.classList.remove("hidden");
+
+      okBtn.onclick = () => {
+        modal.classList.add("hidden");
+        cancelBtn.style.display = "";
+      };
+    }
+
+
+    // === NUEVA FUNCIÓN COMPLETA: Mostrar/Ocultar y eliminar sorteos individualmente ===
+    // === Mostrar/Ocultar y eliminar sorteos individualmente (versión robusta) ===
+    const btnListAll = document.getElementById("btn-list-all");
+    const allOut = document.getElementById("all-out");
+
+    async function renderAllTable() {
+      if (!allOut) return;
+      allOut.innerHTML = "<p class='hint'>Cargando todos los sorteos…</p>";
+
+      const draws = await DB.listDraws({ excludeTest: false });
+      if (!draws.length) {
+        allOut.innerHTML = "<p class='hint'>No hay sorteos registrados aún.</p>";
+        return;
+      }
+
+      const table = document.createElement("table");
+      table.className = "table-history";
+      table.innerHTML = `
+    <thead>
+      <tr>
+        <th>#</th><th>Fecha</th><th>País</th><th>Horario</th>
+        <th>Número</th><th>Símbolo</th><th>Tipo</th><th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+      const tbody = table.querySelector("tbody");
+
+      draws.forEach((d, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${d.fecha}</td>
+      <td>${d.pais}</td>
+      <td>${d.horario}</td>
+      <td class="num">${String(d.numero).padStart(2, "0")}</td>
+      <td class="sym">${GUIA[String(d.numero).padStart(2, "0")]?.simbolo || "—"}</td>
+      <td class="${d.isTest ? "test" : ""}">${d.isTest ? "prueba" : "real"}</td>
+      <td>
+        <button type="button" class="btn-del" data-id="${d.id}">🗑</button>
+      </td>
+    `;
+        tbody.appendChild(tr);
+      });
+
+      allOut.innerHTML = "";
+      allOut.appendChild(table);
+    }
+
+    btnListAll?.addEventListener("click", async () => {
+      if (!allOut) return;
+
+      // Toggle: ocultar si está visible
+      if (allOut.dataset.visible === "true") {
+        allOut.innerHTML = "";
+        allOut.dataset.visible = "false";
+        btnListAll.textContent = "Ver todos";
+        return;
+      }
+
+      // Mostrar
+      await renderAllTable();
+      allOut.dataset.visible = "true";
+      btnListAll.textContent = "Ocultar tabla";
+    });
+
+    // 🔒 Delegación de eventos sobre el contenedor (funciona aunque se regenere la tabla)
+    allOut?.addEventListener("click", async (ev) => {
+      const delBtn = ev.target.closest?.(".btn-del");
+      if (!delBtn) return;
+
+      const id = Number(delBtn.dataset.id);
+      if (!Number.isFinite(id)) return;
+
+      // Guardar referencias ANTES del modal
+      const fila = delBtn.closest("tr");
+
+      const confirmar = await mostrarModal(
+        "Eliminar sorteo",
+        "¿Seguro que deseas eliminar este sorteo permanentemente?",
+        { okText: "Eliminar", cancelText: "Cancelar" }
+      );
+      if (!confirmar) return;
+
+      try {
+        await DB.deleteDrawById(id);
+        if (fila) fila.remove();
+        // Si queda la tabla vacía, no forzamos recarga; el usuario puede pulsar "Ocultar" y "Ver todos".
+        mostrarAviso("Sorteo eliminado correctamente.");
+      } catch (err) {
+        console.error("delete draw error", err);
+        mostrarAviso(`Error al eliminar: ${err.message}`);
+      }
+    });
+
+
+
+    // === Botón para reiniciar completamente la base ===
+    const btnNuke = document.getElementById("btn-nuke");
+    btnNuke?.addEventListener("click", async () => {
+      if (!confirm("⚠️ ¿Seguro que deseas borrar TODOS los datos del sistema?")) return;
+      try {
+        await DB.nuke();
+        alert("Base de datos vaciada correctamente. Reinicia la página para comenzar desde cero.");
+      } catch (err) {
+        console.error("nuke error", err);
+        alert(`Error al intentar limpiar la base: ${err.message}`);
+      }
+    });
+
   </script>
+  <!-- === MODAL DEL SISTEMA === -->
+  <div id="sys-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3 id="modal-title">Confirmar acción</h3>
+      </div>
+      <div class="modal-body">
+        <p id="modal-msg"></p>
+      </div>
+      <div class="modal-foot">
+        <button id="modal-cancel">Cancelar</button>
+        <button id="modal-ok">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 
 </html>
