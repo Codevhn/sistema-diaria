@@ -220,8 +220,9 @@ button.ghost:hover {
 }
 .triple {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 24px;
+  align-items: stretch;
 }
 .slot {
   background: var(--color-surface-2);
@@ -232,6 +233,7 @@ button.ghost:hover {
   flex-direction: column;
   gap: 12px;
   box-shadow: var(--shadow-soft);
+  min-width: 0;
 }
 .slot-title {
   font-weight: 600;
@@ -239,6 +241,36 @@ button.ghost:hover {
   text-align: center;
   font-size: 16px;
   letter-spacing: 0.04em;
+}
+
+.slot-controls {
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.slot-controls > input {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.slot-controls button {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.slot-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-muted);
+  flex: 0 0 auto;
+}
+
+.slot-flag input {
+  width: auto;
+  accent-color: rgba(79, 155, 255, 0.8);
 }
 .ball-row {
   display: flex;
