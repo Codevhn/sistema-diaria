@@ -297,6 +297,93 @@ function summarizeRepetitions(events, total, tipo) {
   return { count, ratio, recientes };
 }
 
+function detectDoublePatterns({ timeline, historial }) {
+  if (!timeline.length) return [];
+
+  const countByDay = new Map();
+  const totalByDay = new Map();
+  const samplesByDay = new Map();
+
+  timeline.forEach((draw) => {
+    const dow = draw.dayOfWeek;
+    if (dow === undefined || dow === null) return;
+    if (!totalByDay.has(dow)) {
+      totalByDay.set(dow, 0);
+      countByDay.set(dow, 0);
+      samplesByDay.set(dow, []);
+    }
+    totalByDay.set(dow, totalByDay.get(dow) + 1);
+    if (isDouble(draw.numero)) {
+      countByDay.set(dow, countByDay.get(dow) + 1);
+      const arr = samplesByDay.get(dow);
+      arr.push({ fecha: draw.fecha, horario: draw.horario, numero: draw.numero });
+      if (arr.length > 6) arr.shift();
+    }
+  });
+
+  const historialCountByDay = new Map();
+  const historialTotalByDay = new Map();
+  historial.forEach((draw) => {
+    const dow = draw.dayOfWeek;
+    if (dow === undefined || dow === null) return;
+    if (!historialTotalByDay.has(dow)) {
+      historialTotalByDay.set(dow, 0);
+      historialCountByDay.set(dow, 0);
+    }
+    historialTotalByDay.set(dow, historialTotalByDay.get(dow) + 1);
+    if (isDouble(draw.numero)) {
+      historialCountByDay.set(dow, historialCountByDay.get(dow) + 1);
+    }
+  });
+
+  const hallazgos = [];
+
+  countByDay.forEach((count, dow) => {
+    const total = totalByDay.get(dow) || 0;
+    if (total < 3) return;
+    const ratio = total ? count / total : 0;
+    if (ratio < 0.45) return;
+
+    const historialCount = historialCountByDay.get(dow) || 0;
+    const historialTotal = historialTotalByDay.get(dow) || 0;
+    const historialRatio = historialTotal ? historialCount / historialTotal : 0;
+    const respaldado = historialCount >= 3 && historialRatio >= 0.3;
+    const scoreFinal = Math.min(1, ratio * 0.6 + historialRatio * 0.4);
+    if (!respaldado && ratio < 0.6) return;
+
+    const muestras = (samplesByDay.get(dow) || []).map((sample) =>
+      `${formatSample(sample)} · ${formatNumber(sample.numero)}`
+    );
+
+    hallazgos.push({
+      id: `double-dow-${dow}`,
+      titulo: `Dobles destacan en ${DOW_FULL[dow] || DOW_LABEL[dow]}`,
+      confianza: scoreFinal,
+      resumen: respaldado
+        ? `En la ventana apareció ${count} de ${total} (${Math.round(ratio * 100)}%) como pares dobles.`
+        : `Patrón emergente: ${count}/${total} pares dobles recientes en ${DOW_FULL[dow] || ""}.`,
+      evidencia: [],
+      hipotesis: [],
+      datos: {
+        tipo: "dobles",
+        diaSemana: DOW_FULL[dow] || DOW_LABEL[dow],
+        total,
+        count,
+        ratio,
+        muestras,
+        historial: {
+          count: historialCount,
+          total: historialTotal,
+          ratio: historialRatio,
+          respaldado,
+        },
+      },
+    });
+  });
+
+  return hallazgos;
+}
+
 function computeAndFilterRepetitions(timeline, tipo) {
   const results = [];
   const lastOccurrence = new Map();
@@ -453,8 +540,9 @@ function detectWindowPatterns({ timeline, historial = [], hypothesisMap }) {
     tituloPrefix: "Turno dominante",
   });
   const repeatPatterns = detectConsecutiveRepetitions({ timeline, historial, hypothesisMap });
+  const doublePatterns = detectDoublePatterns({ timeline, historial });
 
-  return [...gapPatterns, ...dowPatterns, ...turnoPatterns, ...repeatPatterns];
+  return [...gapPatterns, ...dowPatterns, ...turnoPatterns, ...repeatPatterns, ...doublePatterns];
 }
 
 export async function detectarPatrones({ cantidad = 9 } = {}) {
