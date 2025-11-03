@@ -148,6 +148,17 @@ button {
   transition: border 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 
+textarea {
+  resize: vertical;
+}
+
+#h-texto {
+  resize: none;
+  min-height: 160px;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+
 input:focus,
 select:focus,
 textarea:focus {
