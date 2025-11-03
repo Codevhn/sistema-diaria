@@ -214,6 +214,9 @@ button.ghost:hover {
 }
 .view {
   display: block;
+  max-width: 980px;
+  margin: 0 auto 48px;
+  width: calc(100% - 48px);
 }
 .view.hidden {
   display: none;
@@ -225,22 +228,52 @@ button.ghost:hover {
   align-items: stretch;
 }
 .slot {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
+  position: relative;
+  background: radial-gradient(140% 170% at 0% 0%, rgba(120, 184, 255, 0.12), transparent 65%),
+    rgba(12, 20, 36, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-md);
-  padding: 18px;
+  padding: 20px 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  box-shadow: var(--shadow-soft);
+  gap: 16px;
+  box-shadow: 0 18px 40px rgba(7, 13, 26, 0.45);
   min-width: 0;
+  overflow: hidden;
+  --slot-accent: rgba(120, 184, 255, 0.4);
+}
+.slot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--slot-accent), transparent 60%);
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.slot > * {
+  position: relative;
+  z-index: 1;
+}
+.slot:hover::before {
+  opacity: 0.6;
 }
 .slot-title {
   font-weight: 600;
   color: var(--color-text);
-  text-align: center;
   font-size: 16px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.slot-header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 1;
 }
 
 .slot-controls {
@@ -266,11 +299,39 @@ button.ghost:hover {
   font-size: 13px;
   color: var(--color-muted);
   flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-left: auto;
+  transition: color 0.2s ease, border 0.2s ease;
 }
 
 .slot-flag input {
   width: auto;
   accent-color: rgba(79, 155, 255, 0.8);
+}
+.slot-flag:hover {
+  color: var(--color-text);
+  border-color: rgba(79, 155, 255, 0.4);
+}
+
+@media (max-width: 560px) {
+  .slot-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .slot-flag {
+    margin-left: 0;
+  }
+  .slot-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .slot-controls button {
+    margin-left: 0;
+    width: 100%;
+  }
 }
 .ball-row {
   display: flex;
@@ -319,11 +380,31 @@ button.ghost:hover {
   gap: 15px;
 }
 .card {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
+  position: relative;
+  background: radial-gradient(140% 160% at 0% 0%, rgba(167, 123, 255, 0.12), transparent 60%),
+    rgba(14, 18, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-md);
-  padding: 18px;
-  box-shadow: var(--shadow-soft);
+  padding: 20px;
+  box-shadow: 0 18px 38px rgba(5, 9, 18, 0.45);
+  overflow: hidden;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(140deg, rgba(167, 123, 255, 0.35), transparent 55%);
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.card:hover::before {
+  opacity: 0.6;
+}
+.card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .card-head {
@@ -331,6 +412,7 @@ button.ghost:hover {
   font-weight: 600;
   margin-bottom: 10px;
   letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 .card-body {
   display: flex;
@@ -1057,17 +1139,38 @@ button.ghost:hover {
 
 .mode-form,
 .mode-list {
-  background: var(--color-surface-2);
+  background: transparent;
 }
 
 .mode-item {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: linear-gradient(140deg, rgba(126, 214, 255, 0.12), transparent 55%),
+    rgba(14, 26, 44, 0.85);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: 0 14px 32px rgba(6, 12, 24, 0.35);
+  overflow: hidden;
+}
+.mode-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(126, 214, 255, 0.35), transparent 60%);
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.mode-item:hover::before {
+  opacity: 0.6;
+}
+.mode-item > * {
+  position: relative;
+  z-index: 1;
 }
 
 .mode-item-head {
