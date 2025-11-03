@@ -85,18 +85,16 @@ function computeWindowBounds(timeline) {
 
   const windowEnd = timeline[timeline.length - 1].fechaDate;
   const startOfYear = new Date(windowEnd.getFullYear(), 0, 1);
-  const fallbackCutoff = new Date(windowEnd.getTime() - ACTIVE_WINDOW_DAYS * DAY_MS);
-  let cutoff = startOfYear > fallbackCutoff ? startOfYear : fallbackCutoff;
+  let cutoff = startOfYear;
 
   let filtered = timeline.filter((draw) => draw.fechaDate >= cutoff);
 
-  if (filtered.length < MIN_RECENT_RECORDS && timeline.length >= MIN_RECENT_RECORDS) {
-    cutoff = fallbackCutoff;
-    filtered = timeline.filter((draw) => draw.fechaDate >= cutoff);
-  }
-
   if (!filtered.length) {
     cutoff = timeline[0].fechaDate;
+    filtered = timeline.slice();
+  } else if (filtered.length < MIN_RECENT_RECORDS && timeline.length >= MIN_RECENT_RECORDS) {
+    const earliest = timeline[0].fechaDate;
+    cutoff = earliest;
     filtered = timeline.slice();
   }
 
@@ -191,6 +189,23 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
 
 function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPrefix, sampleLimit = 4 }) {
   const byNumber = new Map();
+  const historialCounts = new Map();
+  const historialSamples = new Map();
+
+  historial.forEach((draw) => {
+    const bucketKey = draw[key];
+    if (bucketKey === undefined || bucketKey === null) return;
+    if (!historialCounts.has(draw.numero)) historialCounts.set(draw.numero, new Map());
+    if (!historialSamples.has(draw.numero)) historialSamples.set(draw.numero, new Map());
+    const countMap = historialCounts.get(draw.numero);
+    countMap.set(bucketKey, (countMap.get(bucketKey) || 0) + 1);
+    const sampleMap = historialSamples.get(draw.numero);
+    if (!sampleMap.has(bucketKey)) sampleMap.set(bucketKey, []);
+    const arr = sampleMap.get(bucketKey);
+    arr.push({ fecha: draw.fecha, horario: draw.horario });
+    if (arr.length > sampleLimit) arr.shift();
+  });
+
   timeline.forEach((draw) => {
     const bucketKey = draw[key];
     if (bucketKey === undefined || bucketKey === null) return;
@@ -225,6 +240,11 @@ function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPre
     const etiquetaCompleta =
       key === "dayOfWeek" ? DOW_FULL[bucketKey] || etiqueta : etiqueta;
 
+    const historicoBucket = historialCounts.get(numero)?.get(bucketKey) || 0;
+    const historicoTotal = Array.from((historialCounts.get(numero) || new Map()).values()).reduce((acc, v) => acc + v, 0);
+    const historialRatio = historicoTotal ? historicoBucket / historicoTotal : 0;
+    const historialMuestras = (historialSamples.get(numero)?.get(bucketKey) || []).slice(-sampleLimit).map(formatSample);
+
     hallazgos.push({
       id: `${key}-${numero}-${bucketKey}`,
       titulo: `${tituloPrefix} ${String(numero).padStart(2, "0")} domina ${etiqueta}`,
@@ -241,6 +261,12 @@ function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPre
         bucketKey,
         etiquetaCompleta,
         samples,
+        historial: {
+          count: historicoBucket,
+          total: historicoTotal,
+          ratio: historialRatio,
+          muestras: historialMuestras,
+        },
       },
     });
   });

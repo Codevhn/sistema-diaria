@@ -1551,10 +1551,11 @@
           const detailList = document.createElement("ul");
           detailList.className = "pattern-detail";
 
-          const addLine = (text) => {
+          const addLine = (text, className) => {
             if (!text) return;
             const li = document.createElement("li");
             li.textContent = text;
+            if (className) li.classList.add(className);
             detailList.appendChild(li);
           };
 
@@ -1590,6 +1591,13 @@
                 detailList.appendChild(li);
               });
             }
+            if (datos.historial?.count) {
+              const hist = datos.historial;
+              addLine(
+                `Historial: ${hist.count} coincidencias (${Math.round((hist.ratio || 0) * 100)}% del histórico).`
+              );
+              (hist.muestras || []).forEach((texto) => addLine(`• ${texto}`, "pattern-subentry"));
+            }
           } else if (hallazgo.id?.startsWith("horario")) {
             const datos = hallazgo.datos || {};
             const etiqueta = hallazgo.etiqueta || "";
@@ -1607,6 +1615,13 @@
                 detailList.appendChild(li);
               });
             }
+            if (datos.historial?.count) {
+              const hist = datos.historial;
+              addLine(
+                `Historial: ${hist.count} coincidencias (${Math.round((hist.ratio || 0) * 100)}% del histórico).`
+              );
+              (hist.muestras || []).forEach((texto) => addLine(`• ${texto}`, "pattern-subentry"));
+            }
           } else if (hallazgo.id?.startsWith("repeat-")) {
             const datos = hallazgo.datos || {};
             const tipo = datos.tipo || "";
@@ -1619,6 +1634,11 @@
               li.classList.add("pattern-subentry");
               detailList.appendChild(li);
             });
+            if (datos.historial?.count) {
+              addLine(
+                `Historial: ${datos.historial.count} repeticiones (${Math.round((datos.historial.ratio || 0) * 100)}% del histórico).`
+              );
+            }
           } else {
             addLine(hallazgo.resumen);
           }
