@@ -1,6 +1,14 @@
 import { DB } from "./storage.js";
 import { parseDrawDate } from "./date-utils.js";
 
+function normalizeModeParams(mode) {
+  if (!mode) return mode;
+  const operacion = mode.operacion || "";
+  const parametros = mode.parametros ?? null;
+  const offset = Number.isFinite(mode.offset) ? mode.offset : null;
+  return { ...mode, operacion, parametros, offset };
+}
+
 const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
 const MAX_LOOKAHEAD = 2;
 
@@ -127,7 +135,8 @@ export async function evaluarModos({ maxLookahead = MAX_LOOKAHEAD } = {}) {
   if (!timelines.length) return null;
 
   const modesWithExamples = await Promise.all(
-    modes.map(async (mode) => {
+    modes.map(async (modeRaw) => {
+      const mode = normalizeModeParams(modeRaw);
       const ejemplos = await DB.listGameModeExamples(mode.id);
       return { ...mode, ejemplos };
     })

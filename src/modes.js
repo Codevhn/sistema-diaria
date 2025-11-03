@@ -68,10 +68,20 @@ export async function listModesWithExamples() {
   const modes = await DB.listGameModes();
   const result = [];
   for (const mode of modes) {
+    await ensureModeSchema(mode);
     const ejemplos = await DB.listGameModeExamples(mode.id);
     result.push({ ...mode, ejemplos });
   }
   return result;
+}
+
+async function ensureModeSchema(mode) {
+  if (!mode || !mode.id) return;
+  const changes = {};
+  if (typeof mode.operacion === "undefined") changes.operacion = "";
+  if (typeof mode.parametros === "undefined") changes.parametros = null;
+  if (typeof mode.offset === "undefined") changes.offset = null;
+  if (Object.keys(changes).length) await DB.updateGameMode(mode.id, changes);
 }
 
 export async function logModeUsage(log) {
