@@ -1,4 +1,5 @@
 import { DB } from "./storage.js";
+
 export async function registrarHechos(hs) {
   for (const h of hs) {
     await DB.saveDraw(h);
@@ -29,23 +30,48 @@ export async function crearHipotesis(
   }
   return id;
 }
-export async function registrarResultado(numReal, simbReal) {
+
+export async function registrarResultado(result) {
+  if (!result || typeof result.numero === "undefined") {
+    throw new Error("registrarResultado: resultado inválido");
+  }
+  const numReal = typeof result.numero === "number" ? result.numero : parseInt(result.numero, 10);
+  const simbReal = result.simbolo;
   const all = await DB._getAll("hypotheses");
   for (const h of all) {
     if (h.estado !== "pendiente") continue;
-    if (
-      String(h.numero).padStart(2, "0") === String(numReal).padStart(2, "0")
-    ) {
-      await DB._update("hypotheses", h.id, { estado: "confirmada" });
-    } else {
-      await DB._update("hypotheses", h.id, { estado: "refutada" });
+    const match =
+      String(h.numero).padStart(2, "0") === String(numReal).padStart(2, "0");
+    const estado = match ? "confirmada" : "refutada";
+
+    await DB._update("hypotheses", h.id, { estado });
+
+    if (!match) {
       await DB._add("rules", {
         tipo: "conversion",
         descripcion: `${h.numero} ↔ ${numReal}`,
         parametros: { de: h.numero, a: numReal },
       });
     }
+
+    await DB.logHypothesisOutcome({
+      hypothesisId: h.id,
+      numero: h.numero,
+      estado,
+      fechaResultado: result.fecha,
+      paisResultado: result.pais,
+      horarioResultado: result.horario,
+      fechaHipotesis: h.fecha,
+      turnoHipotesis: h.turno,
+    });
   }
+
+  await DB.markPredictionResult({
+    fecha: result.fecha,
+    pais: result.pais,
+    numero: numReal,
+    horario: result.horario,
+  });
 }
 export async function registrarTema(desc, { fecha, refs = [] } = {}) {
   const rid = await DB._add("rules", {

@@ -17,6 +17,60 @@ db.version(2).stores({
   edges: "++id, fromFactId, toId, ruleId, weight, createdAt",
 });
 
+db.version(3).stores({
+  draws:
+    "++id, fecha, pais, horario, numero, isTest, createdAt, [fecha+pais+horario+numero]",
+  hypotheses: "++id, numero, simbolo, estado, fecha, turno, createdAt",
+  reasons: "++id, ownerType, ownerId, texto, tags, createdAt",
+  rules: "++id, tipo, descripcion, createdAt",
+  edges: "++id, fromFactId, toId, ruleId, weight, createdAt",
+  knowledge: "&key, scope, updatedAt",
+});
+
+db.version(4).stores({
+  draws:
+    "++id, fecha, pais, horario, numero, isTest, createdAt, [fecha+pais+horario+numero]",
+  hypotheses: "++id, numero, simbolo, estado, fecha, turno, createdAt",
+  reasons: "++id, ownerType, ownerId, texto, tags, createdAt",
+  rules: "++id, tipo, descripcion, createdAt",
+  edges: "++id, fromFactId, toId, ruleId, weight, createdAt",
+  knowledge: "&key, scope, updatedAt",
+  hypothesis_logs:
+    "++id, hypothesisId, numero, estado, fechaResultado, paisResultado, horarioResultado, createdAt, [numero+estado]",
+});
+
+db.version(5).stores({
+  draws:
+    "++id, fecha, pais, horario, numero, isTest, createdAt, [fecha+pais+horario+numero]",
+  hypotheses: "++id, numero, simbolo, estado, fecha, turno, createdAt",
+  reasons: "++id, ownerType, ownerId, texto, tags, createdAt",
+  rules: "++id, tipo, descripcion, createdAt",
+  edges: "++id, fromFactId, toId, ruleId, weight, createdAt",
+  knowledge: "&key, scope, updatedAt",
+  hypothesis_logs:
+    "++id, hypothesisId, numero, estado, fechaResultado, paisResultado, horarioResultado, createdAt, [numero+estado]",
+  prediction_logs:
+    "++id, targetFecha, targetPais, turno, numero, estado, createdAt, [targetFecha+targetPais]",
+});
+
+db.version(6).stores({
+  draws:
+    "++id, fecha, pais, horario, numero, isTest, createdAt, [fecha+pais+horario+numero]",
+  hypotheses: "++id, numero, simbolo, estado, fecha, turno, createdAt",
+  reasons: "++id, ownerType, ownerId, texto, tags, createdAt",
+  rules: "++id, tipo, descripcion, createdAt",
+  edges: "++id, fromFactId, toId, ruleId, weight, createdAt",
+  knowledge: "&key, scope, updatedAt",
+  hypothesis_logs:
+    "++id, hypothesisId, numero, estado, fechaResultado, paisResultado, horarioResultado, createdAt, [numero+estado]",
+  prediction_logs:
+    "++id, targetFecha, targetPais, turno, numero, estado, createdAt, [targetFecha+targetPais]",
+  game_modes: "++id, nombre, tipo, descripcion, createdAt",
+  game_mode_examples: "++id, modeId, original, resultado, nota, createdAt",
+  game_mode_logs:
+    "++id, modeId, fecha, pais, turno, notas, createdAt, [modeId+fecha]",
+});
+
 const withTimestamp = (data = {}) => ({
   ...data,
   createdAt: data.createdAt ?? Date.now(),
@@ -145,5 +199,187 @@ export const DB = {
     });
     return true;
   },
-};
 
+  async saveKnowledge(entries = []) {
+    if (!entries.length) return false;
+    const normalized = entries.map((entry) => ({
+      key: entry.key,
+      scope: entry.scope || "general",
+      data: entry.data ?? null,
+      updatedAt: entry.updatedAt ?? Date.now(),
+    }));
+    await db.knowledge.bulkPut(normalized);
+    return true;
+  },
+
+  async getKnowledgeByScope(scope) {
+    if (!scope) return db.knowledge.toArray();
+    return db.knowledge.where({ scope }).toArray();
+  },
+
+  async getKnowledge(key) {
+    if (!key) return null;
+    return db.knowledge.get(key);
+  },
+
+  async clearKnowledge(scope) {
+    if (!scope) return db.knowledge.clear();
+    const rows = await db.knowledge.where({ scope }).primaryKeys();
+    if (!rows.length) return false;
+    await db.knowledge.bulkDelete(rows);
+    return true;
+  },
+
+  async logHypothesisOutcome(data) {
+    const entry = {
+      hypothesisId: data.hypothesisId,
+      numero: data.numero,
+      estado: data.estado,
+      fechaResultado: data.fechaResultado,
+      paisResultado: data.paisResultado,
+      horarioResultado: data.horarioResultado,
+      fechaHipotesis: data.fechaHipotesis,
+      turnoHipotesis: data.turnoHipotesis,
+      createdAt: data.createdAt ?? Date.now(),
+    };
+    return db.hypothesis_logs.add(entry);
+  },
+
+  async getHypothesisLogs() {
+    return db.hypothesis_logs.toArray();
+  },
+
+  async getHypothesisLogsByNumber(numero) {
+    return db.hypothesis_logs.where({ numero }).toArray();
+  },
+
+  async logPredictions(predictions = [], context = {}) {
+    if (!predictions.length) return false;
+    const targetFecha = context.fecha ?? null;
+    const targetPais = context.pais ?? null;
+    const turno = context.turno ?? null;
+
+    if (targetFecha !== null || targetPais !== null) {
+      await db.prediction_logs
+        .where("[targetFecha+targetPais]")
+        .equals([targetFecha, targetPais])
+        .filter((row) => row.estado === "pendiente")
+        .modify((row) => {
+          row.estado = "descartado";
+          row.closedAt = Date.now();
+        });
+    }
+
+    const now = Date.now();
+    const entries = predictions.map((p, idx) => ({
+      targetFecha,
+      targetPais,
+      turno: p.turno ?? turno ?? null,
+      numero: p.numero,
+      score: p.score ?? null,
+      estado: "pendiente",
+      createdAt: now + idx,
+    }));
+    await db.prediction_logs.bulkAdd(entries);
+    return true;
+  },
+
+  async markPredictionResult({ fecha, pais, numero, horario }) {
+    const targetFecha = fecha ?? null;
+    const targetPais = pais ?? null;
+    const match = await db.prediction_logs
+      .where("[targetFecha+targetPais]")
+      .equals([targetFecha, targetPais])
+      .and((row) => row.estado === "pendiente" && row.numero === numero)
+      .first();
+    if (!match) return false;
+    await db.prediction_logs.update(match.id, {
+      estado: "acierto",
+      resultadoHorario: horario ?? match.turno ?? null,
+      resolvedAt: Date.now(),
+    });
+    return true;
+  },
+
+  async closePredictionBatch({ fecha, pais }) {
+    const targetFecha = fecha ?? null;
+    const targetPais = pais ?? null;
+    await db.prediction_logs
+      .where("[targetFecha+targetPais]")
+      .equals([targetFecha, targetPais])
+      .filter((row) => row.estado === "pendiente")
+      .modify((row) => {
+        row.estado = "fallo";
+        row.resolvedAt = Date.now();
+      });
+    return true;
+  },
+
+  async getPredictionLogs() {
+    return db.prediction_logs.toArray();
+  },
+
+  async createGameMode({ nombre, tipo, descripcion }) {
+    return db.game_modes.add({
+      nombre,
+      tipo,
+      descripcion,
+      createdAt: Date.now(),
+    });
+  },
+
+  async updateGameMode(id, changes) {
+    return db.game_modes.update(id, changes);
+  },
+
+  async listGameModes() {
+    return db.game_modes.orderBy("createdAt").toArray();
+  },
+
+  async deleteGameMode(id) {
+    await db.game_modes.delete(id);
+    const examples = await db.game_mode_examples.where({ modeId: id }).primaryKeys();
+    if (examples.length) await db.game_mode_examples.bulkDelete(examples);
+    const logs = await db.game_mode_logs.where({ modeId: id }).primaryKeys();
+    if (logs.length) await db.game_mode_logs.bulkDelete(logs);
+    return true;
+  },
+
+  async addGameModeExample({ modeId, original, resultado, nota }) {
+    return db.game_mode_examples.add({
+      modeId,
+      original,
+      resultado,
+      nota,
+      createdAt: Date.now(),
+    });
+  },
+
+  async listGameModeExamples(modeId) {
+    if (!modeId) return [];
+    return db.game_mode_examples.where({ modeId }).toArray();
+  },
+
+  async deleteGameModeExample(id) {
+    return db.game_mode_examples.delete(id);
+  },
+
+  async logGameModeUsage({ modeId, fecha, pais, turno, notas }) {
+    if (!modeId) throw new Error("logGameModeUsage: modeId requerido");
+    return db.game_mode_logs.add({
+      modeId,
+      fecha,
+      pais,
+      turno,
+      notas,
+      createdAt: Date.now(),
+    });
+  },
+
+  async listGameModeLogs({ modeId, fecha } = {}) {
+    let collection = db.game_mode_logs;
+    if (modeId) collection = collection.where({ modeId });
+    const rows = await collection.toArray();
+    return fecha ? rows.filter((row) => row.fecha === fecha) : rows;
+  },
+};
