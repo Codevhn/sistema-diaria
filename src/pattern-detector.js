@@ -8,6 +8,15 @@ const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
 const ACTIVE_WINDOW_DAYS = 120;
 const MIN_RECENT_RECORDS = 30;
 const DOW_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const DOW_FULL = [
+  "Domingo",
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+];
 
 function toNumber(value) {
   const n = typeof value === "number" ? value : parseInt(value, 10);
@@ -172,28 +181,41 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
   return hallazgos;
 }
 
-function detectTemporalBias({ timeline, key, labelMap, tituloPrefix }) {
+function detectTemporalBias({ timeline, key, labelMap, tituloPrefix, sampleLimit = 4 }) {
   const byNumber = new Map();
   timeline.forEach((draw) => {
     const bucketKey = draw[key];
     if (bucketKey === undefined || bucketKey === null) return;
-    if (!byNumber.has(draw.numero)) byNumber.set(draw.numero, new Map());
-    const bucket = byNumber.get(draw.numero);
-    bucket.set(bucketKey, (bucket.get(bucketKey) || 0) + 1);
+    if (!byNumber.has(draw.numero)) {
+      byNumber.set(draw.numero, {
+        counts: new Map(),
+        samples: new Map(),
+      });
+    }
+    const store = byNumber.get(draw.numero);
+    store.counts.set(bucketKey, (store.counts.get(bucketKey) || 0) + 1);
+    if (!store.samples.has(bucketKey)) store.samples.set(bucketKey, []);
+    const arr = store.samples.get(bucketKey);
+    arr.push({ fecha: draw.fecha, horario: draw.horario });
+    if (arr.length > sampleLimit) arr.shift();
   });
 
   const hallazgos = [];
 
-  byNumber.forEach((bucketMap, numero) => {
-    const total = Array.from(bucketMap.values()).reduce((acc, v) => acc + v, 0);
+  byNumber.forEach((store, numero) => {
+    const total = Array.from(store.counts.values()).reduce((acc, v) => acc + v, 0);
     if (total < 4) return;
-    const sorted = Array.from(bucketMap.entries()).sort((a, b) => b[1] - a[1]);
+    const sorted = Array.from(store.counts.entries()).sort((a, b) => b[1] - a[1]);
     const [bucketKey, count] = sorted[0];
     const ratio = count / total;
     if (ratio < 0.55) return;
 
     const etiqueta = labelMap(bucketKey);
     if (!etiqueta) return;
+
+    const samples = (store.samples.get(bucketKey) || []).slice(-sampleLimit);
+    const etiquetaCompleta =
+      key === "dayOfWeek" ? DOW_FULL[bucketKey] || etiqueta : etiqueta;
 
     hallazgos.push({
       id: `${key}-${numero}-${bucketKey}`,
@@ -209,6 +231,8 @@ function detectTemporalBias({ timeline, key, labelMap, tituloPrefix }) {
         count,
         ratio,
         bucketKey,
+        etiquetaCompleta,
+        samples,
       },
     });
   });

@@ -1327,16 +1327,41 @@
             addLine(
               `Intervalo modal: ${datos.gap ?? "?"} días · coincidencias ${datos.coincidencias ?? "?"} de ${datos.intervalos ?? "?"}.`
             );
+            (hallazgo.evidencia || []).slice(-3).forEach((item) => {
+              if (!item) return;
+              const origen = item.origen || {};
+              const baseTxt = `${origen.fecha || "?"} ${origen.horario || ""}`.trim();
+              const destTxt = `${item.fecha || "?"} ${item.horario || ""}`.trim();
+              addLine(`· ${baseTxt} → ${destTxt}`);
+            });
           } else if (hallazgo.id?.startsWith("dayOfWeek")) {
             const datos = hallazgo.datos || {};
-            const etiqueta = hallazgo.etiqueta || "";
-            addLine(`Predomina en ${etiqueta}.`);
-            addLine(`Apariciones: ${datos.count ?? "?"} de ${datos.total ?? "?"} (${Math.round((datos.ratio || 0) * 100)}%).`);
+            const etiqueta = datos.etiquetaCompleta || hallazgo.etiqueta || "";
+            addLine(`Predomina los ${etiqueta}.`);
+            addLine(
+              `Apariciones: ${datos.count ?? "?"} de ${datos.total ?? "?"} (${Math.round((datos.ratio || 0) * 100)}%).`
+            );
+            const samples = datos.samples || [];
+            if (samples.length) {
+              const texto = samples
+                .map((s) => `${s.fecha || "?"} ${s.horario || ""}`.trim())
+                .join(", ");
+              addLine(`Últimos registros: ${texto}.`);
+            }
           } else if (hallazgo.id?.startsWith("horario")) {
             const datos = hallazgo.datos || {};
             const etiqueta = hallazgo.etiqueta || "";
             addLine(`Turno preferido: ${etiqueta}.`);
-            addLine(`Coincidencias: ${datos.count ?? "?"} de ${datos.total ?? "?"} (${Math.round((datos.ratio || 0) * 100)}%).`);
+            addLine(
+              `Coincidencias: ${datos.count ?? "?"} de ${datos.total ?? "?"} (${Math.round((datos.ratio || 0) * 100)}%).`
+            );
+            const samples = datos.samples || [];
+            if (samples.length) {
+              const texto = samples
+                .map((s) => `${s.fecha || "?"} ${s.horario || ""}`.trim())
+                .join(", ");
+              addLine(`Últimos registros: ${texto}.`);
+            }
           } else {
             addLine(hallazgo.resumen);
           }
