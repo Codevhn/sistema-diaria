@@ -26,6 +26,11 @@ function formatSample({ fecha, horario }) {
   return `${dow} ${fecha} ${horario || ""}`.trim();
 }
 
+function isDouble(numero) {
+  const str = String(numero).padStart(2, "0");
+  return str[0] === str[1];
+}
+
 function toNumber(value) {
   const n = typeof value === "number" ? value : parseInt(value, 10);
   return Number.isFinite(n) ? n : null;
