@@ -1331,6 +1331,11 @@ button.ghost:hover {
   resize: none;
 }
 
+.mode-desc {
+  display: flex;
+  flex-direction: column;
+}
+
 .mode-list {
   margin-top: 28px;
 }
