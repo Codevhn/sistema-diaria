@@ -311,6 +311,7 @@
       logModeUsage,
       listModeUsage,
     } from "./src/modes.js";
+    import { evaluarModos } from "./src/mode-engine.js";
 
     await cargarGuia();
 
@@ -991,10 +992,12 @@
         const analisis = await analizarYProponer(GUIA);
         const patrones = await detectarPatrones();
         const memoria = await obtenerPerfilesNumeros();
+        const modoEval = await evaluarModos();
         const perfilMap = new Map(
           (memoria.perfiles || []).map((p) => [p.numero, p])
         );
-        const predicciones = generarPredicciones(memoria.perfiles || [], { top: 9 });
+        let predicciones = generarPredicciones(memoria.perfiles || [], { top: 9 });
+        predicciones = mezclarPrediccionesConModos(predicciones, modoEval);
         const insights = generarInsights(memoria.perfiles || []);
 
         const { fecha: fechaFiltro, pais: paisFiltro } = getFilters();
@@ -1021,7 +1024,8 @@
           perfilMap,
           memoria.totalDraws || 0,
           memoria.latestTimestamp || null,
-          insights
+          insights,
+          modoEval
         );
         renderRecomendaciones(
           analisis.recomendacion || [],
@@ -1037,6 +1041,51 @@
       }
     });
 
+    function mezclarPrediccionesConModos(predicciones, modoEval) {
+      if (!modoEval) return predicciones;
+      const scoreMap = new Map();
+      Object.entries(modoEval.scorePorNumero || {}).forEach(([key, value]) => {
+        const numero = parseInt(key, 10);
+        if (!Number.isFinite(numero)) return;
+        if (Number.isFinite(value)) scoreMap.set(numero, value);
+      });
+      const detallePorNumero = modoEval.detallePorNumero || {};
+
+      const merged = predicciones.map((p) => {
+        const boost = scoreMap.get(p.numero) || 0;
+        const key = String(p.numero).padStart(2, "0");
+        const modos = detallePorNumero[key] || [];
+        const newScore = Math.min(1, p.score + boost * 0.35);
+        return { ...p, score: newScore, modoBoost: boost, modos };
+      });
+
+      const existentes = new Set(merged.map((p) => p.numero));
+      (modoEval.sugerencias || []).forEach((sug) => {
+        const numero = parseInt(sug.numero, 10);
+        if (!Number.isFinite(numero)) return;
+        if (!existentes.has(numero)) {
+          const score = Math.min(1, (sug.confianza || 0) * 0.6);
+          merged.push({
+            numero,
+            score,
+            frecuencia: 0,
+            recencia: 0,
+            hipotesis: 0,
+            contexto: 0,
+            modoBoost: sug.confianza || 0,
+            modos: [sug],
+          });
+          existentes.add(numero);
+        } else {
+          const target = merged.find((p) => p.numero === numero);
+          if (target) target.modos = [...(target.modos || []), sug];
+        }
+      });
+
+      merged.sort((a, b) => b.score - a.score);
+      return merged.slice(0, 9);
+    }
+
     function renderEscenarios(
       escenarios,
       patrones,
@@ -1044,7 +1093,8 @@
       perfilMap = new Map(),
       totalDraws = 0,
       latestTimestamp = null,
-      insights = []
+      insights = [],
+      modoEval = null
     ) {
       if (!resultEscenarios) return;
       resultEscenarios.innerHTML = "";
@@ -1087,6 +1137,30 @@
           windowNote.textContent = patrones.resumenVentana;
           card.appendChild(windowNote);
         }
+        grid.appendChild(card);
+      }
+
+      if (modoEval?.sugerencias?.length) {
+        const card = document.createElement("div");
+        card.className = "analysis-card insight accent-medium";
+        const head = document.createElement("div");
+        head.className = "card-head";
+        head.textContent = "Modos aprendidos";
+        card.appendChild(head);
+
+        const list = document.createElement("ul");
+        list.className = "analysis-insights";
+        modoEval.sugerencias.slice(0, 6).forEach((sug) => {
+          const li = document.createElement("li");
+          const conf = Math.round((sug.confianza || 0) * 100);
+          const base = String(sug.baseNumero ?? sug.original ?? "").padStart(2, "0");
+          const target = String(sug.numero).padStart(2, "0");
+          const modeName = sug.modeNombre || "Modo";
+          const nota = sug.nota ? ` — ${sug.nota}` : "";
+          li.innerHTML = `<strong>${modeName}</strong>: ${base} → ${target} (${conf}% conf)${nota}`;
+          list.appendChild(li);
+        });
+        card.appendChild(list);
         grid.appendChild(card);
       }
 
@@ -1195,6 +1269,21 @@
 
           row.appendChild(headerRow);
           row.appendChild(metrics);
+
+          if (item.modos?.length) {
+            const modes = document.createElement("div");
+            modes.className = "analysis-forecast-context";
+            const summary = item.modos
+              .slice(0, 2)
+              .map((m) => {
+                const conf = Math.round((m.confianza || 0) * 100);
+                const nombre = m.modeNombre || "Modo";
+                return `${nombre}${conf ? ` (${conf}%)` : ""}`;
+              })
+              .join(" · ");
+            modes.textContent = summary;
+            row.appendChild(modes);
+          }
 
           if (perfil) {
             const desc = describirPerfil(perfil);
