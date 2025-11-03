@@ -804,6 +804,26 @@
       return entry?.simbolo || "";
     };
 
+    const DOW_FULL_LABEL = [
+      "Domingo",
+      "Lunes",
+      "Martes",
+      "Miércoles",
+      "Jueves",
+      "Viernes",
+      "Sábado",
+    ];
+
+    function formatSampleDisplay(sample = {}) {
+      const { fecha, horario } = sample;
+      if (!fecha) return "";
+      const dateObj = new Date(`${fecha}T00:00:00`);
+      const dow = Number.isNaN(dateObj.getTime())
+        ? ""
+        : DOW_FULL_LABEL[dateObj.getDay()] || "";
+      return `${dow} ${fecha} ${horario || ""}`.trim();
+    }
+
     const getFilters = () => ({
       fecha: document.getElementById("day-fecha")?.value,
       pais: document.getElementById("day-pais")?.value,
@@ -1532,7 +1552,7 @@
             detailList.appendChild(li);
           };
 
-          const formatTimelineSample = (s) => formatSample({ fecha: s?.fecha, horario: s?.horario }) || "";
+          const formatTimelineSample = (s) => formatSampleDisplay({ fecha: s?.fecha, horario: s?.horario }) || "";
 
           if (hallazgo.id?.startsWith("gap-")) {
             const datos = hallazgo.datos || {};
