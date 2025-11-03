@@ -11,6 +11,14 @@
 </head>
 
 <body class="layout">
+  <div id="origin-warning" class="origin-warning hidden" role="alert">
+    <div class="origin-warning__message">
+      <strong>Atención:</strong>
+      Estás viendo el sistema en <span data-current-origin></span>. Los datos existentes viven en
+      <span data-canonical-origin>http://localhost:3000</span>. Abre esa dirección para recuperar tu base.
+    </div>
+    <button type="button" class="origin-warning__close" data-close-warning aria-label="Cerrar aviso">&times;</button>
+  </div>
   <aside class="sidebar expanded" id="sidebar">
     <div class="brand">LD v3.2</div>
     <button data-view="day"><span>🏠</span><i>Panel del día</i></button>
@@ -122,10 +130,18 @@
           <textarea id="h-texto" rows="3" placeholder="Describe tu hipótesis..."></textarea>
         </label>
       </div>
+      <!-- 🔹 NUEVO BLOQUE: sorteos del día seleccionado -->
+      <div id="h-draws-day" class="card-body"
+        style="margin:10px 0; border:1px solid #444; border-radius:10px; padding:10px;">
+        <p class="hint">Selecciona una fecha para ver los sorteos de ese día.</p>
+      </div>
+      <!-- 🔹 FIN NUEVO BLOQUE -->
       <button id="h-guardar">Guardar hipótesis</button>
       <h3>Historial</h3>
       <div id="h-list"></div>
     </section>
+
+
 
     <!-- ESCENARIOS -->
     <section id="view-analysis" class="view hidden">
@@ -236,6 +252,28 @@
     import { mostrarTransformaciones } from "./src/transform-visual.js";
 
     await cargarGuia();
+
+    const CANONICAL_ORIGIN = "http://localhost:3000";
+    const FALLBACK_ORIGIN = "http://127.0.0.1:3000";
+    const originBanner = document.getElementById("origin-warning");
+    if (originBanner) {
+      const origin = window.location.origin;
+      const shouldWarn = origin !== CANONICAL_ORIGIN && origin !== FALLBACK_ORIGIN;
+      if (shouldWarn) {
+        originBanner.classList.remove("hidden");
+        const currentEl = originBanner.querySelector("[data-current-origin]");
+        const canonicalEl = originBanner.querySelector("[data-canonical-origin]");
+        if (currentEl) {
+          const { protocol, hostname, port } = window.location;
+          const fallback = `${protocol}//${hostname}${port ? `:${port}` : ""}`;
+          currentEl.textContent = origin || fallback;
+        }
+        if (canonicalEl) canonicalEl.textContent = CANONICAL_ORIGIN;
+        originBanner
+          .querySelector("[data-close-warning]")
+          ?.addEventListener("click", () => originBanner.classList.add("hidden"));
+      }
+    }
 
     const todayISO = new Date().toISOString().slice(0, 10);
     ["day-fecha", "h-fecha", "g-fecha"].forEach((id) => {
@@ -348,6 +386,8 @@
           alert("El número debe estar entre 00 y 99.");
           return;
         }
+
+
         const testCheck = document.getElementById(config.checkboxId);
         const opts = testCheck?.checked ? { source: "test" } : {};
         try {
@@ -362,10 +402,66 @@
       });
     });
 
+    // === FUNCIONALIDAD: "Agregar hipótesis para (hora)" ===
+    document.querySelectorAll(".ghost[data-hypo]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const turno = btn.dataset.hypo;
+        const { fecha, pais } = getFilters();
+        if (!fecha || !pais) {
+          mostrarAviso("Selecciona fecha y país antes de agregar una hipótesis.");
+          return;
+        }
+
+        // Crear pequeño modal inline
+        const modal = document.getElementById("sys-modal");
+        const tEl = document.getElementById("modal-title");
+        const mEl = document.getElementById("modal-msg");
+        const okBtn = document.getElementById("modal-ok");
+        const cancelBtn = document.getElementById("modal-cancel");
+
+        tEl.textContent = `Hipótesis para ${turno}`;
+        mEl.innerHTML = `
+      <label>Fecha: ${fecha}</label><br/>
+      <label>Turno: ${turno}</label><br/>
+      <label>Número: <input id="modal-num" type="number" min="0" max="99" style="width:60px"/></label><br/>
+      <label>Razón: <textarea id="modal-text" rows="3" style="width:100%;margin-top:6px"></textarea></label>
+    `;
+        okBtn.textContent = "Guardar";
+        cancelBtn.textContent = "Cancelar";
+        modal.classList.remove("hidden");
+
+        okBtn.onclick = async () => {
+          const numeroRaw = document.getElementById("modal-num")?.value.trim() ?? "";
+          const texto = document.getElementById("modal-text")?.value.trim() ?? "";
+          if (!/^\d{1,2}$/.test(numeroRaw)) {
+            mostrarAviso("Ingresa un número válido (00–99).");
+            return;
+          }
+          const numero = parseInt(numeroRaw, 10);
+          const simbolo = getSymbol(numero);
+          try {
+            await crearHipotesis(numero, simbolo, texto, { fecha, turno });
+            mostrarAviso(`Hipótesis ${numero} ${simbolo} registrada para ${turno}.`);
+          } catch (err) {
+            console.error("hipo error", err);
+            mostrarAviso(`Error al guardar la hipótesis: ${err.message}`);
+          } finally {
+            modal.classList.add("hidden");
+          }
+        };
+
+        cancelBtn.onclick = () => {
+          modal.classList.add("hidden");
+        };
+      });
+    });
+
+
     const dayFecha = document.getElementById("day-fecha");
     const dayPais = document.getElementById("day-pais");
     dayFecha?.addEventListener("change", refreshSlots);
     dayPais?.addEventListener("change", refreshSlots);
+
 
     const btnAprender = document.getElementById("btn-aprender-dia");
     btnAprender?.addEventListener("click", async () => {
@@ -695,6 +791,19 @@
         .filter((n) => !Number.isNaN(n));
     }
 
+    // ✅ Navegación lateral
+    const sidebar = document.getElementById("sidebar");
+    const toggleBtn = document.getElementById("btn-toggle-sidebar");
+
+    const closeSidebarMobile = () => {
+      if (!sidebar) return;
+      sidebar.classList.remove("show-mobile");
+      if (toggleBtn) {
+        toggleBtn.classList.remove("sidebar-open");
+        toggleBtn.setAttribute("aria-expanded", "false");
+      }
+    };
+
     // ✅ Cambio de vistas
     const views = {
       day: "view-day",
@@ -716,15 +825,54 @@
         if (id === "view-guide") mostrarGuia();
         if (id === "view-hypo") refreshHypotesis();
         if (id === "view-maint") refreshDuplicados();
+        closeSidebarMobile();
       };
     });
 
     // ✅ Toggle de sidebar móvil
-    const sidebar = document.getElementById("sidebar");
-    const toggleBtn = document.getElementById("btn-toggle-sidebar");
     if (toggleBtn && sidebar) {
-      toggleBtn.addEventListener("click", () => {
-        sidebar.classList.toggle("show-mobile");
+      toggleBtn.setAttribute("aria-controls", "sidebar");
+      toggleBtn.setAttribute("aria-expanded", "false");
+
+      const openSidebarMobile = () => {
+        sidebar.classList.add("show-mobile");
+        toggleBtn.classList.add("sidebar-open");
+        toggleBtn.setAttribute("aria-expanded", "true");
+      };
+
+      toggleBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const shouldOpen = !sidebar.classList.contains("show-mobile");
+        if (shouldOpen) {
+          openSidebarMobile();
+        } else {
+          closeSidebarMobile();
+        }
+      });
+
+      const handleOutside = (event) => {
+        if (!sidebar.classList.contains("show-mobile")) return;
+        if (sidebar.contains(event.target)) return;
+        if (toggleBtn.contains(event.target)) return;
+        closeSidebarMobile();
+      };
+
+      const outsideEvents = window.PointerEvent
+        ? ["pointerdown"]
+        : ["mousedown", "touchstart"];
+      outsideEvents.forEach((evt) => {
+        document.addEventListener(evt, handleOutside);
+      });
+      document.addEventListener("click", handleOutside);
+      document.addEventListener("focusin", handleOutside);
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeSidebarMobile();
+      });
+      sidebar.addEventListener("focusout", (event) => {
+        if (!sidebar.contains(event.relatedTarget)) closeSidebarMobile();
+      });
+      window.addEventListener("resize", () => {
+        if (window.innerWidth > 768) closeSidebarMobile();
       });
     }
 
@@ -895,6 +1043,114 @@
     });
 
   </script>
+
+  <script type="module">
+    import { DB } from "./storage.js";
+
+    /* ──────────────────────────────
+       MODAL DE AVISO CON ANIMACIÓN
+    ──────────────────────────────── */
+    function modalAvisoAprendizaje(titulo, mensaje) {
+      document.querySelectorAll(".custom-modal-aviso, .modal-overlay-aviso").forEach(e => e.remove());
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay-aviso";
+      const modal = document.createElement("div");
+      modal.className = "custom-modal-aviso";
+      modal.innerHTML = `
+    <h3>${titulo}</h3>
+    <p>${mensaje}</p>
+    <button id="okAviso" class="btn-ok-aviso">Aceptar</button>
+  `;
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => {
+        overlay.style.opacity = "1";
+        modal.style.transform = "translateY(0)";
+      });
+      modal.querySelector("#okAviso").onclick = () => {
+        overlay.classList.add("fade-out");
+        setTimeout(() => overlay.remove(), 250);
+      };
+    }
+
+    /* ──────────────────────────────
+       VALIDACIÓN ANTES DE APRENDIZAJE
+    ──────────────────────────────── */
+    async function verificarAntesDeAprender(datosDia) {
+      if (!datosDia || !Array.isArray(datosDia) || !datosDia.length) return true;
+      const fechaHoy = datosDia[0]?.fecha;
+      const existentes = await DB.listDraws({ excludeTest: true });
+      const yaExisten = existentes.some(d => d.fecha === fechaHoy);
+      if (yaExisten) {
+        modalAvisoAprendizaje(
+          "Datos ya registrados",
+          `Los resultados del día ${fechaHoy} ya fueron ingresados anteriormente.`
+        );
+        return false;
+      }
+      return true;
+    }
+
+    /* ──────────────────────────────
+       ESTILOS DEL MODAL
+    ──────────────────────────────── */
+    if (!document.getElementById("estilo-aviso-aprendizaje")) {
+      const estiloAviso = document.createElement("style");
+      estiloAviso.id = "estilo-aviso-aprendizaje";
+      estiloAviso.textContent = `
+  .modal-overlay-aviso {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity .25s ease;
+    z-index: 5000;
+  }
+  .custom-modal-aviso {
+    background: #1b1b1b;
+    color: #f3f3f3;
+    border-radius: 12px;
+    padding: 22px 28px;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    transform: translateY(-15px);
+    transition: transform .25s ease;
+  }
+  .custom-modal-aviso h3 {
+    color: #f5d36b;
+    margin-bottom: 10px;
+  }
+  .btn-ok-aviso {
+    background: #f5d36b;
+    color: #1b1b1b;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .btn-ok-aviso:hover { background: #ffe27a; }
+  .fade-out { opacity: 0 !important; transition: opacity .25s ease; }
+  `;
+      document.head.appendChild(estiloAviso);
+    }
+
+    /* ──────────────────────────────
+       CONEXIÓN CON EL BOTÓN PRINCIPAL
+    ──────────────────────────────── */
+    btnAprender = document.getElementById("btn-aprender-dia");
+    if (btnAprender) {
+      btnAprender.addEventListener("click", async (e) => {
+        if (window.datosDelDia) {
+          const continuar = await verificarAntesDeAprender(window.datosDelDia);
+          if (!continuar) e.preventDefault();
+        }
+      });
+    }
+  </script>
+
   <!-- === MODAL DEL SISTEMA === -->
   <div id="sys-modal" class="modal hidden">
     <div class="modal-content">
