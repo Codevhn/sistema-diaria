@@ -1139,6 +1139,14 @@
 
     function mezclarPrediccionesConModos(predicciones, modoEval) {
       if (!modoEval) return predicciones;
+      const operacionLabels = {
+        mirror: "Invertir",
+        "sum-digits": "Suma dígitos",
+        "sum-digits-keep-first": "Suma dígitos (mantiene)",
+        "add-constant": "+Constante",
+        "sub-constant": "-Constante",
+        neighbor: "Vecino",
+      };
       const scoreMap = new Map();
       Object.entries(modoEval.scorePorNumero || {}).forEach(([key, value]) => {
         const numero = parseInt(key, 10);
@@ -1244,6 +1252,15 @@
         head.textContent = "Modos aprendidos";
         card.appendChild(head);
 
+        const operacionLabels = {
+          mirror: "Invertir",
+          "sum-digits": "Suma dígitos",
+          "sum-digits-keep-first": "Suma dígitos (mantiene)",
+          "add-constant": "+Constante",
+          "sub-constant": "-Constante",
+          neighbor: "Vecino",
+        };
+
         const list = document.createElement("ul");
         list.className = "analysis-insights";
         modoEval.sugerencias.slice(0, 6).forEach((sug) => {
@@ -1252,8 +1269,9 @@
           const base = String(sug.baseNumero ?? sug.original ?? "").padStart(2, "0");
           const target = String(sug.numero).padStart(2, "0");
           const modeName = sug.modeNombre || "Modo";
+          const opTag = operacionLabels[sug.operacion] ? ` · ${operacionLabels[sug.operacion]}` : "";
           const nota = sug.nota ? ` — ${sug.nota}` : "";
-          li.innerHTML = `<strong>${modeName}</strong>: ${base} → ${target} (${conf}% conf)${nota}`;
+          li.innerHTML = `<strong>${modeName}</strong>${opTag}: ${base} → ${target} (${conf}% conf)${nota}`;
           list.appendChild(li);
         });
         card.appendChild(list);
@@ -1374,9 +1392,11 @@
               .map((m) => {
                 const conf = Math.round((m.confianza || 0) * 100);
                 const nombre = m.modeNombre || "Modo";
-                return `${nombre}${conf ? ` (${conf}%)` : ""}`;
+                const opTag = operacionLabels[m.operacion] ? ` · ${operacionLabels[m.operacion]}` : "";
+                const confTag = conf ? ` · ${conf}%` : "";
+                return `${nombre}${opTag}${confTag}`;
               })
-              .join(" · ");
+              .join(" | ");
             modes.textContent = summary;
             row.appendChild(modes);
           }

@@ -46,7 +46,133 @@ function sortTimeline(draws = []) {
     });
 }
 
-function evaluarEjemplo(example, timeline, maxLookahead = MAX_LOOKAHEAD) {
+const MAX_DAY_SPAN = 3 * 24 * 60 * 60 * 1000;
+
+function padNumber(value) {
+  return String(value).padStart(2, "0");
+}
+
+function digitsOf(numero) {
+  const tens = Math.floor(numero / 10);
+  const ones = numero % 10;
+  return { tens, ones };
+}
+
+function wrapNumber(value) {
+  let result = value % 100;
+  if (result < 0) result += 100;
+  return result;
+}
+
+function getParamNumber(mode) {
+  const params = mode?.parametros;
+  if (params === null || params === undefined) return null;
+  if (typeof params === "number") return Number.isFinite(params) ? params : null;
+  if (typeof params === "string" && params.trim()) {
+    const parsed = Number(params);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  if (typeof params === "object") {
+    const candidates = [params.valor, params.constante, params.raw];
+    for (const candidate of candidates) {
+      if (typeof candidate === "number" && Number.isFinite(candidate)) return candidate;
+      if (typeof candidate === "string" && candidate.trim()) {
+        const parsed = Number(candidate);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+    }
+  }
+  return null;
+}
+
+function applyOperation(baseNumero, mode) {
+  const op = mode.operacion;
+  if (!op) return [];
+  const param = getParamNumber(mode);
+  const { tens, ones } = digitsOf(baseNumero);
+  const results = new Set();
+
+  switch (op) {
+    case "mirror": {
+      results.add(wrapNumber(ones * 10 + tens));
+      break;
+    }
+    case "sum-digits": {
+      const sum = (tens + ones) % 10;
+      results.add(wrapNumber(sum));
+      break;
+    }
+    case "sum-digits-keep-first": {
+      const sum = (tens + ones) % 10;
+      results.add(wrapNumber(tens * 10 + sum));
+      break;
+    }
+    case "add-constant": {
+      if (param === null) return [];
+      results.add(wrapNumber(baseNumero + param));
+      break;
+    }
+    case "sub-constant": {
+      if (param === null) return [];
+      results.add(wrapNumber(baseNumero - param));
+      break;
+    }
+    case "neighbor": {
+      const step = param === null ? 1 : Math.abs(param) || 1;
+      results.add(wrapNumber(baseNumero + step));
+      results.add(wrapNumber(baseNumero - step));
+      break;
+    }
+    default:
+      return [];
+  }
+
+  return Array.from(results);
+}
+
+function findMatch(timeline, startIndex, target, offset, maxLookahead) {
+  const base = timeline[startIndex];
+  if (!base) return null;
+  if (offset !== null && Number.isFinite(offset)) {
+    if (offset === 0) {
+      if (base.numero === target) {
+        return {
+          fecha: base.fecha,
+          horario: base.horario,
+          hops: 0,
+        };
+      }
+      return null;
+    }
+    const candidate = timeline[startIndex + offset];
+    if (!candidate) return null;
+    if (candidate.fechaDate.getTime() - base.fechaDate.getTime() > MAX_DAY_SPAN) return null;
+    if (candidate.numero === target) {
+      return {
+        fecha: candidate.fecha,
+        horario: candidate.horario,
+        hops: offset,
+      };
+    }
+    return null;
+  }
+
+  for (let hop = 1; hop <= maxLookahead; hop++) {
+    const candidate = timeline[startIndex + hop];
+    if (!candidate) break;
+    if (candidate.fechaDate.getTime() - base.fechaDate.getTime() > MAX_DAY_SPAN) break;
+    if (candidate.numero === target) {
+      return {
+        fecha: candidate.fecha,
+        horario: candidate.horario,
+        hops: hop,
+      };
+    }
+  }
+  return null;
+}
+
+function evaluarEjemplo(example, mode, timeline, maxLookahead = MAX_LOOKAHEAD) {
   const original = normalizeNumber(example.original);
   const resultado = normalizeNumber(example.resultado);
   if (original === null || resultado === null) return null;
@@ -54,26 +180,22 @@ function evaluarEjemplo(example, timeline, maxLookahead = MAX_LOOKAHEAD) {
   let intentos = 0;
   let aciertos = 0;
   const evidencia = [];
+  const offset = Number.isFinite(mode.offset) ? mode.offset : null;
 
   for (let i = 0; i < timeline.length; i++) {
     const draw = timeline[i];
     if (draw.numero !== original) continue;
     intentos++;
-    for (let hop = 1; hop <= maxLookahead; hop++) {
-      const next = timeline[i + hop];
-      if (!next) break;
-      if (next.fechaDate.getTime() - draw.fechaDate.getTime() > 3 * 24 * 60 * 60 * 1000) break;
-      if (next.numero === resultado) {
-        aciertos++;
-        evidencia.push({
-          baseFecha: draw.fecha,
-          baseHorario: draw.horario,
-          resultadoFecha: next.fecha,
-          resultadoHorario: next.horario,
-          hops: hop,
-        });
-        break;
-      }
+    const match = findMatch(timeline, i, resultado, offset, maxLookahead);
+    if (match) {
+      aciertos++;
+      evidencia.push({
+        baseFecha: draw.fecha,
+        baseHorario: draw.horario,
+        resultadoFecha: match.fecha,
+        resultadoHorario: match.horario,
+        hops: match.hops,
+      });
     }
   }
 
@@ -82,49 +204,138 @@ function evaluarEjemplo(example, timeline, maxLookahead = MAX_LOOKAHEAD) {
   const soporte = Math.min(1, intentos / 5);
   const puntaje = confianza * soporte;
   return {
-    original,
-    resultado,
-    intentos,
-    aciertos,
+    fuente: "ejemplo",
+    modeId: mode.id,
+    modeNombre: mode.nombre,
+    operacion: mode.operacion || "",
+    baseNumero: original,
+    numero: resultado,
     confianza,
     soporte,
+    intentos,
+    aciertos,
     puntaje,
+    offset,
+    nota: example.nota || mode.descripcion || "",
     evidencia,
   };
 }
 
-function agregarSugerenciasParaDraws({ timeline, statsPorEjemplo, modos, maxOrigenes = 3 }) {
-  if (!timeline.length) return [];
+function evaluarOperacionModo(mode, timeline, maxLookahead = MAX_LOOKAHEAD) {
+  if (!mode.operacion) return [];
+  const offset = Number.isFinite(mode.offset) ? mode.offset : null;
+  const aggregated = new Map();
+
+  for (let i = 0; i < timeline.length; i++) {
+    const draw = timeline[i];
+    const candidatos = applyOperation(draw.numero, mode);
+    candidatos.forEach((resultado) => {
+      const key = `${draw.numero}-${resultado}`;
+      if (!aggregated.has(key)) {
+        aggregated.set(key, {
+          intentos: 0,
+          aciertos: 0,
+          evidencia: [],
+        });
+      }
+      const bucket = aggregated.get(key);
+      bucket.intentos += 1;
+      const match = findMatch(timeline, i, resultado, offset, maxLookahead);
+      if (match) {
+        bucket.aciertos += 1;
+        const base = timeline[i];
+        bucket.evidencia.push({
+          baseFecha: base.fecha,
+          baseHorario: base.horario,
+          resultadoFecha: match.fecha,
+          resultadoHorario: match.horario,
+          hops: match.hops,
+        });
+      }
+    });
+  }
+
+  const stats = [];
+  aggregated.forEach((bucket, key) => {
+    if (!bucket.intentos) return;
+    const [baseStr, resultStr] = key.split("-");
+    const baseNumero = Number(baseStr);
+    const numero = Number(resultStr);
+    const confianza = bucket.aciertos / bucket.intentos;
+    const soporte = Math.min(1, bucket.intentos / 5);
+    const puntaje = confianza * soporte;
+    stats.push({
+      fuente: "operacion",
+      modeId: mode.id,
+      modeNombre: mode.nombre,
+      operacion: mode.operacion,
+      baseNumero,
+      numero,
+      confianza,
+      soporte,
+      intentos: bucket.intentos,
+      aciertos: bucket.aciertos,
+      puntaje,
+      offset,
+      nota: mode.descripcion || "",
+      evidencia: bucket.evidencia,
+    });
+  });
+  return stats;
+}
+
+function agregarSugerenciasParaDraws({ timeline, statsList, maxOrigenes = 3 }) {
+  if (!timeline.length || !statsList.length) return [];
   const recientes = timeline.slice(-maxOrigenes);
   const sugerencias = [];
   const seen = new Set();
 
-  modos.forEach((mode) => {
-    mode.ejemplos.forEach((example) => {
-      const stats = statsPorEjemplo.get(example) || null;
-      if (!stats || !stats.confianza) return;
-      const original = stats.original;
-      const resultado = stats.resultado;
+  for (const draw of recientes) {
+    statsList.forEach((stat) => {
+      if (!stat.confianza || stat.confianza < 0.3) return;
+      if (stat.baseNumero !== draw.numero) return;
+      const key = `${stat.modeId}|${stat.baseNumero}|${stat.numero}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      sugerencias.push({
+        modeId: stat.modeId,
+        modeNombre: stat.modeNombre,
+        numero: stat.numero,
+        baseNumero: stat.baseNumero,
+        confianza: stat.confianza,
+        soporte: stat.intentos,
+        nota: stat.nota,
+        operacion: stat.operacion || "",
+      });
+    });
+  }
 
-      for (const draw of recientes) {
-        if (draw.numero !== original) continue;
-        const key = `${mode.id}|${original}|${resultado}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        sugerencias.push({
-          modeId: mode.id,
-          modeNombre: mode.nombre,
-          numero: resultado,
-          baseNumero: original,
-          confianza: stats.confianza,
-          soporte: stats.intentos,
-          nota: example.nota || mode.descripcion || "",
-        });
-      }
+  return sugerencias;
+}
+
+function agregarDetallePorNumero(statsList) {
+  const scorePorNumero = {};
+  const detallePorNumero = {};
+
+  statsList.forEach((stat) => {
+    if (!stat || !Number.isFinite(stat.puntaje) || stat.puntaje <= 0) return;
+    const key = padNumber(stat.numero);
+    const existing = scorePorNumero[key] ?? 0;
+    if (stat.puntaje > existing) scorePorNumero[key] = stat.puntaje;
+    if (!detallePorNumero[key]) detallePorNumero[key] = [];
+    detallePorNumero[key].push({
+      modeId: stat.modeId,
+      modeNombre: stat.modeNombre,
+      confianza: stat.confianza,
+      soporte: stat.intentos,
+      nota: stat.nota || "",
+      baseNumero: stat.baseNumero,
+      operacion: stat.operacion || "",
+      fuente: stat.fuente,
     });
   });
 
-  return sugerencias;
+  return { scorePorNumero, detallePorNumero };
 }
 
 export async function evaluarModos({ maxLookahead = MAX_LOOKAHEAD } = {}) {
@@ -142,38 +353,23 @@ export async function evaluarModos({ maxLookahead = MAX_LOOKAHEAD } = {}) {
     })
   );
 
-  const statsPorEjemplo = new Map();
-  const scorePorNumero = {};
-  const detallePorNumero = {};
+  const statsList = [];
 
   modesWithExamples.forEach((mode) => {
+    if (mode.operacion) {
+      const opStats = evaluarOperacionModo(mode, timelines, maxLookahead);
+      statsList.push(...opStats);
+    }
     mode.ejemplos.forEach((example) => {
-      const stats = evaluarEjemplo(example, timelines, maxLookahead);
-      if (!stats) return;
-      statsPorEjemplo.set(example, stats);
-
-      const key = String(stats.resultado).padStart(2, "0");
-      const existing = scorePorNumero[key] ?? 0;
-      scorePorNumero[key] = Math.max(existing, stats.puntaje);
-
-      if (!detallePorNumero[key]) detallePorNumero[key] = [];
-      detallePorNumero[key].push({
-        modeId: mode.id,
-        modeNombre: mode.nombre,
-        confianza: stats.confianza,
-        soporte: stats.intentos,
-        nota: example.nota || "",
-        original: stats.original,
-        resultado: stats.resultado,
-      });
+      const stats = evaluarEjemplo(example, mode, timelines, maxLookahead);
+      if (stats) statsList.push(stats);
     });
   });
 
-  const sugerencias = agregarSugerenciasParaDraws({
-    timeline: timelines,
-    statsPorEjemplo,
-    modos: modesWithExamples,
-  });
+  if (!statsList.length) return null;
+
+  const { scorePorNumero, detallePorNumero } = agregarDetallePorNumero(statsList);
+  const sugerencias = agregarSugerenciasParaDraws({ timeline: timelines, statsList });
 
   if (!Object.keys(scorePorNumero).length && !sugerencias.length) {
     return null;
@@ -183,5 +379,6 @@ export async function evaluarModos({ maxLookahead = MAX_LOOKAHEAD } = {}) {
     scorePorNumero,
     detallePorNumero,
     sugerencias,
+    stats: statsList,
   };
 }
