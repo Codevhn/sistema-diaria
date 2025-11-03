@@ -157,6 +157,7 @@
       <p class="hint">
         La <b>confianza (conf)</b> es una ponderación heurística (0–100%).
       </p>
+      <div class="cards" id="result-plan"></div>
       <div class="cards" id="result-escenarios"></div>
       <div class="cards" id="result-recomendacion"></div>
 
@@ -1079,10 +1080,12 @@
     const btnAnalizar = document.getElementById("btn-analizar");
     const resultEscenarios = document.getElementById("result-escenarios");
     const resultRecomendacion = document.getElementById("result-recomendacion");
+    const resultPlan = document.getElementById("result-plan");
 
     btnAnalizar?.addEventListener("click", async () => {
       if (resultEscenarios) resultEscenarios.innerHTML = "<p class='hint'>Analizando…</p>";
       if (resultRecomendacion) resultRecomendacion.innerHTML = "";
+      if (resultPlan) resultPlan.innerHTML = "";
       try {
         await rebuildKnowledge();
         const analisis = await analizarYProponer(GUIA);
@@ -1130,12 +1133,220 @@
           perfilMap,
           resumenPred
         );
+        renderPlanDia(
+          predicciones,
+          perfilMap,
+          modoEval,
+          patrones.timelineActiva || [],
+          patrones.hallazgos || [],
+          patrones.resumenVentana || ""
+        );
       } catch (err) {
         console.error("analizar error", err);
         if (resultEscenarios)
           resultEscenarios.innerHTML = `<p class='hint'>No se pudo completar el análisis: ${err.message}</p>`;
       }
     });
+
+    const TURNOS = ["11AM", "3PM", "9PM"];
+
+    function mejorTurnoSegunPerfil(perfil) {
+      const aprendizaje = perfil?.aprendizaje?.porHorario || {};
+      let bestTurno = null;
+      let bestRatio = -1;
+      Object.entries(aprendizaje).forEach(([turno, stats]) => {
+        if (!stats.total) return;
+        const rate = stats.aciertos / stats.total;
+        if (rate > bestRatio) {
+          bestRatio = rate;
+          bestTurno = turno;
+        }
+      });
+      if (bestTurno) {
+        return { turno: bestTurno, ratio: bestRatio, fuente: "aprendizaje" };
+      }
+
+      const historico = perfil?.porHorario || {};
+      let bestCount = -1;
+      Object.entries(historico).forEach(([turno, total]) => {
+        if (total > bestCount) {
+          bestCount = total;
+          bestTurno = turno;
+        }
+      });
+      if (bestTurno) {
+        return { turno: bestTurno, ratio: bestCount, fuente: "historial" };
+      }
+
+      if (perfil?.lastSeen?.horario) {
+        return { turno: perfil.lastSeen.horario, ratio: 0, fuente: "último" };
+      }
+      return { turno: TURNOS[0], ratio: 0, fuente: "predeterminado" };
+    }
+
+    function resumenModos(modos = []) {
+      if (!modos.length) return "";
+      const etiqueta = modos
+        .slice(0, 2)
+        .map((m) => {
+          const conf = Math.round((m.confianza || 0) * 100);
+          const nombre = m.modeNombre || "Modo";
+          const op = m.operacion ? ` · ${m.operacion}` : "";
+          return `${nombre}${op}${conf ? ` (${conf}%)` : ""}`;
+        })
+        .join(" | ");
+      return etiqueta;
+    }
+
+    function notasPatronNumero(hallazgos, numero) {
+      return hallazgos
+        .filter((h) => h.id?.startsWith("repeat-") && h.numero === numero)
+        .map((h) => {
+          const datos = h.datos || {};
+          const muestras = datos.muestras?.length ? ` · ${datos.muestras.join(" · ")}` : "";
+          return `${datos.tipo || "Repetición"}${muestras}`;
+        })
+        .slice(0, 2);
+    }
+
+    function renderPlanDia(
+      predicciones,
+      perfilMap,
+      modoEval,
+      timelineActiva = [],
+      hallazgos = [],
+      resumenVentana = ""
+    ) {
+      if (!resultPlan) return;
+      resultPlan.innerHTML = "";
+
+      if (!predicciones.length) {
+        resultPlan.innerHTML = "<p class='hint'>Aún no hay un plan diario — registra sorteos reales para 2025.</p>";
+        return;
+      }
+
+      const lastByNumero = new Map();
+      timelineActiva.forEach((draw) => {
+        lastByNumero.set(draw.numero, draw);
+      });
+
+      const detallePorNumero = modoEval?.detallePorNumero || {};
+
+      const planBuckets = new Map();
+      TURNOS.forEach((turno) => planBuckets.set(turno, []));
+
+      predicciones.forEach((item) => {
+        const perfil = perfilMap.get(item.numero);
+        const turnoInfo = mejorTurnoSegunPerfil(perfil);
+        const bucket = planBuckets.get(turnoInfo.turno) || planBuckets.get(TURNOS[0]);
+        const lastSeen = perfil?.lastSeen || null;
+        const modoResumen = resumenModos(item.modos);
+        const patronNotas = notasPatronNumero(hallazgos, item.numero);
+        bucket.push({
+          item,
+          perfil,
+          turnoInfo,
+          lastSeen,
+          modoResumen,
+          patronNotas,
+        });
+      });
+
+      const grid = document.createElement("div");
+      grid.className = "plan-grid";
+
+      TURNOS.forEach((turno) => {
+        const candidatos = (planBuckets.get(turno) || [])
+          .filter(Boolean)
+          .sort((a, b) => b.item.score - a.item.score)
+          .slice(0, 3);
+        if (!candidatos.length) return;
+
+        const card = document.createElement("div");
+        card.className = "analysis-card plan";
+
+        const head = document.createElement("div");
+        head.className = "card-head";
+        head.textContent = `Próximo ${turno}`;
+        card.appendChild(head);
+
+        const list = document.createElement("div");
+        list.className = "plan-list";
+
+        candidatos.forEach(({ item, perfil, turnoInfo, lastSeen, modoResumen, patronNotas }) => {
+          const row = document.createElement("div");
+          row.className = "plan-item";
+
+          const numberEl = document.createElement("div");
+          numberEl.className = "plan-number";
+          numberEl.textContent = formatNumber(item.numero);
+          row.appendChild(numberEl);
+
+          const scoreEl = document.createElement("div");
+          scoreEl.className = "plan-score";
+          scoreEl.textContent = `${Math.round(item.score * 100)}% score`;
+          row.appendChild(scoreEl);
+
+          const details = document.createElement("ul");
+          details.className = "plan-detail";
+
+          if (lastSeen) {
+            const li = document.createElement("li");
+            li.textContent = `Última vez: ${lastSeen.fecha} ${lastSeen.horario || ""}`;
+            details.appendChild(li);
+          }
+
+          if (turnoInfo?.fuente === "aprendizaje" && Number.isFinite(turnoInfo.ratio)) {
+            const li = document.createElement("li");
+            li.textContent = `Historial turno ${turno}: ${(turnoInfo.ratio * 100).toFixed(0)}% acierto`;
+            details.appendChild(li);
+          }
+
+          if (modoResumen) {
+            const li = document.createElement("li");
+            li.textContent = `Modos: ${modoResumen}`;
+            details.appendChild(li);
+          }
+
+          patronNotas.forEach((nota) => {
+            const li = document.createElement("li");
+            li.textContent = nota;
+            details.appendChild(li);
+          });
+
+          if (!details.children.length) {
+            const li = document.createElement("li");
+            li.textContent = "Sin contexto adicional";
+            details.appendChild(li);
+          }
+
+          row.appendChild(details);
+          list.appendChild(row);
+        });
+
+        card.appendChild(list);
+        if (resumenVentana) {
+          const foot = document.createElement("div");
+          foot.className = "plan-footnote";
+          foot.textContent = resumenVentana;
+          card.appendChild(foot);
+        }
+
+        grid.appendChild(card);
+      });
+
+      if (!grid.children.length) {
+        resultPlan.innerHTML = "<p class='hint'>No hay suficientes datos recientes para un plan diario.</p>";
+        return;
+      }
+
+      const note = document.createElement("p");
+      note.className = "plan-note";
+      note.textContent = "Plan generado con sorteos 2025 y modos validados.";
+      resultPlan.appendChild(note);
+
+      resultPlan.appendChild(grid);
+    }
 
     function mezclarPrediccionesConModos(predicciones, modoEval) {
       if (!modoEval) return predicciones;

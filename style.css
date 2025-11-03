@@ -1215,6 +1215,75 @@ button.ghost:hover {
   text-align: center;
 }
 
+.plan-note {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(180, 198, 230, 0.75);
+  margin-bottom: 12px;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.analysis-card.plan {
+  --analysis-accent: rgba(120, 184, 255, 0.6);
+}
+
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plan-item {
+  background: rgba(8, 16, 32, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.plan-number {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(240, 244, 255, 0.95);
+}
+
+.plan-score {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(180, 198, 230, 0.75);
+}
+
+.plan-detail {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: rgba(214, 228, 255, 0.85);
+}
+
+.plan-detail li {
+  list-style: disc;
+}
+
+.plan-footnote {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(150, 176, 216, 0.6);
+}
+
 .mode-form,
 .mode-list {
   background: transparent;

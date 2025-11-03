@@ -417,5 +417,6 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
     score,
     hallazgos,
     resumenVentana,
+    timelineActiva: activeTimeline,
   };
 }
