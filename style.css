@@ -1477,6 +1477,13 @@ button.ghost:hover {
   list-style: disc;
 }
 
+.pattern-subentry {
+  list-style: circle;
+  margin-left: 12px;
+  font-size: 12px;
+  color: rgba(196, 212, 245, 0.85);
+}
+
 .analysis-forecast {
   display: flex;
   flex-direction: column;

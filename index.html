@@ -1299,7 +1299,10 @@
 
           const numberEl = document.createElement("div");
           numberEl.className = "plan-number";
-          numberEl.textContent = formatNumber(item.numero);
+          const symbol = getSymbol(item.numero);
+          numberEl.textContent = symbol
+            ? `${formatNumber(item.numero)} ${symbol}`
+            : formatNumber(item.numero);
           row.appendChild(numberEl);
 
           const scoreEl = document.createElement("div");
@@ -1535,7 +1538,10 @@
           if (Number.isFinite(number)) {
             const numberBadge = document.createElement("div");
             numberBadge.className = "analysis-number-lg";
-            numberBadge.textContent = formatNumber(number);
+            const symbol = getSymbol(number);
+            numberBadge.textContent = symbol
+              ? `${formatNumber(number)} ${symbol}`
+              : formatNumber(number);
             card.appendChild(numberBadge);
           }
 
@@ -1576,10 +1582,13 @@
             );
             const samples = datos.samples || [];
             if (samples.length) {
-              const texto = samples
-                .map((s) => formatTimelineSample(s) || "?")
-                .join(" · ");
-              addLine(`Últimos registros: ${texto}`);
+              addLine("Últimos registros:");
+              samples.forEach((s) => {
+                const li = document.createElement("li");
+                li.textContent = formatTimelineSample(s) || "?";
+                li.classList.add("pattern-subentry");
+                detailList.appendChild(li);
+              });
             }
           } else if (hallazgo.id?.startsWith("horario")) {
             const datos = hallazgo.datos || {};
@@ -1590,10 +1599,13 @@
             );
             const samples = datos.samples || [];
             if (samples.length) {
-              const texto = samples
-                .map((s) => formatTimelineSample(s) || "?")
-                .join(" · ");
-              addLine(`Últimos registros: ${texto}`);
+              addLine("Últimos registros:");
+              samples.forEach((s) => {
+                const li = document.createElement("li");
+                li.textContent = formatTimelineSample(s) || "?";
+                li.classList.add("pattern-subentry");
+                detailList.appendChild(li);
+              });
             }
           } else if (hallazgo.id?.startsWith("repeat-")) {
             const datos = hallazgo.datos || {};
@@ -1601,7 +1613,12 @@
             addLine(
               `Repite ${tipo} en ${datos.repeticiones ?? "?"} de ${datos.total ?? "?"} apariciones (${Math.round((datos.ratio || 0) * 100)}%).`
             );
-            (datos.muestras || []).forEach((linea) => addLine(formatTimelineSample(linea)));
+            (datos.muestras || []).forEach((linea) => {
+              const li = document.createElement("li");
+              li.textContent = formatTimelineSample(linea) || "";
+              li.classList.add("pattern-subentry");
+              detailList.appendChild(li);
+            });
           } else {
             addLine(hallazgo.resumen);
           }
