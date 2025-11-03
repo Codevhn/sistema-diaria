@@ -189,7 +189,7 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
   return hallazgos;
 }
 
-function detectTemporalBias({ timeline, key, labelMap, tituloPrefix, sampleLimit = 4 }) {
+function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPrefix, sampleLimit = 4 }) {
   const byNumber = new Map();
   timeline.forEach((draw) => {
     const bucketKey = draw[key];
@@ -265,7 +265,51 @@ function summarizeRepetitions(events, total, tipo) {
   return { count, ratio, recientes };
 }
 
-function detectConsecutiveRepetitions({ timeline, hypothesisMap }) {
+function computeAndFilterRepetitions(timeline, tipo) {
+  const results = [];
+  const lastOccurrence = new Map();
+  timeline.forEach((draw) => {
+    const prev = lastOccurrence.get(draw.numero);
+    if (prev) {
+      const dayDiff = Math.round((draw.fechaDate - prev.fechaDate) / DAY_MS);
+      const turnDiff = (HORARIO_ORDER[draw.horario] ?? 0) - (HORARIO_ORDER[prev.horario] ?? 0);
+      if (tipo === "same" && dayDiff === 0 && turnDiff !== 0) {
+        results.push({
+          numero: draw.numero,
+          fecha: draw.fecha,
+          horario: draw.horario,
+          origen: { fecha: prev.fecha, horario: prev.horario },
+          dayDiff,
+          turnDiff,
+        });
+      }
+      if (tipo === "next" && dayDiff === 1) {
+        results.push({
+          numero: draw.numero,
+          fecha: draw.fecha,
+          horario: draw.horario,
+          origen: { fecha: prev.fecha, horario: prev.horario },
+          dayDiff,
+          turnDiff,
+        });
+      }
+    }
+    lastOccurrence.set(draw.numero, draw);
+  });
+  return results;
+}
+
+function countHistoricalRepetitions(historial, numero, tipo) {
+  if (!historial?.length) return { count: 0, ratio: 0 };
+  const filtered = historial.filter((draw) => draw.numero === numero);
+  if (!filtered.length) return { count: 0, ratio: 0 };
+  const events = computeAndFilterRepetitions(filtered, tipo);
+  const { count } = summarizeRepetitions(events, filtered.length, tipo);
+  const ratio = filtered.length ? count / filtered.length : 0;
+  return { count, ratio };
+}
+
+function detectConsecutiveRepetitions({ timeline, historial = [], hypothesisMap }) {
   if (!timeline.length) return [];
 
   const lastOccurrence = new Map();
@@ -311,6 +355,9 @@ function detectConsecutiveRepetitions({ timeline, hypothesisMap }) {
     const sameStats = summarizeRepetitions(store.sameDay, total, "mismo día");
     const nextStats = summarizeRepetitions(store.nextDay, total, "día siguiente");
 
+    const historialSame = countHistoricalRepetitions(historial, numero, "same");
+    const historialNext = countHistoricalRepetitions(historial, numero, "next");
+
     const buildHallazgo = (tipo, stats, evidenciaList) => {
       if (!stats.count) return;
       const evid = evidenciaList.slice(-4).map((item) => ({
@@ -338,6 +385,7 @@ function detectConsecutiveRepetitions({ timeline, hypothesisMap }) {
           ratio: stats.ratio,
           muestras: stats.recientes,
           tipo: tipoLabel,
+          historial: tipo === "same" ? historialSame : historialNext,
         },
       });
     };
@@ -349,21 +397,23 @@ function detectConsecutiveRepetitions({ timeline, hypothesisMap }) {
   return hallazgos;
 }
 
-function detectWindowPatterns({ timeline, hypothesisMap }) {
+function detectWindowPatterns({ timeline, historial = [], hypothesisMap }) {
   const gapPatterns = detectRecurringGaps({ timeline, hypothesisMap });
   const dowPatterns = detectTemporalBias({
     timeline,
+    historial,
     key: "dayOfWeek",
     labelMap: (idx) => DOW_LABEL[idx] || null,
     tituloPrefix: "Sesgo semanal",
   });
   const turnoPatterns = detectTemporalBias({
     timeline,
+    historial,
     key: "horario",
     labelMap: (turno) => turno,
     tituloPrefix: "Turno dominante",
   });
-  const repeatPatterns = detectConsecutiveRepetitions({ timeline, hypothesisMap });
+  const repeatPatterns = detectConsecutiveRepetitions({ timeline, historial, hypothesisMap });
 
   return [...gapPatterns, ...dowPatterns, ...turnoPatterns, ...repeatPatterns];
 }
@@ -377,6 +427,8 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
       stats: null,
       hallazgos: [],
       resumenVentana: "Sin datos registrados.",
+      timelineActiva: [],
+      timelineCompleto: [],
     };
   }
 
@@ -411,7 +463,11 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
       : "neutralidad o transición.") +
     ` Polaridad: ${positiva} positivas, ${neutra} neutras y ${negativa} negativas.`;
 
-  const hallazgos = detectWindowPatterns({ timeline: activeTimeline, hypothesisMap });
+  const hallazgos = detectWindowPatterns({
+    timeline: activeTimeline,
+    hypothesisMap,
+    historial: timeline,
+  });
   const resumenVentana = windowStart && windowEnd
     ? `Ventana analizada: ${formatDate(windowStart)} → ${formatDate(windowEnd)} (${activeTimeline.length} sorteos reales).`
     : "Sin ventana activa suficiente.";
@@ -426,5 +482,6 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
     hallazgos,
     resumenVentana,
     timelineActiva: activeTimeline,
+    timelineCompleto: timeline,
   };
 }
