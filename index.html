@@ -1362,6 +1362,13 @@
                 .join(", ");
               addLine(`Últimos registros: ${texto}.`);
             }
+          } else if (hallazgo.id?.startsWith("repeat-")) {
+            const datos = hallazgo.datos || {};
+            const tipo = datos.tipo || "";
+            addLine(
+              `Repite ${tipo} en ${datos.repeticiones ?? "?"} de ${datos.total ?? "?"} apariciones (${Math.round((datos.ratio || 0) * 100)}%).`
+            );
+            (datos.muestras || []).forEach((linea) => addLine(linea));
           } else {
             addLine(hallazgo.resumen);
           }

@@ -240,6 +240,107 @@ function detectTemporalBias({ timeline, key, labelMap, tituloPrefix, sampleLimit
   return hallazgos;
 }
 
+function describeRepetition(entry) {
+  if (!entry) return "";
+  const origen = entry.origen || {};
+  const baseTxt = `${origen.fecha || "?"} ${origen.horario || ""}`.trim();
+  const destTxt = `${entry.fecha || "?"} ${entry.horario || ""}`.trim();
+  if (entry.dayDiff === 0) return `${baseTxt} → ${destTxt} (mismo día)`;
+  if (entry.dayDiff === 1) return `${baseTxt} → ${destTxt} (día siguiente)`;
+  return `${baseTxt} → ${destTxt}`;
+}
+
+function summarizeRepetitions(events, total, tipo) {
+  const count = events.length;
+  const ratio = total > 0 ? count / total : 0;
+  const recientes = events.slice(-3).map(describeRepetition);
+  return { count, ratio, recientes };
+}
+
+function detectConsecutiveRepetitions({ timeline, hypothesisMap }) {
+  if (!timeline.length) return [];
+
+  const lastOccurrence = new Map();
+  const totalByNumero = new Map();
+  const storeByNumero = new Map();
+
+  const pushEntry = (numero, tipo, prev, curr, dayDiff, turnDiff) => {
+    if (!storeByNumero.has(numero)) {
+      storeByNumero.set(numero, { sameDay: [], nextDay: [] });
+    }
+    const store = storeByNumero.get(numero);
+    const target = tipo === "same" ? store.sameDay : store.nextDay;
+    target.push({
+      numero,
+      fecha: curr.fecha,
+      horario: curr.horario,
+      origen: { fecha: prev.fecha, horario: prev.horario },
+      dayDiff,
+      turnDiff,
+    });
+  };
+
+  timeline.forEach((draw) => {
+    const numero = draw.numero;
+    totalByNumero.set(numero, (totalByNumero.get(numero) || 0) + 1);
+    const prev = lastOccurrence.get(numero);
+    if (prev) {
+      const dayDiff = Math.round((draw.fechaDate - prev.fechaDate) / DAY_MS);
+      const turnDiff = (HORARIO_ORDER[draw.horario] ?? 0) - (HORARIO_ORDER[prev.horario] ?? 0);
+      if (dayDiff === 0) {
+        if (turnDiff !== 0) pushEntry(numero, "same", prev, draw, dayDiff, turnDiff);
+      } else if (dayDiff === 1) {
+        pushEntry(numero, "next", prev, draw, dayDiff, turnDiff);
+      }
+    }
+    lastOccurrence.set(numero, draw);
+  });
+
+  const hallazgos = [];
+
+  storeByNumero.forEach((store, numero) => {
+    const total = totalByNumero.get(numero) || 0;
+    const sameStats = summarizeRepetitions(store.sameDay, total, "mismo día");
+    const nextStats = summarizeRepetitions(store.nextDay, total, "día siguiente");
+
+    const buildHallazgo = (tipo, stats, evidenciaList) => {
+      if (!stats.count) return;
+      const evid = evidenciaList.slice(-4).map((item) => ({
+        numero,
+        fecha: item.fecha,
+        horario: item.horario,
+        resumen: tipo === "same"
+          ? "Se repitió en un turno posterior el mismo día"
+          : "Se repitió al día siguiente",
+        origen: { fecha: item.origen.fecha, horario: item.origen.horario },
+      }));
+      const hypoRefs = buildHypothesisRefs(hypothesisMap, evid);
+      const tipoLabel = tipo === "same" ? "mismo día" : "día siguiente";
+      hallazgos.push({
+        id: `repeat-${tipo}-${numero}`,
+        titulo: `Nº ${String(numero).padStart(2, "0")} repite el ${tipoLabel}`,
+        confianza: Math.min(1, stats.ratio),
+        resumen: `Ocurrió ${stats.count} veces sobre ${total} apariciones recientes (${Math.round(stats.ratio * 100)}%).`,
+        evidencia: evid,
+        hipotesis: hypoRefs,
+        numero,
+        datos: {
+          total,
+          repeticiones: stats.count,
+          ratio: stats.ratio,
+          muestras: stats.recientes,
+          tipo: tipoLabel,
+        },
+      });
+    };
+
+    buildHallazgo("same", sameStats, store.sameDay);
+    buildHallazgo("next", nextStats, store.nextDay);
+  });
+
+  return hallazgos;
+}
+
 function detectWindowPatterns({ timeline, hypothesisMap }) {
   const gapPatterns = detectRecurringGaps({ timeline, hypothesisMap });
   const dowPatterns = detectTemporalBias({
@@ -254,8 +355,9 @@ function detectWindowPatterns({ timeline, hypothesisMap }) {
     labelMap: (turno) => turno,
     tituloPrefix: "Turno dominante",
   });
+  const repeatPatterns = detectConsecutiveRepetitions({ timeline, hypothesisMap });
 
-  return [...gapPatterns, ...dowPatterns, ...turnoPatterns];
+  return [...gapPatterns, ...dowPatterns, ...turnoPatterns, ...repeatPatterns];
 }
 
 export async function detectarPatrones({ cantidad = 9 } = {}) {
