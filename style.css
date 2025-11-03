@@ -399,6 +399,11 @@ button.ghost:hover {
   margin-right: 6px;
   color: rgba(240, 244, 255, 0.95);
 }
+.hypo-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
 .ball-row {
   display: flex;
   align-items: center;

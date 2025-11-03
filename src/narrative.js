@@ -31,6 +31,25 @@ export async function crearHipotesis(
   return id;
 }
 
+export async function actualizarHipotesis(
+  id,
+  numero,
+  simbolo,
+  texto,
+  { fecha, turno } = {}
+) {
+  if (!id) throw new Error("actualizarHipotesis: id requerido");
+  const cambios = {
+    numero,
+    simbolo,
+    fecha: fecha || null,
+    turno: turno || null,
+    razones: [texto].filter(Boolean),
+  };
+  await DB._update("hypotheses", id, cambios);
+  return id;
+}
+
 export async function registrarResultado(result) {
   if (!result || typeof result.numero === "undefined") {
     throw new Error("registrarResultado: resultado inválido");
