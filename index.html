@@ -274,12 +274,13 @@
                 <option value="">— Solo descriptivo —</option>
                 <option value="mirror">Invertir dígitos</option>
                 <option value="sum-digits">Suma de dígitos (resultado completo)</option>
-                <option value="sum-digits-keep-first">Suma de dígitos (mantener primer dígito)</option>
-                <option value="add-constant">Sumar constante</option>
-                <option value="sub-constant">Restar constante</option>
-                <option value="neighbor">Número vecino (±1)</option>
-              </select>
-            </label>
+              <option value="sum-digits-keep-first">Suma de dígitos (mantener primer dígito)</option>
+              <option value="add-constant">Sumar constante</option>
+              <option value="sub-constant">Restar constante</option>
+              <option value="neighbor">Número vecino (±1)</option>
+              <option value="digit-map">Mapa de dígitos (pares equivalentes)</option>
+            </select>
+          </label>
             <label class="grow">
               <span class="label-title">Parámetro</span>
               <input id="mode-parameter" placeholder="Ej. 1" />
@@ -427,6 +428,10 @@
 
     function buildModeParameters(operacion, rawValue) {
       if (!operacion) return null;
+      if (operacion === "digit-map") {
+        const valor = rawValue?.trim() || "0:1,2:5,3:8,4:7,6:9";
+        return { mapa: valor };
+      }
       if (!rawValue) return {};
       const numeric = Number(rawValue);
       if (!Number.isNaN(numeric) && rawValue.trim() !== "") {
@@ -475,18 +480,24 @@
         editBtn.textContent = "Editar";
         editBtn.addEventListener("click", () => {
           editingModeId = mode.id;
-          if (modeNameInput) modeNameInput.value = mode.nombre || "";
-          if (modeTypeSelect) modeTypeSelect.value = mode.tipo || "manual";
-          if (modeDescInput) modeDescInput.value = mode.descripcion || "";
-          if (modeOperationSelect) modeOperationSelect.value = mode.operacion || "";
-          if (modeParamInput) {
-            const params = mode.parametros ?? mode.parametro ?? {};
-            const valor = typeof params === "object" && params !== null ? (params.valor ?? params.constante ?? params.raw) : params;
-            modeParamInput.value = valor ?? "";
+        if (modeNameInput) modeNameInput.value = mode.nombre || "";
+        if (modeTypeSelect) modeTypeSelect.value = mode.tipo || "manual";
+        if (modeDescInput) modeDescInput.value = mode.descripcion || "";
+        if (modeOperationSelect) modeOperationSelect.value = mode.operacion || "";
+        if (modeParamInput) {
+          const params = mode.parametros ?? mode.parametro ?? {};
+          let valor = "";
+          if (mode.operacion === "digit-map") {
+            if (typeof params === "object" && params !== null) valor = params.mapa ?? "";
+            else valor = params ?? "";
+          } else {
+            valor = typeof params === "object" && params !== null ? (params.valor ?? params.constante ?? params.raw) : params;
           }
-          if (modeOffsetSelect) {
-            const offsetVal = Number.isFinite(mode.offset) ? String(mode.offset) : "1";
-            modeOffsetSelect.value = offsetVal;
+          modeParamInput.value = valor ?? "";
+        }
+        if (modeOffsetSelect) {
+          const offsetVal = Number.isFinite(mode.offset) ? String(mode.offset) : "1";
+          modeOffsetSelect.value = offsetVal;
           }
           if (modeSaveBtn) modeSaveBtn.textContent = "Actualizar modo";
           showToast(`Editando modo ${mode.nombre}`, { variant: "info", timeout: 2500 });
@@ -1380,6 +1391,7 @@
         "add-constant": "+Constante",
         "sub-constant": "-Constante",
         neighbor: "Vecino",
+        "digit-map": "Mapa dígitos",
       };
       const scoreMap = new Map();
       Object.entries(modoEval.scorePorNumero || {}).forEach(([key, value]) => {
@@ -1489,11 +1501,12 @@
         const operacionLabels = {
           mirror: "Invertir",
           "sum-digits": "Suma dígitos",
-          "sum-digits-keep-first": "Suma dígitos (mantiene)",
-          "add-constant": "+Constante",
-          "sub-constant": "-Constante",
-          neighbor: "Vecino",
-        };
+        "sum-digits-keep-first": "Suma dígitos (mantiene)",
+        "add-constant": "+Constante",
+        "sub-constant": "-Constante",
+        neighbor: "Vecino",
+        "digit-map": "Mapa dígitos",
+      };
 
         const list = document.createElement("ul");
         list.className = "analysis-insights";

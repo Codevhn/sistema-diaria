@@ -123,11 +123,37 @@ function applyOperation(baseNumero, mode) {
       results.add(wrapNumber(baseNumero - step));
       break;
     }
+    case "digit-map": {
+      const mapping = parseDigitMap(mode);
+      const digits = String(baseNumero).padStart(2, "0").split("");
+      let combos = [""];
+      digits.forEach((digit) => {
+        const options = new Set([digit, ...(mapping.get(digit) || [])]);
+        combos = combos.flatMap((prefix) => Array.from(options).map((opt) => prefix + opt));
+      });
+      combos.forEach((combo) => results.add(wrapNumber(Number(combo))));
+      break;
+    }
     default:
       return [];
   }
 
   return Array.from(results);
+}
+
+function parseDigitMap(mode) {
+  const mapping = new Map();
+  const raw = mode?.parametros?.mapa || mode?.parametro?.mapa || mode?.parametros?.valor || mode?.parametros || "";
+  const text = typeof raw === "string" && raw.trim() ? raw.trim() : "0:1,2:5,3:8,4:7,6:9";
+  text.split(/[,;]+/).forEach((pair) => {
+    const [a, b] = pair.split(/[:=-]/).map((s) => s?.trim()).filter(Boolean);
+    if (!/^[0-9]$/.test(a || "") || !/^[0-9]$/.test(b || "")) return;
+    if (!mapping.has(a)) mapping.set(a, []);
+    if (!mapping.has(b)) mapping.set(b, []);
+    if (!mapping.get(a).includes(b)) mapping.get(a).push(b);
+    if (!mapping.get(b).includes(a)) mapping.get(b).push(a);
+  });
+  return mapping;
 }
 
 function findMatch(timeline, startIndex, target, offset, maxLookahead) {
