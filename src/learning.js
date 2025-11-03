@@ -1,12 +1,13 @@
 // learning.js — motor de memoria, hipótesis y scoring base
 import { DB } from "./storage.js";
+import { parseDrawDate } from "./date-utils.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
 const DOW_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function normalizeDraw(draw) {
-  const fechaDate = draw?.fecha ? new Date(`${draw.fecha}T00:00:00`) : null;
+  const fechaDate = parseDrawDate(draw?.fecha);
   const timestamp = fechaDate ? fechaDate.getTime() : null;
   return {
     ...draw,
@@ -222,8 +223,10 @@ function summarizeHypothesisLogs(logs = []) {
     incMap(bucket.porPais, log.paisResultado, log.estado);
     incMap(bucket.porHorario, log.horarioResultado, log.estado);
     if (log.fechaResultado) {
-      const dow = new Date(`${log.fechaResultado}T00:00:00`).getDay();
-      incMap(bucket.porDiaSemana, dow, log.estado);
+      const fechaResultado = parseDrawDate(log.fechaResultado);
+      if (fechaResultado) {
+        incMap(bucket.porDiaSemana, fechaResultado.getDay(), log.estado);
+      }
     }
 
     bucket.ultimoResultado = {

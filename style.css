@@ -800,58 +800,6 @@ button.ghost:hover {
   box-shadow: var(--shadow-soft);
 }
 
-.origin-warning {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  max-width: 320px;
-  width: min(320px, 90vw);
-  background: rgba(17, 24, 38, 0.92);
-  color: var(--color-text);
-  border: 1px solid rgba(79, 155, 255, 0.35);
-  border-radius: var(--radius-md);
-  padding: 16px 18px;
-  font-size: 0.9rem;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  column-gap: 12px;
-  row-gap: 8px;
-  box-shadow: var(--shadow-hard);
-  z-index: 3000;
-  backdrop-filter: blur(12px);
-}
-
-.origin-warning strong {
-  color: var(--color-accent);
-}
-
-.origin-warning__message {
-  display: block;
-  line-height: 1.4;
-}
-
-.origin-warning span[data-current-origin],
-.origin-warning span[data-canonical-origin] {
-  font-family: "Fira Mono", monospace;
-  word-break: break-all;
-}
-
-.origin-warning__close {
-  border: none;
-  background: rgba(79, 155, 255, 0.08);
-  color: var(--color-accent);
-  font-size: 1.1rem;
-  line-height: 1;
-  border-radius: 6px;
-  padding: 2px 6px;
-  cursor: pointer;
-  height: fit-content;
-}
-
-.origin-warning__close:hover {
-  background: rgba(79, 155, 255, 0.18);
-}
-
 .toast-container {
   position: fixed;
   bottom: 28px;
@@ -949,20 +897,43 @@ button.ghost:hover {
 
 .analysis-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 18px;
-  margin-top: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 28px;
+  margin: 18px auto 42px;
+  max-width: 980px;
+  width: calc(100% - 40px);
+  justify-content: center;
+  align-items: stretch;
 }
 
 .analysis-card {
-  background: var(--color-surface-2);
+  position: relative;
+  background: radial-gradient(120% 150% at 0% 0%, rgba(95, 132, 255, 0.08), transparent 60%),
+    rgba(15, 25, 45, 0.85);
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.04);
   padding: 20px;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 18px 38px rgba(5, 10, 25, 0.35);
   display: flex;
   flex-direction: column;
   gap: 10px;
+  isolation: isolate;
+  --analysis-accent: rgba(120, 158, 255, 0.6);
+}
+
+.analysis-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--analysis-accent), transparent 55%);
+  opacity: 0.35;
+  z-index: -1;
+  transition: opacity 0.25s ease;
+}
+
+.analysis-card:hover::before {
+  opacity: 0.6;
 }
 
 .analysis-card .card-head {
@@ -972,38 +943,84 @@ button.ghost:hover {
   font-size: 17px;
   font-weight: 600;
   color: var(--color-text);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
 }
 
 .analysis-card.summary {
-  border-left: 4px solid rgba(79, 155, 255, 0.85);
+  --analysis-accent: rgba(79, 155, 255, 0.65);
 }
 
 .analysis-card.pattern {
-  border-left: 4px solid rgba(246, 176, 78, 0.85);
+  --analysis-accent: rgba(246, 176, 78, 0.65);
 }
 
 .analysis-card.scenario {
-  border-left: 4px solid rgba(91, 217, 166, 0.85);
+  --analysis-accent: rgba(91, 217, 166, 0.6);
 }
 
 .analysis-card.recommendation {
-  border-left: 4px solid rgba(167, 123, 255, 0.85);
+  --analysis-accent: rgba(167, 123, 255, 0.65);
 }
 
 .analysis-card.forecast {
-  border-left: 4px solid rgba(79, 155, 255, 0.85);
+  --analysis-accent: rgba(79, 155, 255, 0.7);
 }
 
 .analysis-card.detail {
-  border-left: 4px solid rgba(126, 214, 255, 0.85);
+  --analysis-accent: rgba(126, 214, 255, 0.6);
 }
 
 .analysis-card.insight {
-  border-left: 4px solid rgba(245, 176, 78, 0.85);
+  --analysis-accent: rgba(245, 176, 78, 0.6);
 }
 
 .analysis-card.performance {
-  border-left: 4px solid rgba(91, 217, 166, 0.85);
+  --analysis-accent: rgba(91, 217, 166, 0.6);
+}
+
+.analysis-card.accent-strong {
+  --analysis-accent: rgba(255, 120, 67, 0.75);
+  box-shadow: 0 20px 45px rgba(255, 120, 67, 0.25), 0 18px 38px rgba(5, 10, 25, 0.35);
+}
+
+.analysis-card.accent-medium {
+  --analysis-accent: rgba(120, 184, 255, 0.7);
+}
+
+.analysis-card.accent-soft {
+  --analysis-accent: rgba(120, 158, 255, 0.4);
+}
+
+.analysis-badge {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--color-text-light, #f3f9ff);
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.08);
+}
+
+.analysis-badge.accent-strong {
+  background: rgba(255, 120, 67, 0.18);
+  border-color: rgba(255, 120, 67, 0.45);
+}
+
+.analysis-badge.accent-medium {
+  background: rgba(120, 184, 255, 0.15);
+  border-color: rgba(120, 184, 255, 0.45);
+}
+
+.analysis-badge.accent-soft {
+  background: rgba(120, 158, 255, 0.12);
+  border-color: rgba(120, 158, 255, 0.3);
 }
 
 .mode-form,
@@ -1055,7 +1072,15 @@ button.ghost:hover {
 
 .analysis-note {
   font-size: 13px;
-  opacity: 0.75;
+  color: rgba(225, 233, 255, 0.82);
+}
+
+.analysis-footnote {
+  font-size: 12px;
+  color: rgba(180, 198, 230, 0.65);
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .analysis-pill-wrap {
@@ -1065,8 +1090,8 @@ button.ghost:hover {
 }
 
 .analysis-pill {
-  background: rgba(212, 167, 68, 0.15);
-  border: 1px solid rgba(212, 167, 68, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   padding: 6px 10px;
   border-radius: 10px;
   font-size: 13px;
@@ -1076,8 +1101,8 @@ button.ghost:hover {
 }
 
 .analysis-chip {
-  background: rgba(74, 167, 255, 0.18);
-  border: 1px solid rgba(74, 167, 255, 0.3);
+  background: rgba(120, 184, 255, 0.18);
+  border: 1px solid rgba(120, 184, 255, 0.38);
   border-radius: 999px;
   padding: 3px 8px;
   font-size: 12px;
@@ -1089,15 +1114,16 @@ button.ghost:hover {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 10px;
 }
 
 .analysis-evidence span {
   font-size: 12.5px;
-  opacity: 0.8;
+  color: rgba(214, 228, 255, 0.78);
+  font-family: "Fira Mono", "JetBrains Mono", "SFMono-Regular", monospace;
 }
 
 .analysis-forecast {
@@ -1107,10 +1133,10 @@ button.ghost:hover {
 }
 
 .analysis-forecast-item {
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.03);
+  background: linear-gradient(120deg, rgba(90, 120, 255, 0.12), transparent 70%);
   display: flex;
   flex-direction: column;
   gap: 6px;

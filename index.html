@@ -637,6 +637,7 @@
         showToast(`No se pudo guardar el modo: ${err.message}`, { variant: "danger" });
       }
     });
+
     const CANONICAL_ORIGIN = "http://localhost:3000";
     const FALLBACK_ORIGIN = "http://127.0.0.1:3000";
     const originBanner = document.getElementById("origin-warning");
@@ -1012,20 +1013,37 @@
       if (latestTimestamp) {
         const daysDiff = Math.floor((Date.now() - latestTimestamp) / (1000 * 60 * 60 * 24));
         if (daysDiff > 30) {
-          showToast(
-            `Datos recientes no disponibles (último registro hace ${daysDiff} días). Predicciones simuladas hasta actualizar la base.`,
-            { variant: "warning", timeout: 7000 }
-          );
+          const lastWarnTs = parseInt(localStorage.getItem("recencyWarnTs"), 10) || 0;
+          if (lastWarnTs !== latestTimestamp) {
+            const lastDate = new Date(latestTimestamp).toISOString().slice(0, 10);
+            showToast(
+              `Último sorteo registrado: ${lastDate} (≈${daysDiff} días). Agrega resultados recientes para reemplazar las predicciones simuladas.`,
+              { variant: "warning", timeout: 9000 }
+            );
+            localStorage.setItem("recencyWarnTs", String(latestTimestamp));
+          }
         }
       }
 
       if (patrones?.mensaje) {
         const card = document.createElement("div");
         card.className = "analysis-card summary";
-        card.innerHTML = `
-          <div class="card-head">Tendencias recientes</div>
-          <div class="analysis-note">${patrones.mensaje}</div>
-        `;
+        const head = document.createElement("div");
+        head.className = "card-head";
+        head.textContent = "Tendencias recientes";
+        card.appendChild(head);
+
+        const note = document.createElement("div");
+        note.className = "analysis-note";
+        note.textContent = patrones.mensaje;
+        card.appendChild(note);
+
+        if (patrones.resumenVentana) {
+          const windowNote = document.createElement("div");
+          windowNote.className = "analysis-footnote";
+          windowNote.textContent = patrones.resumenVentana;
+          card.appendChild(windowNote);
+        }
         grid.appendChild(card);
       }
 
@@ -1034,10 +1052,17 @@
           const card = document.createElement("div");
           card.className = "analysis-card pattern";
           const conf = Math.round((hallazgo.confianza || 0) * 100);
+          const level = hallazgo.confianza >= 0.75 ? "accent-strong" : hallazgo.confianza >= 0.5 ? "accent-medium" : "accent-soft";
+          card.classList.add(level);
 
           const header = document.createElement("div");
           header.className = "card-head";
           header.textContent = hallazgo.titulo;
+
+          const badge = document.createElement("span");
+          badge.className = `analysis-badge ${level}`;
+          badge.textContent = conf ? `${conf}% confianza` : "Sin métrica";
+          header.appendChild(badge);
           card.appendChild(header);
 
           const resumen = document.createElement("div");

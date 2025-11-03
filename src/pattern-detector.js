@@ -1,9 +1,13 @@
-// pattern-detector.js — núcleo de patrones heurísticos
+// pattern-detector.js — núcleo de patrones heurísticos adaptativos
 import { DB } from "./storage.js";
 import { GUIA } from "./loader.js";
+import { parseDrawDate } from "./date-utils.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
+const ACTIVE_WINDOW_DAYS = 120;
+const MIN_RECENT_RECORDS = 30;
+const DOW_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function toNumber(value) {
   const n = typeof value === "number" ? value : parseInt(value, 10);
@@ -12,7 +16,7 @@ function toNumber(value) {
 
 function hydrateDraw(draw) {
   const fecha = draw?.fecha;
-  const fechaObj = fecha ? new Date(`${fecha}T00:00:00`) : null;
+  const fechaObj = parseDrawDate(fecha);
   return {
     ...draw,
     numero: toNumber(draw?.numero),
@@ -52,108 +56,168 @@ async function loadHypotheses() {
   }
 }
 
-function detectCycle88EveryTenDays({ timeline, hypothesisMap }) {
-  const occurrences = timeline.filter((d) => d.horario === "9PM" && d.numero === 88);
-  if (occurrences.length < 3) return null;
+function formatDate(fechaDate) {
+  if (!fechaDate) return "";
+  return fechaDate.toISOString().slice(0, 10);
+}
 
-  const latestTimelineDate = timeline[timeline.length - 1]?.fechaDate || null;
-  const today = new Date();
-  const anchorDate = latestTimelineDate && latestTimelineDate > today ? latestTimelineDate : today;
-
-  const intervals = [];
-  for (let i = 1; i < occurrences.length; i++) {
-    const prev = occurrences[i - 1];
-    const curr = occurrences[i];
-    const days = Math.round((curr.fechaDate - prev.fechaDate) / DAY_MS);
-    intervals.push({ prev, curr, days });
+function computeWindowBounds(timeline) {
+  if (!timeline.length) {
+    return { activeTimeline: [], windowStart: null, windowEnd: null };
   }
 
-  const matches = intervals.filter(({ days }) => Math.abs(days - 10) <= 1);
-  if (!matches.length) return null;
+  const windowEnd = timeline[timeline.length - 1].fechaDate;
+  const startOfYear = new Date(windowEnd.getFullYear(), 0, 1);
+  const fallbackCutoff = new Date(windowEnd.getTime() - ACTIVE_WINDOW_DAYS * DAY_MS);
+  let cutoff = startOfYear > fallbackCutoff ? startOfYear : fallbackCutoff;
 
-  const coincidencias = matches.map(({ prev, curr, days }) => {
-    const hypoKey = `${curr.fecha}|${curr.horario}|${String(curr.numero).padStart(2, "0")}`;
-    return {
-      fecha: curr.fecha,
-      horario: curr.horario,
-      numero: curr.numero,
-      resumen: `Se repitió ${days} días después del ${prev.fecha}`,
-      hipotesis: hypothesisMap.get(hypoKey) || [],
-    };
+  let filtered = timeline.filter((draw) => draw.fechaDate >= cutoff);
+
+  if (filtered.length < MIN_RECENT_RECORDS && timeline.length >= MIN_RECENT_RECORDS) {
+    cutoff = fallbackCutoff;
+    filtered = timeline.filter((draw) => draw.fechaDate >= cutoff);
+  }
+
+  if (!filtered.length) {
+    cutoff = timeline[0].fechaDate;
+    filtered = timeline.slice();
+  }
+
+  return {
+    activeTimeline: filtered,
+    windowStart: filtered[0]?.fechaDate ?? cutoff,
+    windowEnd,
+  };
+}
+
+function buildHypothesisRefs(hypothesisMap, entries = []) {
+  if (!hypothesisMap || !entries.length) return [];
+  const refs = [];
+  entries.forEach((entry) => {
+    const key = `${entry.fecha || ""}|${entry.horario || ""}|${String(entry.numero).padStart(2, "0")}`;
+    const matches = hypothesisMap.get(key) || [];
+    if (matches.length) refs.push(...matches);
+  });
+  return refs;
+}
+
+function detectRecurringGaps({ timeline, hypothesisMap }) {
+  const byNumber = new Map();
+  timeline.forEach((draw) => {
+    if (!byNumber.has(draw.numero)) byNumber.set(draw.numero, []);
+    byNumber.get(draw.numero).push(draw);
   });
 
-  const confianza = matches.length / intervals.length;
-  const ultimaCoincidencia = coincidencias[coincidencias.length - 1];
-  const proximoEstimado = (() => {
-    const last = occurrences[occurrences.length - 1];
-    if (!last?.fechaDate) return null;
-    let next = new Date(last.fechaDate.getTime() + 10 * DAY_MS);
-    let guard = 0;
-    while (anchorDate && next <= anchorDate && guard < 512) {
-      next = new Date(next.getTime() + 10 * DAY_MS);
-      guard++;
-    }
-    if (guard >= 512) return null;
-    return next.toISOString().slice(0, 10);
-  })();
+  const hallazgos = [];
 
-  return {
-    id: "cycle-88-10d",
-    titulo: "Ciclo 88 cada 10 días (9PM)",
-    confianza,
-    resumen: `La secuencia 88 a las 9PM se repitió con ~10 días de separación en ${matches.length} de ${intervals.length} ciclos recientes.`,
-    evidencia: coincidencias,
-    siguienteFechaEsperada: proximoEstimado,
-    ultimaCoincidencia,
-  };
+  byNumber.forEach((occurrences, numero) => {
+    if (occurrences.length < 3) return;
+    const deltas = [];
+    for (let i = 1; i < occurrences.length; i++) {
+      const prev = occurrences[i - 1];
+      const curr = occurrences[i];
+      const gap = Math.round((curr.fechaDate - prev.fechaDate) / DAY_MS);
+      if (gap > 0) deltas.push({ gap, prev, curr });
+    }
+    if (!deltas.length) return;
+
+    const gapFreq = new Map();
+    deltas.forEach(({ gap }) => {
+      gapFreq.set(gap, (gapFreq.get(gap) || 0) + 1);
+    });
+
+    const sorted = Array.from(gapFreq.entries()).sort((a, b) => b[1] - a[1]);
+    const [bestGap, count] = sorted[0];
+    if (count < 2) return;
+
+    const matchRatio = count / deltas.length;
+    if (matchRatio < 0.55 && count < 3) return;
+
+    const matches = deltas.filter(({ gap }) => gap === bestGap);
+    const evidencia = matches.slice(-4).map(({ prev, curr, gap }) => ({
+      fecha: curr.fecha,
+      horario: curr.horario,
+      numero,
+      resumen: `Se repitió ${gap} días después del ${prev.fecha}`,
+      origen: { fecha: prev.fecha, horario: prev.horario },
+    }));
+
+    const hypoRefs = buildHypothesisRefs(hypothesisMap, evidencia);
+
+    const lastMatch = matches[matches.length - 1];
+    let siguienteFechaEsperada = null;
+    if (lastMatch?.curr?.fechaDate) {
+      const tentative = new Date(lastMatch.curr.fechaDate.getTime() + bestGap * DAY_MS);
+      if (tentative > new Date()) siguienteFechaEsperada = formatDate(tentative);
+    }
+
+    hallazgos.push({
+      id: `gap-${numero}-${bestGap}`,
+      titulo: `Nº ${String(numero).padStart(2, "0")} reaparece cada ~${bestGap} días`,
+      confianza: Math.min(1, matchRatio),
+      resumen: `En la ventana activa apareció ${occurrences.length} veces; el intervalo modal de ${bestGap} días se repitió ${count} de ${deltas.length} ciclos recientes.`,
+      evidencia,
+      siguienteFechaEsperada,
+      hipotesis: hypoRefs,
+    });
+  });
+
+  return hallazgos;
 }
 
-function detectSundayFromWednesday({ timeline, hypothesisMap }) {
-  const sundayMatches = [];
-  const sundayDraws = timeline.filter((d) => d.dayOfWeek === 0 && d.horario === "11AM");
-  if (!sundayDraws.length) return null;
+function detectTemporalBias({ timeline, key, labelMap, tituloPrefix }) {
+  const byNumber = new Map();
+  timeline.forEach((draw) => {
+    const bucketKey = draw[key];
+    if (bucketKey === undefined || bucketKey === null) return;
+    if (!byNumber.has(draw.numero)) byNumber.set(draw.numero, new Map());
+    const bucket = byNumber.get(draw.numero);
+    bucket.set(bucketKey, (bucket.get(bucketKey) || 0) + 1);
+  });
 
-  for (const sunday of sundayDraws) {
-    const idx = timeline.indexOf(sunday);
-    if (idx <= 0) continue;
-    const sundayNumber = sunday.numero;
+  const hallazgos = [];
 
-    for (let i = idx - 1; i >= 0; i--) {
-      const candidate = timeline[i];
-      const diffDays = Math.round((sunday.fechaDate - candidate.fechaDate) / DAY_MS);
-      if (diffDays > 5) break; // demasiado lejos
-      if (candidate.dayOfWeek === 3 && candidate.horario === "9PM") {
-        if (candidate.numero === sundayNumber && diffDays >= 3) {
-          const hypoKeys = [
-            `${sunday.fecha}|${sunday.horario}|${String(sunday.numero).padStart(2, "0")}`,
-            `${candidate.fecha}|${candidate.horario}|${String(candidate.numero).padStart(2, "0")}`,
-          ];
-          sundayMatches.push({
-            fecha: sunday.fecha,
-            horario: sunday.horario,
-            numero: sundayNumber,
-            origen: { fecha: candidate.fecha, horario: candidate.horario },
-            resumen: `Domingo reutilizó el ${String(sundayNumber).padStart(2, "0")}`,
-            hipotesis: hypoKeys.flatMap((key) => hypothesisMap.get(key) || []),
-          });
-        }
-        break;
-      }
-    }
-  }
+  byNumber.forEach((bucketMap, numero) => {
+    const total = Array.from(bucketMap.values()).reduce((acc, v) => acc + v, 0);
+    if (total < 4) return;
+    const sorted = Array.from(bucketMap.entries()).sort((a, b) => b[1] - a[1]);
+    const [bucketKey, count] = sorted[0];
+    const ratio = count / total;
+    if (ratio < 0.55) return;
 
-  if (!sundayMatches.length) return null;
-  const confianza = sundayMatches.length / sundayDraws.length;
-  return {
-    id: "domingo-desde-miercoles",
-    titulo: "Domingos 11AM reciclan miércoles 9PM",
-    confianza,
-    resumen: `${sundayMatches.length} de ${sundayDraws.length} domingos 11AM recientes repitieron el número del miércoles 9PM previo (≤5 días).`,
-    evidencia: sundayMatches,
-  };
+    const etiqueta = labelMap(bucketKey);
+    if (!etiqueta) return;
+
+    hallazgos.push({
+      id: `${key}-${numero}-${bucketKey}`,
+      titulo: `${tituloPrefix} ${String(numero).padStart(2, "0")} domina ${etiqueta}`,
+      confianza: Math.min(1, ratio),
+      resumen: `El ${String(numero).padStart(2, "0")} apareció ${total} veces en la ventana; ${count} (${Math.round(ratio * 100)}%) fueron en ${etiqueta}.`,
+      evidencia: [],
+      hipotesis: [],
+    });
+  });
+
+  return hallazgos;
 }
 
-const DETECTORES = [detectCycle88EveryTenDays, detectSundayFromWednesday];
+function detectWindowPatterns({ timeline, hypothesisMap }) {
+  const gapPatterns = detectRecurringGaps({ timeline, hypothesisMap });
+  const dowPatterns = detectTemporalBias({
+    timeline,
+    key: "dayOfWeek",
+    labelMap: (idx) => DOW_LABEL[idx] || null,
+    tituloPrefix: "Sesgo semanal",
+  });
+  const turnoPatterns = detectTemporalBias({
+    timeline,
+    key: "horario",
+    labelMap: (turno) => turno,
+    tituloPrefix: "Turno dominante",
+  });
+
+  return [...gapPatterns, ...dowPatterns, ...turnoPatterns];
+}
 
 export async function detectarPatrones({ cantidad = 9 } = {}) {
   const draws = await DB.listDraws({ excludeTest: true });
@@ -163,11 +227,13 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
       recientes: [],
       stats: null,
       hallazgos: [],
+      resumenVentana: "Sin datos registrados.",
     };
   }
 
   const timeline = sortTimeline(draws);
-  const recientes = timeline.slice(-cantidad);
+  const { activeTimeline, windowStart, windowEnd } = computeWindowBounds(timeline);
+  const recientes = activeTimeline.slice(-cantidad);
   const hypothesisMap = await loadHypotheses();
 
   const stats = { familias: {}, polaridades: { positiva: 0, neutra: 0, negativa: 0 }, total: recientes.length };
@@ -196,7 +262,10 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
       : "neutralidad o transición.") +
     ` Polaridad: ${positiva} positivas, ${neutra} neutras y ${negativa} negativas.`;
 
-  const hallazgos = DETECTORES.map((fn) => fn({ timeline, hypothesisMap })).filter(Boolean);
+  const hallazgos = detectWindowPatterns({ timeline: activeTimeline, hypothesisMap });
+  const resumenVentana = windowStart && windowEnd
+    ? `Ventana analizada: ${formatDate(windowStart)} → ${formatDate(windowEnd)} (${activeTimeline.length} sorteos reales).`
+    : "Sin ventana activa suficiente.";
 
   return {
     recientes,
@@ -206,5 +275,6 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
     mensaje,
     score,
     hallazgos,
+    resumenVentana,
   };
 }
