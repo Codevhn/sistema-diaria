@@ -1223,13 +1223,13 @@ button.ghost:hover {
   align-items: stretch;
 }
 
-.mode-form-body .row {
+.mode-form-row {
   flex-wrap: wrap;
   gap: 16px;
 }
 
-.mode-form-body .row label {
-  flex: 1;
+.mode-form-body .grow {
+  flex: 1 1 200px;
   min-width: 200px;
 }
 
@@ -1246,6 +1246,13 @@ button.ghost:hover {
   flex-direction: column;
   align-items: stretch;
   gap: 18px;
+}
+
+.mode-meta {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(180, 198, 230, 0.7);
 }
 
 .mode-item {

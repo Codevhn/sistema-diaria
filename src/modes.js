@@ -6,6 +6,9 @@ export async function createMode(data) {
     nombre: data.nombre.trim(),
     tipo: data.tipo || "manual",
     descripcion: data.descripcion || "",
+    operacion: data.operacion || "",
+    parametros: data.operacion ? data.parametros || {} : null,
+    offset: Number.isFinite(data.offset) ? data.offset : null,
   });
   if (Array.isArray(data.ejemplos)) {
     for (const ex of data.ejemplos) {
@@ -26,6 +29,9 @@ export async function updateMode(id, data) {
     nombre: data.nombre,
     tipo: data.tipo,
     descripcion: data.descripcion,
+    operacion: data.operacion || "",
+    parametros: data.operacion ? data.parametros || {} : null,
+    offset: Number.isFinite(data.offset) ? data.offset : null,
   });
   if (Array.isArray(data.ejemplos)) {
     const prev = await DB.listGameModeExamples(id);

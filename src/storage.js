@@ -319,11 +319,14 @@ export const DB = {
     return db.prediction_logs.toArray();
   },
 
-  async createGameMode({ nombre, tipo, descripcion }) {
+  async createGameMode({ nombre, tipo, descripcion, operacion = "", parametros = null, offset = null }) {
     return db.game_modes.add({
       nombre,
       tipo,
       descripcion,
+      operacion,
+      parametros,
+      offset,
       createdAt: Date.now(),
     });
   },

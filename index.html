@@ -250,12 +250,12 @@
       <div class="mode-form card">
         <div class="card-head">Crear/Editar modo</div>
         <div class="card-body mode-form-body">
-          <div class="row">
-            <label>
+          <div class="row mode-form-row">
+            <label class="grow">
               <span class="label-title">Nombre</span>
               <input id="mode-name" placeholder="Ej. Columna 5" />
             </label>
-            <label>
+            <label class="grow">
               <span class="label-title">Tipo</span>
               <select id="mode-type">
                 <option value="manual">Manual</option>
@@ -263,6 +263,32 @@
                 <option value="columna">Columna</option>
                 <option value="linea">Línea</option>
                 <option value="patron">Patrón</option>
+              </select>
+            </label>
+          </div>
+          <div class="row mode-form-row">
+            <label class="grow">
+              <span class="label-title">Operación</span>
+              <select id="mode-operation">
+                <option value="">— Solo descriptivo —</option>
+                <option value="mirror">Invertir dígitos</option>
+                <option value="sum-digits">Suma de dígitos (resultado completo)</option>
+                <option value="sum-digits-keep-first">Suma de dígitos (mantener primer dígito)</option>
+                <option value="add-constant">Sumar constante</option>
+                <option value="sub-constant">Restar constante</option>
+                <option value="neighbor">Número vecino (±1)</option>
+              </select>
+            </label>
+            <label class="grow">
+              <span class="label-title">Parámetro</span>
+              <input id="mode-parameter" placeholder="Ej. 1" />
+            </label>
+            <label class="grow">
+              <span class="label-title">Avance (turnos)</span>
+              <select id="mode-offset">
+                <option value="1">Siguiente turno</option>
+                <option value="2">Dos turnos después</option>
+                <option value="0">Mismo turno</option>
               </select>
             </label>
           </div>
@@ -354,6 +380,9 @@
     const modeNameInput = document.getElementById("mode-name");
     const modeTypeSelect = document.getElementById("mode-type");
     const modeDescInput = document.getElementById("mode-desc");
+    const modeOperationSelect = document.getElementById("mode-operation");
+    const modeParamInput = document.getElementById("mode-parameter");
+    const modeOffsetSelect = document.getElementById("mode-offset");
     const modeSaveBtn = document.getElementById("mode-save");
     let editingModeId = null;
 
@@ -362,7 +391,47 @@
       if (modeNameInput) modeNameInput.value = "";
       if (modeTypeSelect) modeTypeSelect.value = "manual";
       if (modeDescInput) modeDescInput.value = "";
+      if (modeOperationSelect) modeOperationSelect.value = "";
+      if (modeParamInput) modeParamInput.value = "";
+      if (modeOffsetSelect) modeOffsetSelect.value = "1";
       if (modeSaveBtn) modeSaveBtn.textContent = "Guardar modo";
+    }
+
+    function describeModoOperacion(mode = {}) {
+      const op = mode.operacion || "";
+      if (!op) return "";
+      const params = mode.parametros ?? mode.parametro ?? {};
+      const valor = typeof params === "object" && params !== null ? (params.valor ?? params.constante ?? params.raw) : params;
+      const offset = Number.isFinite(mode.offset) ? mode.offset : null;
+
+      const nombreOperacion = {
+        mirror: "Invertir dígitos",
+        "sum-digits": "Suma de dígitos",
+        "sum-digits-keep-first": "Suma de dígitos (mantener primer dígito)",
+        "add-constant": "Sumar constante",
+        "sub-constant": "Restar constante",
+        neighbor: "Número vecino",
+      }[op] || op;
+
+      let detalle = nombreOperacion;
+      if (valor !== undefined && valor !== null && valor !== "") {
+        detalle += ` · param ${valor}`;
+      }
+      if (offset !== null) {
+        const offsetTxt = offset === 0 ? "mismo turno" : offset === 1 ? "siguiente turno" : `${offset} turnos`;
+        detalle += ` · ${offsetTxt}`;
+      }
+      return detalle;
+    }
+
+    function buildModeParameters(operacion, rawValue) {
+      if (!operacion) return null;
+      if (!rawValue) return {};
+      const numeric = Number(rawValue);
+      if (!Number.isNaN(numeric) && rawValue.trim() !== "") {
+        return { valor: numeric };
+      }
+      return { valor: rawValue };
     }
 
     async function refreshModesPanel() {
@@ -408,6 +477,16 @@
           if (modeNameInput) modeNameInput.value = mode.nombre || "";
           if (modeTypeSelect) modeTypeSelect.value = mode.tipo || "manual";
           if (modeDescInput) modeDescInput.value = mode.descripcion || "";
+          if (modeOperationSelect) modeOperationSelect.value = mode.operacion || "";
+          if (modeParamInput) {
+            const params = mode.parametros ?? mode.parametro ?? {};
+            const valor = typeof params === "object" && params !== null ? (params.valor ?? params.constante ?? params.raw) : params;
+            modeParamInput.value = valor ?? "";
+          }
+          if (modeOffsetSelect) {
+            const offsetVal = Number.isFinite(mode.offset) ? String(mode.offset) : "1";
+            modeOffsetSelect.value = offsetVal;
+          }
           if (modeSaveBtn) modeSaveBtn.textContent = "Actualizar modo";
           showToast(`Editando modo ${mode.nombre}`, { variant: "info", timeout: 2500 });
         });
@@ -437,6 +516,14 @@
         actions.appendChild(deleteBtn);
         head.appendChild(actions);
         item.appendChild(head);
+
+        const metaOperacion = describeModoOperacion(mode);
+        if (metaOperacion) {
+          const opMeta = document.createElement("div");
+          opMeta.className = "mode-meta";
+          opMeta.textContent = metaOperacion;
+          item.appendChild(opMeta);
+        }
 
         const desc = document.createElement("div");
         desc.className = "analysis-note";
@@ -625,10 +712,19 @@
         showToast("Ingresa un nombre para el modo.", { variant: "warning" });
         return;
       }
+      const operacion = modeOperationSelect?.value || "";
+      const parametroRaw = modeParamInput?.value.trim() || "";
+      const offsetVal = modeOffsetSelect?.value ?? "";
+      const offsetNumber = offsetVal === "" ? null : Number(offsetVal);
+      const parametros = buildModeParameters(operacion, parametroRaw);
+
       const payload = {
         nombre,
         tipo: modeTypeSelect?.value || "manual",
         descripcion: modeDescInput?.value.trim() || "",
+        operacion,
+        parametros: operacion ? parametros ?? {} : null,
+        offset: Number.isFinite(offsetNumber) ? offsetNumber : null,
       };
       try {
         if (editingModeId) {
