@@ -159,6 +159,13 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
       evidencia,
       siguienteFechaEsperada,
       hipotesis: hypoRefs,
+      numero,
+      datos: {
+        apariciones: occurrences.length,
+        coincidencias: count,
+        intervalos: deltas.length,
+        gap: bestGap,
+      },
     });
   });
 
@@ -195,6 +202,14 @@ function detectTemporalBias({ timeline, key, labelMap, tituloPrefix }) {
       resumen: `El ${String(numero).padStart(2, "0")} apareció ${total} veces en la ventana; ${count} (${Math.round(ratio * 100)}%) fueron en ${etiqueta}.`,
       evidencia: [],
       hipotesis: [],
+      numero,
+      etiqueta,
+      datos: {
+        total,
+        count,
+        ratio,
+        bucketKey,
+      },
     });
   });
 

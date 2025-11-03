@@ -1296,9 +1296,56 @@
           header.appendChild(badge);
           card.appendChild(header);
 
+          const number = Number.isFinite(hallazgo.numero)
+            ? hallazgo.numero
+            : Number.isFinite(hallazgo.evidencia?.[0]?.numero)
+            ? hallazgo.evidencia[0].numero
+            : null;
+          if (Number.isFinite(number)) {
+            const numberBadge = document.createElement("div");
+            numberBadge.className = "analysis-number-lg";
+            numberBadge.textContent = formatNumber(number);
+            card.appendChild(numberBadge);
+          }
+
           const resumen = document.createElement("div");
-          resumen.className = "analysis-note";
-          resumen.textContent = `${hallazgo.resumen}${Number.isFinite(hallazgo.confianza) ? ` — conf ${conf}%` : ""}`;
+          resumen.className = "pattern-summary";
+
+          const detailList = document.createElement("ul");
+          detailList.className = "pattern-detail";
+
+          const addLine = (text) => {
+            if (!text) return;
+            const li = document.createElement("li");
+            li.textContent = text;
+            detailList.appendChild(li);
+          };
+
+          if (hallazgo.id?.startsWith("gap-")) {
+            const datos = hallazgo.datos || {};
+            addLine(`Apareció ${datos.apariciones ?? "?"} veces en la ventana activa.`);
+            addLine(
+              `Intervalo modal: ${datos.gap ?? "?"} días · coincidencias ${datos.coincidencias ?? "?"} de ${datos.intervalos ?? "?"}.`
+            );
+          } else if (hallazgo.id?.startsWith("dayOfWeek")) {
+            const datos = hallazgo.datos || {};
+            const etiqueta = hallazgo.etiqueta || "";
+            addLine(`Predomina en ${etiqueta}.`);
+            addLine(`Apariciones: ${datos.count ?? "?"} de ${datos.total ?? "?"} (${Math.round((datos.ratio || 0) * 100)}%).`);
+          } else if (hallazgo.id?.startsWith("horario")) {
+            const datos = hallazgo.datos || {};
+            const etiqueta = hallazgo.etiqueta || "";
+            addLine(`Turno preferido: ${etiqueta}.`);
+            addLine(`Coincidencias: ${datos.count ?? "?"} de ${datos.total ?? "?"} (${Math.round((datos.ratio || 0) * 100)}%).`);
+          } else {
+            addLine(hallazgo.resumen);
+          }
+
+          if (!detailList.children.length) {
+            addLine(hallazgo.resumen ?? "Sin detalles adicionales.");
+          }
+
+          resumen.appendChild(detailList);
           card.appendChild(resumen);
 
           if (hallazgo.siguienteFechaEsperada) {
