@@ -231,7 +231,6 @@ function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPre
     const sorted = Array.from(store.counts.entries()).sort((a, b) => b[1] - a[1]);
     const [bucketKey, count] = sorted[0];
     const ratio = count / total;
-    if (ratio < 0.55) return;
 
     const etiqueta = labelMap(bucketKey);
     if (!etiqueta) return;
@@ -245,11 +244,17 @@ function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPre
     const historialRatio = historicoTotal ? historicoBucket / historicoTotal : 0;
     const historialMuestras = (historialSamples.get(numero)?.get(bucketKey) || []).slice(-sampleLimit).map(formatSample);
 
+    const tieneHistorial = historicoBucket >= 2 && historialRatio >= 0.35;
+    const scoreFinal = Math.min(1, (ratio * 0.7) + (historialRatio * 0.3));
+    if (!tieneHistorial && ratio < 0.7) return;
+
     hallazgos.push({
       id: `${key}-${numero}-${bucketKey}`,
       titulo: `${tituloPrefix} ${String(numero).padStart(2, "0")} domina ${etiqueta}`,
-      confianza: Math.min(1, ratio),
-      resumen: `El ${String(numero).padStart(2, "0")} apareció ${total} veces en la ventana; ${count} (${Math.round(ratio * 100)}%) fueron en ${etiqueta}.`,
+      confianza: scoreFinal,
+      resumen: tieneHistorial
+        ? `El ${String(numero).padStart(2, "0")} apareció ${total} veces en la ventana; ${count} (${Math.round(ratio * 100)}%) fueron en ${etiqueta}.`
+        : `Patrón emergente: ${count}/${total} apariciones recientes en ${etiqueta}, se monitorea continuidad.`,
       evidencia: [],
       hipotesis: [],
       numero,
@@ -266,6 +271,7 @@ function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPre
           total: historicoTotal,
           ratio: historialRatio,
           muestras: historialMuestras,
+          respaldado: tieneHistorial,
         },
       },
     });
@@ -385,7 +391,10 @@ function detectConsecutiveRepetitions({ timeline, historial = [], hypothesisMap 
     const historialNext = countHistoricalRepetitions(historial, numero, "next");
 
     const buildHallazgo = (tipo, stats, evidenciaList) => {
+      const historialData = tipo === "same" ? historialSame : historialNext;
+      const respaldado = historialData.count >= 2 && historialData.ratio >= 0.3;
       if (!stats.count) return;
+      if (!respaldado && stats.ratio < 0.6) return;
       const evid = evidenciaList.slice(-4).map((item) => ({
         numero,
         fecha: item.fecha,
@@ -397,11 +406,14 @@ function detectConsecutiveRepetitions({ timeline, historial = [], hypothesisMap 
       }));
       const hypoRefs = buildHypothesisRefs(hypothesisMap, evid);
       const tipoLabel = tipo === "same" ? "mismo día" : "día siguiente";
+      const scoreFinal = Math.min(1, stats.ratio * 0.7 + (historialData.ratio || 0) * 0.3);
       hallazgos.push({
         id: `repeat-${tipo}-${numero}`,
         titulo: `Nº ${String(numero).padStart(2, "0")} repite el ${tipoLabel}`,
-        confianza: Math.min(1, stats.ratio),
-        resumen: `Ocurrió ${stats.count} veces sobre ${total} apariciones recientes (${Math.round(stats.ratio * 100)}%).`,
+        confianza: scoreFinal,
+        resumen: respaldado
+          ? `Ocurrió ${stats.count} veces sobre ${total} apariciones recientes (${Math.round(stats.ratio * 100)}%).`
+          : `Patrón emergente: ${stats.count}/${total} repeticiones recientes, se monitorea continuidad.`,
         evidencia: evid,
         hipotesis: hypoRefs,
         numero,
@@ -412,6 +424,7 @@ function detectConsecutiveRepetitions({ timeline, historial = [], hypothesisMap 
           muestras: stats.recientes,
           tipo: tipoLabel,
           historial: tipo === "same" ? historialSame : historialNext,
+          respaldado,
         },
       });
     };
