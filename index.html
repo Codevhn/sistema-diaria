@@ -145,7 +145,7 @@
       <!-- 🔹 FIN NUEVO BLOQUE -->
       <button id="h-guardar">Guardar hipótesis</button>
       <h3>Historial</h3>
-      <div id="h-list"></div>
+      <div id="h-list" class="cards hypo-list"></div>
     </section>
 
 
@@ -249,13 +249,13 @@
       <h2>Modos de juego</h2>
       <div class="mode-form card">
         <div class="card-head">Crear/Editar modo</div>
-        <div class="card-body" style="flex-direction:column;gap:10px;align-items:stretch;">
+        <div class="card-body mode-form-body">
           <div class="row">
-            <label style="flex:1">
+            <label>
               <span class="label-title">Nombre</span>
               <input id="mode-name" placeholder="Ej. Columna 5" />
             </label>
-            <label style="flex:1">
+            <label>
               <span class="label-title">Tipo</span>
               <select id="mode-type">
                 <option value="manual">Manual</option>
@@ -274,9 +274,9 @@
         </div>
       </div>
 
-      <div class="mode-list card" style="margin-top:18px;">
+      <div class="mode-list card">
         <div class="card-head">Modos registrados</div>
-        <div id="mode-list" class="card-body" style="flex-direction:column;align-items:stretch;gap:12px;"></div>
+        <div id="mode-list" class="card-body mode-list-body"></div>
       </div>
     </section>
   </main>
@@ -869,6 +869,19 @@
         showToast("No hay sorteos reales registrados para esa fecha y país.", { variant: "warning" });
         return;
       }
+      const normalizedPais = (pais || "").trim().toUpperCase();
+      const alreadyLogged = (await DB.getHypothesisLogs()).some(
+        (log) =>
+          log.fechaResultado === fecha &&
+          ((log.paisResultado || "").trim().toUpperCase() === normalizedPais)
+      );
+      if (alreadyLogged) {
+        showToast("Los resultados de ese día ya fueron procesados anteriormente.", {
+          variant: "info",
+          timeout: 3200,
+        });
+        return;
+      }
       try {
         for (const draw of draws) {
           const simbolo = getSymbol(draw.numero);
@@ -893,6 +906,7 @@
     async function refreshHypotesis() {
       const cont = document.getElementById("h-list");
       if (!cont) return;
+      cont.classList.add("cards", "hypo-list");
       const hyps = await DB._getAll("hypotheses");
       if (!hyps.length) {
         cont.innerHTML = "<p class='hint'>Aún no hay hipótesis registradas.</p>";
@@ -902,19 +916,42 @@
       cont.innerHTML = "";
       for (const h of hyps) {
         const card = document.createElement("div");
-        card.className = "card";
-        const estado = h.estado || "pendiente";
+        card.className = "card hypo-card";
+
+        const simbolo = h.simbolo || getSymbol(h.numero) || "";
+        const estado = (h.estado || "pendiente").toLowerCase();
         const fecha = h.fecha || "(sin fecha)";
         const turno = h.turno || "";
         const razones = (h.razones || []).filter(Boolean).join(" · ") || "Sin notas";
-        card.innerHTML = `
-          <div class="card-head">${formatNumber(h.numero)} ${h.simbolo || getSymbol(h.numero)
-          } · <span style="text-transform:capitalize">${estado}</span></div>
-          <div class="card-body" style="flex-direction:column;align-items:flex-start;gap:6px;">
-            <span class="hint">Fecha: ${fecha} ${turno ? "• " + turno : ""}</span>
-            <span class="hint">Notas: ${razones}</span>
-          </div>
-        `;
+
+        const head = document.createElement("div");
+        head.className = "card-head";
+
+        const title = document.createElement("span");
+        title.className = "hypo-title";
+        title.textContent = `${formatNumber(h.numero)} ${simbolo}`.trim();
+        head.appendChild(title);
+
+        const badge = document.createElement("span");
+        badge.className = `badge-state badge-${estado}`;
+        badge.textContent = estado;
+        head.appendChild(badge);
+
+        card.appendChild(head);
+
+        const body = document.createElement("div");
+        body.className = "card-body hypo-body";
+
+        const fechaSpan = document.createElement("span");
+        fechaSpan.innerHTML = `<strong>Fecha:</strong> ${fecha}${turno ? ` • ${turno}` : ""}`;
+        body.appendChild(fechaSpan);
+
+        const notaSpan = document.createElement("span");
+        notaSpan.innerHTML = `<strong>Notas:</strong> ${razones}`;
+        body.appendChild(notaSpan);
+
+        card.appendChild(body);
+
         cont.appendChild(card);
       }
     }
