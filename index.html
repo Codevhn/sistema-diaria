@@ -1532,6 +1532,8 @@
             detailList.appendChild(li);
           };
 
+          const formatTimelineSample = (s) => formatSample({ fecha: s?.fecha, horario: s?.horario }) || "";
+
           if (hallazgo.id?.startsWith("gap-")) {
             const datos = hallazgo.datos || {};
             addLine(`Apareció ${datos.apariciones ?? "?"} veces en la ventana activa.`);
@@ -1541,8 +1543,8 @@
             (hallazgo.evidencia || []).slice(-3).forEach((item) => {
               if (!item) return;
               const origen = item.origen || {};
-              const baseTxt = `${origen.fecha || "?"} ${origen.horario || ""}`.trim();
-              const destTxt = `${item.fecha || "?"} ${item.horario || ""}`.trim();
+              const baseTxt = formatTimelineSample(origen);
+              const destTxt = formatTimelineSample(item);
               addLine(`· ${baseTxt} → ${destTxt}`);
             });
           } else if (hallazgo.id?.startsWith("dayOfWeek")) {
@@ -1555,9 +1557,9 @@
             const samples = datos.samples || [];
             if (samples.length) {
               const texto = samples
-                .map((s) => `${s.fecha || "?"} ${s.horario || ""}`.trim())
-                .join(", ");
-              addLine(`Últimos registros: ${texto}.`);
+                .map((s) => formatTimelineSample(s) || "?")
+                .join(" · ");
+              addLine(`Últimos registros: ${texto}`);
             }
           } else if (hallazgo.id?.startsWith("horario")) {
             const datos = hallazgo.datos || {};
@@ -1569,9 +1571,9 @@
             const samples = datos.samples || [];
             if (samples.length) {
               const texto = samples
-                .map((s) => `${s.fecha || "?"} ${s.horario || ""}`.trim())
-                .join(", ");
-              addLine(`Últimos registros: ${texto}.`);
+                .map((s) => formatTimelineSample(s) || "?")
+                .join(" · ");
+              addLine(`Últimos registros: ${texto}`);
             }
           } else if (hallazgo.id?.startsWith("repeat-")) {
             const datos = hallazgo.datos || {};
@@ -1579,7 +1581,7 @@
             addLine(
               `Repite ${tipo} en ${datos.repeticiones ?? "?"} de ${datos.total ?? "?"} apariciones (${Math.round((datos.ratio || 0) * 100)}%).`
             );
-            (datos.muestras || []).forEach((linea) => addLine(linea));
+            (datos.muestras || []).forEach((linea) => addLine(formatTimelineSample(linea)));
           } else {
             addLine(hallazgo.resumen);
           }

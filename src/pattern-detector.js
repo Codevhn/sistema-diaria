@@ -18,6 +18,14 @@ const DOW_FULL = [
   "Sábado",
 ];
 
+function formatSample({ fecha, horario }) {
+  if (!fecha) return "";
+  const dateObj = parseDrawDate(fecha);
+  if (!dateObj) return `${fecha} ${horario || ""}`.trim();
+  const dow = DOW_FULL[dateObj.getDay()] || "";
+  return `${dow} ${fecha} ${horario || ""}`.trim();
+}
+
 function toNumber(value) {
   const n = typeof value === "number" ? value : parseInt(value, 10);
   return Number.isFinite(n) ? n : null;
