@@ -6,7 +6,20 @@ import { parseDrawDate } from "./date-utils.js";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
 const ACTIVE_WINDOW_DAYS = 120;
-const MIN_RECENT_RECORDS = 30;
+const RECENT_REPEAT_WINDOW_DAYS = 14;
+const MIN_RECENT_REPEAT_COUNT = 2;
+const MIN_TOTAL_FOR_REPETITION = 3;
+const BASE_REPEAT_RATIO_THRESHOLD = 0.6;
+const RECENT_REPEAT_RATIO_THRESHOLD = 0.35;
+const MIN_TRANSITION_SUPPORT = 3;
+const RECENT_TRANSITION_WINDOW_DAYS = 21;
+const TRANSITION_RATIO_THRESHOLD = 0.5;
+const TRANSITION_MAX_LOOKAHEAD = 2;
+const TRANSITION_TURN_MAPPING = new Map([
+  ["11AM", "3PM"],
+  ["3PM", "9PM"],
+  ["9PM", "11AM"],
+]);
 const DOW_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const DOW_FULL = [
   "Domingo",
@@ -99,25 +112,25 @@ function computeWindowBounds(timeline) {
     return { activeTimeline: [], windowStart: null, windowEnd: null };
   }
 
-  const windowEnd = timeline[timeline.length - 1].fechaDate;
-  const startOfYear = new Date(windowEnd.getFullYear(), 0, 1);
-  let cutoff = startOfYear;
-
-  let filtered = timeline.filter((draw) => draw.fechaDate >= cutoff);
-
-  if (!filtered.length) {
-    cutoff = timeline[0].fechaDate;
-    filtered = timeline.slice();
-  } else if (filtered.length < MIN_RECENT_RECORDS && timeline.length >= MIN_RECENT_RECORDS) {
-    const earliest = timeline[0].fechaDate;
-    cutoff = earliest;
-    filtered = timeline.slice();
+  const lastEntry = timeline[timeline.length - 1];
+  const windowEnd = lastEntry?.fechaDate ?? null;
+  if (!windowEnd) {
+    return {
+      activeTimeline: [],
+      windowStart: null,
+      windowEnd: null,
+    };
   }
+
+  const startOfYear = new Date(windowEnd.getFullYear(), 0, 1);
+  const filtered = timeline.filter(
+    (draw) => draw.fechaDate && draw.fechaDate >= startOfYear && draw.fechaDate.getFullYear() === windowEnd.getFullYear(),
+  );
 
   return {
     activeTimeline: filtered,
-    windowStart: filtered[0]?.fechaDate ?? cutoff,
-    windowEnd,
+    windowStart: filtered[0]?.fechaDate ?? startOfYear,
+    windowEnd: filtered[filtered.length - 1]?.fechaDate ?? startOfYear,
   };
 }
 
@@ -140,6 +153,8 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
   });
 
   const hallazgos = [];
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   byNumber.forEach((occurrences, numero) => {
     if (occurrences.length < 3) return;
@@ -178,11 +193,18 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
     const lastMatch = matches[matches.length - 1];
     let siguienteFechaEsperada = null;
     let siguienteHorarioSugerido = null;
+    let vencido = false;
     if (lastMatch?.curr?.fechaDate) {
       const tentative = new Date(lastMatch.curr.fechaDate.getTime() + bestGap * DAY_MS);
-      if (tentative > new Date()) siguienteFechaEsperada = formatDate(tentative);
-      siguienteHorarioSugerido = lastMatch.curr.horario || null;
+      if (tentative >= todayStart) {
+        siguienteFechaEsperada = formatDate(tentative);
+        siguienteHorarioSugerido = lastMatch.curr.horario || null;
+      } else {
+        vencido = true;
+      }
     }
+
+    if (vencido) return;
 
     hallazgos.push({
       id: `gap-${numero}-${bestGap}`,
@@ -523,6 +545,8 @@ function detectConsecutiveRepetitions({ timeline, historial = [], hypothesisMap 
   const lastOccurrence = new Map();
   const totalByNumero = new Map();
   const storeByNumero = new Map();
+  const nowTs = Date.now();
+  const recentWindowMs = RECENT_REPEAT_WINDOW_DAYS * DAY_MS;
 
   const pushEntry = (numero, tipo, prev, curr, dayDiff, turnDiff) => {
     if (!storeByNumero.has(numero)) {
@@ -537,6 +561,8 @@ function detectConsecutiveRepetitions({ timeline, historial = [], hypothesisMap 
       origen: { fecha: prev.fecha, horario: prev.horario },
       dayDiff,
       turnDiff,
+      fechaDate: curr.fechaDate,
+      timestamp: curr.fechaDate ? curr.fechaDate.getTime() : null,
     });
   };
 
@@ -560,6 +586,7 @@ function detectConsecutiveRepetitions({ timeline, historial = [], hypothesisMap 
 
   storeByNumero.forEach((store, numero) => {
     const total = totalByNumero.get(numero) || 0;
+    if (total < MIN_TOTAL_FOR_REPETITION) return;
     const sameStats = summarizeRepetitions(store.sameDay, total, "mismo día");
     const nextStats = summarizeRepetitions(store.nextDay, total, "día siguiente");
 
@@ -570,7 +597,18 @@ function detectConsecutiveRepetitions({ timeline, historial = [], hypothesisMap 
       const historialData = tipo === "same" ? historialSame : historialNext;
       const respaldado = historialData.count >= 2 && historialData.ratio >= 0.3;
       if (!stats.count) return;
-      if (!respaldado && stats.ratio < 0.6) return;
+      const recentMatches = evidenciaList.filter(
+        (item) => item.timestamp !== null && nowTs - item.timestamp <= recentWindowMs,
+      );
+      const meetsRecentBurst = recentMatches.length >= MIN_RECENT_REPEAT_COUNT;
+      if (!respaldado) {
+        if (meetsRecentBurst) {
+          if (stats.ratio < RECENT_REPEAT_RATIO_THRESHOLD) return;
+        } else if (stats.ratio < BASE_REPEAT_RATIO_THRESHOLD) {
+          return;
+        }
+      }
+
       const evid = evidenciaList.slice(-4).map((item) => ({
         numero,
         fecha: item.fecha,
@@ -629,6 +667,7 @@ function detectWindowPatterns({ timeline, historial = [], hypothesisMap }) {
     tituloPrefix: "Turno dominante",
   });
   const repeatPatterns = detectConsecutiveRepetitions({ timeline, historial, hypothesisMap });
+  const transitionPatterns = detectSuccessiveTransitions({ timeline, historial, hypothesisMap });
   const doublePatterns = detectDoublePatterns({ timeline, historial });
   const familyClusters = detectFamilyClusters({ timeline, historial });
 
@@ -637,6 +676,7 @@ function detectWindowPatterns({ timeline, historial = [], hypothesisMap }) {
     ...dowPatterns,
     ...turnoPatterns,
     ...repeatPatterns,
+    ...transitionPatterns,
     ...doublePatterns,
     ...familyClusters,
   ];
@@ -708,4 +748,119 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
     timelineActiva: activeTimeline,
     timelineCompleto: timeline,
   };
+}
+function detectSuccessiveTransitions({ timeline, historial = [], hypothesisMap }) {
+  if (!timeline.length) return [];
+
+  const transitions = new Map();
+  const historialTransitions = new Map();
+  const now = Date.now();
+
+  const addTransition = (store, from, to, meta) => {
+    if (!store.has(from)) {
+      store.set(from, new Map());
+    }
+    const byKey = store.get(from);
+    const key = `${to.numero}|${to.horario || ""}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        count: 0,
+        samples: [],
+        destino: to.numero,
+        destinoHorario: to.horario,
+      });
+    }
+    const bucket = byKey.get(key);
+    bucket.count += 1;
+    bucket.samples.push(meta);
+    if (bucket.samples.length > 6) bucket.samples.shift();
+  };
+
+  const processTimeline = (draws, store, { strictTurns = false } = {}) => {
+    for (let i = 0; i < draws.length; i++) {
+      const current = draws[i];
+      const nextTurn = TRANSITION_TURN_MAPPING.get(current.horario) || null;
+      for (let step = 1; step <= TRANSITION_MAX_LOOKAHEAD; step++) {
+        const candidate = draws[i + step];
+        if (!candidate) break;
+        const dayDiff = Math.round((candidate.fechaDate - current.fechaDate) / DAY_MS);
+        if (!Number.isFinite(dayDiff) || dayDiff < 0 || dayDiff > 7) break;
+        if (strictTurns && nextTurn && candidate.horario !== nextTurn) continue;
+        if (current.pais && candidate.pais && current.pais !== candidate.pais) continue;
+        const meta = {
+          fecha: candidate.fecha,
+          horario: candidate.horario,
+          pais: candidate.pais,
+          dayDiff,
+          fromHorario: current.horario,
+          timestamp: candidate.fechaDate ? candidate.fechaDate.getTime() : null,
+        };
+        addTransition(store, current.numero, { numero: candidate.numero, horario: candidate.horario }, meta);
+        break;
+      }
+    }
+  };
+
+  processTimeline(timeline, transitions, { strictTurns: true });
+  processTimeline(historial, historialTransitions, { strictTurns: true });
+
+  const hallazgos = [];
+
+  transitions.forEach((byNumber, numero) => {
+    const totalTransitions = Array.from(byNumber.values()).reduce((acc, entry) => acc + entry.count, 0);
+    if (totalTransitions < MIN_TRANSITION_SUPPORT) return;
+    const sorted = Array.from(byNumber.values()).sort((a, b) => b.count - a.count);
+    const top = sorted[0];
+    const ratio = top.count / totalTransitions;
+    if (ratio < TRANSITION_RATIO_THRESHOLD) return;
+
+    const destinoKey = `${top.destino}|${top.destinoHorario || ""}`;
+    const historialEntry = historialTransitions.get(numero)?.get(destinoKey) || null;
+    const historialCount = historialEntry?.count || 0;
+    const historialSamples = historialEntry?.samples || [];
+    const respaldoHist = historialCount >= MIN_TRANSITION_SUPPORT;
+
+    if (!respaldoHist) {
+      const recentSamples = top.samples.filter(
+        (sample) => sample.timestamp !== null && now - sample.timestamp <= RECENT_TRANSITION_WINDOW_DAYS * DAY_MS,
+      );
+      if (!recentSamples.length) return;
+    }
+
+    const evidencia = top.samples.slice(-4).map((sample) => ({
+      fecha: sample.fecha,
+      horario: sample.horario,
+      numero: top.destino,
+      resumen: `Siguió tras ${String(numero).padStart(2, "0")}${sample.dayDiff === 0 ? " el mismo día" : ` (${sample.dayDiff}d después)`}`,
+      origen: { horario: sample.fromHorario },
+    }));
+
+    const hypoRefs = buildHypothesisRefs(hypothesisMap, evidencia);
+    const confianzaBase = Math.min(1, ratio * 0.6 + (respaldoHist ? 0.4 : 0));
+    const titulo = `Tras ${String(numero).padStart(2, "0")} suele venir ${String(top.destino).padStart(2, "0")}`;
+
+    hallazgos.push({
+      id: `transition-${numero}-${top.destino}-${top.destinoHorario || "any"}`,
+      titulo,
+      confianza: confianzaBase,
+      resumen: respaldoHist
+        ? `Se registró ${top.count} veces sobre ${totalTransitions} transiciones recientes (${Math.round(ratio * 100)}%) y ${historialCount} respaldos históricos.`
+        : `Patrón emergente: ${top.count}/${totalTransitions} transiciones recientes (${Math.round(ratio * 100)}%).`,
+      evidencia,
+      hipotesis: hypoRefs,
+      numero,
+      datos: {
+        origen: numero,
+        destino: top.destino,
+        destinoHorario: top.destinoHorario,
+        totalTransiciones: totalTransitions,
+        coincidencias: top.count,
+        ratio,
+        historial: historialCount,
+        muestras: evidencia.map((e) => `${e.resumen} · ${e.fecha} ${e.horario || ""}`),
+      },
+    });
+  });
+
+  return hallazgos;
 }

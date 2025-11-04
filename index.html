@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La Diaria — v3.2 Responsive</title>
   <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 
 </head>
@@ -21,15 +25,15 @@
   </div>
   <aside class="sidebar expanded" id="sidebar">
     <div class="brand">LD v3.2</div>
-    <button data-view="day"><span>🏠</span><i>Panel del día</i></button>
-    <button data-view="hypo"><span>🧩</span><i>Hipótesis</i></button>
-    <button data-view="analysis"><span>📊</span><i>Escenarios</i></button>
-    <button data-view="geometry"><span>✴️</span><i>Cruceta/Triángulo</i></button>
-    <button data-view="memory"><span>🧠</span><i>Memoria</i></button>
-    <button data-view="guide"><span>📘</span><i>Guía de los Sueños</i></button>
-    <button data-view="config"><span>⚙️</span><i>Configuración</i></button>
-    <button data-view="maint"><span>🛠️</span><i>Mantenimiento</i></button>
-    <button data-view="modes"><span>🎮</span><i>Modos de juego</i></button>
+    <button data-view="day"><span class="sidebar-icon fa-solid fa-gauge"></span><i>Panel del día</i></button>
+    <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
+    <button data-view="analysis"><span class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
+    <button data-view="geometry"><span class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
+    <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
+    <button data-view="guide"><span class="sidebar-icon fa-solid fa-book"></span><i>Guía de los Sueños</i></button>
+    <button data-view="config"><span class="sidebar-icon fa-solid fa-gear"></span><i>Configuración</i></button>
+    <button data-view="maint"><span class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
+    <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
   </aside>
 
   <main class="content">
@@ -112,16 +116,13 @@
         </div>
       </div>
 
-      <div class="row" style="justify-content:center; margin-top:12px;">
-        <button id="save-day" style="min-width:220px;">Guardar sorteos del día</button>
+      <div class="day-actions">
+        <button id="save-day" class="btn-primary">Guardar sorteos del día</button>
+        <button id="btn-aprender-dia" class="btn-outline">Registrar resultados del día (aprendizaje)</button>
       </div>
-
-      <div class="row" style="margin-top:20px;">
-        <button id="btn-aprender-dia">Registrar resultados del día (aprendizaje)</button>
-        <span class="hint">
-          Confirma/Refuta hipótesis pendientes según los resultados válidos de la fecha seleccionada.
-        </span>
-      </div>
+      <p class="hint day-hint">
+        Confirma/Refuta hipótesis pendientes según los resultados válidos de la fecha seleccionada.
+      </p>
     </section>
 
     <!-- HIPÓTESIS -->
@@ -164,9 +165,9 @@
       <p class="hint">
         La <b>confianza (conf)</b> es una ponderación heurística (0–100%).
       </p>
+      <div class="cards" id="result-recomendacion"></div>
       <div class="cards" id="result-plan"></div>
       <div class="cards" id="result-escenarios"></div>
-      <div class="cards" id="result-recomendacion"></div>
 
       <div id="transform-panel" class="card">
         <div class="card-head">🔄 Transformaciones Visuales</div>
@@ -833,6 +834,36 @@
       if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
       return date.toISOString().slice(0, 10);
     };
+    const MONTH_NAMES = [
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre",
+    ];
+    const formatFriendlyDate = (value) => {
+      if (!value) return "";
+      const date =
+        value instanceof Date
+          ? value
+          : typeof value === "string"
+          ? parseISODate(value)
+          : null;
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return typeof value === "string" ? value : "";
+      }
+      const day = date.getDate();
+      const monthName = MONTH_NAMES[date.getMonth()] || "";
+      const year = date.getFullYear();
+      return `${day} de ${monthName} ${year}`;
+    };
 
     const getSymbol = (numero) => {
       const entry = GUIA[formatNumber(numero)];
@@ -1347,11 +1378,18 @@
         const perfilMap = new Map(
           (memoria.perfiles || []).map((p) => [p.numero, p])
         );
-        let predicciones = generarPredicciones(memoria.perfiles || [], { top: 9 });
+        const { fecha: fechaFiltro, pais: paisFiltro } = getFilters();
+        const referenciaFecha = fechaFiltro ? new Date(`${fechaFiltro}T00:00:00`) : new Date();
+        const fechaValida = Number.isNaN(referenciaFecha.getTime()) ? new Date() : referenciaFecha;
+        const contextoPred = {
+          dow: fechaValida.getDay(),
+          year: fechaValida.getFullYear(),
+          pais: paisFiltro || null,
+        };
+        let predicciones = generarPredicciones(memoria.perfiles || [], { top: 9, contexto: contextoPred });
         predicciones = mezclarPrediccionesConModos(predicciones, modoEval);
         const insights = generarInsights(memoria.perfiles || []);
 
-        const { fecha: fechaFiltro, pais: paisFiltro } = getFilters();
         if (predicciones.length) {
           if (fechaFiltro || paisFiltro) {
             await DB.logPredictions(predicciones, {
@@ -1397,6 +1435,7 @@
           predicciones,
           perfilMap,
           modoEval,
+          contextoPred,
           patrones.timelineActiva || [],
           patrones.hallazgos || [],
           patrones.resumenVentana || "",
@@ -1443,18 +1482,56 @@
       return { turno: TURNOS[0], ratio: 0, fuente: "predeterminado" };
     }
 
-    function resumenModos(modos = []) {
-      if (!modos.length) return "";
-      const etiqueta = modos
-        .slice(0, 2)
-        .map((m) => {
-          const conf = Math.round((m.confianza || 0) * 100);
-          const nombre = m.modeNombre || "Modo";
-          const op = m.operacion ? ` · ${m.operacion}` : "";
-          return `${nombre}${op}${conf ? ` (${conf}%)` : ""}`;
-        })
-        .join(" | ");
-      return etiqueta;
+    function describirOperacionModo(modo, numero) {
+      if (!modo) return "";
+      const base =
+        modo.baseNumero !== undefined && modo.baseNumero !== null && !Number.isNaN(modo.baseNumero)
+          ? formatNumber(modo.baseNumero)
+          : null;
+      const destino = Number.isFinite(numero) ? formatNumber(numero) : null;
+      const op = modo.operacion || "";
+      switch (op) {
+        case "mirror":
+          if (base && destino) return `${base} → ${destino} invirtiendo dígitos`;
+          return "Invirtió los dígitos del número base";
+        case "digit-map":
+          if (base && destino) return `${base} → ${destino} con mapa de dígitos personalizado`;
+          return "Aplicó el mapa personalizado del modo";
+        case "sum-digits":
+          return base ? `${base} → suma de dígitos` : "Suma de dígitos";
+        case "sum-digits-keep-first":
+          if (base && destino) return `${base} → conserva decena y suma unidades`;
+          return "Conserva decena, ajusta unidad";
+        case "add-constant":
+          return base ? `${base} + constante` : "Suma una constante";
+        case "sub-constant":
+          return base ? `${base} − constante` : "Resta una constante";
+        case "neighbor":
+          return base ? `${base} ± vecino` : "Vecinos alrededor del número base";
+        default:
+          return op ? `Operación ${op}` : "";
+      }
+    }
+
+    function resumenSoporte(modo) {
+      if (typeof modo.soporte === "number" && modo.soporte > 0) {
+        return modo.soporte === 1 ? "1 ejemplo" : `${modo.soporte} ejemplos`;
+      }
+      return "";
+    }
+
+    function detallesModos(modos = [], numero) {
+      if (!modos.length) return [];
+      return modos.slice(0, 3).map((modo) => {
+        const nombre = modo.modeNombre || "Modo";
+        const conf = Math.round((modo.confianza || 0) * 100);
+        const opDesc = describirOperacionModo(modo, numero);
+        const soporte = resumenSoporte(modo);
+        const partes = [`${nombre}${conf ? ` (${conf}%)` : ""}`];
+        if (opDesc) partes.push(opDesc);
+        if (soporte) partes.push(soporte);
+        return partes.join(" — ");
+      });
     }
 
     function notasPatronNumero(hallazgos, numero) {
@@ -1487,11 +1564,25 @@
               : diffDays === 0
               ? "hoy"
               : `hace ${Math.abs(diffDays)} días`;
-          notes.push(`Intervalo ${gapDias}d → próximo ${formatISODate(nextDate)} (${status})`);
+          const friendly = formatFriendlyDate(nextDate);
+          notes.push(`Intervalo ${gapDias}d → próximo ${friendly || "sin fecha"} (${status})`);
         } else {
           notes.push(`Intervalo ${gapDias}d observado`);
         }
       }
+
+      hallazgos
+        .filter((h) => h.id?.startsWith("transition-") && h.datos?.destino === numero)
+        .slice(0, 2)
+        .forEach((h) => {
+          const datos = h.datos || {};
+          const origen = typeof datos.origen === "number" ? formatNumber(datos.origen) : null;
+          const ratio = typeof datos.ratio === "number" ? `${Math.round(datos.ratio * 100)}%` : null;
+          const horario = datos.destinoHorario ? ` ${datos.destinoHorario}` : "";
+          const base = origen ? `Suele seguir al ${origen}` : "Transición frecuente";
+          const detalle = ratio ? ` (${ratio})` : "";
+          notes.push(`${base}${horario}${detalle}`);
+        });
       return notes;
     }
 
@@ -1499,6 +1590,7 @@
       predicciones,
       perfilMap,
       modoEval,
+      contexto = null,
       timelineActiva = [],
       hallazgos = [],
       resumenVentana = "",
@@ -1545,14 +1637,14 @@
         );
         if (yaJugadoMismoTurno) return;
         const lastSeen = perfil?.lastSeen || null;
-        const modoResumen = resumenModos(item.modos);
+        const modoDetalles = detallesModos(item.modos, item.numero);
         const patronNotas = notasPatronNumero(hallazgos, item.numero);
         bucket.push({
           item,
           perfil,
           turnoInfo,
           lastSeen,
-          modoResumen,
+          modoDetalles,
           patronNotas,
         });
       });
@@ -1561,10 +1653,7 @@
       grid.className = "plan-grid";
 
       TURNOS.forEach((turno) => {
-        const candidatos = (planBuckets.get(turno) || [])
-          .filter(Boolean)
-          .sort((a, b) => b.item.score - a.item.score)
-          .slice(0, 3);
+        const candidatos = (planBuckets.get(turno) || []).filter(Boolean).sort((a, b) => b.item.score - a.item.score).slice(0, 3);
         if (!candidatos.length) return;
 
         const card = document.createElement("div");
@@ -1583,7 +1672,7 @@
         const list = document.createElement("div");
         list.className = "plan-list";
 
-        candidatos.forEach(({ item, perfil, turnoInfo, lastSeen, modoResumen, patronNotas }) => {
+        candidatos.forEach(({ item, perfil, turnoInfo, lastSeen, modoDetalles, patronNotas }) => {
           const row = document.createElement("div");
           row.className = "plan-item";
 
@@ -1603,23 +1692,44 @@
           const details = document.createElement("ul");
           details.className = "plan-detail";
 
-          if (lastSeen) {
-            const li = document.createElement("li");
-            li.textContent = `Última vez: ${lastSeen.fecha} ${lastSeen.horario || ""}`;
-            details.appendChild(li);
+        if (lastSeen) {
+          const li = document.createElement("li");
+          const fechaFmt = formatFriendlyDate(lastSeen.fecha);
+          li.textContent = `Última vez: ${fechaFmt}${lastSeen.horario ? ` · ${lastSeen.horario}` : ""}`;
+          details.appendChild(li);
+        }
+
+        if (contexto && Number.isFinite(item.afinidadDia) && item.afinidadDia > 0 && typeof contexto.dow === "number") {
+          const li = document.createElement("li");
+          const dowLabel = DOW_FULL_LABEL[contexto.dow] || "este día";
+          li.textContent = `Sesgo ${dowLabel}: ${(item.afinidadDia * 100).toFixed(0)}% histórico`;
+          details.appendChild(li);
+        }
+
+        if (contexto?.pais && Number.isFinite(item.afinidadPais) && item.afinidadPais > 0) {
+          const li = document.createElement("li");
+          li.textContent = `Afinidad ${contexto.pais}: ${(item.afinidadPais * 100).toFixed(0)}%`;
+          details.appendChild(li);
+        }
+
+        if (Number.isFinite(item.afinidadAnio) && item.afinidadAnio > 0) {
+          const li = document.createElement("li");
+          li.textContent = `Participación ${contexto?.year || new Date().getFullYear()}: ${(item.afinidadAnio * 100).toFixed(0)}%`;
+          details.appendChild(li);
+        }
+
+        if (turnoInfo?.fuente === "aprendizaje" && Number.isFinite(turnoInfo.ratio)) {
+          const li = document.createElement("li");
+          li.textContent = `Historial turno ${turno}: ${(turnoInfo.ratio * 100).toFixed(0)}% acierto`;
+          details.appendChild(li);
           }
 
-          if (turnoInfo?.fuente === "aprendizaje" && Number.isFinite(turnoInfo.ratio)) {
+          (modoDetalles || []).forEach((texto, idx) => {
+            if (!texto) return;
             const li = document.createElement("li");
-            li.textContent = `Historial turno ${turno}: ${(turnoInfo.ratio * 100).toFixed(0)}% acierto`;
+            li.textContent = idx === 0 ? `Modo: ${texto}` : texto;
             details.appendChild(li);
-          }
-
-          if (modoResumen) {
-            const li = document.createElement("li");
-            li.textContent = `Modos: ${modoResumen}`;
-            details.appendChild(li);
-          }
+          });
 
           patronNotas.forEach((nota) => {
             const li = document.createElement("li");
@@ -1730,7 +1840,7 @@
           details.className = "plan-detail";
 
           const lastSeenText = entry.lastSeen
-            ? `Última vez: ${entry.lastSeen.fecha} ${entry.lastSeen.horario || ""}`
+            ? `Última vez: ${formatFriendlyDate(entry.lastSeen.fecha)}${entry.lastSeen.horario ? ` · ${entry.lastSeen.horario}` : ""}`
             : null;
           if (lastSeenText) {
             const li = document.createElement("li");
@@ -1787,7 +1897,7 @@
                     ? "hoy"
                     : `vencido hace ${Math.abs(diff)} días`;
                 const avgLi = document.createElement("li");
-                avgLi.textContent = `Proyección histórica: ${formatISODate(estimado)} (~${avgGapRounded}d, ${statusHist})`;
+                avgLi.textContent = `Proyección histórica: ${formatFriendlyDate(estimado)} (~${avgGapRounded}d, ${statusHist})`;
                 details.appendChild(avgLi);
               }
             }
@@ -1795,8 +1905,10 @@
             const ultimoComparable = historialRegistros[historialRegistros.length - 1];
             if (ultimoComparable?.gap && ultimoComparable?.hasta?.fecha) {
               const li = document.createElement("li");
-              const desde = ultimoComparable.desde?.fecha ? `${ultimoComparable.desde.fecha} → ` : "";
-              li.textContent = `Última sequía similar: ${ultimoComparable.gap}d (${desde}${ultimoComparable.hasta.fecha})`;
+              const desde =
+                ultimoComparable.desde?.fecha ? `${formatFriendlyDate(ultimoComparable.desde.fecha)} → ` : "";
+              const hasta = formatFriendlyDate(ultimoComparable.hasta.fecha);
+              li.textContent = `Última sequía similar: ${ultimoComparable.gap}d (${desde || ""}${hasta})`;
               details.appendChild(li);
             }
           }
@@ -1904,15 +2016,16 @@
 
           if (entry.lastSeen) {
             const li = document.createElement("li");
-            li.textContent = `Última coincidencia: ${entry.lastSeen.fecha} ${entry.lastSeen.horario || ""}`;
+            const friendly = formatFriendlyDate(entry.lastSeen.fecha);
+            li.textContent = `Última coincidencia: ${friendly}${entry.lastSeen.horario ? ` · ${entry.lastSeen.horario}` : ""}`;
             details.appendChild(li);
           }
 
           if (entry.nextDate) {
             const li = document.createElement("li");
-            const fechaFmt = formatISODate(entry.nextDate);
+            const fechaFmt = formatFriendlyDate(entry.nextDate);
             const horario = entry.horarioSugerido ? ` ${entry.horarioSugerido}` : "";
-            li.textContent = `Próxima estimada: ${fechaFmt || "N/D"}${horario ? ` ${horario}` : ""} (${entry.status})`;
+            li.textContent = `Próxima estimada: ${fechaFmt || "Sin fecha"}${horario ? ` ${horario}` : ""} (${entry.status})`;
             details.appendChild(li);
           } else {
             const li = document.createElement("li");
@@ -1979,6 +2092,9 @@
             contexto: 0,
             modoBoost: sug.confianza || 0,
             modos: [sug],
+            afinidadDia: 0,
+            afinidadPais: 0,
+            afinidadAnio: 0,
           });
           existentes.add(numero);
         } else {
@@ -2771,6 +2887,15 @@
       }
     };
 
+    const openSidebarMobile = () => {
+      if (!sidebar) return;
+      sidebar.classList.add("show-mobile");
+      if (toggleBtn) {
+        toggleBtn.classList.add("sidebar-open");
+        toggleBtn.setAttribute("aria-expanded", "true");
+      }
+    };
+
     // ✅ Cambio de vistas
     const views = {
       day: "view-day",
@@ -2783,7 +2908,8 @@
       maint: "view-maint",
       modes: "view-modes",
     };
-    document.querySelectorAll(".sidebar button").forEach((b) => {
+    const sidebarButtons = document.querySelectorAll(".sidebar button");
+    sidebarButtons.forEach((b) => {
       b.onclick = () => {
         document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
         const id = views[b.dataset.view];
@@ -2794,7 +2920,7 @@
         if (id === "view-hypo") refreshHypotesis();
         if (id === "view-maint") refreshDuplicados();
         if (id === "view-modes") refreshModesPanel();
-        closeSidebarMobile();
+        if (window.innerWidth <= 768) closeSidebarMobile();
       };
     });
 
@@ -2802,20 +2928,25 @@
     if (toggleBtn && sidebar) {
       toggleBtn.setAttribute("aria-controls", "sidebar");
       toggleBtn.setAttribute("aria-expanded", "false");
-
-      const openSidebarMobile = () => {
-        sidebar.classList.add("show-mobile");
+      if (window.innerWidth > 768 && !document.body.classList.contains("sidebar-collapsed")) {
         toggleBtn.classList.add("sidebar-open");
         toggleBtn.setAttribute("aria-expanded", "true");
-      };
+      }
 
       toggleBtn.addEventListener("click", (event) => {
         event.stopPropagation();
-        const shouldOpen = !sidebar.classList.contains("show-mobile");
-        if (shouldOpen) {
-          openSidebarMobile();
+        if (window.innerWidth <= 768) {
+          const shouldOpen = !sidebar.classList.contains("show-mobile");
+          if (shouldOpen) {
+            openSidebarMobile();
+          } else {
+            closeSidebarMobile();
+          }
         } else {
-          closeSidebarMobile();
+          const collapsed = document.body.classList.toggle("sidebar-collapsed");
+          const expanded = !collapsed;
+          toggleBtn.classList.toggle("sidebar-open", expanded);
+          toggleBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
         }
       });
 
@@ -2841,7 +2972,15 @@
         if (!sidebar.contains(event.relatedTarget)) closeSidebarMobile();
       });
       window.addEventListener("resize", () => {
-        if (window.innerWidth > 768) closeSidebarMobile();
+        if (window.innerWidth > 768) {
+          sidebar.classList.remove("show-mobile");
+          const collapsed = document.body.classList.contains("sidebar-collapsed");
+          toggleBtn.classList.toggle("sidebar-open", !collapsed);
+          toggleBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        } else {
+          toggleBtn.classList.remove("sidebar-open");
+          toggleBtn.setAttribute("aria-expanded", sidebar.classList.contains("show-mobile") ? "true" : "false");
+        }
       });
     }
 

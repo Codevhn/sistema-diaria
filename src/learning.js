@@ -40,6 +40,7 @@ function ensureProfile(container, numero) {
       porHorario: {},
       porDiaSemana: {},
       porHorarioPorAnio: {},
+      porDiaSemanaPorAnio: {},
       porPaisHorario: {},
       ultimas: [],
       gaps: {
@@ -107,6 +108,10 @@ function registerOccurrence(profile, draw, daysSincePrev, prevDraw) {
       container[draw.horario] = (container[draw.horario] || 0) + 1;
     }
     container._total = (container._total || 0) + 1;
+    if (!profile.porDiaSemanaPorAnio[year]) profile.porDiaSemanaPorAnio[year] = { _total: 0 };
+    const dsContainer = profile.porDiaSemanaPorAnio[year];
+    if (dow !== null) dsContainer[dow] = (dsContainer[dow] || 0) + 1;
+    dsContainer._total = (dsContainer._total || 0) + 1;
   }
 
   // Últimas ocurrencias (hasta 6)
@@ -404,21 +409,74 @@ export async function obtenerPerfilNumero(numero) {
   return row?.data ?? null;
 }
 
-export function generarPredicciones(perfiles, { top = 9 } = {}) {
+const BASELINE_DOW = 1 / 7;
+
+function computeDowBoost(perfil, { dow = null, year = null } = {}) {
+  if (dow === null || dow === undefined) return { boost: 0, ratio: 0 };
+  const total = perfil.total || 0;
+  const histCount = perfil.porDiaSemana?.[dow] || 0;
+  const histRatio = total ? histCount / total : 0;
+
+  const yearBucket = year !== null && year !== undefined ? perfil.porDiaSemanaPorAnio?.[year] : null;
+  const yearTotal = yearBucket?._total || 0;
+  const yearRatio = yearTotal ? (yearBucket[dow] || 0) / yearTotal : null;
+
+  const combined = yearRatio !== null ? yearRatio * 0.7 + histRatio * 0.3 : histRatio;
+  const boost = Math.max(0, combined - BASELINE_DOW);
+  return { boost, ratio: combined };
+}
+
+function computePaisBoost(perfil, pais) {
+  if (!pais) return { boost: 0, ratio: 0 };
+  const total = perfil.total || 0;
+  if (!total) return { boost: 0, ratio: 0 };
+  const count = perfil.porPais?.[pais] || 0;
+  const ratio = count / total;
+  const baseline = Math.min(0.15, 1 / Math.max(3, Object.keys(perfil.porPais || {}).length || 3));
+  const boost = Math.max(0, ratio - baseline);
+  return { boost, ratio };
+}
+
+function computeYearShare(perfil, year) {
+  if (year === null || year === undefined) return 0;
+  const total = perfil.total || 0;
+  if (!total) return 0;
+  const yearTotal = perfil.porHorarioPorAnio?.[year]?._total || 0;
+  if (!yearTotal) return 0;
+  return Math.min(1, yearTotal / total);
+}
+
+export function generarPredicciones(perfiles, { top = 9, contexto = null } = {}) {
+  const ctx = contexto || {};
   const enrich = perfiles
     .map((perfil) => {
+      const frecuencia = perfil.scoreFrecuencia ?? 0;
+      const recencia = perfil.scoreRecencia ?? 0;
+      const hipotesis = perfil.scoreHipotesis ?? 0;
+      const contextoScore = perfil.scoreContexto ?? 0;
+
+      const { boost: dowBoost, ratio: dowRatio } = computeDowBoost(perfil, ctx);
+      const { boost: paisBoost, ratio: paisRatio } = computePaisBoost(perfil, ctx.pais);
+      const yearShare = computeYearShare(perfil, ctx.year);
+
+      const contextoDinamico = dowBoost * 0.45 + paisBoost * 0.15 + yearShare * 0.25;
+
       const score =
-        perfil.scoreFrecuencia * 0.35 +
-        perfil.scoreRecencia * 0.35 +
-        (perfil.scoreHipotesis || 0) * 0.2 +
-        (perfil.scoreContexto || 0) * 0.1;
+        frecuencia * 0.28 +
+        recencia * 0.28 +
+        hipotesis * 0.14 +
+        contextoScore * 0.1 +
+        contextoDinamico;
       return {
         numero: perfil.numero,
         score,
-        frecuencia: perfil.scoreFrecuencia,
-        recencia: perfil.scoreRecencia,
-        hipotesis: perfil.scoreHipotesis,
-        contexto: perfil.scoreContexto || 0,
+        frecuencia,
+        recencia,
+        hipotesis,
+        contexto: contextoScore,
+        afinidadDia: dowRatio,
+        afinidadPais: paisRatio,
+        afinidadAnio: yearShare,
         ultimo: perfil.lastSeen,
         gaps: perfil.gaps,
       };
