@@ -152,6 +152,17 @@
       </div>
       <!-- 🔹 FIN NUEVO BLOQUE -->
       <button id="h-guardar">Guardar hipótesis</button>
+
+      <div class="card reminder-card">
+        <div class="card-head">Recordatorios de hipótesis</div>
+        <div class="reminder-form">
+          <input id="hr-numero" placeholder="00-99" maxlength="2" />
+          <input id="hr-nota" placeholder="Nota opcional" />
+          <button id="hr-guardar" class="btn-outline">Guardar recordatorio</button>
+        </div>
+        <div id="hr-list" class="reminder-list"></div>
+      </div>
+
       <h3>Historial</h3>
       <div id="h-list" class="cards hypo-list"></div>
     </section>
@@ -1235,7 +1246,109 @@
     const hypoNumeroInput = document.getElementById("h-numero");
     const hypoTextoInput = document.getElementById("h-texto");
     const btnHipotesis = document.getElementById("h-guardar");
+    const reminderNumeroInput = document.getElementById("hr-numero");
+    const reminderNotaInput = document.getElementById("hr-nota");
+    const reminderAddBtn = document.getElementById("hr-guardar");
     let editingHypothesisId = null;
+
+    async function refreshHypothesisReminders() {
+      const list = document.getElementById("hr-list");
+      if (!list) return;
+      const reminders = await DB.listHypothesisReminders();
+      if (!reminders.length) {
+        list.innerHTML = "<p class='hint'>Sin recordatorios pendientes.</p>";
+        return;
+      }
+      list.innerHTML = "";
+      reminders
+        .slice()
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        .forEach((rem) => {
+          const item = document.createElement("div");
+          item.className = "reminder-item";
+
+          const info = document.createElement("div");
+          info.className = "reminder-info";
+          const simbolo = rem.simbolo || getSymbol(rem.numero) || "";
+          info.textContent = `${formatNumber(rem.numero)} ${simbolo}`.trim();
+          if (rem.nota) {
+            const note = document.createElement("span");
+            note.textContent = rem.nota;
+            info.appendChild(note);
+          }
+          item.appendChild(info);
+
+          const actions = document.createElement("div");
+          actions.className = "reminder-actions";
+
+          const useBtn = document.createElement("button");
+          useBtn.type = "button";
+          useBtn.className = "btn-secondary";
+          useBtn.textContent = "Usar";
+          useBtn.addEventListener("click", () => {
+            if (hypoNumeroInput) hypoNumeroInput.value = formatNumber(rem.numero);
+            if (hypoTextoInput && rem.nota) hypoTextoInput.value = rem.nota;
+            showToast(`Recordatorio cargado para ${formatNumber(rem.numero)}.`, {
+              variant: "info",
+              timeout: 2400,
+            });
+          });
+          actions.appendChild(useBtn);
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "btn-ghost";
+          removeBtn.textContent = "Quitar";
+          removeBtn.addEventListener("click", async () => {
+            await DB.removeHypothesisReminder(rem.id);
+            await refreshHypothesisReminders();
+            showToast("Recordatorio eliminado.", { variant: "success", timeout: 2000 });
+          });
+          actions.appendChild(removeBtn);
+
+          item.appendChild(actions);
+          list.appendChild(item);
+        });
+    }
+
+    async function handleReminderAdd() {
+      const rawNumero = (reminderNumeroInput?.value || "").trim();
+      if (!rawNumero) {
+        showToast("Ingresa el número del recordatorio.", { variant: "warning" });
+        return;
+      }
+      const numero = parseInt(rawNumero, 10);
+      if (!Number.isFinite(numero) || numero < 0 || numero > 99) {
+        showToast("Número inválido para el recordatorio.", { variant: "danger" });
+        return;
+      }
+      const nota = (reminderNotaInput?.value || "").trim();
+      try {
+        const simbolo = getSymbol(numero) || "";
+        await DB.addHypothesisReminder({ numero, nota, simbolo });
+        if (reminderNumeroInput) reminderNumeroInput.value = "";
+        if (reminderNotaInput) reminderNotaInput.value = "";
+        await refreshHypothesisReminders();
+        showToast("Recordatorio guardado.", { variant: "success", timeout: 2000 });
+      } catch (err) {
+        console.error("recordatorio error", err);
+        showToast(`No se pudo guardar el recordatorio: ${err.message}`, { variant: "danger" });
+      }
+    }
+
+    reminderAddBtn?.addEventListener("click", handleReminderAdd);
+    reminderNumeroInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleReminderAdd();
+      }
+    });
+    reminderNotaInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && event.ctrlKey) {
+        event.preventDefault();
+        handleReminderAdd();
+      }
+    });
 
     function resetHypothesisForm() {
       editingHypothesisId = null;
@@ -1245,6 +1358,7 @@
     }
 
     async function refreshHypotesis() {
+      await refreshHypothesisReminders();
       const cont = document.getElementById("h-list");
       if (!cont) return;
       cont.classList.add("cards", "hypo-list");

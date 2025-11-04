@@ -71,6 +71,25 @@ db.version(6).stores({
     "++id, modeId, fecha, pais, turno, notas, createdAt, [modeId+fecha]",
 });
 
+db.version(7).stores({
+  draws:
+    "++id, fecha, pais, horario, numero, isTest, createdAt, [fecha+pais+horario+numero]",
+  hypotheses: "++id, numero, simbolo, estado, fecha, turno, createdAt",
+  reasons: "++id, ownerType, ownerId, texto, tags, createdAt",
+  rules: "++id, tipo, descripcion, createdAt",
+  edges: "++id, fromFactId, toId, ruleId, weight, createdAt",
+  knowledge: "&key, scope, updatedAt",
+  hypothesis_logs:
+    "++id, hypothesisId, numero, estado, fechaResultado, paisResultado, horarioResultado, createdAt, [numero+estado]",
+  prediction_logs:
+    "++id, targetFecha, targetPais, turno, numero, estado, createdAt, [targetFecha+targetPais]",
+  game_modes: "++id, nombre, tipo, descripcion, createdAt",
+  game_mode_examples: "++id, modeId, original, resultado, nota, createdAt",
+  game_mode_logs:
+    "++id, modeId, fecha, pais, turno, notas, createdAt, [modeId+fecha]",
+  hypothesis_reminders: "++id, numero, createdAt",
+});
+
 const withTimestamp = (data = {}) => ({
   ...data,
   createdAt: data.createdAt ?? Date.now(),
@@ -317,6 +336,43 @@ export const DB = {
 
   async getPredictionLogs() {
     return db.prediction_logs.toArray();
+  },
+
+  async listHypothesisReminders() {
+    if (!db.hypothesis_reminders) return [];
+    return db.hypothesis_reminders.orderBy("createdAt").reverse().toArray();
+  },
+
+  async addHypothesisReminder({ numero, nota = "", simbolo = "" } = {}) {
+    if (!db.hypothesis_reminders) return null;
+    const n = parseInt(numero, 10);
+    if (!Number.isFinite(n) || n < 0 || n > 99) {
+      throw new Error("Número inválido para recordatorio");
+    }
+    const normalizedNote = typeof nota === "string" ? nota.trim() : "";
+    const normalizedSymbol = typeof simbolo === "string" ? simbolo.trim() : "";
+    const existing = await db.hypothesis_reminders.where("numero").equals(n).first();
+    if (existing) {
+      await db.hypothesis_reminders.update(existing.id, {
+        nota: normalizedNote || existing.nota || "",
+        simbolo: normalizedSymbol || existing.simbolo || "",
+        updatedAt: Date.now(),
+      });
+      return existing.id;
+    }
+    return db.hypothesis_reminders.add({
+      numero: n,
+      nota: normalizedNote,
+      simbolo: normalizedSymbol,
+      createdAt: Date.now(),
+    });
+  },
+
+  async removeHypothesisReminder(id) {
+    if (!db.hypothesis_reminders) return false;
+    if (id === null || id === undefined) return false;
+    await db.hypothesis_reminders.delete(id);
+    return true;
   },
 
   async createGameMode({ nombre, tipo, descripcion, operacion = "", parametros = null, offset = null }) {
