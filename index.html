@@ -39,6 +39,12 @@
       <div class="badge">v3.2 • Oscuro + Dorado</div>
     </header>
 
+    <div id="countdown-banner" class="countdown-banner">
+      <div class="countdown-label" data-countdown-label>Tiempo para el próximo sorteo</div>
+      <div class="countdown-target" data-countdown-target>—</div>
+      <div class="countdown-timer" data-countdown-timer>--:--:--</div>
+    </div>
+
     <!-- PANEL DEL DÍA -->
     <section id="view-day" class="view">
       <h2>Panel del día</h2>
@@ -67,7 +73,6 @@
           </div>
           <div class="row slot-controls">
             <input id="n-11" placeholder="00-99" />
-            <button id="save-11">Guardar</button>
           </div>
           <button class="ghost" data-hypo="11AM">Agregar hipótesis para 11 AM</button>
         </div>
@@ -85,7 +90,6 @@
           </div>
           <div class="row slot-controls">
             <input id="n-3" placeholder="00-99" />
-            <button id="save-3">Guardar</button>
           </div>
           <button class="ghost" data-hypo="3PM">Agregar hipótesis para 3 PM</button>
         </div>
@@ -103,10 +107,13 @@
           </div>
           <div class="row slot-controls">
             <input id="n-9" placeholder="00-99" />
-            <button id="save-9">Guardar</button>
           </div>
           <button class="ghost" data-hypo="9PM">Agregar hipótesis para 9 PM</button>
         </div>
+      </div>
+
+      <div class="row" style="justify-content:center; margin-top:12px;">
+        <button id="save-day" style="min-width:220px;">Guardar sorteos del día</button>
       </div>
 
       <div class="row" style="margin-top:20px;">
@@ -795,7 +802,6 @@
       {
         key: "11AM",
         inputId: "n-11",
-        buttonId: "save-11",
         checkboxId: "test-11",
         ballId: "b-11",
         symId: "s-11",
@@ -803,7 +809,6 @@
       {
         key: "3PM",
         inputId: "n-3",
-        buttonId: "save-3",
         checkboxId: "test-3",
         ballId: "b-3",
         symId: "s-3",
@@ -811,18 +816,38 @@
       {
         key: "9PM",
         inputId: "n-9",
-        buttonId: "save-9",
         checkboxId: "test-9",
         ballId: "b-9",
         symId: "s-9",
       },
     ];
 
+    const DAY_MS = 24 * 60 * 60 * 1000;
     const formatNumber = (n) => String(n).padStart(2, "0");
+    const parseISODate = (value) => {
+      if (!value) return null;
+      const date = new Date(`${value}T00:00:00`);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+    const formatISODate = (date) => {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+      return date.toISOString().slice(0, 10);
+    };
 
     const getSymbol = (numero) => {
       const entry = GUIA[formatNumber(numero)];
       return entry?.simbolo || "";
+    };
+
+    const OPERACION_LABELS = {
+      "": "",
+      mirror: "Invertir",
+      "sum-digits": "Suma dígitos",
+      "sum-digits-keep-first": "Suma dígitos (mantiene)",
+      "add-constant": "+Constante",
+      "sub-constant": "-Constante",
+      neighbor: "Vecino",
+      "digit-map": "Mapa dígitos",
     };
 
     const DOW_FULL_LABEL = [
@@ -862,12 +887,18 @@
         .find((d) => !d.isTest) ?? matching[matching.length - 1];
     }
 
+    function formatBallContent(numero, symbol) {
+      const numHtml = `<span class="ball-number">${numero}</span>`;
+      const symHtml = symbol ? `<span class="ball-symbol">${symbol}</span>` : "";
+      return `${numHtml}${symHtml}`;
+    }
+
     function applyDrawToSlot(config, draw) {
       const ball = document.getElementById(config.ballId);
       const sym = document.getElementById(config.symId);
       if (!ball || !sym) return;
       if (!draw) {
-        ball.textContent = "--";
+        ball.innerHTML = formatBallContent("--", "");
         ball.classList.remove("small");
         ball.removeAttribute("data-numero");
         ball.style.borderColor = "";
@@ -878,13 +909,14 @@
       }
       const numero = formatNumber(draw.numero);
       const color = getColorPolaridad(draw.numero);
-      ball.textContent = numero;
+      const symbol = getSymbol(draw.numero);
+      ball.innerHTML = formatBallContent(numero, symbol);
       ball.dataset.numero = numero;
       ball.classList.toggle("small", !!draw.isTest);
       ball.style.borderColor = color;
       ball.style.color = color;
-      sym.textContent = getSymbol(draw.numero);
-      sym.title = draw.isTest ? "Modo prueba" : sym.textContent || "";
+      sym.textContent = "";
+      sym.title = draw.isTest ? "Modo prueba" : symbol || "";
     }
 
     async function refreshSlots() {
@@ -896,41 +928,74 @@
       });
     }
 
-    SLOT_CONFIG.forEach((config) => {
-      const btn = document.getElementById(config.buttonId);
-      if (!btn) return;
-      btn.addEventListener("click", async () => {
-        const { fecha, pais } = getFilters();
-        if (!fecha || !pais) {
-          showToast("Selecciona fecha y país antes de guardar.", { variant: "warning" });
-          return;
-        }
+    const saveDayBtn = document.getElementById("save-day");
+    saveDayBtn?.addEventListener("click", async () => {
+      const { fecha, pais } = getFilters();
+      if (!fecha || !pais) {
+        showToast("Selecciona fecha y país antes de guardar.", { variant: "warning" });
+        return;
+      }
+
+      const payloads = [];
+      for (const config of SLOT_CONFIG) {
         const input = document.getElementById(config.inputId);
         const raw = input?.value.trim() ?? "";
+        if (!raw) continue;
         if (!/^\d{1,2}$/.test(raw)) {
-          showToast("Ingresa un número válido (00-99).", { variant: "warning" });
+          showToast(`Número inválido en ${config.key}. Usa formato 00-99.`, { variant: "warning" });
+          input?.focus();
           return;
         }
         const numero = parseInt(raw, 10);
         if (numero < 0 || numero > 99) {
-          showToast("El número debe estar entre 00 y 99.", { variant: "warning" });
+          showToast(`El número en ${config.key} debe estar entre 00 y 99.`, { variant: "warning" });
+          input?.focus();
+          return;
+        }
+        const symbol = getSymbol(numero);
+        if (!symbol) {
+          showToast(`El número ${formatNumber(numero)} no tiene símbolo registrado. Revisa la guía antes de guardarlo.`, {
+            variant: "danger",
+          });
+          input?.focus();
           return;
         }
 
-
         const testCheck = document.getElementById(config.checkboxId);
-        const opts = testCheck?.checked ? { source: "test" } : {};
-        try {
+        payloads.push({ config, numero, input, testCheck, isTest: !!testCheck?.checked });
+      }
+
+      if (!payloads.length) {
+        showToast("Ingresa al menos un número antes de guardar.", { variant: "warning" });
+        return;
+      }
+
+      try {
+        for (const { config, numero, isTest } of payloads) {
+          const opts = isTest ? { source: "test" } : {};
           await importarManual({ fecha, pais, horario: config.key, numero }, opts);
-          input.value = "";
-          if (testCheck) testCheck.checked = false;
-          await refreshSlots();
-          await rebuildKnowledge();
-        } catch (err) {
-          console.error("saveDraw error", err);
-          showToast(`No se pudo guardar el sorteo: ${err.message}`, { variant: "danger" });
         }
-      });
+
+        payloads.forEach(({ input, testCheck }) => {
+          if (input) input.value = "";
+          if (testCheck) testCheck.checked = false;
+        });
+
+        await refreshSlots();
+        await rebuildKnowledge();
+
+        const detail = payloads
+          .map(({ config, numero }) => `${config.key} ${formatNumber(numero)}`)
+          .join(" · ");
+        showToast(`Se guardaron ${payloads.length} sorteo(s): ${detail}.`, { variant: "success" });
+      } catch (err) {
+        console.error("saveDay error", err);
+        showToast(`No se pudieron guardar los sorteos: ${err.message}`, { variant: "danger" });
+      }
+    });
+
+    saveDayBtn?.addEventListener("click", () => {
+      updateCountdownDisplay();
     });
 
     // === FUNCIONALIDAD: "Agregar hipótesis para (hora)" ===
@@ -990,8 +1055,100 @@
 
     const dayFecha = document.getElementById("day-fecha");
     const dayPais = document.getElementById("day-pais");
-    dayFecha?.addEventListener("change", refreshSlots);
-    dayPais?.addEventListener("change", refreshSlots);
+    dayFecha?.addEventListener("change", () => {
+      refreshSlots();
+      updateCountdownDisplay();
+    });
+    dayPais?.addEventListener("change", () => {
+      refreshSlots();
+      updateCountdownDisplay();
+    });
+
+    const countdownTargetEl = document.querySelector("[data-countdown-target]");
+    const countdownTimerEl = document.querySelector("[data-countdown-timer]");
+    let countdownInterval = null;
+    const TURNOS = ["11AM", "3PM", "9PM"];
+    const TURNO_SCHEDULE = {
+      "11AM": { hour: 11, minute: 0 },
+      "3PM": { hour: 15, minute: 0 },
+      "9PM": { hour: 21, minute: 0 },
+    };
+
+    function computeNextSlot({ fecha } = {}) {
+      const now = new Date();
+      let baseDate;
+      if (fecha) {
+        baseDate = new Date(`${fecha}T00:00:00`);
+        if (Number.isNaN(baseDate.getTime())) baseDate = new Date(now);
+      } else {
+        baseDate = new Date(now);
+      }
+      baseDate.setHours(0, 0, 0, 0);
+
+      for (const turno of TURNOS) {
+        const schedule = TURNO_SCHEDULE[turno];
+        if (!schedule) continue;
+        const candidate = new Date(baseDate);
+        candidate.setHours(schedule.hour, schedule.minute, 0, 0);
+        if (candidate <= now) continue;
+        return { turno, datetime: candidate };
+      }
+
+      const firstSchedule = TURNO_SCHEDULE[TURNOS[0]];
+      const nextDay = new Date(baseDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      nextDay.setHours(firstSchedule.hour, firstSchedule.minute, 0, 0);
+      while (nextDay <= now) {
+        nextDay.setDate(nextDay.getDate() + 1);
+      }
+      return { turno: TURNOS[0], datetime: nextDay };
+    }
+
+    function updateCountdownDisplay() {
+      if (!countdownTargetEl || !countdownTimerEl) return;
+      const { fecha, pais } = getFilters();
+      const next = computeNextSlot({ fecha, pais });
+      if (!next) {
+        countdownTargetEl.textContent = "Sin horario";
+        countdownTimerEl.textContent = "--:--:--";
+        return;
+      }
+
+      const targetDate = next.datetime;
+      const targetLabelDate = targetDate.toISOString().slice(0, 10);
+      const targetLabelTime = targetDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+      const paisLabel = pais ? ` · ${pais}` : "";
+      countdownTargetEl.textContent = `${targetLabelDate} ${targetLabelTime}${paisLabel}`;
+      const countdownLabelEl = document.querySelector("[data-countdown-label]");
+      if (countdownLabelEl) {
+        countdownLabelEl.textContent = `Tiempo para el sorteo ${next.turno}`;
+      }
+
+      const updateTimer = () => {
+        const now = new Date();
+        const diff = targetDate - now;
+        if (diff <= 0) {
+          countdownTimerEl.textContent = "00:00:00";
+          if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+          }
+          setTimeout(updateCountdownDisplay, 1000);
+          return;
+        }
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+        countdownTimerEl.textContent = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      };
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      updateTimer();
+      countdownInterval = setInterval(updateTimer, 1000);
+    }
+
+    updateCountdownDisplay();
+
 
 
     const btnAprender = document.getElementById("btn-aprender-dia");
@@ -1228,13 +1385,22 @@
           perfilMap,
           resumenPred
         );
+        let drawsSeleccionados = [];
+        if (fechaFiltro && paisFiltro) {
+          const drawsDelDia = await DB.listDraws({ excludeTest: true });
+          drawsSeleccionados = drawsDelDia.filter(
+            (draw) => draw.fecha === fechaFiltro && draw.pais === paisFiltro
+          );
+        }
+
         renderPlanDia(
           predicciones,
           perfilMap,
           modoEval,
           patrones.timelineActiva || [],
           patrones.hallazgos || [],
-          patrones.resumenVentana || ""
+          patrones.resumenVentana || "",
+          drawsSeleccionados
         );
       } catch (err) {
         console.error("analizar error", err);
@@ -1242,8 +1408,6 @@
           resultEscenarios.innerHTML = `<p class='hint'>No se pudo completar el análisis: ${err.message}</p>`;
       }
     });
-
-    const TURNOS = ["11AM", "3PM", "9PM"];
 
     function mejorTurnoSegunPerfil(perfil) {
       const aprendizaje = perfil?.aprendizaje?.porHorario || {};
@@ -1294,14 +1458,41 @@
     }
 
     function notasPatronNumero(hallazgos, numero) {
-      return hallazgos
+      const notes = [];
+      hallazgos
         .filter((h) => h.id?.startsWith("repeat-") && h.numero === numero)
-        .map((h) => {
+        .slice(0, 2)
+        .forEach((h) => {
           const datos = h.datos || {};
           const muestras = datos.muestras?.length ? ` · ${datos.muestras.join(" · ")}` : "";
-          return `${datos.tipo || "Repetición"}${muestras}`;
-        })
-        .slice(0, 2);
+          notes.push(`${datos.tipo || "Repetición"}${muestras}`);
+        });
+
+      const gapHallazgo = hallazgos.find((h) => h.id?.startsWith("gap-") && h.numero === numero);
+      if (gapHallazgo?.datos?.gap) {
+        const gapDias = gapHallazgo.datos.gap;
+        const evidencia = gapHallazgo.evidencia || [];
+        const ultimaCoincidencia = evidencia.length ? evidencia[evidencia.length - 1] : null;
+        const ultimaFecha = parseISODate(ultimaCoincidencia?.fecha);
+        const nextDate =
+          parseISODate(gapHallazgo.siguienteFechaEsperada) ||
+          (ultimaFecha ? new Date(ultimaFecha.getTime() + gapDias * DAY_MS) : null);
+        if (nextDate) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const diffDays = Math.round((nextDate - today) / DAY_MS);
+          const status =
+            diffDays > 0
+              ? `en ${diffDays} días`
+              : diffDays === 0
+              ? "hoy"
+              : `hace ${Math.abs(diffDays)} días`;
+          notes.push(`Intervalo ${gapDias}d → próximo ${formatISODate(nextDate)} (${status})`);
+        } else {
+          notes.push(`Intervalo ${gapDias}d observado`);
+        }
+      }
+      return notes;
     }
 
     function renderPlanDia(
@@ -1310,7 +1501,8 @@
       modoEval,
       timelineActiva = [],
       hallazgos = [],
-      resumenVentana = ""
+      resumenVentana = "",
+      drawsDia = []
     ) {
       if (!resultPlan) return;
       resultPlan.innerHTML = "";
@@ -1319,6 +1511,18 @@
         resultPlan.innerHTML = "<p class='hint'>Aún no hay un plan diario — registra sorteos reales para 2025.</p>";
         return;
       }
+
+      const { fecha: filtrosFecha, pais: filtrosPais } = getFilters();
+      const fechaObjetivo = filtrosFecha || "(sin fecha)";
+      const paisObjetivo = filtrosPais || "";
+      const drawsJugados = Array.isArray(drawsDia) ? drawsDia : [];
+      const generadoEn = new Date();
+      const generadoHora = generadoEn.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
       const lastByNumero = new Map();
       timelineActiva.forEach((draw) => {
@@ -1330,10 +1534,16 @@
       const planBuckets = new Map();
       TURNOS.forEach((turno) => planBuckets.set(turno, []));
 
+      let planSections = 0;
+
       predicciones.forEach((item) => {
         const perfil = perfilMap.get(item.numero);
         const turnoInfo = mejorTurnoSegunPerfil(perfil);
         const bucket = planBuckets.get(turnoInfo.turno) || planBuckets.get(TURNOS[0]);
+        const yaJugadoMismoTurno = drawsJugados.some(
+          (draw) => draw.numero === item.numero && draw.horario === turnoInfo.turno
+        );
+        if (yaJugadoMismoTurno) return;
         const lastSeen = perfil?.lastSeen || null;
         const modoResumen = resumenModos(item.modos);
         const patronNotas = notasPatronNumero(hallazgos, item.numero);
@@ -1362,8 +1572,13 @@
 
         const head = document.createElement("div");
         head.className = "card-head";
-        head.textContent = `Próximo ${turno}`;
+        head.textContent = `Candidatos ${turno}`;
         card.appendChild(head);
+
+        const meta = document.createElement("div");
+        meta.className = "plan-meta";
+        meta.textContent = `Fecha ${fechaObjetivo}${paisObjetivo ? ` · ${paisObjetivo}` : ""} · Generado ${generadoHora}`;
+        card.appendChild(meta);
 
         const list = document.createElement("div");
         list.className = "plan-list";
@@ -1431,32 +1646,308 @@
         }
 
         grid.appendChild(card);
+        planSections += 1;
       });
 
-      if (!grid.children.length) {
+      const LONG_GAP_THRESHOLD = 120;
+      const RECENT_RETURN_WINDOW = 10;
+      const sequiasRota = [];
+      const sequiasActivas = [];
+      perfilMap.forEach((perfil) => {
+        const gaps = perfil?.gaps || {};
+        if (!perfil?.lastSeen || gaps.ultimo === null || gaps.ultimo === undefined) return;
+        const lastSeen = perfil.lastSeen;
+        const daysSince = typeof gaps.daysSince === "number" ? Math.round(gaps.daysSince) : null;
+        const gapPrevio = Math.round(gaps.ultimo);
+        const promedio = typeof gaps.promedio === "number" ? gaps.promedio : null;
+        if (gapPrevio >= LONG_GAP_THRESHOLD) {
+          const registroBase = {
+            numero: perfil.numero,
+            perfilRef: perfil,
+            lastSeen,
+            gapPrevio,
+            promedio,
+            daysSince,
+          };
+          if (daysSince !== null && daysSince <= RECENT_RETURN_WINDOW) {
+            sequiasRota.push(registroBase);
+          } else if (daysSince !== null && daysSince >= LONG_GAP_THRESHOLD) {
+            sequiasActivas.push(registroBase);
+          }
+        } else if (
+          daysSince !== null &&
+          daysSince >= LONG_GAP_THRESHOLD &&
+          gaps.max !== null &&
+          Math.round(gaps.max) >= LONG_GAP_THRESHOLD
+        ) {
+          sequiasActivas.push({
+            numero: perfil.numero,
+            perfilRef: perfil,
+            lastSeen,
+            gapPrevio: Math.round(gaps.max),
+            promedio,
+            daysSince,
+          });
+        }
+      });
+
+      let droughtCard = null;
+      if (sequiasRota.length || sequiasActivas.length) {
+        droughtCard = document.createElement("div");
+        droughtCard.className = "analysis-card drought";
+
+        const head = document.createElement("div");
+        head.className = "card-head";
+        head.textContent = "Alertas de sequía";
+        droughtCard.appendChild(head);
+
+        const meta = document.createElement("div");
+        meta.className = "plan-meta";
+        meta.textContent = `Se consideran sequías de ${LONG_GAP_THRESHOLD}+ días.`;
+        droughtCard.appendChild(meta);
+
+        const list = document.createElement("div");
+        list.className = "plan-list";
+
+        const buildRow = (entry, label) => {
+          const row = document.createElement("div");
+          row.className = "plan-item";
+
+          const numberEl = document.createElement("div");
+          numberEl.className = "plan-number";
+          const symbol = getSymbol(entry.numero);
+          numberEl.textContent = symbol
+            ? `${formatNumber(entry.numero)} ${symbol}`
+            : formatNumber(entry.numero);
+          row.appendChild(numberEl);
+
+          const badge = document.createElement("div");
+          badge.className = "plan-score";
+          badge.textContent = label;
+          row.appendChild(badge);
+
+          const details = document.createElement("ul");
+          details.className = "plan-detail";
+
+          const lastSeenText = entry.lastSeen
+            ? `Última vez: ${entry.lastSeen.fecha} ${entry.lastSeen.horario || ""}`
+            : null;
+          if (lastSeenText) {
+            const li = document.createElement("li");
+            li.textContent = lastSeenText;
+            details.appendChild(li);
+          }
+
+          const gapLi = document.createElement("li");
+          gapLi.textContent = `Gap previo: ${entry.gapPrevio} días`;
+          details.appendChild(gapLi);
+
+          if (entry.promedio) {
+            const avgLi = document.createElement("li");
+            avgLi.textContent = `Gap promedio histórico: ${entry.promedio.toFixed(1)} días`;
+            details.appendChild(avgLi);
+          }
+
+          if (typeof entry.daysSince === "number") {
+            const sinceLi = document.createElement("li");
+            sinceLi.textContent =
+              entry.daysSince === 0
+                ? "Reapareció hoy"
+                : entry.daysSince === 1
+                ? "Reapareció ayer"
+                : `Días desde último sorteo: ${entry.daysSince}`;
+            details.appendChild(sinceLi);
+          }
+
+          const perfilRef = entry.perfilRef;
+          const historialRegistros = Array.isArray(perfilRef?.gaps?.historial)
+            ? perfilRef.gaps.historial.filter(
+                (item) => Number.isFinite(item?.gap) && item.gap >= LONG_GAP_THRESHOLD
+              )
+            : [];
+          if (historialRegistros.length) {
+            const minHist = Math.min(...historialRegistros.map((h) => h.gap));
+            const maxHist = Math.max(...historialRegistros.map((h) => h.gap));
+            const avgHist =
+              historialRegistros.reduce((acc, h) => acc + h.gap, 0) / historialRegistros.length;
+            const rangeLi = document.createElement("li");
+            rangeLi.textContent = `Historial largo: ${minHist}-${maxHist} días (${historialRegistros.length} eventos)`;
+            details.appendChild(rangeLi);
+
+            const lastSeenDate = parseISODate(entry.lastSeen?.fecha);
+            if (lastSeenDate && Number.isFinite(avgHist) && avgHist > 0) {
+              const avgGapRounded = Math.round(avgHist);
+              const estimado = new Date(lastSeenDate.getTime() + avgGapRounded * DAY_MS);
+              if (!Number.isNaN(estimado.getTime())) {
+                const diff = Math.round((estimado - today) / DAY_MS);
+                const statusHist =
+                  diff > 0
+                    ? `faltan ${diff} días`
+                    : diff === 0
+                    ? "hoy"
+                    : `vencido hace ${Math.abs(diff)} días`;
+                const avgLi = document.createElement("li");
+                avgLi.textContent = `Proyección histórica: ${formatISODate(estimado)} (~${avgGapRounded}d, ${statusHist})`;
+                details.appendChild(avgLi);
+              }
+            }
+
+            const ultimoComparable = historialRegistros[historialRegistros.length - 1];
+            if (ultimoComparable?.gap && ultimoComparable?.hasta?.fecha) {
+              const li = document.createElement("li");
+              const desde = ultimoComparable.desde?.fecha ? `${ultimoComparable.desde.fecha} → ` : "";
+              li.textContent = `Última sequía similar: ${ultimoComparable.gap}d (${desde}${ultimoComparable.hasta.fecha})`;
+              details.appendChild(li);
+            }
+          }
+
+          row.appendChild(details);
+          return row;
+        };
+
+        sequiasRota
+          .sort((a, b) => b.gapPrevio - a.gapPrevio)
+          .forEach((entry) => list.appendChild(buildRow(entry, "Seca rota")));
+        sequiasActivas
+          .sort((a, b) => b.daysSince - a.daysSince)
+          .forEach((entry) => list.appendChild(buildRow(entry, "Sequía en curso")));
+
+        droughtCard.appendChild(list);
+        grid.appendChild(droughtCard);
+      }
+
+      let hasGapCard = false;
+      const gapSeguimiento = hallazgos
+        .filter((h) => h.id?.startsWith("gap-"))
+        .map((h) => {
+          const gapDias = Number(h.datos?.gap);
+          if (!Number.isFinite(gapDias) || gapDias <= 0) return null;
+          const evidencia = Array.isArray(h.evidencia) ? h.evidencia : [];
+          const ultimaCoincidencia = evidencia.length ? evidencia[evidencia.length - 1] : null;
+          const lastDate = parseISODate(ultimaCoincidencia?.fecha);
+          const nextDate =
+            parseISODate(h.siguienteFechaEsperada) ||
+            (lastDate ? new Date(lastDate.getTime() + gapDias * DAY_MS) : null);
+          const diffDays =
+            nextDate && Number.isFinite(nextDate.getTime())
+              ? Math.round((nextDate - today) / DAY_MS)
+              : null;
+          const status =
+            diffDays === null
+              ? "sin estimación"
+              : diffDays > 0
+              ? `faltan ${diffDays} días`
+              : diffDays === 0
+              ? "esperado hoy"
+              : `vencido hace ${Math.abs(diffDays)} días`;
+          return {
+            numero: h.numero,
+            gap: gapDias,
+            coincidencias: Number(h.datos?.coincidencias || 0),
+            intervalos: Number(h.datos?.intervalos || 0),
+            lastSeen: ultimaCoincidencia
+              ? {
+                  fecha: ultimaCoincidencia.fecha,
+                  horario: ultimaCoincidencia.horario,
+                }
+              : null,
+            nextDate,
+            diffDays,
+            status,
+            horarioSugerido: h.datos?.siguienteHorario || ultimaCoincidencia?.horario || null,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => {
+          const aDiff = a.diffDays === null ? Number.POSITIVE_INFINITY : a.diffDays;
+          const bDiff = b.diffDays === null ? Number.POSITIVE_INFINITY : b.diffDays;
+          return aDiff - bDiff;
+        });
+
+      if (gapSeguimiento.length) {
+        hasGapCard = true;
+        const gapCard = document.createElement("div");
+        gapCard.className = "analysis-card interval";
+
+        const head = document.createElement("div");
+        head.className = "card-head";
+        head.textContent = "Seguimiento de intervalos";
+        gapCard.appendChild(head);
+
+        const meta = document.createElement("div");
+        meta.className = "plan-meta";
+        meta.textContent = "Números con patrón de días constantes.";
+        gapCard.appendChild(meta);
+
+        const list = document.createElement("div");
+        list.className = "plan-list";
+
+        gapSeguimiento.forEach((entry) => {
+          const row = document.createElement("div");
+          row.className = "plan-item";
+
+          const numberEl = document.createElement("div");
+          numberEl.className = "plan-number";
+          const symbol = getSymbol(entry.numero);
+          numberEl.textContent = symbol
+            ? `${formatNumber(entry.numero)} ${symbol}`
+            : formatNumber(entry.numero);
+          row.appendChild(numberEl);
+
+          const badge = document.createElement("div");
+          badge.className = "plan-score";
+          badge.textContent = `${entry.gap} días`;
+          row.appendChild(badge);
+
+          const details = document.createElement("ul");
+          details.className = "plan-detail";
+
+          if (entry.lastSeen) {
+            const li = document.createElement("li");
+            li.textContent = `Última coincidencia: ${entry.lastSeen.fecha} ${entry.lastSeen.horario || ""}`;
+            details.appendChild(li);
+          }
+
+          if (entry.nextDate) {
+            const li = document.createElement("li");
+            const fechaFmt = formatISODate(entry.nextDate);
+            const horario = entry.horarioSugerido ? ` ${entry.horarioSugerido}` : "";
+            li.textContent = `Próxima estimada: ${fechaFmt || "N/D"}${horario ? ` ${horario}` : ""} (${entry.status})`;
+            details.appendChild(li);
+          } else {
+            const li = document.createElement("li");
+            li.textContent = `Próxima estimada: sin datos (${entry.status})`;
+            details.appendChild(li);
+          }
+
+          const ratioLi = document.createElement("li");
+          const total = entry.intervalos || 0;
+          ratioLi.textContent = `Coincidencias: ${entry.coincidencias}/${total} intervalos`;
+          details.appendChild(ratioLi);
+
+          row.appendChild(details);
+          list.appendChild(row);
+        });
+
+        gapCard.appendChild(list);
+        grid.appendChild(gapCard);
+      }
+
+      if (planSections === 0 && !droughtCard && !hasGapCard) {
         resultPlan.innerHTML = "<p class='hint'>No hay suficientes datos recientes para un plan diario.</p>";
         return;
       }
+
+      resultPlan.appendChild(grid);
 
       const note = document.createElement("p");
       note.className = "plan-note";
       note.textContent = "Plan generado con sorteos 2025 y modos validados.";
       resultPlan.appendChild(note);
-
-      resultPlan.appendChild(grid);
     }
 
     function mezclarPrediccionesConModos(predicciones, modoEval) {
       if (!modoEval) return predicciones;
-      const operacionLabels = {
-        mirror: "Invertir",
-        "sum-digits": "Suma dígitos",
-        "sum-digits-keep-first": "Suma dígitos (mantiene)",
-        "add-constant": "+Constante",
-        "sub-constant": "-Constante",
-        neighbor: "Vecino",
-        "digit-map": "Mapa dígitos",
-      };
       const scoreMap = new Map();
       Object.entries(modoEval.scorePorNumero || {}).forEach(([key, value]) => {
         const numero = parseInt(key, 10);
@@ -1562,16 +2053,6 @@
         head.textContent = "Modos aprendidos";
         card.appendChild(head);
 
-        const operacionLabels = {
-          mirror: "Invertir",
-          "sum-digits": "Suma dígitos",
-          "sum-digits-keep-first": "Suma dígitos (mantiene)",
-          "add-constant": "+Constante",
-          "sub-constant": "-Constante",
-          neighbor: "Vecino",
-          "digit-map": "Mapa dígitos",
-        };
-
         const list = document.createElement("ul");
         list.className = "analysis-insights";
         modoEval.sugerencias.slice(0, 6).forEach((sug) => {
@@ -1580,7 +2061,8 @@
           const base = String(sug.baseNumero ?? sug.original ?? "").padStart(2, "0");
           const target = String(sug.numero).padStart(2, "0");
           const modeName = sug.modeNombre || "Modo";
-          const opTag = operacionLabels[sug.operacion] ? ` · ${operacionLabels[sug.operacion]}` : "";
+          const opLabel = OPERACION_LABELS[sug.operacion];
+          const opTag = opLabel ? ` · ${opLabel}` : "";
           const nota = sug.nota ? ` — ${sug.nota}` : "";
           li.innerHTML = `<strong>${modeName}</strong>${opTag}: ${base} → ${target} (${conf}% conf)${nota}`;
           list.appendChild(li);
@@ -1615,10 +2097,12 @@
           if (Number.isFinite(number)) {
             const numberBadge = document.createElement("div");
             numberBadge.className = "analysis-number-lg";
+            const formattedNumber = formatNumber(number);
             const symbol = getSymbol(number);
-            numberBadge.textContent = symbol
-              ? `${formatNumber(number)} ${symbol}`
-              : formatNumber(number);
+            const symbolSpan = symbol
+              ? `<span class="analysis-number-symbol">${symbol}</span>`
+              : "";
+            numberBadge.innerHTML = `<span class="analysis-number-main">${formattedNumber}</span>${symbolSpan}`;
             card.appendChild(numberBadge);
           }
 
@@ -1628,11 +2112,31 @@
           const detailList = document.createElement("ul");
           detailList.className = "pattern-detail";
 
-          const addLine = (text, className) => {
-            if (!text) return;
+          const addLine = (entry, fallbackClass) => {
+            if (!entry) return;
+            const config = typeof entry === "string" ? { text: entry } : { ...entry };
+            const rawContent =
+              typeof config.html === "string" ? config.html : config.text ?? "";
+            if (typeof rawContent === "string" && !rawContent.trim()) return;
             const li = document.createElement("li");
-            li.textContent = text;
-            if (className) li.classList.add(className);
+            const classNames = (config.className || fallbackClass || "")
+              .split(/\s+/)
+              .map((cls) => cls.trim())
+              .filter(Boolean);
+            classNames.forEach((cls) => li.classList.add(cls));
+            if (typeof config.html === "string") {
+              li.innerHTML = config.html;
+            } else {
+              li.textContent = rawContent;
+            }
+            const hasSubentry = li.classList.contains("pattern-subentry");
+            const iconValue =
+              config.icon !== undefined
+                ? config.icon
+                : hasSubentry
+                ? "↳"
+                : "•";
+            if (iconValue) li.dataset.icon = iconValue;
             detailList.appendChild(li);
           };
 
@@ -1640,88 +2144,129 @@
 
           if (hallazgo.id?.startsWith("gap-")) {
             const datos = hallazgo.datos || {};
-            addLine(`Apareció ${datos.apariciones ?? "?"} veces en la ventana activa.`);
-            addLine(
-              `Intervalo modal: ${datos.gap ?? "?"} días · coincidencias ${datos.coincidencias ?? "?"} de ${datos.intervalos ?? "?"}.`
-            );
+            addLine({
+              html: `<span class="pattern-label">Apariciones en ventana</span><div class="pattern-line"><span class="pattern-value">${datos.apariciones ?? "?"}</span></div>`,
+              icon: "📈",
+            });
+            addLine({
+              html: `<span class="pattern-label">Intervalo modal</span><div class="pattern-line"><span class="pattern-value">${datos.gap ?? "?"} días</span><span class="pattern-muted">Coincidencias ${datos.coincidencias ?? "?"} de ${datos.intervalos ?? "?"}</span></div>`,
+              icon: "⏱️",
+            });
+            if (hallazgo.siguienteFechaEsperada) {
+              const proximoDisplay = formatSampleDisplay({
+                fecha: hallazgo.siguienteFechaEsperada,
+                horario: datos.siguienteHorario,
+              });
+              addLine({
+                html: `<span class="pattern-label">Próxima estimada</span><div class="pattern-line"><span class="pattern-value">${proximoDisplay || hallazgo.siguienteFechaEsperada}</span></div>`,
+                icon: "🧭",
+              });
+            }
             (hallazgo.evidencia || []).slice(-3).forEach((item) => {
               if (!item) return;
               const origen = item.origen || {};
-              const baseTxt = formatTimelineSample(origen);
-              const destTxt = formatTimelineSample(item);
-              addLine(`· ${baseTxt} → ${destTxt}`);
+              const baseTxt = formatTimelineSample(origen) || "?";
+              const destTxt = formatTimelineSample(item) || "?";
+              addLine({
+                text: `${baseTxt} → ${destTxt}`,
+                className: "pattern-subentry",
+                icon: "↬",
+              });
             });
           } else if (hallazgo.id?.startsWith("dayOfWeek")) {
             const datos = hallazgo.datos || {};
             const etiqueta = datos.etiquetaCompleta || hallazgo.etiqueta || "";
-            addLine(`Predomina los ${etiqueta}.`);
-            addLine(
-              `Apariciones: ${datos.count ?? "?"} de ${datos.total ?? "?"} (${Math.round((datos.ratio || 0) * 100)}%).`
-            );
+            const ratio = Number.isFinite(datos.ratio) ? Math.round(datos.ratio * 100) : null;
+            addLine({
+              html: `<span class="pattern-label">Día dominante</span><div class="pattern-line"><span class="pattern-value">${etiqueta}</span></div>`,
+              icon: "📅",
+            });
+            addLine({
+              html: `<span class="pattern-label">Apariciones</span><div class="pattern-line"><span class="pattern-value">${datos.count ?? "?"}/${datos.total ?? "?"}</span>${ratio !== null ? `<span class="pattern-muted">${ratio}%</span>` : ""}</div>`,
+              icon: "📊",
+            });
             const samples = datos.samples || [];
             if (samples.length) {
-              addLine("Últimos registros:");
-              samples.forEach((s) => {
-                const li = document.createElement("li");
-                li.textContent = formatTimelineSample(s) || "?";
-                li.classList.add("pattern-subentry");
-                detailList.appendChild(li);
-              });
+              addLine({ html: `<span class="pattern-label">Últimos registros</span>`, icon: "🗂️" });
+              samples.forEach((s) =>
+                addLine({
+                  text: formatTimelineSample(s) || "?",
+                  className: "pattern-subentry",
+                })
+              );
             }
             if (datos.historial?.count) {
               const hist = datos.historial;
-              addLine(
-                `Historial: ${hist.count} coincidencias (${Math.round((hist.ratio || 0) * 100)}% del histórico).`
+              const histRatio = Number.isFinite(hist.ratio) ? Math.round(hist.ratio * 100) : null;
+              addLine({
+                html: `<span class="pattern-label">Historial</span><div class="pattern-line"><span class="pattern-value">${hist.count} coincidencias</span>${histRatio !== null ? `<span class="pattern-muted">${histRatio}% del histórico</span>` : ""}</div>`,
+                icon: "🧬",
+              });
+              (hist.muestras || []).forEach((texto) =>
+                addLine({ text: texto, className: "pattern-subentry" })
               );
-              (hist.muestras || []).forEach((texto) => addLine(`• ${texto}`, "pattern-subentry"));
             }
           } else if (hallazgo.id?.startsWith("horario")) {
             const datos = hallazgo.datos || {};
             const etiqueta = hallazgo.etiqueta || "";
-            addLine(`Turno preferido: ${etiqueta}.`);
-            addLine(
-              `Coincidencias: ${datos.count ?? "?"} de ${datos.total ?? "?"} (${Math.round((datos.ratio || 0) * 100)}%).`
-            );
+            const ratio = Number.isFinite(datos.ratio) ? Math.round(datos.ratio * 100) : null;
+            addLine({
+              html: `<span class="pattern-label">Turno preferido</span><div class="pattern-line"><span class="pattern-value">${etiqueta}</span></div>`,
+              icon: "🕒",
+            });
+            addLine({
+              html: `<span class="pattern-label">Coincidencias</span><div class="pattern-line"><span class="pattern-value">${datos.count ?? "?"}/${datos.total ?? "?"}</span>${ratio !== null ? `<span class="pattern-muted">${ratio}%</span>` : ""}</div>`,
+              icon: "📊",
+            });
             const samples = datos.samples || [];
             if (samples.length) {
-              addLine("Últimos registros:");
-              samples.forEach((s) => {
-                const li = document.createElement("li");
-                li.textContent = formatTimelineSample(s) || "?";
-                li.classList.add("pattern-subentry");
-                detailList.appendChild(li);
-              });
+              addLine({ html: `<span class="pattern-label">Últimos registros</span>`, icon: "🗂️" });
+              samples.forEach((s) =>
+                addLine({
+                  text: formatTimelineSample(s) || "?",
+                  className: "pattern-subentry",
+                })
+              );
             }
             if (datos.historial?.count) {
               const hist = datos.historial;
-              addLine(
-                `Historial: ${hist.count} coincidencias (${Math.round((hist.ratio || 0) * 100)}% del histórico).`
+              const histRatio = Number.isFinite(hist.ratio) ? Math.round(hist.ratio * 100) : null;
+              addLine({
+                html: `<span class="pattern-label">Historial</span><div class="pattern-line"><span class="pattern-value">${hist.count} coincidencias</span>${histRatio !== null ? `<span class="pattern-muted">${histRatio}% del histórico</span>` : ""}</div>`,
+                icon: "🧾",
+              });
+              (hist.muestras || []).forEach((texto) =>
+                addLine({ text: texto, className: "pattern-subentry" })
               );
-              (hist.muestras || []).forEach((texto) => addLine(`• ${texto}`, "pattern-subentry"));
             }
           } else if (hallazgo.id?.startsWith("repeat-")) {
             const datos = hallazgo.datos || {};
             const tipo = datos.tipo || "";
-            addLine(
-              `Repite ${tipo} en ${datos.repeticiones ?? "?"} de ${datos.total ?? "?"} apariciones (${Math.round((datos.ratio || 0) * 100)}%).`
-            );
-            (datos.muestras || []).forEach((linea) => {
-              const li = document.createElement("li");
-              li.textContent = formatTimelineSample(linea) || "";
-              li.classList.add("pattern-subentry");
-              detailList.appendChild(li);
+            const ratio = Number.isFinite(datos.ratio) ? Math.round(datos.ratio * 100) : null;
+            addLine({
+              html: `<span class="pattern-label">Repite ${tipo}</span><div class="pattern-line"><span class="pattern-value">${datos.repeticiones ?? "?"} de ${datos.total ?? "?"}</span>${ratio !== null ? `<span class="pattern-muted">${ratio}%</span>` : ""}</div>`,
+              icon: "🔁",
             });
+            (datos.muestras || []).forEach((linea) =>
+              addLine({
+                text: formatTimelineSample(linea) || "",
+                className: "pattern-subentry",
+              })
+            );
             if (datos.historial?.count) {
-              addLine(
-                `Historial: ${datos.historial.count} repeticiones (${Math.round((datos.historial.ratio || 0) * 100)}% del histórico).`
-              );
+              const hist = datos.historial;
+              const histRatio = Number.isFinite(hist.ratio) ? Math.round(hist.ratio * 100) : null;
+              addLine({
+                html: `<span class="pattern-label">Historial</span><div class="pattern-line"><span class="pattern-value">${hist.count} repeticiones</span>${histRatio !== null ? `<span class="pattern-muted">${histRatio}% del histórico</span>` : ""}</div>`,
+                icon: "🧾",
+              });
             }
           } else {
-            addLine(hallazgo.resumen);
+            addLine({ text: hallazgo.resumen, icon: "✨" });
           }
 
           if (!detailList.children.length) {
-            addLine(hallazgo.resumen ?? "Sin detalles adicionales.");
+            addLine({ text: hallazgo.resumen ?? "Sin detalles adicionales.", icon: "ℹ️" });
           }
 
           resumen.appendChild(detailList);
@@ -1789,7 +2334,12 @@
 
           const numEl = document.createElement("div");
           numEl.className = "analysis-number";
-          numEl.textContent = formatNumber(item.numero);
+          const formatted = formatNumber(item.numero);
+          const symbol = getSymbol(item.numero);
+          const symbolSpan = symbol
+            ? `<span class="analysis-number-symbol analysis-number-symbol--sm">${symbol}</span>`
+            : "";
+          numEl.innerHTML = `<span class="analysis-number-main">${formatted}</span>${symbolSpan}`;
 
           const scoreEl = document.createElement("div");
           scoreEl.className = "analysis-score";
@@ -1818,7 +2368,8 @@
               .map((m) => {
                 const conf = Math.round((m.confianza || 0) * 100);
                 const nombre = m.modeNombre || "Modo";
-                const opTag = operacionLabels[m.operacion] ? ` · ${operacionLabels[m.operacion]}` : "";
+                const opLabel = OPERACION_LABELS[m.operacion];
+                const opTag = opLabel ? ` · ${opLabel}` : "";
                 const confTag = conf ? ` · ${conf}%` : "";
                 return `${nombre}${opTag}${confTag}`;
               })

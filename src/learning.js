@@ -39,6 +39,7 @@ function ensureProfile(container, numero) {
       porPais: {},
       porHorario: {},
       porDiaSemana: {},
+      porHorarioPorAnio: {},
       porPaisHorario: {},
       ultimas: [],
       gaps: {
@@ -49,6 +50,7 @@ function ensureProfile(container, numero) {
         min: null,
         max: null,
         daysSince: null,
+        historial: [],
       },
       scoreRecencia: 0,
       scoreFrecuencia: 0,
@@ -76,7 +78,7 @@ function ensureProfile(container, numero) {
   return container.get(numero);
 }
 
-function registerOccurrence(profile, draw, daysSincePrev) {
+function registerOccurrence(profile, draw, daysSincePrev, prevDraw) {
   profile.total += 1;
 
   // País
@@ -95,6 +97,17 @@ function registerOccurrence(profile, draw, daysSincePrev) {
   // Día de la semana
   const dow = draw.dayOfWeek;
   if (dow !== null) profile.porDiaSemana[dow] = (profile.porDiaSemana[dow] || 0) + 1;
+
+  // Horario por año
+  const year = draw.fechaDate ? draw.fechaDate.getFullYear() : null;
+  if (year !== null) {
+    if (!profile.porHorarioPorAnio[year]) profile.porHorarioPorAnio[year] = { _total: 0 };
+    const container = profile.porHorarioPorAnio[year];
+    if (draw.horario) {
+      container[draw.horario] = (container[draw.horario] || 0) + 1;
+    }
+    container._total = (container._total || 0) + 1;
+  }
 
   // Últimas ocurrencias (hasta 6)
   profile.ultimas.push({
@@ -115,6 +128,16 @@ function registerOccurrence(profile, draw, daysSincePrev) {
     g.min = g.min === null ? daysSincePrev : Math.min(g.min, daysSincePrev);
     g.max = g.max === null ? daysSincePrev : Math.max(g.max, daysSincePrev);
     g.promedio = g.total / g.count;
+    if (Array.isArray(g.historial)) {
+      g.historial.push({
+        gap: daysSincePrev,
+        desde: prevDraw
+          ? { fecha: prevDraw.fecha, horario: prevDraw.horario }
+          : null,
+        hasta: { fecha: draw.fecha, horario: draw.horario },
+      });
+      if (g.historial.length > 30) g.historial.shift();
+    }
   }
 
   profile.lastSeenTimestamp = draw.timestamp;
@@ -296,9 +319,9 @@ export function calcularMemoria(draws = [], hypotheses = [], logs = []) {
     const numero = draw.numero;
     const profile = ensureProfile(profiles, numero);
     const prev = lastOccurrence.get(numero);
-    const daysSincePrev = prev ? Math.round((draw.timestamp - prev) / DAY_MS) : null;
-    registerOccurrence(profile, draw, daysSincePrev);
-    lastOccurrence.set(numero, draw.timestamp);
+    const daysSincePrev = prev ? Math.round((draw.timestamp - prev.timestamp) / DAY_MS) : null;
+    registerOccurrence(profile, draw, daysSincePrev, prev);
+    lastOccurrence.set(numero, draw);
   });
 
   computeScores(profiles, timeline, nowTs);
@@ -410,6 +433,8 @@ export function generarInsights(perfiles = []) {
   if (!perfiles.length) return [];
   const horarios = ["11AM", "3PM", "9PM"];
   const insights = [];
+  const shiftCandidates = [];
+  const MIN_YEAR_SAMPLES = 5;
 
   horarios.forEach((turno) => {
     let mejor = null;
@@ -488,6 +513,71 @@ export function generarInsights(perfiles = []) {
       )}% de las hipótesis en ${info.pais}.`,
     });
   });
+
+  perfiles.forEach((perfil) => {
+    const yearMap = perfil.porHorarioPorAnio || {};
+    const yearKeys = Object.keys(yearMap)
+      .map((val) => Number(val))
+      .filter((val) => Number.isFinite(val))
+      .sort((a, b) => a - b);
+    if (yearKeys.length < 2) return;
+    const recentYears = yearKeys.slice(-2);
+    const bestForYear = (year) => {
+      const stats = yearMap[year];
+      if (!stats) return null;
+      const entries = Object.entries(stats).filter(([key]) => key !== "_total");
+      const total = Number(
+        stats._total ||
+          entries.reduce((acc, [, count]) => acc + Number(count || 0), 0)
+      );
+      if (!total || total < MIN_YEAR_SAMPLES) return null;
+      let best = null;
+      entries.forEach(([turno, rawCount]) => {
+        const count = Number(rawCount || 0);
+        if (!count) return;
+        if (!best || count > best.count) {
+          best = { turno, count };
+        }
+      });
+      if (!best) return null;
+      return {
+        turno: best.turno,
+        count: best.count,
+        total,
+        ratio: best.count / total,
+      };
+    };
+
+    const prevYear = recentYears[0];
+    const currYear = recentYears[1];
+    const prevBest = bestForYear(prevYear);
+    const currBest = bestForYear(currYear);
+    if (!prevBest || !currBest) return;
+    if (prevBest.turno === currBest.turno) return;
+    const ratioDiff = Math.abs(currBest.ratio - prevBest.ratio);
+    if (ratioDiff < 0.1) return;
+    shiftCandidates.push({
+      numero: perfil.numero,
+      prevYear,
+      currYear,
+      prev: prevBest,
+      curr: currBest,
+      ratioDiff,
+    });
+  });
+
+  shiftCandidates
+    .sort((a, b) => b.ratioDiff - a.ratioDiff)
+    .slice(0, 4)
+    .forEach((entry) => {
+      insights.push({
+        tipo: "turno-shift",
+        titulo: `Cambio ${entry.prevYear}→${entry.currYear}`,
+        descripcion: `El ${String(entry.numero).padStart(2, "0")} pasó de dominar ${entry.prev.turno} (${Math.round(
+          entry.prev.ratio * 100
+        )}% de ${entry.prevYear}) a ${entry.curr.turno} (${Math.round(entry.curr.ratio * 100)}% de ${entry.currYear}).`,
+      });
+    });
 
   return insights;
 }

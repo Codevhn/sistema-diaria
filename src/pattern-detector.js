@@ -18,6 +18,17 @@ const DOW_FULL = [
   "Sábado",
 ];
 
+const padNumber = (n) => String(n).padStart(2, "0");
+
+function slugify(text = "") {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function formatSample({ fecha, horario }) {
   if (!fecha) return "";
   const dateObj = parseDrawDate(fecha);
@@ -166,9 +177,11 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
 
     const lastMatch = matches[matches.length - 1];
     let siguienteFechaEsperada = null;
+    let siguienteHorarioSugerido = null;
     if (lastMatch?.curr?.fechaDate) {
       const tentative = new Date(lastMatch.curr.fechaDate.getTime() + bestGap * DAY_MS);
       if (tentative > new Date()) siguienteFechaEsperada = formatDate(tentative);
+      siguienteHorarioSugerido = lastMatch.curr.horario || null;
     }
 
     hallazgos.push({
@@ -185,11 +198,82 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
         coincidencias: count,
         intervalos: deltas.length,
         gap: bestGap,
+        siguienteHorario: siguienteHorarioSugerido,
       },
     });
   });
 
   return hallazgos;
+}
+
+function detectFamilyClusters({ timeline, historial = [] }) {
+  if (!timeline.length) return [];
+
+  const familiaHistorico = new Map();
+  (historial.length ? historial : timeline).forEach((draw) => {
+    const info = GUIA[padNumber(draw.numero)];
+    if (!info?.familia) return;
+    familiaHistorico.set(info.familia, (familiaHistorico.get(info.familia) || 0) + 1);
+  });
+
+  const gruposPorFecha = new Map();
+  timeline.forEach((draw) => {
+    if (!draw.fecha) return;
+    if (!gruposPorFecha.has(draw.fecha)) gruposPorFecha.set(draw.fecha, []);
+    gruposPorFecha.get(draw.fecha).push(draw);
+  });
+
+  const hallazgos = [];
+
+  gruposPorFecha.forEach((draws, fecha) => {
+    if (draws.length < 2) return;
+    const familias = new Map();
+    draws.forEach((draw) => {
+      const info = GUIA[padNumber(draw.numero)];
+      if (!info?.familia) return;
+      if (!familias.has(info.familia)) familias.set(info.familia, []);
+      familias.get(info.familia).push({ draw, info });
+    });
+
+    familias.forEach((items, familia) => {
+      if (items.length < 2) return;
+      const totalDia = draws.length;
+      const ratio = items.length / totalDia;
+      const historialCount = familiaHistorico.get(familia) || 0;
+      const historialRatio = historial.length ? historialCount / historial.length : 0;
+      const confianza = Math.min(1, 0.35 + ratio * 0.45 + historialRatio * 0.2);
+
+      const evidencia = items.map(({ draw, info }) => ({
+        fecha: draw.fecha,
+        horario: draw.horario,
+        numero: draw.numero,
+        simbolo: info.simbolo || "",
+      }));
+
+      hallazgos.push({
+        id: `family-cluster-${fecha}-${slugify(familia)}`,
+        titulo: `Familia ${familia} alineada en ${fecha}`,
+        confianza,
+        resumen: `${items.length} de ${totalDia} sorteos del ${fecha} pertenecieron a la familia ${familia}.`,
+        evidencia,
+        datos: {
+          fecha,
+          familia,
+          totalDia,
+          coincidencias: items.length,
+          ratio,
+          historial: historialCount,
+          numeros: items.map(({ draw, info }) => ({
+            numero: draw.numero,
+            simbolo: info.simbolo || "",
+            horario: draw.horario,
+          })),
+        },
+      });
+    });
+  });
+
+  return hallazgos.sort((a, b) => (b.datos?.fecha || "").localeCompare(a.datos?.fecha || ""));
 }
 
 function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPrefix, sampleLimit = 4 }) {
@@ -357,7 +441,7 @@ function detectDoublePatterns({ timeline, historial }) {
     if (!respaldado && ratio < 0.6) return;
 
     const muestras = (samplesByDay.get(dow) || []).map((sample) =>
-      `${formatSample(sample)} · ${formatNumber(sample.numero)}`
+      `${formatSample(sample)} · ${String(sample.numero).padStart(2, "0")}`
     );
 
     hallazgos.push({
@@ -546,8 +630,16 @@ function detectWindowPatterns({ timeline, historial = [], hypothesisMap }) {
   });
   const repeatPatterns = detectConsecutiveRepetitions({ timeline, historial, hypothesisMap });
   const doublePatterns = detectDoublePatterns({ timeline, historial });
+  const familyClusters = detectFamilyClusters({ timeline, historial });
 
-  return [...gapPatterns, ...dowPatterns, ...turnoPatterns, ...repeatPatterns, ...doublePatterns];
+  return [
+    ...gapPatterns,
+    ...dowPatterns,
+    ...turnoPatterns,
+    ...repeatPatterns,
+    ...doublePatterns,
+    ...familyClusters,
+  ];
 }
 
 export async function detectarPatrones({ cantidad = 9 } = {}) {
