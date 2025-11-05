@@ -37,16 +37,14 @@
   </aside>
 
   <main class="content">
-    <header class="top">
-      <h1>Sistema</h1>
-      <button id="btn-toggle-sidebar" class="menu-btn">☰</button>
-      <div class="badge">v3.2 • Oscuro + Dorado</div>
-    </header>
+    <div class="sticky-header">
 
-    <div id="countdown-banner" class="countdown-banner">
-      <div class="countdown-label" data-countdown-label>Tiempo para el próximo sorteo</div>
-      <div class="countdown-target" data-countdown-target>—</div>
-      <div class="countdown-timer" data-countdown-timer>--:--:--</div>
+      <button id="btn-toggle-sidebar" class="menu-btn">☰</button>
+      <div id="countdown-banner" class="countdown-banner">
+        <div class="countdown-label" data-countdown-label>Tiempo para el próximo sorteo</div>
+        <div class="countdown-target" data-countdown-target>—</div>
+        <div class="countdown-timer" data-countdown-timer>--:--:--</div>
+      </div>
     </div>
 
     <!-- PANEL DEL DÍA -->
@@ -1108,88 +1106,75 @@
 
     const countdownTargetEl = document.querySelector("[data-countdown-target]");
     const countdownTimerEl = document.querySelector("[data-countdown-timer]");
+    const countdownLabelEl = document.querySelector("[data-countdown-label]");
     let countdownInterval = null;
-    const TURNOS = ["11AM", "3PM", "9PM"];
-    const TURNO_SCHEDULE = {
-      "11AM": { hour: 11, minute: 0 },
-      "3PM": { hour: 15, minute: 0 },
-      "9PM": { hour: 21, minute: 0 },
-    };
 
-    function computeNextSlot({ fecha } = {}) {
+    const TURNO_SCHEDULE = [
+      { name: "11AM", hour: 11 },
+      { name: "3PM", hour: 15 },
+      { name: "9PM", hour: 21 },
+    ];
+
+    function getNextDraw() {
       const now = new Date();
-      let baseDate;
-      if (fecha) {
-        baseDate = new Date(`${fecha}T00:00:00`);
-        if (Number.isNaN(baseDate.getTime())) baseDate = new Date(now);
-      } else {
-        baseDate = new Date(now);
-      }
-      baseDate.setHours(0, 0, 0, 0);
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      for (const turno of TURNOS) {
-        const schedule = TURNO_SCHEDULE[turno];
-        if (!schedule) continue;
-        const candidate = new Date(baseDate);
-        candidate.setHours(schedule.hour, schedule.minute, 0, 0);
-        if (candidate <= now) continue;
-        return { turno, datetime: candidate };
+      for (const draw of TURNO_SCHEDULE) {
+        const drawTime = new Date(today);
+        drawTime.setHours(draw.hour, 0, 0, 0);
+        if (now < drawTime) {
+          return { name: draw.name, time: drawTime };
+        }
       }
 
-      const firstSchedule = TURNO_SCHEDULE[TURNOS[0]];
-      const nextDay = new Date(baseDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      nextDay.setHours(firstSchedule.hour, firstSchedule.minute, 0, 0);
-      while (nextDay <= now) {
-        nextDay.setDate(nextDay.getDate() + 1);
-      }
-      return { turno: TURNOS[0], datetime: nextDay };
+      // If all draws for today are over, get the first draw of tomorrow
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const nextDraw = TURNO_SCHEDULE[0];
+      const nextDrawTime = new Date(tomorrow);
+      nextDrawTime.setHours(nextDraw.hour, 0, 0, 0);
+      return { name: nextDraw.name, time: nextDrawTime };
     }
 
-    function updateCountdownDisplay() {
-      if (!countdownTargetEl || !countdownTimerEl) return;
-      const { fecha, pais } = getFilters();
-      const next = computeNextSlot({ fecha, pais });
-      if (!next) {
-        countdownTargetEl.textContent = "Sin horario";
-        countdownTimerEl.textContent = "--:--:--";
-        return;
-      }
-
-      const targetDate = next.datetime;
-      const targetLabelDate = targetDate.toISOString().slice(0, 10);
-      const targetLabelTime = targetDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-      const paisLabel = pais ? ` · ${pais}` : "";
-      countdownTargetEl.textContent = `${targetLabelDate} ${targetLabelTime}${paisLabel}`;
-      const countdownLabelEl = document.querySelector("[data-countdown-label]");
+    function updateCountdown() {
+      const nextDraw = getNextDraw();
+      
       if (countdownLabelEl) {
-        countdownLabelEl.textContent = `Tiempo para el sorteo ${next.turno}`;
+        countdownLabelEl.textContent = `Próximo Sorteo: ${nextDraw.name}`;
       }
 
-      const updateTimer = () => {
+      if (countdownTargetEl) {
+        const options = { hour: '2-digit', minute:'2-digit' };
+        countdownTargetEl.textContent = nextDraw.time.toLocaleTimeString('es-ES', options);
+      }
+
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+
+      countdownInterval = setInterval(() => {
         const now = new Date();
-        const diff = targetDate - now;
+        const diff = nextDraw.time - now;
+
         if (diff <= 0) {
-          countdownTimerEl.textContent = "00:00:00";
-          if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-          }
-          setTimeout(updateCountdownDisplay, 1000);
+          clearInterval(countdownInterval);
+          // Update to the next draw when the countdown finishes
+          setTimeout(updateCountdown, 1000); 
           return;
         }
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff / (1000 * 60)) % 60);
-        const seconds = Math.floor((diff / 1000) % 60);
-        countdownTimerEl.textContent = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-      };
 
-      if (countdownInterval) clearInterval(countdownInterval);
-      updateTimer();
-      countdownInterval = setInterval(updateTimer, 1000);
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        if (countdownTimerEl) {
+          countdownTimerEl.textContent = 
+            `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+      }, 1000);
     }
 
-    updateCountdownDisplay();
+    updateCountdown();
 
 
 
@@ -2534,6 +2519,90 @@
 
           grid.appendChild(card);
         });
+      }
+
+      if (patrones?.repeticionesHistoricas?.length) {
+        const historicos = patrones.repeticionesHistoricas.slice(0, 5);
+        const card = document.createElement("div");
+        card.className = "analysis-card history accent-soft";
+        const head = document.createElement("div");
+        head.className = "card-head";
+        head.textContent = "Repeticiones históricas";
+        card.appendChild(head);
+
+        const list = document.createElement("div");
+        list.className = "history-repeat-list";
+
+        historicos.forEach((item) => {
+          const block = document.createElement("div");
+          block.className = "history-repeat-item";
+
+          const headerRow = document.createElement("div");
+          headerRow.className = "history-repeat-header";
+
+          const numEl = document.createElement("div");
+          numEl.className = "analysis-number history-repeat-number";
+          const formatted = formatNumber(item.numero);
+          const symbol = item.simbolo || getSymbol(item.numero);
+          const symbolSpan = symbol
+            ? `<span class="analysis-number-symbol analysis-number-symbol--sm">${symbol}</span>`
+            : "";
+          numEl.innerHTML = `<span class="analysis-number-main">${formatted}</span>${symbolSpan}`;
+          headerRow.appendChild(numEl);
+
+          const countEl = document.createElement("div");
+          countEl.className = "history-repeat-count";
+          const ratioPct = Number.isFinite(item.ratio) ? Math.round(item.ratio * 100) : null;
+          countEl.textContent = ratioPct !== null
+            ? `${item.totalEventos} repeticiones (${ratioPct}% histórico)`
+            : `${item.totalEventos} repeticiones`;
+          headerRow.appendChild(countEl);
+
+          block.appendChild(headerRow);
+
+          const metaLine = document.createElement("div");
+          metaLine.className = "history-repeat-meta";
+          const familiaTag = item.familia ? ` · Familia ${item.familia}` : "";
+          metaLine.textContent = `${item.totalApariciones} apariciones registradas${familiaTag}`;
+          block.appendChild(metaLine);
+
+          if (item.years?.length) {
+            const yearsLine = document.createElement("div");
+            yearsLine.className = "history-repeat-meta history-repeat-meta--years";
+            yearsLine.textContent = item.years
+              .slice(0, 4)
+              .map((y) => `${y.year}: ${y.count}`)
+              .join(" · ");
+            block.appendChild(yearsLine);
+          }
+
+          const events = document.createElement("ul");
+          events.className = "history-repeat-events";
+          const muestras = item.eventos.slice(-4).reverse();
+          muestras.forEach((ev) => {
+            const li = document.createElement("li");
+            const origen = document.createElement("span");
+            origen.className = "history-repeat-event history-repeat-event--origin";
+            origen.textContent = `${ev.origenFecha} ${ev.origenHorario || ""}`.trim();
+            const arrow = document.createElement("span");
+            arrow.className = "history-repeat-arrow";
+            arrow.textContent = "→";
+            const destino = document.createElement("span");
+            destino.className = "history-repeat-event history-repeat-event--dest";
+            destino.textContent = `${ev.destinoFecha} ${ev.destinoHorario || ""}`.trim();
+            const tipo = document.createElement("span");
+            tipo.className = "history-repeat-type";
+            tipo.textContent = ev.tipo || "";
+            li.append(origen, arrow, destino, tipo);
+            events.appendChild(li);
+          });
+          block.appendChild(events);
+
+          list.appendChild(block);
+        });
+
+        card.appendChild(list);
+        grid.appendChild(card);
       }
 
       if (predicciones?.length) {

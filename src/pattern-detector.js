@@ -122,15 +122,15 @@ function computeWindowBounds(timeline) {
     };
   }
 
-  const startOfYear = new Date(windowEnd.getFullYear(), 0, 1);
+  const windowStartCandidate = new Date(windowEnd.getTime() - ACTIVE_WINDOW_DAYS * DAY_MS);
   const filtered = timeline.filter(
-    (draw) => draw.fechaDate && draw.fechaDate >= startOfYear && draw.fechaDate.getFullYear() === windowEnd.getFullYear(),
+    (draw) => draw.fechaDate && draw.fechaDate >= windowStartCandidate,
   );
 
   return {
     activeTimeline: filtered,
-    windowStart: filtered[0]?.fechaDate ?? startOfYear,
-    windowEnd: filtered[filtered.length - 1]?.fechaDate ?? startOfYear,
+    windowStart: filtered[0]?.fechaDate ?? windowStartCandidate,
+    windowEnd: filtered[filtered.length - 1]?.fechaDate ?? windowEnd,
   };
 }
 
@@ -226,6 +226,91 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
   });
 
   return hallazgos;
+}
+
+function buildHistoricalRepeatSummary({ timeline }) {
+  if (!timeline.length) return [];
+
+  const lastOccurrence = new Map();
+  const totalByNumero = new Map();
+  const summary = new Map();
+
+  timeline.forEach((draw) => {
+    if (!draw || !Number.isFinite(draw.numero) || !draw.fechaDate) return;
+    const numero = draw.numero;
+    totalByNumero.set(numero, (totalByNumero.get(numero) || 0) + 1);
+    const prev = lastOccurrence.get(numero);
+    if (prev && prev.fechaDate) {
+      const dayDiff = Math.round((draw.fechaDate - prev.fechaDate) / DAY_MS);
+      const turnDiff = (HORARIO_ORDER[draw.horario] ?? 0) - (HORARIO_ORDER[prev.horario] ?? 0);
+      let tipo = null;
+      if (dayDiff === 0 && turnDiff > 0) {
+        tipo = "mismo día";
+      } else if (dayDiff === 1) {
+        tipo = "día siguiente";
+      }
+      if (tipo) {
+        if (!summary.has(numero)) {
+          summary.set(numero, {
+            numero,
+            eventos: [],
+            years: new Map(),
+            ultimaFecha: null,
+          });
+        }
+        const entry = summary.get(numero);
+        const year = draw.fechaDate.getFullYear();
+        entry.eventos.push({
+          origenFecha: prev.fecha,
+          origenHorario: prev.horario,
+          destinoFecha: draw.fecha,
+          destinoHorario: draw.horario,
+          dayDiff,
+          turnDiff,
+          tipo,
+          year,
+        });
+        entry.years.set(year, (entry.years.get(year) || 0) + 1);
+        entry.ultimaFecha = draw.fecha;
+      }
+    }
+    lastOccurrence.set(numero, draw);
+  });
+
+  const results = [];
+  summary.forEach((entry, numero) => {
+    if (entry.eventos.length < 2) return;
+    entry.eventos.sort((a, b) => {
+      if (a.destinoFecha === b.destinoFecha) {
+        return (HORARIO_ORDER[a.destinoHorario] ?? 0) - (HORARIO_ORDER[b.destinoHorario] ?? 0);
+      }
+      return a.destinoFecha.localeCompare(b.destinoFecha);
+    });
+    const totalApariciones = totalByNumero.get(numero) || entry.eventos.length;
+    const ratio = totalApariciones ? entry.eventos.length / totalApariciones : 0;
+    const info = GUIA[String(numero).padStart(2, "0")] || {};
+    results.push({
+      numero,
+      simbolo: info.simbolo || null,
+      familia: info.familia || null,
+      eventos: entry.eventos,
+      totalEventos: entry.eventos.length,
+      totalApariciones,
+      ratio,
+      years: Array.from(entry.years.entries())
+        .map(([year, count]) => ({ year, count }))
+        .sort((a, b) => b.year - a.year),
+      ultimaFecha: entry.ultimaFecha,
+    });
+  });
+
+  results.sort((a, b) => {
+    if (b.totalEventos !== a.totalEventos) return b.totalEventos - a.totalEventos;
+    if (a.ultimaFecha && b.ultimaFecha) return b.ultimaFecha.localeCompare(a.ultimaFecha);
+    return String(a.numero).localeCompare(String(b.numero));
+  });
+
+  return results;
 }
 
 function detectFamilyClusters({ timeline, historial = [] }) {
@@ -732,6 +817,7 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
     hypothesisMap,
     historial: timeline,
   });
+  const repeticionesHistoricas = buildHistoricalRepeatSummary({ timeline });
   const resumenVentana = windowStart && windowEnd
     ? `Ventana analizada: ${formatDate(windowStart)} → ${formatDate(windowEnd)} (${activeTimeline.length} sorteos reales).`
     : "Sin ventana activa suficiente.";
@@ -747,6 +833,7 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
     resumenVentana,
     timelineActiva: activeTimeline,
     timelineCompleto: timeline,
+    repeticionesHistoricas,
   };
 }
 function detectSuccessiveTransitions({ timeline, historial = [], hypothesisMap }) {

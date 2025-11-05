@@ -52,7 +52,7 @@ body {
   justify-content: center;
   position: fixed;
   top: 16px;
-  left: calc(16px + 240px);
+  left: calc(16px + 280px);
   width: 46px;
   height: 46px;
   background: rgba(4, 24, 18, 0.92);
@@ -106,7 +106,7 @@ body::after {
   background: linear-gradient(200deg, rgba(4, 18, 12, 0.94), rgba(2, 12, 8, 0.98));
   border-right: 1px solid var(--color-border);
   box-shadow: inset -1px 0 0 rgba(66, 255, 136, 0.2), var(--shadow-hard);
-  width: 240px;
+  width: 280px;
   padding: 24px 0;
   display: flex;
   flex-direction: column;
@@ -133,6 +133,7 @@ body::after {
 .sidebar button {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 16px;
   padding: 12px 22px;
   background: transparent;
@@ -142,6 +143,7 @@ body::after {
   font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.18em;
+  text-align: left;
   cursor: pointer;
   transition: color 0.2s ease, background 0.25s ease, letter-spacing 0.2s ease;
 }
@@ -170,6 +172,7 @@ body::after {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
 }
 
 .sidebar button:hover,
@@ -214,9 +217,9 @@ body::after {
 }
 
 .content {
-  margin-left: 240px;
+  margin-left: 280px;
   flex: 1;
-  padding: 32px 48px 48px;
+  padding: 82px 48px 48px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -228,26 +231,39 @@ body::after {
 
 @media (min-width: 769px) {
   body.sidebar-collapsed .sidebar {
-    transform: translateX(-260px);
+    transform: translateX(-300px);
   }
   body.sidebar-collapsed .content {
     margin-left: 60px;
   }
 }
 
-.countdown-banner {
-  position: sticky;
+.sticky-header {
+  position: fixed;
   top: 0;
-  z-index: 10;
+  left: 280px;
+  right: 0;
+  height: 50px;
+  z-index: 100;
+  padding: 0 20px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 14px 18px;
-  margin: -12px auto 12px;
-  min-width: 260px;
-  max-width: 360px;
+  transition: left 0.3s ease;
+}
+
+body.sidebar-collapsed .sticky-header {
+  left: 60px;
+}
+
+.countdown-banner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 18px;
+  margin: 0 auto;
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(66, 255, 136, 0.2), rgba(6, 18, 14, 0.92));
   border: 1px solid rgba(66, 255, 136, 0.3);
@@ -256,21 +272,21 @@ body::after {
 }
 
 .countdown-label {
-  font-size: 12px;
+  font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgba(99, 255, 123, 0.9);
 }
 
 .countdown-target {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--color-text);
 }
 
 .countdown-timer {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--color-accent);
@@ -299,16 +315,6 @@ body.sidebar-collapsed .top {
   padding-left: 32px;
 }
 
-.badge {
-  background: rgba(6, 24, 18, 0.75);
-  border: 1px solid rgba(66, 255, 136, 0.25);
-  color: var(--color-accent);
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
 .row {
   display: flex;
   align-items: center;
@@ -468,8 +474,10 @@ button.ghost:hover {
 .slot-title {
   font-weight: 600;
   color: var(--color-text);
-  font-size: 16px;
-  letter-spacing: 0.12em;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  word-spacing: -0.18em;
+  line-height: 1.1;
   text-transform: uppercase;
 }
 
@@ -1186,11 +1194,14 @@ button.ghost:hover {
 /* Pantallas medianas (tablets) */
 @media (max-width: 1024px) {
   .sidebar {
-    width: 180px;
+    width: 220px;
   }
   .content {
-    margin-left: 180px;
+    margin-left: 220px;
     padding: 15px;
+  }
+  .menu-btn {
+    left: calc(16px + 220px);
   }
   .triple {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -1215,6 +1226,8 @@ button.ghost:hover {
   }
   .slot-title {
     font-size: 14px;
+    letter-spacing: 0.05em;
+    word-spacing: -0.14em;
   }
   .hint {
     font-size: 12px;
