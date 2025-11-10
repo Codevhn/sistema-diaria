@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Exportar DB La Diaria — Todos los años</title>
+  <link rel="icon" href="data:,">
+  <script type="module">
+    import Dexie from "https://unpkg.com/dexie@3.2.7/dist/dexie.mjs";
+
+    (async () => {
+      try {
+        // 1️⃣ Conectarse a la base existente (debe abrirse desde el mismo origen: 127.0.0.1:3000)
+        const db = new Dexie("la_diaria_v3");
+        await db.open();
+
+        console.log("Tablas detectadas:", db.tables.map(t => t.name));
+
+        // 2️⃣ Buscar la tabla principal con datos (la que contiene los sorteos)
+        let principal = null;
+        for (const t of db.tables) {
+          const c = await t.count();
+          console.log(`${t.name}: ${c}`);
+          if (c > 0 && !principal) principal = t;
+        }
+
+        if (!principal) {
+          alert("⚠️ No se encontró ninguna tabla con registros.");
+          return;
+        }
+
+        // 3️⃣ Obtener todos los registros sin filtro por año
+        const data = await principal.toArray();
+
+        // 4️⃣ Descargar todo el contenido como JSON
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "sorteos_completos.json";
+        a.click();
+
+        alert(`✅ Exportados ${data.length} registros de la tabla "${principal.name}".`);
+      } catch (err) {
+        console.error(err);
+        alert("❌ Error al intentar exportar la base. Revise la consola.");
+      }
+    })();
+  </script>
+</head>
+
+<body>
+  <h1>Exportando base completa de La Diaria...</h1>
+  <p>Espere unos segundos, se descargará el archivo automáticamente.</p>
+</body>
+
+</html>

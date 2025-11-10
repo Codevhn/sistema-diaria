@@ -71,6 +71,111 @@ function hydrateDraw(draw) {
   };
 }
 
+function detectArithmeticStrategies({ timeline, maxDayLag = 1, maxResults = 12 } = {}) {
+  if (!Array.isArray(timeline) || !timeline.length) return [];
+  const matches = [];
+  const comboCounts = new Map();
+
+  for (let i = 0; i < timeline.length; i++) {
+    const target = timeline[i];
+    if (!target?.fechaDate) continue;
+    const prior = [];
+    for (let j = i - 1; j >= 0; j--) {
+      const candidate = timeline[j];
+      if (!candidate?.fechaDate) continue;
+      const dayDiff = Math.round((target.fechaDate - candidate.fechaDate) / DAY_MS);
+      if (dayDiff < 0) continue;
+      if (dayDiff > maxDayLag) break;
+      prior.push(candidate);
+    }
+    if (prior.length < 1) continue;
+    for (let m = 0; m < prior.length; m++) {
+      for (let n = m + 1; n < prior.length; n++) {
+        const first = prior[m];
+        const second = prior[n];
+        if (first.numero === null || second.numero === null) continue;
+
+        const sum = first.numero + second.numero;
+        if (sum >= 0 && sum <= 99 && sum === target.numero) {
+          const comboKey = [
+            "+",
+            first.numero,
+            second.numero,
+            first.horario || "",
+            second.horario || "",
+            target.horario || "",
+          ].join("|");
+          const prevCount = comboCounts.get(comboKey) || 0;
+          matches.push({
+            target,
+            left: first,
+            right: second,
+            operador: "+",
+            historyKey: comboKey,
+            historyCount: prevCount,
+          });
+          comboCounts.set(comboKey, prevCount + 1);
+        }
+
+        const combos = [
+          { left: first, right: second },
+          { left: second, right: first },
+        ];
+        combos.forEach(({ left, right }) => {
+          if (left.numero === null || right.numero === null) return;
+          const diff = left.numero - right.numero;
+          if (diff < 0 || diff > 99) return;
+          if (diff === target.numero) {
+            const comboKey = [
+              "−",
+              left.numero,
+              right.numero,
+              left.horario || "",
+              right.horario || "",
+              target.horario || "",
+            ].join("|");
+            const prevCount = comboCounts.get(comboKey) || 0;
+            matches.push({
+              target,
+              left,
+              right,
+              operador: "−",
+              historyKey: comboKey,
+              historyCount: prevCount,
+            });
+            comboCounts.set(comboKey, prevCount + 1);
+          }
+        });
+      }
+    }
+  }
+
+  matches.sort((a, b) => {
+    const diff = (b.target.fechaDate || 0) - (a.target.fechaDate || 0);
+    if (diff !== 0) return diff;
+    return (HORARIO_ORDER[b.target.horario] ?? 0) - (HORARIO_ORDER[a.target.horario] ?? 0);
+  });
+
+  const deduped = [];
+  const seen = new Set();
+  for (const entry of matches) {
+    const key = [
+      entry.target.fecha,
+      entry.target.horario,
+      entry.left.fecha,
+      entry.left.horario,
+      entry.right.fecha,
+      entry.right.horario,
+      entry.operador,
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(entry);
+    if (deduped.length >= maxResults) break;
+  }
+  return deduped;
+}
+
 function sortTimeline(draws = []) {
   return draws
     .map(hydrateDraw)
@@ -778,6 +883,7 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
       resumenVentana: "Sin datos registrados.",
       timelineActiva: [],
       timelineCompleto: [],
+      estrategiasResta: [],
     };
   }
 
@@ -817,6 +923,7 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
     hypothesisMap,
     historial: timeline,
   });
+  const arithmeticStrategies = detectArithmeticStrategies({ timeline, maxDayLag: 1, maxResults: 8 });
   const repeticionesHistoricas = buildHistoricalRepeatSummary({ timeline });
   const resumenVentana = windowStart && windowEnd
     ? `Ventana analizada: ${formatDate(windowStart)} → ${formatDate(windowEnd)} (${activeTimeline.length} sorteos reales).`
@@ -834,6 +941,7 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
     timelineActiva: activeTimeline,
     timelineCompleto: timeline,
     repeticionesHistoricas,
+    estrategiasAritmeticas: arithmeticStrategies,
   };
 }
 function detectSuccessiveTransitions({ timeline, historial = [], hypothesisMap }) {
