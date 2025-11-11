@@ -1,5 +1,5 @@
 // storage.js — v3.3.1
-import Dexie from "https://unpkg.com/dexie@3.2.7/dist/dexie.mjs";
+import Dexie from "../vendor/dexie.mjs";
 
 export const db = new Dexie("la_diaria_v3");
 
@@ -88,6 +88,26 @@ db.version(7).stores({
   game_mode_logs:
     "++id, modeId, fecha, pais, turno, notas, createdAt, [modeId+fecha]",
   hypothesis_reminders: "++id, numero, createdAt",
+});
+
+db.version(8).stores({
+  draws:
+    "++id, fecha, pais, horario, numero, isTest, createdAt, [fecha+pais+horario+numero]",
+  hypotheses: "++id, numero, simbolo, estado, fecha, turno, createdAt",
+  reasons: "++id, ownerType, ownerId, texto, tags, createdAt",
+  rules: "++id, tipo, descripcion, createdAt",
+  edges: "++id, fromFactId, toId, ruleId, weight, createdAt",
+  knowledge: "&key, scope, updatedAt",
+  hypothesis_logs:
+    "++id, hypothesisId, numero, estado, fechaResultado, paisResultado, horarioResultado, createdAt, [numero+estado]",
+  prediction_logs:
+    "++id, targetFecha, targetPais, turno, numero, estado, createdAt, [targetFecha+targetPais]",
+  game_modes: "++id, nombre, tipo, descripcion, createdAt",
+  game_mode_examples: "++id, modeId, original, resultado, nota, createdAt",
+  game_mode_logs:
+    "++id, modeId, fecha, pais, turno, notas, createdAt, [modeId+fecha]",
+  hypothesis_reminders: "++id, numero, createdAt",
+  notebook_entries: "++id, fecha, pais, createdAt",
 });
 
 const withTimestamp = (data = {}) => ({
@@ -440,5 +460,31 @@ export const DB = {
     if (modeId) collection = collection.where({ modeId });
     const rows = await collection.toArray();
     return fecha ? rows.filter((row) => row.fecha === fecha) : rows;
+  },
+
+  async addNotebookEntry({ fecha, pais, numeros }) {
+    if (!fecha) throw new Error("Fecha requerida para el cuaderno");
+    const normalizedPais = (pais || "").trim().toUpperCase() || "HN";
+    const payload = {
+      fecha,
+      pais: normalizedPais,
+      numeros: numeros || {},
+      createdAt: Date.now(),
+    };
+    return db.notebook_entries.add(payload);
+  },
+
+  async listNotebookEntries() {
+    return db.notebook_entries.orderBy("createdAt").reverse().toArray();
+  },
+
+  async deleteNotebookEntry(id) {
+    if (id === null || id === undefined) return false;
+    await db.notebook_entries.delete(id);
+    return true;
+  },
+
+  async updateNotebookEntry(id, changes = {}) {
+    return db.notebook_entries.update(id, changes);
   },
 };

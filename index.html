@@ -29,6 +29,7 @@
     <button data-view="analysis"><span
         class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
     <button data-view="strategies"><span class="sidebar-icon fa-solid fa-brain"></span><i>Estrategias</i></button>
+    <button data-view="notebook"><span class="sidebar-icon fa-solid fa-bookmark"></span><i>Cuaderno</i></button>
     <button data-view="geometry"><span
         class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
     <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
@@ -322,18 +323,33 @@
     <!-- GEOMETRÍA -->
     <section id="view-geometry" class="view hidden">
       <h2>Cruceta / Triángulo (visual)</h2>
-      <div class="row">
+      <div class="row geom-controls">
         <label>Fecha <input type="date" id="g-fecha" /></label>
+        <label>País
+          <select id="g-pais">
+            <option value="HN">HN</option>
+            <option value="NI">NI</option>
+            <option value="SV">SV</option>
+          </select>
+        </label>
         <button id="g-generar">Generar</button>
       </div>
       <div class="geom-wrap">
-        <div class="geom-card">
+        <div class="geom-card geom-card--wide">
           <h3>Cruceta</h3>
-          <div id="g-cruceta" class="cruceta"></div>
+          <div id="g-cruceta" class="cruceta cruceta--principal"></div>
         </div>
-        <div class="geom-card">
+        <div class="geom-card geom-card--wide">
           <h3>Triángulo invertido</h3>
           <div id="g-tri" class="tri"></div>
+        </div>
+      </div>
+      <div class="geom-wrap geom-wrap--full">
+        <div class="geom-card geom-card--full">
+          <h3>Cruceta 11 AM + 3 PM</h3>
+          <p class="geom-note">Combina los sorteos reales para proyectar candidatos del turno de las 9 PM.</p>
+          <div id="g-turnos" class="cruceta cruceta--turnos"></div>
+          <div id="g-turnos-cands" class="geom-candidates"></div>
         </div>
       </div>
     </section>
@@ -371,6 +387,51 @@
       </div>
     </section>
 
+    <!-- CUADERNO -->
+    <section id="view-notebook" class="view hidden">
+      <h2>Cuaderno de seguimiento</h2>
+      <p class="hint">
+        Guarda un trío de sorteos para darle seguimiento durante la semana. Puedes importar los números del panel del día
+        o usar los resultados ya registrados.
+      </p>
+      <div class="notebook-form">
+        <label>
+          Fecha
+          <input type="date" id="nb-fecha" />
+        </label>
+        <label>
+          País
+          <select id="nb-pais">
+            <option value="HN">HN</option>
+            <option value="NI">NI</option>
+            <option value="SV">SV</option>
+          </select>
+        </label>
+      </div>
+      <div class="notebook-numbers">
+        <label>
+          11 AM
+          <input id="nb-11" maxlength="2" placeholder="--" />
+        </label>
+        <label>
+          3 PM
+          <input id="nb-3" maxlength="2" placeholder="--" />
+        </label>
+        <label>
+          9 PM
+          <input id="nb-9" maxlength="2" placeholder="--" />
+        </label>
+      </div>
+      <div class="notebook-actions">
+        <button id="nb-fill-day" class="btn-outline">Usar panel del día</button>
+        <button id="nb-fill-results" class="btn-outline">Traer resultados guardados</button>
+        <button id="nb-save" class="btn-primary">Guardar trio</button>
+      </div>
+      <div id="nb-list" class="notebook-list">
+        <p class="hint">Todavía no tienes elementos en el cuaderno.</p>
+      </div>
+    </section>
+
     <!-- MEMORIA -->
     <section id="view-memory" class="view hidden">
       <h2>Memoria simbólica</h2>
@@ -386,6 +447,23 @@
         Los espacios vacíos están reservados para las imágenes futuras de cada símbolo.
       </p>
       <div id="guide-grid" class="guide-grid"></div>
+      <div class="guide-families-card">
+        <div class="guide-families-head">
+          <h3>Familias destacadas</h3>
+          <p class="hint">Separa los números según la familia simbólica para analizarlos en bloque.</p>
+          <div class="guide-family-search">
+            <input id="guide-search" placeholder="Ej. 22 o 'naturaleza'" />
+          </div>
+        </div>
+        <div id="guide-families" class="guide-family-groups"></div>
+        <div class="guide-family-stats-card">
+          <div class="guide-family-stats-head">
+            <strong>Actividad por familia</strong>
+            <span class="hint">Basado en todos los sorteos registrados (sin modo prueba).</span>
+          </div>
+          <div id="guide-family-stats" class="guide-family-stats-wrap"></div>
+        </div>
+      </div>
     </section>
 
     <!-- CONFIGURACIÓN -->
@@ -508,7 +586,12 @@
     import { importarManual } from "./src/importer.js";
     import { crearHipotesis, actualizarHipotesis, registrarResultado } from "./src/narrative.js";
     import { analizarYProponer } from "./src/reasoning.js";
-    import { generarCruceta, generarTrianguloInvertido, dibujarTrianguloInvertido } from "./src/geometry.js";
+    import {
+      generarCruceta,
+      generarTrianguloInvertido,
+      dibujarTrianguloInvertido,
+      generarCrucetaTurnos,
+    } from "./src/geometry.js";
     import { cargarGuia, GUIA, getColorPolaridad } from "./src/loader.js";
     import { detectarPatrones } from "./src/pattern-detector.js";
     import { revisarDuplicados, marcarGrupoComoTest, borrarIds } from "./src/maintenance.js";
@@ -532,7 +615,12 @@
     } from "./src/modes.js";
     import { evaluarModos } from "./src/mode-engine.js";
 
-    await cargarGuia();
+    let guideLoadError = null;
+    try {
+      await cargarGuia();
+    } catch (err) {
+      guideLoadError = err instanceof Error ? err : new Error(String(err));
+    }
 
     const toastContainer = document.getElementById("toast-container");
 
@@ -570,6 +658,27 @@
       });
     }
 
+    if (guideLoadError) {
+      reportGuideLoadIssue(guideLoadError);
+    }
+
+    function reportGuideLoadIssue(error) {
+      const runningFromFile = window.location.protocol === "file:";
+      const resolutionHint = runningFromFile
+        ? "Ejecuta npm run dev o sirve la carpeta con cualquier servidor HTTP para permitir la lectura de archivos locales."
+        : "Verifica que el archivo data/guia_suenos.json exista y sea accesible desde el servidor.";
+      const toastMessage = `No se pudo cargar la Guía de los Sueños: ${error.message || error}. ${resolutionHint}`;
+      const guideGrid = document.getElementById("guide-grid");
+      if (guideGrid) {
+        const hint = document.createElement("p");
+        hint.className = "hint";
+        hint.textContent = toastMessage;
+        guideGrid.innerHTML = "";
+        guideGrid.appendChild(hint);
+      }
+      showToast(toastMessage, { variant: "danger", timeout: 9000 });
+    }
+
     const modeNameInput = document.getElementById("mode-name");
     const modeTypeSelect = document.getElementById("mode-type");
     const modeDescInput = document.getElementById("mode-desc");
@@ -578,6 +687,22 @@
     const modeOffsetSelect = document.getElementById("mode-offset");
     const modeSaveBtn = document.getElementById("mode-save");
     let editingModeId = null;
+
+    const notebookFechaInput = document.getElementById("nb-fecha");
+    const notebookPaisSelect = document.getElementById("nb-pais");
+    const notebookInputs = {
+      "11AM": document.getElementById("nb-11"),
+      "3PM": document.getElementById("nb-3"),
+      "9PM": document.getElementById("nb-9"),
+    };
+    const notebookFillDayBtn = document.getElementById("nb-fill-day");
+    const notebookFillResultsBtn = document.getElementById("nb-fill-results");
+    const notebookSaveBtn = document.getElementById("nb-save");
+    const notebookList = document.getElementById("nb-list");
+    const dayFecha = document.getElementById("day-fecha");
+    const dayPais = document.getElementById("day-pais");
+    const geometryDateInput = document.getElementById("g-fecha");
+    const geometryPaisSelect = document.getElementById("g-pais");
 
     function resetModeForm() {
       editingModeId = null;
@@ -966,11 +1091,16 @@
       }
     }
 
+
     const todayISO = new Date().toISOString().slice(0, 10);
     ["day-fecha", "h-fecha", "g-fecha"].forEach((id) => {
       const el = document.getElementById(id);
       if (el && !el.value) el.value = todayISO;
     });
+    if (notebookFechaInput && !notebookFechaInput.value) notebookFechaInput.value = todayISO;
+    if (notebookPaisSelect && dayPais?.value) notebookPaisSelect.value = dayPais.value;
+    if (geometryPaisSelect && dayPais?.value) geometryPaisSelect.value = dayPais.value;
+    if (geometryPaisSelect && !geometryPaisSelect.value) geometryPaisSelect.value = "HN";
 
     const SLOT_CONFIG = [
       {
@@ -1306,10 +1436,6 @@
         };
       });
     });
-
-
-    const dayFecha = document.getElementById("day-fecha");
-    const dayPais = document.getElementById("day-pais");
     dayFecha?.addEventListener("change", () => {
       refreshSlots();
       updateCountdownDisplay();
@@ -1391,7 +1517,13 @@
 
     updateCountdown();
 
-
+    function updateCountdownDisplay() {
+      try {
+        updateCountdown();
+      } catch (err) {
+        console.error("countdown update error", err);
+      }
+    }
 
     const btnAprender = document.getElementById("btn-aprender-dia");
     btnAprender?.addEventListener("click", async () => {
@@ -1531,6 +1663,145 @@
       renderStrategiesPanel();
     });
     renderStrategyFilters();
+
+    function setNotebookInputs(values = {}) {
+      HORARIO_KEYS.forEach((turno) => {
+        const input = notebookInputs[turno];
+        if (!input) return;
+        input.value = values[turno] ?? "";
+      });
+    }
+
+    notebookFillDayBtn?.addEventListener("click", () => {
+      const values = {};
+      SLOT_CONFIG.forEach((config) => {
+        const input = document.getElementById(config.inputId);
+        const val = input?.value.trim();
+        values[config.key] = /^\d{1,2}$/.test(val || "") ? val.padStart(2, "0") : "";
+      });
+      setNotebookInputs(values);
+      showToast("Números copiados del panel del día.", { variant: "info" });
+    });
+
+    notebookFillResultsBtn?.addEventListener("click", async () => {
+      try {
+        const fecha = notebookFechaInput?.value;
+        const pais = notebookPaisSelect?.value || "HN";
+        if (!fecha) {
+          showToast("Selecciona una fecha para traer los resultados.", { variant: "warning" });
+          return;
+        }
+        const draws = await DB.listDraws({ excludeTest: true });
+        const map = {};
+        HORARIO_KEYS.forEach((turno) => {
+          const draw = pickDraw(draws, fecha, pais, turno);
+          map[turno] = draw ? formatNumber(draw.numero) : "";
+        });
+        setNotebookInputs(map);
+        showToast("Resultados guardados cargados en el cuaderno.", { variant: "success" });
+      } catch (err) {
+        console.error("nb fill results", err);
+        showToast(`No se pudieron traer los resultados: ${err.message}`, { variant: "danger" });
+      }
+    });
+
+    async function refreshNotebookList() {
+      if (!notebookList) return;
+      const entries = await DB.listNotebookEntries();
+      if (!entries.length) {
+        notebookList.innerHTML = "<p class='hint'>Todavía no tienes elementos en el cuaderno.</p>";
+        return;
+      }
+      notebookList.innerHTML = "";
+      entries.forEach((entry) => {
+        const card = document.createElement("article");
+        card.className = "notebook-card";
+        card.innerHTML = `
+          <div class="notebook-card__head">
+            <strong>${formatFriendlyDate(entry.fecha)} · ${entry.pais || "HN"}</strong>
+            <button type="button" class="btn-ghost" data-nb-delete="${entry.id}">Eliminar</button>
+          </div>
+        `;
+        const numbers = document.createElement("div");
+        numbers.className = "notebook-card__numbers";
+        HORARIO_KEYS.forEach((turno) => {
+          const span = document.createElement("span");
+          const number = entry.numeros?.[turno] ?? "--";
+          span.innerHTML = `<small>${turno}</small><strong>${number || "--"}</strong>`;
+          numbers.appendChild(span);
+        });
+        card.appendChild(numbers);
+        const actions = document.createElement("div");
+        actions.className = "notebook-card__actions";
+        const viewBtn = document.createElement("button");
+        viewBtn.type = "button";
+        viewBtn.className = "btn-outline";
+        viewBtn.textContent = "Ver en panel";
+        viewBtn.dataset.nbView = entry.id;
+        viewBtn.dataset.fecha = entry.fecha;
+        viewBtn.dataset.pais = entry.pais || "";
+        actions.appendChild(viewBtn);
+        const followBtn = document.createElement("button");
+        followBtn.type = "button";
+        followBtn.className = "btn-ghost";
+        followBtn.textContent = "Seguir";
+        followBtn.dataset.nbFollow = entry.id;
+        followBtn.dataset.fecha = entry.fecha;
+        followBtn.dataset.pais = entry.pais || "";
+        actions.appendChild(followBtn);
+        card.appendChild(actions);
+        notebookList.appendChild(card);
+      });
+    }
+
+    notebookSaveBtn?.addEventListener("click", async () => {
+      const fecha = notebookFechaInput?.value;
+      const pais = notebookPaisSelect?.value || "HN";
+      if (!fecha) {
+        showToast("Selecciona la fecha del trío que deseas guardar.", { variant: "warning" });
+        return;
+      }
+      const numeros = {};
+      let completos = true;
+      HORARIO_KEYS.forEach((turno) => {
+        const input = notebookInputs[turno];
+        const val = input?.value.trim() || "";
+        if (!/^\d{2}$/.test(val)) completos = false;
+        numeros[turno] = val;
+      });
+      if (!completos) {
+        showToast("Completa los tres sorteos (formato 00-99) antes de guardar.", { variant: "warning" });
+        return;
+      }
+      try {
+        await DB.addNotebookEntry({ fecha, pais, numeros });
+        showToast("Trío agregado al cuaderno.", { variant: "success" });
+        await refreshNotebookList();
+      } catch (err) {
+        console.error("nb save error", err);
+        showToast(`No se pudo guardar el trío: ${err.message}`, { variant: "danger" });
+      }
+    });
+
+    notebookList?.addEventListener("click", async (event) => {
+      const delBtn = event.target.closest("[data-nb-delete]");
+      if (delBtn) {
+        const id = Number(delBtn.dataset.nbDelete);
+        await DB.deleteNotebookEntry(id);
+        await refreshNotebookList();
+        showToast("Entrada retirada del cuaderno.", { variant: "info" });
+        return;
+      }
+      const viewBtn = event.target.closest("[data-nb-view]");
+      if (viewBtn) {
+        await focusDayPanel(viewBtn.dataset.fecha || null, viewBtn.dataset.pais || null);
+        return;
+      }
+      const followBtn = event.target.closest("[data-nb-follow]");
+      if (followBtn) {
+        await followStrategyDay(followBtn.dataset.fecha || null, followBtn.dataset.pais || null);
+      }
+    });
 
     function navigateToView(key) {
       const btn = document.querySelector(`.sidebar button[data-view="${key}"]`);
@@ -1916,6 +2187,19 @@
       const trackBtn = event.target.closest("[data-strategy-track]");
       if (trackBtn) {
         await followStrategyDay(trackBtn.dataset.fecha || null, trackBtn.dataset.pais || null);
+        return;
+      }
+      const hypoBtn = event.target.closest("[data-strategy-hypo]");
+      if (hypoBtn) {
+        navigateToView("hypo");
+        if (hypoFechaInput && hypoBtn.dataset.fecha) hypoFechaInput.value = hypoBtn.dataset.fecha;
+        if (hypoTurnoSelect && hypoBtn.dataset.turno) hypoTurnoSelect.value = hypoBtn.dataset.turno;
+        if (hypoNumeroInput && hypoBtn.dataset.numero) hypoNumeroInput.value = hypoBtn.dataset.numero;
+        if (hypoTextoInput) {
+          const notaBase = hypoBtn.dataset.descripcion || "Estrategia aritmética detectada.";
+          hypoTextoInput.value = notaBase;
+        }
+        showToast("Hipótesis preparada desde la estrategia seleccionada.", { variant: "info" });
       }
     });
 
@@ -1930,9 +2214,12 @@
         } finally {
           allowStrategyAutoRender = prevFlag;
         }
-        if (!patternsCache) return;
       }
-      const data = patternsCache.estrategiasAritmeticas || [];
+      if (!patternsCache) {
+        strategiesList.innerHTML = "<p class='hint'>Calcula los patrones para ver estrategias aritméticas.</p>";
+        return;
+      }
+      const data = patternsCache.estrategiasAritmeticas ?? [];
       if (!data.length) {
         strategiesList.innerHTML = "<p class='hint'>Sin estrategias detectadas en los registros recientes.</p>";
         return;
@@ -1948,6 +2235,7 @@
           "<p class='hint'>Sin estrategias que coincidan con los filtros seleccionados.</p>";
         return;
       }
+      strategiesList.innerHTML = "";
       const draws = await getCachedDraws({ force });
       const dayCache = new Map();
       const getDayDraws = (fecha, pais) => {
@@ -1960,20 +2248,27 @@
         dayCache.set(key, map);
         return map;
       };
-      strategiesList.innerHTML = "";
-      filtered.forEach((entry) => {
-        const card = document.createElement("article");
-        card.className = "strategy-card";
-        const symbol = getSymbol(entry.target.numero);
-        const leftSymbol = getSymbol(entry.left.numero);
-        const rightSymbol = getSymbol(entry.right.numero);
-        const historyLine =
-          entry.historyCount > 0
-            ? `<div class="strategy-meta">Aplicada anteriormente: ${entry.historyCount} vez(es)</div>`
-            : "";
-        const dayDraws =
-          entry.target?.fecha ? getDayDraws(entry.target.fecha, entry.target.pais || null) : {};
-        card.innerHTML = `
+
+      filtered
+        .slice()
+        .sort(
+          (a, b) =>
+            (new Date(b.target?.fecha || "1970-01-01") - new Date(a.target?.fecha || "1970-01-01")) ||
+            (HORARIO_ORDER[b.target?.horario] ?? 0) - (HORARIO_ORDER[a.target?.horario] ?? 0)
+        )
+        .forEach((entry) => {
+          const card = document.createElement("article");
+          card.className = "strategy-card";
+          const symbol = getSymbol(entry.target.numero);
+          const leftSymbol = getSymbol(entry.left.numero);
+          const rightSymbol = getSymbol(entry.right.numero);
+          const historyLine =
+            entry.historyCount > 0
+              ? `<div class="strategy-meta">Aplicada anteriormente: ${entry.historyCount} vez(es)</div>`
+              : "";
+          const dayDraws =
+            entry.target?.fecha ? getDayDraws(entry.target.fecha, entry.target.pais || null) : {};
+          card.innerHTML = `
           <div class="strategy-head">
             <span class="strategy-target">${formatNumber(entry.target.numero)} ${symbol || ""}</span>
             <span class="strategy-badge">${entry.operador === "+" ? "Suma" : "Resta"}</span>
@@ -1988,40 +2283,106 @@
           </div>
           ${historyLine}
         `;
-        const timeline = buildStrategyTimeline(entry, dayDraws);
-        card.appendChild(timeline);
-        const detail = document.createElement("ul");
-        detail.className = "strategy-detail";
-        detail.innerHTML = `
+          const timeline = buildStrategyTimeline(entry, dayDraws);
+          card.appendChild(timeline);
+          const detail = document.createElement("ul");
+          detail.className = "strategy-detail";
+          detail.innerHTML = `
           <li>${formatFriendlyDate(entry.left.fecha)} · ${entry.left.horario || "—"}${entry.left.pais ? ` · ${entry.left.pais}` : ""}</li>
           <li>${formatFriendlyDate(entry.right.fecha)} · ${entry.right.horario || "—"}${entry.right.pais ? ` · ${entry.right.pais}` : ""}</li>
         `;
-        card.appendChild(detail);
-        const actions = document.createElement("div");
-        actions.className = "strategy-actions";
-        if (entry.target?.fecha) {
-          const viewBtn = document.createElement("button");
-          viewBtn.type = "button";
-          viewBtn.className = "btn-outline";
-          viewBtn.textContent = "Ver día completo";
-          viewBtn.dataset.strategyView = "true";
-          viewBtn.dataset.fecha = entry.target.fecha;
-          viewBtn.dataset.pais = entry.target.pais || "";
-          actions.appendChild(viewBtn);
-        }
-        if (entry.target?.fecha) {
-          const trackBtn = document.createElement("button");
-          trackBtn.type = "button";
-          trackBtn.className = "btn-ghost";
-          trackBtn.textContent = "Seguir día";
-          trackBtn.dataset.strategyTrack = "true";
-          trackBtn.dataset.fecha = entry.target.fecha;
-          trackBtn.dataset.pais = entry.target.pais || "";
-          actions.appendChild(trackBtn);
+          card.appendChild(detail);
+          const actions = document.createElement("div");
+          actions.className = "strategy-actions";
+          if (entry.target?.fecha) {
+            const viewBtn = document.createElement("button");
+            viewBtn.type = "button";
+            viewBtn.className = "btn-outline";
+            viewBtn.textContent = "Ver día completo";
+            viewBtn.dataset.strategyView = "true";
+            viewBtn.dataset.fecha = entry.target.fecha;
+            viewBtn.dataset.pais = entry.target.pais || "";
+            actions.appendChild(viewBtn);
+          }
+          if (entry.target?.fecha) {
+            const trackBtn = document.createElement("button");
+            trackBtn.type = "button";
+            trackBtn.className = "btn-ghost";
+            trackBtn.textContent = "Seguir día";
+            trackBtn.dataset.strategyTrack = "true";
+            trackBtn.dataset.fecha = entry.target.fecha;
+            trackBtn.dataset.pais = entry.target.pais || "";
+            actions.appendChild(trackBtn);
+          }
+          if (entry.target?.numero !== null) {
+          const hypoBtn = document.createElement("button");
+          hypoBtn.type = "button";
+          hypoBtn.className = "btn-secondary";
+          hypoBtn.textContent = "Guardar hipótesis";
+          hypoBtn.dataset.strategyHypo = "true";
+            hypoBtn.dataset.numero = formatNumber(entry.target.numero);
+            hypoBtn.dataset.fecha = entry.target.fecha || "";
+            hypoBtn.dataset.turno = entry.target.horario || "";
+            hypoBtn.dataset.descripcion = `${formatNumber(entry.left.numero)} ${entry.operador} ${formatNumber(
+              entry.right.numero,
+            )} = ${formatNumber(entry.target.numero)}`;
+          actions.appendChild(hypoBtn);
         }
         if (actions.childElementCount) card.appendChild(actions);
         strategiesList.appendChild(card);
       });
+
+      const stats = buildStrategyStats(filtered);
+      const years = Object.keys(stats.years).sort();
+      const rangeLabel =
+        years.length > 1 ? `${years[0]} – ${years[years.length - 1]}` : years[0] || "N/D";
+      const statsCard = document.createElement("article");
+      statsCard.className = "strategy-card strategy-card--stats";
+      statsCard.innerHTML = `
+        <div class="strategy-head">
+          <span class="strategy-target">Resumen histórico</span>
+          <span class="strategy-badge">${rangeLabel}</span>
+        </div>
+        <div class="strategy-stats">
+          <p><strong>Total estrategias detectadas:</strong> ${stats.total}</p>
+          <p><strong>Por operador:</strong> ${stats.operators["+"] || 0} sumas · ${stats.operators["−"] || 0} restas</p>
+        </div>
+      `;
+      if (years.length) {
+        const yearList = document.createElement("ul");
+        yearList.className = "strategy-year-stats";
+        years.forEach((year) => {
+          const info = stats.years[year];
+          const sumUse = info.suma || 0;
+          const restUse = info.resta || 0;
+          const li = document.createElement("li");
+          li.textContent = `${year}: ${info.total} estrategias (${sumUse} sumas / ${restUse} restas)`;
+          yearList.appendChild(li);
+        });
+        statsCard.appendChild(yearList);
+      }
+      strategiesList.appendChild(statsCard);
+    }
+
+    function buildStrategyStats(entries = []) {
+      const stats = {
+        total: entries.length,
+        operators: { "+": 0, "−": 0 },
+        years: {},
+      };
+      entries.forEach((entry) => {
+        if (stats.operators[entry.operador] !== undefined) {
+          stats.operators[entry.operador] += 1;
+        }
+        const year = entry.target?.fecha ? entry.target.fecha.slice(0, 4) : "N/D";
+        if (!stats.years[year]) {
+          stats.years[year] = { total: 0, suma: 0, resta: 0 };
+        }
+        stats.years[year].total += 1;
+        if (entry.operador === "+") stats.years[year].suma += 1;
+        else stats.years[year].resta += 1;
+      });
+      return stats;
     }
 
     function buildStrategyTimeline(entry, dayDraws = {}) {
@@ -2352,9 +2713,12 @@
       await Promise.allSettled([
         refreshHistoryPanel({ forceReload: true }),
         renderTrackingPanel({ forceReload: true }),
-        refreshPatternsPanel({ force: true }),
         renderRankingPanel({ force: true }),
+        refreshNotebookList(),
       ]);
+      await refreshPatternsPanel({ force: true });
+      await renderStrategiesPanel({ force: true, skipEnsure: true });
+      await ejecutarAnalisis({ auto: true });
     }
 
     async function bootstrapExtendedPanels() {
@@ -2363,6 +2727,7 @@
         renderTrackingPanel(),
         refreshPatternsPanel(),
         renderRankingPanel(),
+        refreshNotebookList(),
       ]);
     }
 
@@ -2606,19 +2971,19 @@
     const resultRecomendacion = document.getElementById("result-recomendacion");
     const resultPlan = document.getElementById("result-plan");
 
-    btnAnalizar?.addEventListener("click", async () => {
-      if (resultEscenarios) resultEscenarios.innerHTML = "<p class='hint'>Analizando…</p>";
-      if (resultRecomendacion) resultRecomendacion.innerHTML = "";
-      if (resultPlan) resultPlan.innerHTML = "";
+    async function ejecutarAnalisis({ auto = false } = {}) {
+      if (resultEscenarios && !auto) resultEscenarios.innerHTML = "<p class='hint'>Analizando…</p>";
+      if (!auto) {
+        if (resultRecomendacion) resultRecomendacion.innerHTML = "";
+        if (resultPlan) resultPlan.innerHTML = "";
+      }
       try {
         await rebuildKnowledge();
         const analisis = await analizarYProponer(GUIA);
         const patrones = await detectarPatrones();
         const memoria = await obtenerPerfilesNumeros();
         const modoEval = await evaluarModos();
-        const perfilMap = new Map(
-          (memoria.perfiles || []).map((p) => [p.numero, p])
-        );
+        const perfilMap = new Map((memoria.perfiles || []).map((p) => [p.numero, p]));
         const { fecha: fechaFiltro, pais: paisFiltro } = getFilters();
         const referenciaFecha = fechaFiltro ? new Date(`${fechaFiltro}T00:00:00`) : new Date();
         const fechaValida = Number.isNaN(referenciaFecha.getTime()) ? new Date() : referenciaFecha;
@@ -2629,20 +2994,24 @@
         };
         let predicciones = generarPredicciones(memoria.perfiles || [], { top: 9, contexto: contextoPred });
         predicciones = mezclarPrediccionesConModos(predicciones, modoEval);
+        predicciones = aplicarBonusEstrategias(
+          predicciones,
+          patrones.estrategiasAritmeticas || [],
+          { fecha: fechaFiltro || null, pais: paisFiltro || null }
+        );
         const insights = generarInsights(memoria.perfiles || []);
+        const shouldLogPreds = !auto && predicciones.length && (fechaFiltro || paisFiltro);
 
-        if (predicciones.length) {
-          if (fechaFiltro || paisFiltro) {
-            await DB.logPredictions(predicciones, {
-              fecha: fechaFiltro || null,
-              pais: paisFiltro || null,
-            });
-          } else {
-            showToast(
-              "Predicciones registradas como simulación. Selecciona fecha y país para evaluar aciertos.",
-              { variant: "warning", timeout: 5000 }
-            );
-          }
+        if (shouldLogPreds) {
+          await DB.logPredictions(predicciones, {
+            fecha: fechaFiltro || null,
+            pais: paisFiltro || null,
+          });
+        } else if (!auto && predicciones.length) {
+          showToast(
+            "Predicciones registradas como simulación. Selecciona fecha y país para evaluar aciertos.",
+            { variant: "warning", timeout: 5000 }
+          );
         }
 
         const resumenPred = await obtenerResumenPredicciones();
@@ -2684,10 +3053,12 @@
         );
       } catch (err) {
         console.error("analizar error", err);
-        if (resultEscenarios)
+        if (!auto && resultEscenarios)
           resultEscenarios.innerHTML = `<p class='hint'>No se pudo completar el análisis: ${err.message}</p>`;
       }
-    });
+    }
+
+    btnAnalizar?.addEventListener("click", () => ejecutarAnalisis());
 
     function mejorTurnoSegunPerfil(perfil) {
       const aprendizaje = perfil?.aprendizaje?.porHorario || {};
@@ -2890,8 +3261,8 @@
         });
       });
 
-      const grid = document.createElement("div");
-      grid.className = "plan-grid";
+      const planGrid = document.createElement("div");
+      planGrid.className = "plan-grid";
 
       TURNOS.forEach((turno) => {
         const candidatos = (planBuckets.get(turno) || []).filter(Boolean).sort((a, b) => b.item.score - a.item.score).slice(0, 3);
@@ -2965,19 +3336,6 @@
             details.appendChild(li);
           }
 
-          (modoDetalles || []).forEach((texto, idx) => {
-            if (!texto) return;
-            const li = document.createElement("li");
-            li.textContent = idx === 0 ? `Modo: ${texto}` : texto;
-            details.appendChild(li);
-          });
-
-          patronNotas.forEach((nota) => {
-            const li = document.createElement("li");
-            li.textContent = nota;
-            details.appendChild(li);
-          });
-
           if (!details.children.length) {
             const li = document.createElement("li");
             li.textContent = "Sin contexto adicional";
@@ -2996,54 +3354,38 @@
           card.appendChild(foot);
         }
 
-        grid.appendChild(card);
+        planGrid.appendChild(card);
         planSections += 1;
       });
 
+      if (planSections) {
+        resultPlan.appendChild(planGrid);
+      }
+
       const LONG_GAP_THRESHOLD = 120;
-      const RECENT_RETURN_WINDOW = 10;
-      const sequiasRota = [];
       const sequiasActivas = [];
       perfilMap.forEach((perfil) => {
         const gaps = perfil?.gaps || {};
-        if (!perfil?.lastSeen || gaps.ultimo === null || gaps.ultimo === undefined) return;
-        const lastSeen = perfil.lastSeen;
+        const lastSeen = perfil?.lastSeen || null;
         const daysSince = typeof gaps.daysSince === "number" ? Math.round(gaps.daysSince) : null;
-        const gapPrevio = Math.round(gaps.ultimo);
+        if (daysSince === null || daysSince < LONG_GAP_THRESHOLD) return;
+        const gapPrevio =
+          typeof gaps.ultimo === "number" && Number.isFinite(gaps.ultimo)
+            ? Math.round(gaps.ultimo)
+            : daysSince;
         const promedio = typeof gaps.promedio === "number" ? gaps.promedio : null;
-        if (gapPrevio >= LONG_GAP_THRESHOLD) {
-          const registroBase = {
-            numero: perfil.numero,
-            perfilRef: perfil,
-            lastSeen,
-            gapPrevio,
-            promedio,
-            daysSince,
-          };
-          if (daysSince !== null && daysSince <= RECENT_RETURN_WINDOW) {
-            sequiasRota.push(registroBase);
-          } else if (daysSince !== null && daysSince >= LONG_GAP_THRESHOLD) {
-            sequiasActivas.push(registroBase);
-          }
-        } else if (
-          daysSince !== null &&
-          daysSince >= LONG_GAP_THRESHOLD &&
-          gaps.max !== null &&
-          Math.round(gaps.max) >= LONG_GAP_THRESHOLD
-        ) {
-          sequiasActivas.push({
-            numero: perfil.numero,
-            perfilRef: perfil,
-            lastSeen,
-            gapPrevio: Math.round(gaps.max),
-            promedio,
-            daysSince,
-          });
-        }
+        sequiasActivas.push({
+          numero: perfil.numero,
+          perfilRef: perfil,
+          lastSeen,
+          gapPrevio,
+          promedio,
+          daysSince,
+        });
       });
 
       let droughtCard = null;
-      if (sequiasRota.length || sequiasActivas.length) {
+      if (sequiasActivas.length) {
         droughtCard = document.createElement("div");
         droughtCard.className = "analysis-card drought";
 
@@ -3054,13 +3396,13 @@
 
         const meta = document.createElement("div");
         meta.className = "plan-meta";
-        meta.textContent = `Se consideran sequías de ${LONG_GAP_THRESHOLD}+ días.`;
+        meta.textContent = `Solo se muestran números con más de ${LONG_GAP_THRESHOLD} días sin salir.`;
         droughtCard.appendChild(meta);
 
         const list = document.createElement("div");
         list.className = "plan-list";
 
-        const buildRow = (entry, label) => {
+        const buildRow = (entry) => {
           const row = document.createElement("div");
           row.className = "plan-item";
 
@@ -3071,11 +3413,6 @@
             ? `${formatNumber(entry.numero)} ${symbol}`
             : formatNumber(entry.numero);
           row.appendChild(numberEl);
-
-          const badge = document.createElement("div");
-          badge.className = "plan-score";
-          badge.textContent = label;
-          row.appendChild(badge);
 
           const details = document.createElement("ul");
           details.className = "plan-detail";
@@ -3090,7 +3427,7 @@
           }
 
           const gapLi = document.createElement("li");
-          gapLi.textContent = `Gap previo: ${entry.gapPrevio} días`;
+          gapLi.textContent = `Gap previo relevante: ${entry.gapPrevio} días`;
           details.appendChild(gapLi);
 
           if (entry.promedio) {
@@ -3101,12 +3438,7 @@
 
           if (typeof entry.daysSince === "number") {
             const sinceLi = document.createElement("li");
-            sinceLi.textContent =
-              entry.daysSince === 0
-                ? "Reapareció hoy"
-                : entry.daysSince === 1
-                  ? "Reapareció ayer"
-                  : `Días desde último sorteo: ${entry.daysSince}`;
+            sinceLi.textContent = `Días sin salir: ${entry.daysSince}`;
             details.appendChild(sinceLi);
           }
 
@@ -3158,12 +3490,9 @@
           return row;
         };
 
-        sequiasRota
-          .sort((a, b) => b.gapPrevio - a.gapPrevio)
-          .forEach((entry) => list.appendChild(buildRow(entry, "Seca rota")));
         sequiasActivas
           .sort((a, b) => b.daysSince - a.daysSince)
-          .forEach((entry) => list.appendChild(buildRow(entry, "Sequía en curso")));
+          .forEach((entry) => list.appendChild(buildRow(entry)));
 
         droughtCard.appendChild(list);
         grid.appendChild(droughtCard);
@@ -3287,17 +3616,56 @@
         grid.appendChild(gapCard);
       }
 
+      if (!planSections) {
+        resultPlan.innerHTML = "<p class='hint'>No hay suficientes datos para construir un plan diario.</p>";
+        return;
+      }
+
+      resultPlan.appendChild(planGrid);
+
       if (planSections === 0 && !droughtCard && !hasGapCard) {
         resultPlan.innerHTML = "<p class='hint'>No hay suficientes datos recientes para un plan diario.</p>";
         return;
       }
 
-      resultPlan.appendChild(grid);
 
       const note = document.createElement("p");
       note.className = "plan-note";
       note.textContent = "Plan generado con sorteos 2025 y modos validados.";
       resultPlan.appendChild(note);
+    }
+
+    function aplicarBonusEstrategias(predicciones = [], estrategias = [], contexto = {}) {
+      if (!Array.isArray(predicciones) || !predicciones.length) return predicciones;
+      if (!Array.isArray(estrategias) || !estrategias.length) return predicciones;
+      const bonusByNumero = new Map();
+      const matchFecha = contexto.fecha || null;
+      const matchPais = (contexto.pais || "").trim().toUpperCase() || null;
+      estrategias.forEach((entry) => {
+        const targetNumero = Number(entry?.target?.numero);
+        if (!Number.isFinite(targetNumero)) return;
+        if (matchFecha && entry.target?.fecha !== matchFecha) return;
+        if (
+          matchPais &&
+          (entry.target?.pais || "").trim().toUpperCase() !== matchPais
+        )
+          return;
+        const base = entry.operador === "+" ? 0.18 : 0.14;
+        const historyBoost = Math.min(0.12, (entry.historyCount || 0) * 0.02);
+        bonusByNumero.set(targetNumero, (bonusByNumero.get(targetNumero) || 0) + base + historyBoost);
+      });
+      if (!bonusByNumero.size) return predicciones;
+      return predicciones
+        .map((pred) => {
+          const bonus = bonusByNumero.get(pred.numero);
+          if (!bonus) return pred;
+          return {
+            ...pred,
+            score: (pred.score || 0) + bonus,
+            strategyBonus: (pred.strategyBonus || 0) + bonus,
+          };
+        })
+        .sort((a, b) => (b.score || 0) - (a.score || 0));
     }
 
     function mezclarPrediccionesConModos(predicciones, modoEval) {
@@ -4069,8 +4437,9 @@
     });
 
     const btnGeometria = document.getElementById("g-generar");
-    btnGeometria?.addEventListener("click", () => {
-      const fecha = document.getElementById("g-fecha")?.value;
+    btnGeometria?.addEventListener("click", async () => {
+      const fecha = geometryDateInput?.value;
+      const paisSeleccionado = geometryPaisSelect?.value || dayPais?.value || "HN";
       if (!fecha) {
         showToast("Selecciona una fecha para generar la cruceta/triángulo.", { variant: "warning" });
         return;
@@ -4080,6 +4449,7 @@
       const niveles = generarTrianguloInvertido(fecha);
       const contTri = document.getElementById("g-tri");
       if (contTri) dibujarTrianguloInvertido(contTri, niveles);
+      await renderTurnoCruceta(fecha, paisSeleccionado);
     });
 
     function renderCruceta(data) {
@@ -4098,6 +4468,73 @@
           <div class="ball small">${formatNumber(data.sur)}</div>
         </div>
       `;
+    }
+
+    async function renderTurnoCruceta(fecha, pais) {
+      const cont = document.getElementById("g-turnos");
+      const candWrap = document.getElementById("g-turnos-cands");
+      if (!cont || !candWrap) return;
+      cont.innerHTML = "<p class='hint'>Calculando cruceta con los sorteos de 11 AM y 3 PM…</p>";
+      candWrap.innerHTML = "";
+      try {
+        const draws = await getCachedDraws();
+        const draw11 = pickDraw(draws, fecha, pais, "11AM");
+        const draw3 = pickDraw(draws, fecha, pais, "3PM");
+        if (!draw11 || !draw3) {
+          cont.innerHTML = `<p class='hint'>Registra los sorteos reales de 11 AM y 3 PM para ${fecha} (${pais}).</p>`;
+          return;
+        }
+        const cruceta = generarCrucetaTurnos(draw11.numero, draw3.numero);
+        const formatNode = (value) => `${value}`;
+        cont.innerHTML = `
+          <div class="c-row">
+            <div class="ball small">${formatNode(cruceta.north)}</div>
+          </div>
+          <div class="c-row">
+            <div class="ball small">${formatNode(cruceta.west)}</div>
+            <div class="ball small">${formatNode(cruceta.center)}</div>
+            <div class="ball small">${formatNode(cruceta.east)}</div>
+          </div>
+          <div class="c-row">
+            <div class="ball small">${formatNode(cruceta.south)}</div>
+          </div>
+          <p class="geom-note">11 AM: ${formatNumber(draw11.numero)} · 3 PM: ${formatNumber(
+            draw3.numero,
+          )} · ${pais}</p>
+        `;
+        if (cruceta.candidates.length) {
+          candWrap.innerHTML = `
+            <p class="geom-note">Candidatos sugeridos para las 9 PM</p>
+            <div class="geom-candidate-chips">
+              ${cruceta.candidates
+                .map(
+                  (num) =>
+                    `<span class="geom-chip"><strong>${formatNumber(num)}</strong><small>${getSymbol(num) || ""}</small></span>`,
+                )
+                .join("")}
+            </div>
+            ${
+              cruceta.candidateNotes?.length
+                ? `<ul class="geom-steps">${cruceta.candidateNotes
+                    .map((note) => `<li>${note.detail}</li>`)
+                    .join("")}</ul>`
+                : ""
+            }
+            ${
+              cruceta.steps?.length
+                ? `<details class="geom-steps-details"><summary>Ver operaciones</summary><ul class="geom-steps">${cruceta.steps
+                    .map((step) => `<li><strong>${step.label}:</strong> ${step.expr} ⇒ ${step.result}</li>`)
+                    .join("")}</ul></details>`
+                : ""
+            }
+          `;
+        } else {
+          candWrap.innerHTML = "<p class='hint'>Sin candidatos suficientes con estos datos.</p>";
+        }
+      } catch (err) {
+        console.error("cruceta turnos error", err);
+        cont.innerHTML = `<p class='hint'>No se pudo calcular la cruceta de turnos: ${err.message}</p>`;
+      }
     }
 
     const btnDup = document.getElementById("btn-list-dup");
@@ -4229,6 +4666,7 @@
       hypo: "view-hypo",
       analysis: "view-analysis",
       strategies: "view-strategies",
+      notebook: "view-notebook",
       geometry: "view-geometry",
       memory: "view-memory",
       guide: "view-guide",
@@ -4249,6 +4687,7 @@
         if (id === "view-maint") refreshDuplicados();
         if (id === "view-modes") refreshModesPanel();
         if (id === "view-strategies") renderStrategiesPanel();
+        if (id === "view-notebook") refreshNotebookList();
         if (window.innerWidth <= 768) closeSidebarMobile();
       };
     });
@@ -4485,7 +4924,7 @@
   </script>
 
   <script type="module">
-    import { DB } from "./storage.js";
+    import { DB } from "./src/storage.js";
 
     /* ──────────────────────────────
        MODAL DE AVISO CON ANIMACIÓN
@@ -4580,9 +5019,9 @@
     /* ──────────────────────────────
        CONEXIÓN CON EL BOTÓN PRINCIPAL
     ──────────────────────────────── */
-    btnAprender = document.getElementById("btn-aprender-dia");
-    if (btnAprender) {
-      btnAprender.addEventListener("click", async (e) => {
+    const btnAprenderGuard = document.getElementById("btn-aprender-dia");
+    if (btnAprenderGuard) {
+      btnAprenderGuard.addEventListener("click", async (e) => {
         if (window.datosDelDia) {
           const continuar = await verificarAntesDeAprender(window.datosDelDia);
           if (!continuar) e.preventDefault();
@@ -4606,26 +5045,6 @@
       </div>
     </div>
   </div>
-  <script type="module">
-    import Dexie from "https://unpkg.com/dexie@3.2.7/dist/dexie.mjs";
-
-    (async () => {
-      const db = new Dexie("la_diaria_v3");
-      const draws = await db.table("draws").toArray();
-      const filtered = draws.filter(d => String(d.fecha || "").startsWith("2025"));
-
-      const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "sorteos_2025.json";
-      a.click();
-
-      console.log(`✅ Exportados ${filtered.length} sorteos de 2025`);
-    })();
-  </script>
-
-
 </body>
 
 </html>
