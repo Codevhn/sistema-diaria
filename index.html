@@ -486,6 +486,17 @@
         <div id="dup-out" class="card-body"></div>
       </div>
       <div class="card" style="margin-top:15px;">
+        <div class="card-head">Correcciones de fecha</div>
+        <p class="hint">
+          Ajusta sorteos que quedaron registrados con un día adelantado por el desfase UTC. Solo modifica los que estén
+          como máximo un día en el futuro respecto a su fecha de captura.
+        </p>
+        <div class="row">
+          <button id="btn-fix-dates">Corregir sorteos adelantados</button>
+        </div>
+        <div id="fix-dates-out" class="card-body"></div>
+      </div>
+      <div class="card" style="margin-top:15px;">
         <div class="card-head">Todos los sorteos registrados</div>
         <div class="row">
           <button id="btn-list-all">Ver todos</button>
@@ -594,7 +605,12 @@
     } from "./src/geometry.js";
     import { cargarGuia, GUIA, getColorPolaridad } from "./src/loader.js";
     import { detectarPatrones } from "./src/pattern-detector.js";
-    import { revisarDuplicados, marcarGrupoComoTest, borrarIds } from "./src/maintenance.js";
+    import {
+      revisarDuplicados,
+      marcarGrupoComoTest,
+      borrarIds,
+      corregirFechasDesfasadas,
+    } from "./src/maintenance.js";
     import { mostrarTransformaciones } from "./src/transform-visual.js";
     import {
       rebuildKnowledge,
@@ -614,12 +630,23 @@
       listModeUsage,
     } from "./src/modes.js";
     import { evaluarModos } from "./src/mode-engine.js";
+    import { formatDateISO, getTodayISODate } from "./src/date-utils.js";
 
     let guideLoadError = null;
     try {
       await cargarGuia();
     } catch (err) {
       guideLoadError = err instanceof Error ? err : new Error(String(err));
+    }
+
+    try {
+      const autoFix = await DB.fixFutureDatedDraws({ maxAheadDays: 1 });
+      if (autoFix?.length) {
+        console.info("Sorteos corregidos automáticamente:", autoFix);
+        showToast(`Se corrigieron ${autoFix.length} sorteos con fecha adelantada.`, { variant: "info" });
+      }
+    } catch (err) {
+      console.warn("No se pudieron corregir fechas adelantadas automáticamente", err);
     }
 
     const toastContainer = document.getElementById("toast-container");
@@ -1091,8 +1118,7 @@
       }
     }
 
-
-    const todayISO = new Date().toISOString().slice(0, 10);
+    const todayISO = getTodayISODate();
     ["day-fecha", "h-fecha", "g-fecha"].forEach((id) => {
       const el = document.getElementById(id);
       if (el && !el.value) el.value = todayISO;
@@ -1134,10 +1160,6 @@
       if (!value) return null;
       const date = new Date(`${value}T00:00:00`);
       return Number.isNaN(date.getTime()) ? null : date;
-    };
-    const formatISODate = (date) => {
-      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
-      return date.toISOString().slice(0, 10);
     };
     const MONTH_NAMES = [
       "enero",
@@ -1946,19 +1968,15 @@
         .sort((a, b) => b.localeCompare(a))[0] || null;
     }
 
+    const renderHistoryBadge = (label, extraClass, title = "") =>
+      `<span class="history-pill ${extraClass}"${title ? ` title="${title}"` : ""}><span class="history-pill__dot"></span>${label}</span>`;
+
     function historyBadges(draw, latestDate) {
       const badges = [];
       if (draw.fecha === todayISO) {
-        badges.push('<span class="history-pill history-pill--today">Hoy</span>');
+        badges.push(renderHistoryBadge("Hoy", "history-pill--today", "Resultado registrado hoy"));
       } else if (latestDate && draw.fecha === latestDate) {
-        badges.push('<span class="history-pill history-pill--recent">Reciente</span>');
-      }
-      const tracked =
-        trackingState &&
-        draw.fecha === trackingState.fecha &&
-        (!trackingState.pais || draw.pais === trackingState.pais);
-      if (tracked) {
-        badges.push('<span class="history-pill history-pill--tracked">Seguimiento</span>');
+        badges.push(renderHistoryBadge("Reciente", "history-pill--recent", "Día más reciente con registros"));
       }
       return badges.join("");
     }
@@ -3738,7 +3756,7 @@
         if (daysDiff > 30) {
           const lastWarnTs = parseInt(localStorage.getItem("recencyWarnTs"), 10) || 0;
           if (lastWarnTs !== latestTimestamp) {
-            const lastDate = new Date(latestTimestamp).toISOString().slice(0, 10);
+            const lastDate = formatDateISO(latestTimestamp);
             showToast(
               `Último sorteo registrado: ${lastDate} (≈${daysDiff} días). Agrega resultados recientes para reemplazar las predicciones simuladas.`,
               { variant: "warning", timeout: 9000 }
@@ -4541,6 +4559,8 @@
     const btnMarkTestDup = document.getElementById("btn-marktest-dup");
     const btnDeleteDup = document.getElementById("btn-delete-dup");
     const dupOut = document.getElementById("dup-out");
+    const btnFixDates = document.getElementById("btn-fix-dates");
+    const fixDatesOut = document.getElementById("fix-dates-out");
 
     btnDup?.addEventListener("click", refreshDuplicados);
 
@@ -4637,6 +4657,40 @@
         .map((el) => parseInt(el.value, 10))
         .filter((n) => !Number.isNaN(n));
     }
+
+    btnFixDates?.addEventListener("click", async () => {
+      if (!fixDatesOut) return;
+      btnFixDates.disabled = true;
+      fixDatesOut.innerHTML = "<p class='hint'>Revisando registros…</p>";
+      try {
+        const cambios = await corregirFechasDesfasadas({ maxAheadDays: 1 });
+        if (!cambios.length) {
+          fixDatesOut.innerHTML = "<p class='hint'>No se detectaron sorteos adelantados.</p>";
+          showToast("No se encontraron registros con desfase.", { variant: "info" });
+          return;
+        }
+        const detailItems = cambios
+          .map(
+            (reg) =>
+              `<li>${reg.before} → ${reg.after} • ${reg.horario || ""} ${reg.pais || ""} #${formatNumber(reg.numero)}</li>`
+          )
+          .join("");
+        fixDatesOut.innerHTML = `
+          <p class='hint'>Se corrigieron ${cambios.length} registro(s) con desfase:</p>
+          <ul class="analysis-note">${detailItems}</ul>
+        `;
+        await refreshSlots();
+        await handleDrawsMutated();
+        await rebuildKnowledge();
+        showToast(`Listo: ${cambios.length} registro(s) corrigieron su fecha.`, { variant: "success" });
+      } catch (err) {
+        console.error("fix dates error", err);
+        fixDatesOut.innerHTML = `<p class='hint'>No se pudo completar la corrección: ${err.message}</p>`;
+        showToast(`Error al corregir fechas: ${err.message}`, { variant: "danger" });
+      } finally {
+        btnFixDates.disabled = false;
+      }
+    });
 
     // ✅ Navegación lateral
     const sidebar = document.getElementById("sidebar");

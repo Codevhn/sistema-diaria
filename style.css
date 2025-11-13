@@ -982,57 +982,102 @@ button.ghost:hover {
 .history-pill {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
+  gap: 6px;
+  padding: 3px 12px;
   border-radius: 999px;
   font-size: 0.65rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(12, 24, 44, 0.35);
+  font-weight: 600;
+}
+
+.history-pill + .history-pill {
+  margin-left: 6px;
+}
+
+.history-pill__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  opacity: 0.9;
 }
 
 .history-pill--today {
-  color: #0b182c;
-  border-color: transparent;
-  background: linear-gradient(135deg, #fff982, #4ae3b5);
-  box-shadow: 0 0 18px rgba(255, 249, 130, 0.3);
-  font-weight: 700;
-}
-
-.history-pill--tracked {
-  color: #03101d;
-  background: var(--color-accent);
+  color: #2b050c;
+  border-color: rgba(255, 55, 95, 0.85);
+  background: linear-gradient(120deg, #ff9a9e, #ff1744 55%, #ff4d6d);
+  box-shadow: 0 0 18px rgba(255, 60, 110, 0.55);
+  animation: hoyPulse 2.4s ease-in-out infinite;
 }
 
 .history-pill--recent {
-  color: rgba(228, 236, 255, 0.65);
-  border-color: rgba(73, 125, 255, 0.35);
+  color: #c7d9ff;
+  border-color: rgba(143, 176, 255, 0.45);
+  background: rgba(143, 176, 255, 0.12);
 }
 
 .table-wrap tbody tr.history-row--tracked {
-  box-shadow: inset 2px 0 0 rgba(74, 227, 181, 0.8);
-  background: linear-gradient(90deg, rgba(74, 227, 181, 0.09), transparent);
+  position: relative;
+  box-shadow: inset 3px 0 0 rgba(74, 227, 181, 0.85);
+  background: linear-gradient(90deg, rgba(74, 227, 181, 0.07), transparent);
+}
+
+.table-wrap tbody tr.history-row--tracked::after {
+  content: "SEGUIMIENTO";
+  position: absolute;
+  top: -10px;
+  right: 16px;
+  padding: 2px 10px;
+  font-size: 0.58rem;
+  letter-spacing: 0.32em;
+  color: #02140f;
+  background: linear-gradient(120deg, rgba(72, 255, 197, 0.9), rgba(0, 210, 142, 0.85));
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(0, 210, 142, 0.25);
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .table-wrap tbody tr.history-row--today {
   position: relative;
+  background: linear-gradient(90deg, rgba(255, 71, 102, 0.12), rgba(255, 154, 158, 0.08));
+  box-shadow: inset 3px 0 0 rgba(255, 71, 102, 0.95);
 }
 
-.table-wrap tbody tr.history-row--today::after {
-  content: "HOY";
+.table-wrap tbody tr.history-row--today::before {
+  content: "";
   position: absolute;
-  top: 8px;
-  right: 12px;
-  font-size: 10px;
-  letter-spacing: 0.28em;
-  color: #0b182c;
-  background: linear-gradient(135deg, #fff982, #4ae3b5);
-  padding: 2px 10px;
+  left: 2px;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
   border-radius: 999px;
-  box-shadow: 0 0 15px rgba(255, 249, 130, 0.35);
+  background: linear-gradient(180deg, #ff9a9e, #ff1744);
+  box-shadow: 0 0 14px rgba(255, 60, 110, 0.75);
+  pointer-events: none;
 }
 
 .table-wrap tbody tr.history-row--today td {
-  background: linear-gradient(90deg, rgba(255, 249, 130, 0.22), rgba(43, 125, 255, 0.12));
+  background: transparent;
+}
+
+@keyframes hoyPulse {
+  0% {
+    box-shadow: 0 0 10px rgba(255, 60, 110, 0.4), 0 0 0 rgba(255, 60, 110, 0.15);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(255, 60, 110, 0.65), 0 0 15px rgba(255, 60, 110, 0.25);
+    transform: translateY(-1px);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(255, 60, 110, 0.4), 0 0 0 rgba(255, 60, 110, 0.15);
+    transform: translateY(0);
+  }
 }
 
 .tracking-grid {

@@ -1,4 +1,5 @@
 import { DB } from "./storage.js";
+import { getTodayISODate } from "./date-utils.js";
 
 export async function registrarHechos(hs) {
   for (const h of hs) {
@@ -16,7 +17,7 @@ export async function crearHipotesis(
     simbolo,
     estado: "pendiente",
     score: 0,
-    fecha: fecha || new Date().toISOString().slice(0, 10),
+    fecha: fecha || getTodayISODate(),
     turno: turno || null,
     razones: [texto].filter(Boolean),
   });

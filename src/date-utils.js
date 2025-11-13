@@ -60,3 +60,20 @@ export function parseDrawDate(fecha) {
     fallback.getDate()
   );
 }
+
+function padTwo(n) {
+  return String(n).padStart(2, "0");
+}
+
+export function formatDateISO(value) {
+  const date = parseDrawDate(value);
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = padTwo(date.getMonth() + 1);
+  const day = padTwo(date.getDate());
+  return `${year}-${month}-${day}`;
+}
+
+export function getTodayISODate() {
+  return formatDateISO(new Date());
+}

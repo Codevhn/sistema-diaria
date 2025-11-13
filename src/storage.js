@@ -1,5 +1,8 @@
 // storage.js — v3.3.1
 import Dexie from "../vendor/dexie.mjs";
+import { parseDrawDate, formatDateISO } from "./date-utils.js";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const db = new Dexie("la_diaria_v3");
 
@@ -216,6 +219,37 @@ export const DB = {
   async _update(table, id, changes) {
     const tbl = getTable(table);
     return tbl.update(id, changes);
+  },
+
+  async fixFutureDatedDraws({ maxAheadDays = 1 } = {}) {
+    const rows = await db.draws.toArray();
+    const corrected = [];
+    for (const draw of rows) {
+      if (!draw || typeof draw.createdAt !== "number") continue;
+      const fechaDate = parseDrawDate(draw.fecha);
+      if (!fechaDate) continue;
+      const createdStamp = new Date(draw.createdAt);
+      if (Number.isNaN(createdStamp.getTime())) continue;
+      const createdLocal = new Date(
+        createdStamp.getFullYear(),
+        createdStamp.getMonth(),
+        createdStamp.getDate()
+      );
+      const diffDays = Math.floor((fechaDate - createdLocal) / DAY_MS);
+      if (diffDays <= 0 || diffDays > maxAheadDays) continue;
+      const correctedFecha = formatDateISO(createdLocal);
+      if (!correctedFecha) continue;
+      await db.draws.update(draw.id, { fecha: correctedFecha });
+      corrected.push({
+        id: draw.id,
+        before: draw.fecha,
+        after: correctedFecha,
+        horario: draw.horario,
+        pais: draw.pais,
+        numero: draw.numero,
+      });
+    }
+    return corrected;
   },
 
   async findDuplicates() {

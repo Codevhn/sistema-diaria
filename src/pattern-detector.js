@@ -1,7 +1,7 @@
 // pattern-detector.js — núcleo de patrones heurísticos adaptativos
 import { DB } from "./storage.js";
 import { GUIA } from "./loader.js";
-import { parseDrawDate } from "./date-utils.js";
+import { parseDrawDate, formatDateISO } from "./date-utils.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
@@ -209,7 +209,7 @@ async function loadHypotheses() {
 
 function formatDate(fechaDate) {
   if (!fechaDate) return "";
-  return fechaDate.toISOString().slice(0, 10);
+  return formatDateISO(fechaDate) || "";
 }
 
 function computeWindowBounds(timeline) {
