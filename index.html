@@ -28,6 +28,7 @@
     <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
     <button data-view="analysis"><span
         class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
+    <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
     <button data-view="strategies"><span class="sidebar-icon fa-solid fa-brain"></span><i>Estrategias</i></button>
     <button data-view="notebook"><span class="sidebar-icon fa-solid fa-bookmark"></span><i>Cuaderno</i></button>
     <button data-view="geometry"><span
@@ -302,14 +303,38 @@
     <!-- ESCENARIOS -->
     <section id="view-analysis" class="view hidden">
       <h2>Escenarios y recomendación</h2>
-      <button id="btn-analizar">Analizar</button>
+      <div class="analysis-controls">
+        <button id="btn-analizar">Analizar</button>
+        <label class="analysis-control">
+          <span>Día de sesgo</span>
+          <select id="analysis-dow">
+            <option value="">Según fecha objetivo</option>
+            <option value="0">Domingo</option>
+            <option value="1">Lunes</option>
+            <option value="2">Martes</option>
+            <option value="3">Miércoles</option>
+            <option value="4">Jueves</option>
+            <option value="5">Viernes</option>
+            <option value="6">Sábado</option>
+          </select>
+        </label>
+      </div>
       <p class="hint">
         La <b>confianza (conf)</b> es una ponderación heurística (0–100%).
       </p>
       <div class="cards" id="result-recomendacion"></div>
       <div class="cards" id="result-plan"></div>
+      <div class="cards" id="result-day-bias"></div>
       <div class="cards" id="result-escenarios"></div>
+    </section>
 
+    <!-- TRANSFORMACIONES -->
+    <section id="view-transform" class="view hidden">
+      <h2>Transformaciones visuales</h2>
+      <p class="hint">
+        Explora el número base, sus inversiones y conversiones simples/compuestas con los símbolos de la guía.
+        Útil para detectar radios alrededor de un número favorito.
+      </p>
       <div id="transform-panel" class="card">
         <div class="card-head">🔄 Transformaciones Visuales</div>
         <div class="row">
@@ -1235,9 +1260,82 @@
       "Viernes",
       "Sábado",
     ];
+    const BASELINE_DOW_RATIO = 1 / 7;
+    const DEFAULT_RANKING_TURN = TURNOS[TURNOS.length - 1] || TURNOS[0];
+    let biasPanelState = {
+      dow: null,
+      page: 0,
+      selected: [],
+      rankingTurn: DEFAULT_RANKING_TURN,
+      expiresAt: 0,
+    };
     const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
     const TRACKING_STORAGE_KEY = "ld-v3-tracking-day";
     const DRAW_CACHE_TTL = 15 * 1000;
+    const BIAS_NOTES_STORAGE_KEY = "ld-v3-bias-notes";
+    const BIAS_LAST_DOW_KEY = "ld-v3-bias-last-dow";
+    const BIAS_TURN_SCHEDULE = {
+      "11AM": { hour: 11, minute: 0 },
+      "3PM": { hour: 15, minute: 0 },
+      "9PM": { hour: 21, minute: 0 },
+    };
+    let biasLocalStorageWarned = false;
+    let biasSessionStorageWarned = false;
+
+    function getBiasStorageProviders() {
+      if (typeof window === "undefined") return [];
+      const stores = [];
+      try {
+        if (window.localStorage) stores.push(window.localStorage);
+      } catch (err) {
+        if (!biasLocalStorageWarned) {
+          console.warn("Sesgos: localStorage no disponible", err);
+          biasLocalStorageWarned = true;
+        }
+      }
+      try {
+        if (window.sessionStorage) stores.push(window.sessionStorage);
+      } catch (err) {
+        if (!biasSessionStorageWarned) {
+          console.warn("Sesgos: sessionStorage no disponible", err);
+          biasSessionStorageWarned = true;
+        }
+      }
+      return stores;
+    }
+
+    function persistBiasDowPreference(value) {
+      if (typeof window === "undefined") return;
+      const stores = getBiasStorageProviders();
+      stores.forEach((storage) => {
+        if (!storage) return;
+        try {
+          if (value === null || value === undefined || value === "") {
+            storage.removeItem(BIAS_LAST_DOW_KEY);
+          } else {
+            storage.setItem(BIAS_LAST_DOW_KEY, String(value));
+          }
+        } catch (err) {
+          console.warn("Sesgos: no se pudo guardar el día preferido", err);
+        }
+      });
+    }
+
+    function readBiasDowPreference() {
+      if (typeof window === "undefined") return null;
+      const stores = getBiasStorageProviders();
+      for (const storage of stores) {
+        if (!storage) continue;
+        try {
+          const value = storage.getItem(BIAS_LAST_DOW_KEY);
+          if (value !== null && value !== undefined && value !== "") return value;
+        } catch (err) {
+          console.warn("Sesgos: no se pudo leer el día preferido", err);
+        }
+      }
+      return null;
+    }
+
     let trackingState = loadTrackingState();
     let drawsCache = null;
     let drawsCacheTs = 0;
@@ -1293,6 +1391,154 @@
       } catch (err) {
         console.warn("save tracking state failed", err);
       }
+    }
+
+    function computeBiasNoteExpiry(turno = DEFAULT_RANKING_TURN) {
+      const schedule = BIAS_TURN_SCHEDULE[turno] || BIAS_TURN_SCHEDULE["9PM"] || { hour: 21, minute: 0 };
+      const now = new Date();
+      const target = new Date(now);
+      target.setHours(schedule.hour, schedule.minute || 0, 0, 0);
+      if (target <= now) {
+        target.setDate(target.getDate() + 1);
+      }
+      target.setMinutes(target.getMinutes() + 5);
+      return target.getTime();
+    }
+
+    function loadBiasNotesStore() {
+      const stores = getBiasStorageProviders();
+      if (!stores.length) return {};
+      let fallbackRaw = null;
+      let fallbackData = null;
+      let sourceIndex = -1;
+      for (let i = 0; i < stores.length; i++) {
+        const storage = stores[i];
+        if (!storage) continue;
+        try {
+          const raw = storage.getItem(BIAS_NOTES_STORAGE_KEY);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            fallbackRaw = raw;
+            fallbackData = parsed;
+            sourceIndex = i;
+            break;
+          }
+        } catch (err) {
+          console.warn("No se pudo cargar apuntes de sesgos", err);
+        }
+      }
+      if (fallbackData && sourceIndex > 0) {
+        for (let i = 0; i < sourceIndex; i++) {
+          const storage = stores[i];
+          if (!storage) continue;
+          try {
+            storage.setItem(BIAS_NOTES_STORAGE_KEY, fallbackRaw);
+          } catch (err) {
+            console.warn("No se pudo sincronizar apuntes guardados", err);
+          }
+        }
+      }
+      return fallbackData || {};
+    }
+
+    function saveBiasNotesStore(store) {
+      const stores = getBiasStorageProviders();
+      if (!stores.length) return;
+      const isEmpty = !store || !Object.keys(store).length;
+      let serialized = "";
+      if (!isEmpty) {
+        try {
+          serialized = JSON.stringify(store);
+        } catch (err) {
+          console.warn("No se pudo serializar apuntes de sesgos", err);
+          return;
+        }
+      }
+      stores.forEach((storage) => {
+        if (!storage) return;
+        try {
+          if (isEmpty) {
+            storage.removeItem(BIAS_NOTES_STORAGE_KEY);
+          } else {
+            storage.setItem(BIAS_NOTES_STORAGE_KEY, serialized);
+          }
+        } catch (err) {
+          console.warn("No se pudo guardar apuntes de sesgos", err);
+        }
+      });
+    }
+
+    function cleanupBiasNotesStore(store = {}) {
+      const now = Date.now();
+      let dirty = false;
+      Object.keys(store).forEach((key) => {
+        const entry = store[key];
+        if (!entry || (entry.expiresAt && entry.expiresAt < now)) {
+          delete store[key];
+          dirty = true;
+        }
+      });
+      return dirty;
+    }
+
+    function getBiasNotesForDow(dow) {
+      if (!Number.isFinite(dow)) return null;
+      const store = loadBiasNotesStore();
+      const key = `dow-${dow}`;
+      const entry = store[key];
+      if (!entry) return null;
+      if (entry.expiresAt && entry.expiresAt < Date.now()) {
+        delete store[key];
+        saveBiasNotesStore(store);
+        return null;
+      }
+      return entry;
+    }
+
+    function persistBiasNotesForDow(dow, state = {}) {
+      if (!Number.isFinite(dow)) return;
+      const store = loadBiasNotesStore();
+      const key = `dow-${dow}`;
+      const selected = Array.isArray(state.selected) ? state.selected : [];
+      const rankingTurn = state.rankingTurn || DEFAULT_RANKING_TURN;
+      if (!selected.length) {
+        if (store[key]) {
+          delete store[key];
+          cleanupBiasNotesStore(store);
+          saveBiasNotesStore(store);
+        }
+        return;
+      }
+      persistBiasDowPreference(dow);
+      const expiresAt = computeBiasNoteExpiry(rankingTurn);
+      const storedSelected = selected.map((entry) => ({
+        ...entry,
+        turnBreakdown: Array.isArray(entry.turnBreakdown)
+          ? entry.turnBreakdown.map((turn) => ({ ...turn }))
+          : [],
+      }));
+      store[key] = {
+        dow,
+        selected: storedSelected,
+        rankingTurn,
+        expiresAt,
+        savedAt: Date.now(),
+      };
+      cleanupBiasNotesStore(store);
+      saveBiasNotesStore(store);
+    }
+
+    function syncBiasNotesPersistence(dow) {
+      if (!Number.isFinite(dow)) return;
+      const selected = Array.isArray(biasPanelState?.selected) ? biasPanelState.selected : [];
+      const rankingTurn = biasPanelState?.rankingTurn || DEFAULT_RANKING_TURN;
+      if (selected.length) {
+        biasPanelState.expiresAt = computeBiasNoteExpiry(rankingTurn);
+      } else {
+        biasPanelState.expiresAt = 0;
+      }
+      persistBiasNotesForDow(dow, { selected, rankingTurn });
     }
 
     async function getCachedDraws({ force = false } = {}) {
@@ -3042,15 +3288,27 @@
     });
 
     const btnAnalizar = document.getElementById("btn-analizar");
+    const analysisDowSelect = document.getElementById("analysis-dow");
+    if (analysisDowSelect && !analysisDowSelect.value) {
+      const storedBiasDow = readBiasDowPreference();
+      if (storedBiasDow !== null && storedBiasDow !== "") {
+        const hasOption = Array.from(analysisDowSelect.options || []).some((opt) => opt.value === storedBiasDow);
+        if (hasOption) {
+          analysisDowSelect.value = storedBiasDow;
+        }
+      }
+    }
     const resultEscenarios = document.getElementById("result-escenarios");
     const resultRecomendacion = document.getElementById("result-recomendacion");
     const resultPlan = document.getElementById("result-plan");
+    const resultBias = document.getElementById("result-day-bias");
 
     async function ejecutarAnalisis({ auto = false } = {}) {
-      if (resultEscenarios && !auto) resultEscenarios.innerHTML = "<p class='hint'>Analizando…</p>";
       if (!auto) {
+        if (resultEscenarios) resultEscenarios.innerHTML = "<p class='hint'>Analizando…</p>";
         if (resultRecomendacion) resultRecomendacion.innerHTML = "";
         if (resultPlan) resultPlan.innerHTML = "";
+        if (resultBias) resultBias.innerHTML = "<p class='hint'>Calculando sesgos…</p>";
       }
       try {
         await rebuildKnowledge();
@@ -3067,6 +3325,10 @@
           year: fechaValida.getFullYear(),
           pais: paisFiltro || null,
         };
+        const dowOverrideValue = parseInt(analysisDowSelect?.value ?? "", 10);
+        if (Number.isFinite(dowOverrideValue)) {
+          contextoPred.dow = dowOverrideValue;
+        }
         let predicciones = generarPredicciones(memoria.perfiles || [], { top: 9, contexto: contextoPred });
         predicciones = mezclarPrediccionesConModos(predicciones, modoEval);
         predicciones = aplicarBonusEstrategias(
@@ -3126,6 +3388,7 @@
           patrones.resumenVentana || "",
           drawsSeleccionados
         );
+        renderSesgosPorDia(perfilMap, { dow: contextoPred.dow, year: contextoPred.year });
       } catch (err) {
         console.error("analizar error", err);
         if (!auto && resultEscenarios)
@@ -3134,6 +3397,10 @@
     }
 
     btnAnalizar?.addEventListener("click", () => ejecutarAnalisis());
+    analysisDowSelect?.addEventListener("change", (event) => {
+      persistBiasDowPreference(event.target.value || "");
+      ejecutarAnalisis();
+    });
 
     function mejorTurnoSegunPerfil(perfil) {
       const aprendizaje = perfil?.aprendizaje?.porHorario || {};
@@ -3314,6 +3581,11 @@
       TURNOS.forEach((turno) => planBuckets.set(turno, []));
 
       let planSections = 0;
+      const usedPlanNumbers = new Set();
+      const limitPorTurno = 3;
+      const sortedPreds = predicciones
+        .slice()
+        .sort((a, b) => (b.score || 0) - (a.score || 0));
 
       predicciones.forEach((item) => {
         const perfil = perfilMap.get(item.numero);
@@ -3340,8 +3612,41 @@
       planGrid.className = "plan-grid";
 
       TURNOS.forEach((turno) => {
-        const candidatos = (planBuckets.get(turno) || []).filter(Boolean).sort((a, b) => b.item.score - a.item.score).slice(0, 3);
-        if (!candidatos.length) return;
+        const bucketEntries = (planBuckets.get(turno) || [])
+          .filter(Boolean)
+          .sort((a, b) => b.item.score - a.item.score);
+        const candidatos = [];
+        const numbersInCard = new Set();
+        bucketEntries.forEach((entry) => {
+          if (candidatos.length >= limitPorTurno) return;
+          if (usedPlanNumbers.has(entry.item.numero)) return;
+          candidatos.push({ ...entry, isFallback: false });
+          numbersInCard.add(entry.item.numero);
+        });
+        const needFallback = limitPorTurno - candidatos.length;
+        if (needFallback > 0) {
+          const fallback = [];
+          for (const item of sortedPreds) {
+            if (fallback.length >= needFallback) break;
+            if (numbersInCard.has(item.numero) || usedPlanNumbers.has(item.numero)) continue;
+            const yaJugado = drawsJugados.some(
+              (draw) => draw.numero === item.numero && draw.horario === turno
+            );
+            if (yaJugado) continue;
+            const perfil = perfilMap.get(item.numero);
+            fallback.push({
+              item,
+              perfil,
+              turnoInfo: { turno, ratio: 0, fuente: "contexto" },
+              lastSeen: perfil?.lastSeen || null,
+              modoDetalles: detallesModos(item.modos, item.numero),
+              patronNotas: notasPatronNumero(hallazgos, item.numero),
+              isFallback: true,
+            });
+            numbersInCard.add(item.numero);
+          }
+          candidatos.push(...fallback);
+        }
 
         const card = document.createElement("div");
         card.className = "analysis-card plan";
@@ -3359,67 +3664,90 @@
         const list = document.createElement("div");
         list.className = "plan-list";
 
-        candidatos.forEach(({ item, perfil, turnoInfo, lastSeen, modoDetalles, patronNotas }) => {
-          const row = document.createElement("div");
-          row.className = "plan-item";
+        if (!candidatos.length) {
+          const empty = document.createElement("p");
+          empty.className = "plan-empty";
+          empty.textContent = "Sin base suficiente para proponer este turno.";
+          list.appendChild(empty);
+        } else {
+          candidatos.forEach(
+            ({ item, perfil, turnoInfo, lastSeen, modoDetalles, patronNotas, isFallback }) => {
+              const row = document.createElement("div");
+              row.className = "plan-item";
+              if (isFallback) row.classList.add("plan-item--fallback");
 
-          const numberEl = document.createElement("div");
-          numberEl.className = "plan-number";
-          const symbol = getSymbol(item.numero);
-          numberEl.textContent = symbol
-            ? `${formatNumber(item.numero)} ${symbol}`
-            : formatNumber(item.numero);
-          row.appendChild(numberEl);
+              const numberEl = document.createElement("div");
+              numberEl.className = "plan-number";
+              const symbol = getSymbol(item.numero);
+              numberEl.textContent = symbol
+                ? `${formatNumber(item.numero)} ${symbol}`
+                : formatNumber(item.numero);
+              row.appendChild(numberEl);
 
-          const scoreEl = document.createElement("div");
-          scoreEl.className = "plan-score";
-          scoreEl.textContent = `${Math.round(item.score * 100)}% score`;
-          row.appendChild(scoreEl);
+              const scoreEl = document.createElement("div");
+              scoreEl.className = "plan-score";
+              scoreEl.textContent = `${Math.round(item.score * 100)}% score`;
+              row.appendChild(scoreEl);
 
-          const details = document.createElement("ul");
-          details.className = "plan-detail";
+              const details = document.createElement("ul");
+              details.className = "plan-detail";
 
-          if (lastSeen) {
-            const li = document.createElement("li");
-            const fechaFmt = formatFriendlyDate(lastSeen.fecha);
-            li.textContent = `Última vez: ${fechaFmt}${lastSeen.horario ? ` · ${lastSeen.horario}` : ""}`;
-            details.appendChild(li);
-          }
+              if (lastSeen) {
+                const li = document.createElement("li");
+                const fechaFmt = formatFriendlyDate(lastSeen.fecha);
+                li.textContent = `Última vez: ${fechaFmt}${lastSeen.horario ? ` · ${lastSeen.horario}` : ""}`;
+                details.appendChild(li);
+              }
 
-          if (contexto && Number.isFinite(item.afinidadDia) && item.afinidadDia > 0 && typeof contexto.dow === "number") {
-            const li = document.createElement("li");
-            const dowLabel = DOW_FULL_LABEL[contexto.dow] || "este día";
-            li.textContent = `Sesgo ${dowLabel}: ${(item.afinidadDia * 100).toFixed(0)}% histórico`;
-            details.appendChild(li);
-          }
+              if (
+                contexto &&
+                Number.isFinite(item.afinidadDia) &&
+                typeof contexto.dow === "number"
+              ) {
+                const biasDia = item.afinidadDia - BASELINE_DOW_RATIO;
+                if (biasDia > 0.01) {
+                  const li = document.createElement("li");
+                  const dowLabel = DOW_FULL_LABEL[contexto.dow] || "este día";
+                  li.textContent = `Sesgo ${dowLabel}: ${(item.afinidadDia * 100).toFixed(0)}% (${(biasDia * 100).toFixed(1)} pts)`;
+                  details.appendChild(li);
+                }
+              }
 
-          if (contexto?.pais && Number.isFinite(item.afinidadPais) && item.afinidadPais > 0) {
-            const li = document.createElement("li");
-            li.textContent = `Afinidad ${contexto.pais}: ${(item.afinidadPais * 100).toFixed(0)}%`;
-            details.appendChild(li);
-          }
+              if (contexto?.pais && Number.isFinite(item.afinidadPais) && item.afinidadPais > 0) {
+                const li = document.createElement("li");
+                li.textContent = `Afinidad ${contexto.pais}: ${(item.afinidadPais * 100).toFixed(0)}%`;
+                details.appendChild(li);
+              }
 
-          if (Number.isFinite(item.afinidadAnio) && item.afinidadAnio > 0) {
-            const li = document.createElement("li");
-            li.textContent = `Participación ${contexto?.year || new Date().getFullYear()}: ${(item.afinidadAnio * 100).toFixed(0)}%`;
-            details.appendChild(li);
-          }
+              if (Number.isFinite(item.afinidadAnio) && item.afinidadAnio > 0) {
+                const li = document.createElement("li");
+                li.textContent = `Participación ${contexto?.year || new Date().getFullYear()}: ${(item.afinidadAnio * 100).toFixed(0)}%`;
+                details.appendChild(li);
+              }
 
-          if (turnoInfo?.fuente === "aprendizaje" && Number.isFinite(turnoInfo.ratio)) {
-            const li = document.createElement("li");
-            li.textContent = `Historial turno ${turno}: ${(turnoInfo.ratio * 100).toFixed(0)}% acierto`;
-            details.appendChild(li);
-          }
+              if (turnoInfo?.fuente === "aprendizaje" && Number.isFinite(turnoInfo.ratio)) {
+                const li = document.createElement("li");
+                li.textContent = `Historial turno ${turno}: ${(turnoInfo.ratio * 100).toFixed(0)}% acierto`;
+                details.appendChild(li);
+              }
 
-          if (!details.children.length) {
-            const li = document.createElement("li");
-            li.textContent = "Sin contexto adicional";
-            details.appendChild(li);
-          }
+              if (isFallback) {
+                const li = document.createElement("li");
+                li.textContent = "Sin historial en este turno; sugerido por score general.";
+                details.appendChild(li);
+              }
 
-          row.appendChild(details);
-          list.appendChild(row);
-        });
+              if (!details.children.length) {
+                const li = document.createElement("li");
+                li.textContent = "Sin contexto adicional";
+                details.appendChild(li);
+              }
+
+              row.appendChild(details);
+              list.appendChild(row);
+            }
+          );
+        }
 
         card.appendChild(list);
         if (resumenVentana) {
@@ -3430,6 +3758,9 @@
         }
 
         planGrid.appendChild(card);
+        if (candidatos.length) {
+          candidatos.forEach(({ item }) => usedPlanNumbers.add(item.numero));
+        }
         planSections += 1;
       });
 
@@ -3708,6 +4039,411 @@
       note.className = "plan-note";
       note.textContent = "Plan generado con sorteos 2025 y modos validados.";
       resultPlan.appendChild(note);
+    }
+
+    function computePerfilSesgoDia(perfil, dow, year = null) {
+      if (!perfil || !Number.isFinite(dow)) return null;
+      const total = perfil.total || 0;
+      if (!total) return null;
+      const porDia = perfil.porDiaSemana || {};
+      const histCount = porDia[dow] || 0;
+      const histRatio = total ? histCount / total : 0;
+      let combined = histRatio;
+      if (year !== null && perfil.porDiaSemanaPorAnio?.[year]) {
+        const bucket = perfil.porDiaSemanaPorAnio[year];
+        const yearTotal = bucket?._total || 0;
+        if (yearTotal) {
+          const yearRatio = (bucket[dow] || 0) / yearTotal;
+          combined = yearRatio * 0.7 + histRatio * 0.3;
+        }
+      }
+      const bias = combined - BASELINE_DOW_RATIO;
+      return {
+        ratio: combined,
+        bias,
+        count: histCount,
+        total,
+      };
+    }
+
+    function renderSesgosPorDia(perfilMap, { dow = null, year = null } = {}) {
+      if (!resultBias) return;
+      resultBias.innerHTML = "";
+      if (!perfilMap || !perfilMap.size) {
+        resultBias.innerHTML = "<p class='hint'>Aún no hay datos suficientes para sesgos diarios.</p>";
+        return;
+      }
+      if (!Number.isFinite(dow)) {
+        resultBias.innerHTML = "<p class='hint'>Selecciona un día para revisar sesgos históricos.</p>";
+        return;
+      }
+      const perfiles = Array.from(perfilMap.values());
+      const entries = perfiles
+        .map((perfil) => {
+          const stats = computePerfilSesgoDia(perfil, dow, year);
+          if (!stats) return null;
+          const dayTurn = perfil.porDiaHorario?.[dow] || {};
+          const turnBreakdown = TURNOS.map((turno) => {
+            const countTurno = dayTurn?.[turno] || 0;
+            return {
+              turno,
+              count: countTurno,
+              ratio: stats.count ? countTurno / Math.max(stats.count, 1) : 0,
+            };
+          });
+          return {
+            numero: perfil.numero,
+            ...stats,
+            turnBreakdown,
+          };
+        })
+        .filter(Boolean);
+      if (!entries.length) {
+        resultBias.innerHTML = "<p class='hint'>Sin registros suficientes para evaluar sesgos.</p>";
+        return;
+      }
+      const strongBias = entries
+        .filter((entry) => entry.bias > 0.01)
+        .sort((a, b) => b.bias - a.bias);
+      let usedStrongBias = strongBias.length > 0;
+      let sortedEntries = usedStrongBias
+        ? strongBias
+        : entries.slice().sort((a, b) => b.ratio - a.ratio);
+      if (!sortedEntries.length) {
+        resultBias.innerHTML = "<p class='hint'>Sin números con recurrencia destacada para ese día.</p>";
+        return;
+      }
+      if (biasPanelState.dow !== dow) {
+        biasPanelState = {
+          dow,
+          page: 0,
+          selected: [],
+          rankingTurn: biasPanelState.rankingTurn || DEFAULT_RANKING_TURN,
+          expiresAt: 0,
+        };
+      } else {
+        if (!Array.isArray(biasPanelState.selected)) biasPanelState.selected = [];
+        if (!biasPanelState.rankingTurn) biasPanelState.rankingTurn = DEFAULT_RANKING_TURN;
+      }
+      if (biasPanelState.expiresAt && biasPanelState.expiresAt < Date.now()) {
+        biasPanelState.selected = [];
+        biasPanelState.expiresAt = 0;
+      }
+      const persistedNotes = getBiasNotesForDow(dow);
+      if (persistedNotes) {
+        const persistedSelected = Array.isArray(persistedNotes.selected) ? persistedNotes.selected : [];
+        biasPanelState.selected = persistedSelected.map((entry) => ({
+          ...entry,
+          turnBreakdown: Array.isArray(entry.turnBreakdown)
+            ? entry.turnBreakdown.map((turn) => ({ ...turn }))
+            : [],
+        }));
+        biasPanelState.rankingTurn = persistedNotes.rankingTurn || biasPanelState.rankingTurn || DEFAULT_RANKING_TURN;
+        biasPanelState.expiresAt = persistedNotes.expiresAt || biasPanelState.expiresAt || 0;
+      }
+      const pageSize = 6;
+      const totalPages = Math.max(1, Math.ceil(sortedEntries.length / pageSize));
+      const currentPage = Math.min(
+        Math.max(biasPanelState.page || 0, 0),
+        totalPages - 1
+      );
+      if (biasPanelState.page !== currentPage) biasPanelState.page = currentPage;
+      const pageEntries = sortedEntries.slice(
+        currentPage * pageSize,
+        currentPage * pageSize + pageSize
+      );
+      if (!pageEntries.length) {
+        biasPanelState.page = 0;
+        return renderSesgosPorDia(perfilMap, { dow, year });
+      }
+      const dowLabel = DOW_FULL_LABEL[dow] || "este día";
+      const card = document.createElement("div");
+      card.className = "analysis-card bias accent-soft";
+
+      const head = document.createElement("div");
+      head.className = "card-head";
+      head.textContent = `Sesgos ${dowLabel}`;
+      card.appendChild(head);
+
+      const meta = document.createElement("div");
+      meta.className = "analysis-note";
+      const yearLabel = Number.isFinite(year) ? ` ${year}` : "";
+      meta.textContent = usedStrongBias
+        ? `Top sesgos positivos para ${dowLabel}${yearLabel ? ` (${yearLabel})` : ""}.`
+        : `Sin sesgos fuertes para ${dowLabel}; se muestran las participaciones más altas${yearLabel ? ` ${yearLabel}` : ""}.`;
+      card.appendChild(meta);
+
+      let selectedEntries = Array.isArray(biasPanelState.selected) ? biasPanelState.selected : [];
+      let needsSelectionResync = false;
+      selectedEntries = selectedEntries.map((entry) => {
+        const resolvedSymbol = entry.symbol || getSymbol(entry.numero) || "";
+        if (entry.symbol !== resolvedSymbol) needsSelectionResync = true;
+        return {
+          ...entry,
+          symbol: resolvedSymbol,
+          turnBreakdown: Array.isArray(entry.turnBreakdown)
+            ? entry.turnBreakdown.map((turn) => ({ ...turn }))
+            : [],
+        };
+      });
+      biasPanelState.selected = selectedEntries;
+      if (needsSelectionResync && selectedEntries.length) {
+        syncBiasNotesPersistence(dow);
+      }
+
+      const selectionPanel = document.createElement("div");
+      selectionPanel.className = "bias-selection";
+      const selectionTitle = document.createElement("div");
+      selectionTitle.className = "bias-selection__title";
+      selectionTitle.textContent = "Apunte rápido";
+      selectionPanel.appendChild(selectionTitle);
+      const selectionBody = document.createElement("div");
+      selectionBody.className = "bias-selection__body";
+      if (!selectedEntries.length) {
+        selectionBody.textContent = "Selecciona uno o varios números para guardarlos mientras revisas este día.";
+        selectionPanel.appendChild(selectionBody);
+      } else {
+        const selectionGrid = document.createElement("div");
+        selectionGrid.className = "bias-selection__grid";
+        selectedEntries.forEach((savedEntry) => {
+          const chip = document.createElement("div");
+          chip.className = "bias-selection-chip";
+
+          const chipHead = document.createElement("div");
+          chipHead.className = "bias-selection-chip__head";
+          const chipNumber = document.createElement("div");
+          chipNumber.className = "bias-selection-chip__number";
+          const chipSymbol = savedEntry.symbol ? `<span class="bias-number-symbol">${savedEntry.symbol}</span>` : "";
+          chipNumber.innerHTML = `<span class="bias-selection-chip__number-main">${formatNumber(savedEntry.numero)}</span>${chipSymbol}`;
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "bias-selection-chip__remove";
+          removeBtn.textContent = "Quitar";
+          removeBtn.addEventListener("click", () => {
+            biasPanelState.selected = selectedEntries.filter((item) => item.numero !== savedEntry.numero);
+            syncBiasNotesPersistence(dow);
+            renderSesgosPorDia(perfilMap, { dow, year });
+          });
+          chipHead.append(chipNumber, removeBtn);
+
+          const chipMeta = document.createElement("div");
+          chipMeta.className = "bias-selection-chip__meta";
+          chipMeta.textContent = `${(savedEntry.ratio * 100).toFixed(1)}% · ${savedEntry.count} apariciones`;
+
+          const bestTurn =
+            (savedEntry.turnBreakdown || []).slice().sort((a, b) => b.ratio - a.ratio)[0] || null;
+          let turnEl = null;
+          if (bestTurn && (bestTurn.count || bestTurn.ratio)) {
+            turnEl = document.createElement("div");
+            turnEl.className = "bias-selection-chip__turn";
+            turnEl.innerHTML = `Horario destacado: <strong>${bestTurn.turno}</strong> (${(
+              bestTurn.ratio * 100
+            ).toFixed(0)}% · ${bestTurn.count || 0}x)`;
+          }
+
+          chip.append(chipHead, chipMeta);
+          if (turnEl) chip.appendChild(turnEl);
+          selectionGrid.appendChild(chip);
+        });
+        selectionBody.appendChild(selectionGrid);
+        selectionPanel.appendChild(selectionBody);
+        const clearBtn = document.createElement("button");
+        clearBtn.type = "button";
+        clearBtn.className = "bias-selection__reset";
+        clearBtn.textContent = "Vaciar apunte";
+        clearBtn.addEventListener("click", () => {
+          biasPanelState.selected = [];
+          syncBiasNotesPersistence(dow);
+          renderSesgosPorDia(perfilMap, { dow, year });
+        });
+        selectionPanel.appendChild(clearBtn);
+      }
+      card.appendChild(selectionPanel);
+
+      if (selectedEntries.length) {
+        const rankingTurn = TURNOS.includes(biasPanelState.rankingTurn)
+          ? biasPanelState.rankingTurn
+          : DEFAULT_RANKING_TURN;
+        if (rankingTurn !== biasPanelState.rankingTurn) biasPanelState.rankingTurn = rankingTurn;
+        const rankingBlock = document.createElement("div");
+        rankingBlock.className = "bias-ranking";
+        const rankingHead = document.createElement("div");
+        rankingHead.className = "bias-ranking__head";
+        const rankingTitle = document.createElement("div");
+        rankingTitle.className = "bias-ranking__title";
+        rankingTitle.textContent = "Ranking por sorteo";
+        const rankingControl = document.createElement("label");
+        rankingControl.className = "bias-ranking-control";
+        const rankingLabel = document.createElement("span");
+        rankingLabel.textContent = "Horario objetivo";
+        const rankingSelect = document.createElement("select");
+        TURNOS.forEach((turno) => {
+          const option = document.createElement("option");
+          option.value = turno;
+          option.textContent = turno;
+          if (turno === rankingTurn) option.selected = true;
+          rankingSelect.appendChild(option);
+        });
+        rankingSelect.addEventListener("change", (e) => {
+          biasPanelState.rankingTurn = e.target.value;
+          syncBiasNotesPersistence(dow);
+          renderSesgosPorDia(perfilMap, { dow, year });
+        });
+        rankingControl.append(rankingLabel, rankingSelect);
+        rankingHead.append(rankingTitle, rankingControl);
+        rankingBlock.appendChild(rankingHead);
+
+        const rankingEntries = selectedEntries
+          .map((entry) => {
+            const matchTurn = (entry.turnBreakdown || []).find((turn) => turn.turno === rankingTurn) || null;
+            const turnRatio = matchTurn?.ratio || 0;
+            const turnCount = matchTurn?.count || 0;
+            return {
+              numero: entry.numero,
+              symbol: entry.symbol || "",
+              turnRatio,
+              turnCount,
+            };
+          })
+          .sort((a, b) => b.turnRatio - a.turnRatio || b.turnCount - a.turnCount);
+
+        const rankingList = document.createElement("div");
+        rankingList.className = "bias-ranking__list";
+        rankingEntries.forEach((entry, index) => {
+          const item = document.createElement("div");
+          item.className = "bias-ranking-item";
+          const ratio = Math.max(0, Math.min(1, entry.turnRatio || 0));
+          const hue = 150 - ratio * 90;
+          const light = 45 + Math.min(index, 5) * 3;
+          const accent = `hsl(${hue}, 75%, ${light}%)`;
+          const glow = `hsla(${hue}, 80%, ${Math.min(light + 15, 75)}%, 0.55)`;
+          item.style.setProperty("--rank-accent", accent);
+          item.style.setProperty("--rank-glow", glow);
+
+          const numberEl = document.createElement("div");
+          numberEl.className = "bias-ranking-item__number";
+          const rankingSymbol = entry.symbol ? `<span class="bias-number-symbol">${entry.symbol}</span>` : "";
+          numberEl.innerHTML = `<span class="bias-selection-chip__number-main">${formatNumber(entry.numero)}</span>${rankingSymbol}`;
+
+          const details = document.createElement("div");
+          details.className = "bias-ranking-item__details";
+          const pct = (ratio * 100).toFixed(1);
+          details.innerHTML = `<strong>${pct}%</strong> en ${rankingTurn} · ${entry.turnCount} apariciones`;
+
+          const meter = document.createElement("div");
+          meter.className = "bias-ranking-item__meter";
+          const fill = document.createElement("div");
+          fill.className = "bias-ranking-item__meter-fill";
+          fill.style.width = `${Math.min(100, ratio * 100)}%`;
+          meter.appendChild(fill);
+
+          item.append(numberEl, details, meter);
+          rankingList.appendChild(item);
+        });
+        rankingBlock.appendChild(rankingList);
+        card.appendChild(rankingBlock);
+      }
+
+      const list = document.createElement("div");
+      list.className = "bias-list";
+
+      pageEntries.forEach((entry) => {
+        const row = document.createElement("div");
+        row.className = "bias-row";
+        const isSelected = selectedEntries.some((sel) => sel.numero === entry.numero);
+        if (isSelected) row.classList.add("bias-row--selected");
+
+        const numberEl = document.createElement("div");
+        numberEl.className = "bias-number";
+        const symbol = getSymbol(entry.numero);
+        const symbolSpan = symbol ? `<span class="bias-number-symbol">${symbol}</span>` : "";
+        numberEl.innerHTML = `<span class="bias-number-main">${formatNumber(entry.numero)}</span>${symbolSpan}`;
+
+        const statsEl = document.createElement("div");
+        statsEl.className = "bias-metrics";
+        const ratioPct = (entry.ratio * 100).toFixed(1);
+        const biasPct = (entry.bias * 100).toFixed(1);
+        const biasTag = document.createElement("span");
+        biasTag.className = `bias-chip ${entry.bias >= 0 ? "bias-chip--positive" : "bias-chip--neutral"}`;
+        biasTag.textContent = `${entry.bias >= 0 ? "+" : ""}${biasPct} pts`;
+        statsEl.innerHTML = `<strong>${ratioPct}%</strong> apariciones`;
+        statsEl.appendChild(biasTag);
+
+        const metaEl = document.createElement("div");
+        metaEl.className = "bias-meta";
+        metaEl.textContent = `${entry.count} de ${entry.total} registros`;
+
+        row.appendChild(numberEl);
+        row.appendChild(statsEl);
+        row.appendChild(metaEl);
+        const turnWrap = document.createElement("div");
+        turnWrap.className = "bias-turns";
+        entry.turnBreakdown.forEach((turnEntry) => {
+          const chip = document.createElement("span");
+          chip.className = "bias-turn";
+          if (!turnEntry.count) chip.classList.add("bias-turn--zero");
+          chip.innerHTML = `<strong>${turnEntry.turno}</strong> ${(turnEntry.ratio * 100).toFixed(0)}% · ${turnEntry.count}x`;
+          turnWrap.appendChild(chip);
+        });
+        row.appendChild(turnWrap);
+
+        const actions = document.createElement("div");
+        actions.className = "bias-row-actions";
+        const selectBtn = document.createElement("button");
+        selectBtn.type = "button";
+        selectBtn.className = `bias-select-btn${isSelected ? " bias-select-btn--active" : ""}`;
+        selectBtn.textContent = isSelected ? "En apunte" : "Agregar al apunte";
+        selectBtn.disabled = isSelected;
+        selectBtn.addEventListener("click", () => {
+          if (isSelected) return;
+          const payload = {
+            numero: entry.numero,
+            ratio: entry.ratio,
+            bias: entry.bias,
+            count: entry.count,
+            turnBreakdown: entry.turnBreakdown.map((turn) => ({ ...turn })),
+            symbol: symbol || "",
+          };
+          biasPanelState.selected = [...selectedEntries, payload];
+          syncBiasNotesPersistence(dow);
+          renderSesgosPorDia(perfilMap, { dow, year });
+        });
+        actions.appendChild(selectBtn);
+        row.appendChild(actions);
+
+        list.appendChild(row);
+      });
+
+      card.appendChild(list);
+      if (totalPages > 1) {
+        const pager = document.createElement("div");
+        pager.className = "bias-pagination";
+        const prevBtn = document.createElement("button");
+        prevBtn.type = "button";
+        prevBtn.textContent = "‹";
+        prevBtn.disabled = currentPage === 0;
+        prevBtn.addEventListener("click", () => {
+          if (biasPanelState.page > 0) {
+            biasPanelState.page -= 1;
+            renderSesgosPorDia(perfilMap, { dow, year });
+          }
+        });
+        const info = document.createElement("span");
+        info.textContent = `Página ${currentPage + 1}/${totalPages}`;
+        const nextBtn = document.createElement("button");
+        nextBtn.type = "button";
+        nextBtn.textContent = "›";
+        nextBtn.disabled = currentPage >= totalPages - 1;
+        nextBtn.addEventListener("click", () => {
+          if (biasPanelState.page < totalPages - 1) {
+            biasPanelState.page += 1;
+            renderSesgosPorDia(perfilMap, { dow, year });
+          }
+        });
+        pager.append(prevBtn, info, nextBtn);
+        card.appendChild(pager);
+      }
+      resultBias.appendChild(card);
     }
 
     function aplicarBonusEstrategias(predicciones = [], estrategias = [], contexto = {}) {
@@ -5312,6 +6048,7 @@ function buildVariantEntries(profile) {
       day: "view-day",
       hypo: "view-hypo",
       analysis: "view-analysis",
+      transform: "view-transform",
       strategies: "view-strategies",
       notebook: "view-notebook",
       geometry: "view-geometry",
