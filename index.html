@@ -4397,6 +4397,12 @@
           item.style.setProperty("--rank-accent", accent);
           item.style.setProperty("--rank-glow", glow);
 
+          const header = document.createElement("div");
+          header.className = "bias-ranking-item__header";
+          const orderEl = document.createElement("div");
+          orderEl.className = "bias-ranking-item__order";
+          orderEl.textContent = String(index + 1).padStart(2, "0");
+
           const numberEl = document.createElement("div");
           numberEl.className = "bias-ranking-item__number";
           const rankingSymbol = entry.symbol ? `<span class="bias-number-symbol">${entry.symbol}</span>` : "";
@@ -4407,6 +4413,8 @@
           const pct = (ratio * 100).toFixed(1);
           details.innerHTML = `<strong>${pct}%</strong> en ${rankingTurn} · ${entry.turnCount} apariciones`;
 
+          header.append(orderEl, numberEl, details);
+
           const meter = document.createElement("div");
           meter.className = "bias-ranking-item__meter";
           const fill = document.createElement("div");
@@ -4414,7 +4422,7 @@
           fill.style.width = `${Math.min(100, ratio * 100)}%`;
           meter.appendChild(fill);
 
-          item.append(numberEl, details, meter);
+          item.append(header, meter);
           rankingList.appendChild(item);
         });
         rankingBlock.appendChild(rankingList);

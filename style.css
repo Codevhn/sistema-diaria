@@ -3097,6 +3097,25 @@ button.ghost:hover {
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
 }
 
+.bias-ranking-item__header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+
+.bias-ranking-item__order {
+  min-width: 2.4rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  color: rgba(15, 26, 38, 0.9);
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.95), rgba(255, 215, 128, 0.9));
+  text-align: center;
+  box-shadow: 0 0 10px rgba(255, 210, 125, 0.6);
+}
+
 .bias-ranking-item__number {
   display: flex;
   align-items: baseline;
