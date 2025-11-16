@@ -173,6 +173,9 @@
           </div>
           <div class="day-card__body">
             <div id="history-summary" class="panel-meta">Selecciona una fecha para revisar sus sorteos.</div>
+            <div id="history-coverage" class="history-coverage">
+              <p class="hint">Ingresa sorteos históricos para ver la última fecha registrada por año.</p>
+            </div>
             <div id="history-table" class="table-wrap table-wrap--history"></div>
           </div>
         </article>
@@ -1899,6 +1902,7 @@
     const historyLimitSelect = document.getElementById("history-limit");
     const historyTableWrap = document.getElementById("history-table");
     const historySummary = document.getElementById("history-summary");
+    const historyCoveragePanel = document.getElementById("history-coverage");
     const historySearchBtn = document.getElementById("history-search");
     const historyClearBtn = document.getElementById("history-clear");
     const historyRefreshBtn = document.getElementById("history-refresh");
@@ -2278,12 +2282,85 @@
       return badges.join("");
     }
 
+    function computeYearCoverage(draws = []) {
+      const map = new Map();
+      draws.forEach((draw) => {
+        const fecha = (draw?.fecha || "").trim();
+        if (!fecha) return;
+        const year = parseInt(fecha.slice(0, 4), 10);
+        if (!Number.isFinite(year)) return;
+        const entry = map.get(year) || { year, min: null, max: null, count: 0 };
+        entry.count += 1;
+        if (!entry.min || fecha < entry.min) entry.min = fecha;
+        if (!entry.max || fecha > entry.max) entry.max = fecha;
+        map.set(year, entry);
+      });
+      return Array.from(map.values()).sort((a, b) => b.year - a.year);
+    }
+
+    function renderHistoryCoverage(draws = []) {
+      if (!historyCoveragePanel) return;
+      const currentYear = new Date().getFullYear();
+      const coverage = computeYearCoverage(draws);
+      const pastYears = coverage.filter((entry) => entry.year < currentYear);
+      if (!pastYears.length) {
+        historyCoveragePanel.innerHTML =
+          "<p class='hint'>Aún no registras sorteos de años anteriores — importa o agrega uno para llevar control.</p>";
+        return;
+      }
+      const rows = [];
+      let cursorYear = currentYear - 1;
+      pastYears.forEach((record) => {
+        for (let year = cursorYear; year > record.year; year -= 1) {
+          rows.push({ year, missing: true });
+        }
+        rows.push({ ...record, missing: false });
+        cursorYear = record.year - 1;
+      });
+      const title = document.createElement("div");
+      title.className = "history-coverage__title";
+      title.textContent = "Cobertura histórica";
+      const list = document.createElement("div");
+      list.className = "history-coverage__list";
+      rows.forEach((row) => {
+        if (!row.year || row.year >= currentYear) return;
+        const item = document.createElement("div");
+        item.className = "history-coverage__row";
+        if (row.missing) item.classList.add("history-coverage__row--missing");
+        const yearEl = document.createElement("div");
+        yearEl.className = "history-coverage__year";
+        yearEl.textContent = row.year;
+        const info = document.createElement("div");
+        info.className = "history-coverage__info";
+        if (row.missing) {
+          info.innerHTML = `
+            <div class="history-coverage__label">Pendiente</div>
+            <div class="history-coverage__range">Sin sorteos registrados para ${row.year}.</div>
+          `;
+        } else {
+          const countLabel = `${row.count} sorteo${row.count === 1 ? "" : "s"}`;
+          const lastLabel = row.max ? formatFriendlyDate(row.max) : "";
+          const firstLabel = row.min && row.min !== row.max ? formatFriendlyDate(row.min) : "";
+          const rangeText = firstLabel ? `Primer registro: ${firstLabel}` : "";
+          info.innerHTML = `
+            <div class="history-coverage__label">Último: ${lastLabel}</div>
+            <div class="history-coverage__range">${countLabel}${rangeText ? ` · ${rangeText}` : ""}</div>
+          `;
+        }
+        item.append(yearEl, info);
+        list.appendChild(item);
+      });
+      historyCoveragePanel.innerHTML = "";
+      historyCoveragePanel.append(title, list);
+    }
+
     async function refreshHistoryPanel({ forceReload = false, defaultView = false } = {}) {
       if (!historyTableWrap) return;
       if (defaultView && historySummary) {
         historySummary.textContent = "Mostrando los últimos sorteos registrados.";
       }
       const draws = await getCachedDraws({ force: forceReload });
+      renderHistoryCoverage(draws);
       if (!draws.length) {
         historyTableWrap.innerHTML = "<p class='hint'>Aún no hay sorteos almacenados.</p>";
         if (historySummary) historySummary.textContent = "Sin registros.";
