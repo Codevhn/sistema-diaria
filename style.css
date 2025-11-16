@@ -3110,14 +3110,10 @@ button.ghost:hover {
   font-weight: 700;
   font-size: 0.95rem;
   letter-spacing: 0.08em;
-  color: rgba(15, 26, 38, 0.9);
-  background: linear-gradient(
-    130deg,
-    rgba(255, 255, 255, 0.95),
-    var(--rank-accent, rgba(255, 215, 128, 0.9))
-  );
+  color: rgba(24, 8, 34, 0.95);
+  background: linear-gradient(130deg, rgba(252, 242, 255, 0.95), rgba(211, 145, 255, 0.9));
   text-align: center;
-  box-shadow: 0 0 10px var(--rank-glow, rgba(255, 210, 125, 0.6));
+  box-shadow: 0 0 10px rgba(203, 124, 255, 0.35);
 }
 
 .bias-ranking-item__number {
