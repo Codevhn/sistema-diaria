@@ -4410,32 +4410,8 @@
         const shouldAutoFilter =
           typeof biasPanelState.rankingAutoFilter === "boolean" ? biasPanelState.rankingAutoFilter : true;
         if (shouldAutoFilter && rankingEntries.length > 1) {
-          const maxCount = Math.max(...rankingEntries.map((entry) => entry.turnCount || 0));
-          if (maxCount > 0) {
-            rankingEntries = rankingEntries.filter((entry) => (entry.turnCount || 0) === maxCount);
-          } else {
-            const maxRatio = Math.max(...rankingEntries.map((entry) => entry.turnRatio || 0));
-            if (maxRatio > 0) {
-              rankingEntries = rankingEntries.filter(
-                (entry) => Math.abs((entry.turnRatio || 0) - maxRatio) < 1e-4
-              );
-            }
-          }
-          if (!rankingEntries.length) {
-            rankingEntries = selectedEntries
-              .map((entry) => {
-                const matchTurn = (entry.turnBreakdown || []).find((turn) => turn.turno === rankingTurn) || null;
-                const turnRatio = matchTurn?.ratio || 0;
-                const turnCount = matchTurn?.count || 0;
-                return {
-                  numero: entry.numero,
-                  symbol: entry.symbol || "",
-                  turnRatio,
-                  turnCount,
-                };
-              })
-              .sort((a, b) => b.turnRatio - a.turnRatio || b.turnCount - a.turnCount);
-          }
+          const TOP_LIMIT = Math.min(6, rankingEntries.length);
+          rankingEntries = rankingEntries.slice(0, TOP_LIMIT);
         }
 
         const rankingList = document.createElement("div");
