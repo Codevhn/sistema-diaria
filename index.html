@@ -1270,6 +1270,7 @@
       page: 0,
       selected: [],
       rankingTurn: DEFAULT_RANKING_TURN,
+      rankingAutoFilter: true,
       expiresAt: 0,
     };
     const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
@@ -1505,6 +1506,7 @@
       const key = `dow-${dow}`;
       const selected = Array.isArray(state.selected) ? state.selected : [];
       const rankingTurn = state.rankingTurn || DEFAULT_RANKING_TURN;
+      const autoFilter = typeof state.autoFilter === "boolean" ? state.autoFilter : true;
       if (!selected.length) {
         if (store[key]) {
           delete store[key];
@@ -1525,6 +1527,7 @@
         dow,
         selected: storedSelected,
         rankingTurn,
+        autoFilter,
         expiresAt,
         savedAt: Date.now(),
       };
@@ -1536,12 +1539,13 @@
       if (!Number.isFinite(dow)) return;
       const selected = Array.isArray(biasPanelState?.selected) ? biasPanelState.selected : [];
       const rankingTurn = biasPanelState?.rankingTurn || DEFAULT_RANKING_TURN;
+      const autoFilter = typeof biasPanelState?.rankingAutoFilter === "boolean" ? biasPanelState.rankingAutoFilter : true;
       if (selected.length) {
         biasPanelState.expiresAt = computeBiasNoteExpiry(rankingTurn);
       } else {
         biasPanelState.expiresAt = 0;
       }
-      persistBiasNotesForDow(dow, { selected, rankingTurn });
+      persistBiasNotesForDow(dow, { selected, rankingTurn, autoFilter });
     }
 
     async function getCachedDraws({ force = false } = {}) {
@@ -4196,11 +4200,14 @@
           page: 0,
           selected: [],
           rankingTurn: biasPanelState.rankingTurn || DEFAULT_RANKING_TURN,
+          rankingAutoFilter:
+            typeof biasPanelState.rankingAutoFilter === "boolean" ? biasPanelState.rankingAutoFilter : true,
           expiresAt: 0,
         };
       } else {
         if (!Array.isArray(biasPanelState.selected)) biasPanelState.selected = [];
         if (!biasPanelState.rankingTurn) biasPanelState.rankingTurn = DEFAULT_RANKING_TURN;
+        if (typeof biasPanelState.rankingAutoFilter !== "boolean") biasPanelState.rankingAutoFilter = true;
       }
       if (biasPanelState.expiresAt && biasPanelState.expiresAt < Date.now()) {
         biasPanelState.selected = [];
@@ -4216,6 +4223,9 @@
             : [],
         }));
         biasPanelState.rankingTurn = persistedNotes.rankingTurn || biasPanelState.rankingTurn || DEFAULT_RANKING_TURN;
+        if (typeof persistedNotes.autoFilter === "boolean") {
+          biasPanelState.rankingAutoFilter = persistedNotes.autoFilter;
+        }
         biasPanelState.expiresAt = persistedNotes.expiresAt || biasPanelState.expiresAt || 0;
       }
       const pageSize = 6;
@@ -4367,10 +4377,24 @@
           renderSesgosPorDia(perfilMap, { dow, year });
         });
         rankingControl.append(rankingLabel, rankingSelect);
-        rankingHead.append(rankingTitle, rankingControl);
+        const rankingAutoFilter = typeof biasPanelState.rankingAutoFilter === "boolean"
+          ? biasPanelState.rankingAutoFilter
+          : true;
+        const autoFilterToggle = document.createElement("label");
+        autoFilterToggle.className = "bias-ranking-toggle";
+        const toggleInput = document.createElement("input");
+        toggleInput.type = "checkbox";
+        toggleInput.checked = rankingAutoFilter;
+        toggleInput.addEventListener("change", (e) => {
+          biasPanelState.rankingAutoFilter = !!e.target.checked;
+          syncBiasNotesPersistence(dow);
+          renderSesgosPorDia(perfilMap, { dow, year });
+        });
+        autoFilterToggle.append(toggleInput, document.createTextNode("Auto-depurar top apariciones"));
+        rankingHead.append(rankingTitle, rankingControl, autoFilterToggle);
         rankingBlock.appendChild(rankingHead);
 
-        const rankingEntries = selectedEntries
+        let rankingEntries = selectedEntries
           .map((entry) => {
             const matchTurn = (entry.turnBreakdown || []).find((turn) => turn.turno === rankingTurn) || null;
             const turnRatio = matchTurn?.ratio || 0;
@@ -4383,6 +4407,36 @@
             };
           })
           .sort((a, b) => b.turnRatio - a.turnRatio || b.turnCount - a.turnCount);
+        const shouldAutoFilter =
+          typeof biasPanelState.rankingAutoFilter === "boolean" ? biasPanelState.rankingAutoFilter : true;
+        if (shouldAutoFilter && rankingEntries.length > 1) {
+          const maxCount = Math.max(...rankingEntries.map((entry) => entry.turnCount || 0));
+          if (maxCount > 0) {
+            rankingEntries = rankingEntries.filter((entry) => (entry.turnCount || 0) === maxCount);
+          } else {
+            const maxRatio = Math.max(...rankingEntries.map((entry) => entry.turnRatio || 0));
+            if (maxRatio > 0) {
+              rankingEntries = rankingEntries.filter(
+                (entry) => Math.abs((entry.turnRatio || 0) - maxRatio) < 1e-4
+              );
+            }
+          }
+          if (!rankingEntries.length) {
+            rankingEntries = selectedEntries
+              .map((entry) => {
+                const matchTurn = (entry.turnBreakdown || []).find((turn) => turn.turno === rankingTurn) || null;
+                const turnRatio = matchTurn?.ratio || 0;
+                const turnCount = matchTurn?.count || 0;
+                return {
+                  numero: entry.numero,
+                  symbol: entry.symbol || "",
+                  turnRatio,
+                  turnCount,
+                };
+              })
+              .sort((a, b) => b.turnRatio - a.turnRatio || b.turnCount - a.turnCount);
+          }
+        }
 
         const rankingList = document.createElement("div");
         rankingList.className = "bias-ranking__list";
