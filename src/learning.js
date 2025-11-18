@@ -39,6 +39,7 @@ function ensureProfile(container, numero) {
       porPais: {},
       porHorario: {},
       porDiaSemana: {},
+      porDiaHorario: {},
       porHorarioPorAnio: {},
       porDiaSemanaPorAnio: {},
       porPaisHorario: {},
@@ -98,6 +99,11 @@ function registerOccurrence(profile, draw, daysSincePrev, prevDraw) {
   // Día de la semana
   const dow = draw.dayOfWeek;
   if (dow !== null) profile.porDiaSemana[dow] = (profile.porDiaSemana[dow] || 0) + 1;
+  if (dow !== null && draw.horario) {
+    if (!profile.porDiaHorario[dow]) profile.porDiaHorario[dow] = {};
+    profile.porDiaHorario[dow][draw.horario] =
+      (profile.porDiaHorario[dow][draw.horario] || 0) + 1;
+  }
 
   // Horario por año
   const year = draw.fechaDate ? draw.fechaDate.getFullYear() : null;
