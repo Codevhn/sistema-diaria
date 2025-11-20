@@ -824,6 +824,12 @@
   </main>
 
   <div id="toast-container" class="toast-container"></div>
+  <div id="processing-modal" class="processing-modal hidden" aria-live="polite">
+    <div class="processing-box">
+      <div class="processing-spinner"></div>
+      <div class="processing-text">Guardando datos…<br />Por favor espere</div>
+    </div>
+  </div>
 
   <script type="module">
     import { mostrarGuia } from "./src/guide-grid.js";
@@ -872,6 +878,9 @@
     import { logInfo, logWarn } from "./src/logger.js";
     import { runDexieToSupabaseImport } from "./src/dexieToSupabaseImporter.js";
     import { getCurrentUser, logout as supabaseLogout } from "./src/auth.js";
+    const processingModal = document.getElementById("processing-modal");
+    const showProcessing = () => processingModal?.classList.remove("hidden");
+    const hideProcessing = () => processingModal?.classList.add("hidden");
 
     let guideLoadError = null;
 
@@ -1866,6 +1875,7 @@
       }
 
       try {
+        showProcessing();
         for (const { config, numero, isTest } of payloads) {
           const opts = isTest ? { source: "test" } : {};
           await importarManual({ fecha, pais, horario: config.key, numero }, opts);
@@ -1888,6 +1898,8 @@
       } catch (err) {
         console.error("saveDay error", err);
         showToast(`No se pudieron guardar los sorteos: ${err.message}`, { variant: "danger" });
+      } finally {
+        hideProcessing();
       }
     });
 
