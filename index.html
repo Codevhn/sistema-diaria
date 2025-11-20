@@ -1547,8 +1547,14 @@
 
     const getSymbol = (numero) => {
       const key = normalizeNumeroKey(numero);
-      const entry = key ? GUIA[key] : null;
-      return entry?.simbolo || "";
+      const rawKey = (numero ?? "").toString().trim();
+      const candidates = [key, rawKey, formatNumber(rawKey)];
+      for (const cand of candidates) {
+        if (!cand) continue;
+        const entry = GUIA[cand];
+        if (entry?.simbolo) return entry.simbolo;
+      }
+      return "";
     };
 
     function loadTrackingState() {
