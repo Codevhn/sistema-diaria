@@ -2,6 +2,7 @@
 import { DB } from "./storage.js";
 import { GUIA } from "./loader.js";
 import { parseDrawDate, formatDateISO } from "./date-utils.js";
+import { logWarn } from "./logger.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
@@ -202,7 +203,7 @@ async function loadHypotheses() {
     }
     return map;
   } catch (err) {
-    console.warn("No se pudieron cargar hipótesis", err);
+    logWarn("No se pudieron cargar hipótesis", err);
     return new Map();
   }
 }

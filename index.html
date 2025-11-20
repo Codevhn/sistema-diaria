@@ -709,8 +709,18 @@
     <!-- CONFIGURACIÓN -->
     <section id="view-config" class="view hidden">
       <h2>Configuración</h2>
-      <p>• Sidebar expandido con nombres.</p>
-      <p>• Tema oscuro con acentos dorados y esferas animadas.</p>
+      <div class="card">
+        <div class="card-head">Migración de datos</div>
+        <div class="card-body">
+          <p class="hint">
+            Usa el importador existente para enviar los datos de Dexie a Supabase. Observa el progreso por tabla y los
+            errores que puedan aparecer.
+          </p>
+          <div class="row">
+            <button id="btn-migrar-dexie" class="btn-primary">Migrar Dexie → Supabase</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- MANTENIMIENTO -->
@@ -875,6 +885,8 @@
     } from "./src/modes.js";
     import { evaluarModos } from "./src/mode-engine.js";
     import { formatDateISO, getTodayISODate } from "./src/date-utils.js";
+    import { logInfo, logWarn } from "./src/logger.js";
+    import { runDexieToSupabaseImport } from "./src/dexieToSupabaseImporter.js";
 
     let guideLoadError = null;
     try {
@@ -886,18 +898,18 @@
     try {
       const autoFix = await DB.fixFutureDatedDraws({ maxAheadDays: 1 });
       if (autoFix?.length) {
-        console.info("Sorteos corregidos automáticamente:", autoFix);
+        logInfo("Sorteos corregidos automáticamente:", autoFix);
         showToast(`Se corrigieron ${autoFix.length} sorteos con fecha adelantada.`, { variant: "info" });
       }
     } catch (err) {
-      console.warn("No se pudieron corregir fechas adelantadas automáticamente", err);
+      logWarn("No se pudieron corregir fechas adelantadas automáticamente", err);
     }
 
     const toastContainer = document.getElementById("toast-container");
 
     function showToast(message, { variant = "info", timeout = 4200 } = {}) {
       if (!toastContainer) {
-        console.warn("Toast:", message);
+        logWarn("Toast:", message);
         return;
       }
       const toast = document.createElement("div");
@@ -1475,7 +1487,7 @@
         if (window.localStorage) stores.push(window.localStorage);
       } catch (err) {
         if (!biasLocalStorageWarned) {
-          console.warn("Sesgos: localStorage no disponible", err);
+          logWarn("Sesgos: localStorage no disponible", err);
           biasLocalStorageWarned = true;
         }
       }
@@ -1483,7 +1495,7 @@
         if (window.sessionStorage) stores.push(window.sessionStorage);
       } catch (err) {
         if (!biasSessionStorageWarned) {
-          console.warn("Sesgos: sessionStorage no disponible", err);
+          logWarn("Sesgos: sessionStorage no disponible", err);
           biasSessionStorageWarned = true;
         }
       }
@@ -1502,7 +1514,7 @@
             storage.setItem(BIAS_LAST_DOW_KEY, String(value));
           }
         } catch (err) {
-          console.warn("Sesgos: no se pudo guardar el día preferido", err);
+          logWarn("Sesgos: no se pudo guardar el día preferido", err);
         }
       });
     }
@@ -1516,7 +1528,7 @@
           const value = storage.getItem(BIAS_LAST_DOW_KEY);
           if (value !== null && value !== undefined && value !== "") return value;
         } catch (err) {
-          console.warn("Sesgos: no se pudo leer el día preferido", err);
+          logWarn("Sesgos: no se pudo leer el día preferido", err);
         }
       }
       return null;
@@ -1568,7 +1580,7 @@
         if (!parsed?.fecha) return null;
         return parsed;
       } catch (err) {
-        console.warn("load tracking state failed", err);
+        logWarn("load tracking state failed", err);
         return null;
       }
     }
@@ -1584,7 +1596,7 @@
           window.localStorage.setItem(TRACKING_STORAGE_KEY, JSON.stringify(state));
         }
       } catch (err) {
-        console.warn("save tracking state failed", err);
+        logWarn("save tracking state failed", err);
       }
     }
 
@@ -1618,7 +1630,7 @@
             break;
           }
         } catch (err) {
-          console.warn("No se pudo cargar apuntes de sesgos", err);
+          logWarn("No se pudo cargar apuntes de sesgos", err);
         }
       }
       if (fallbackData && sourceIndex > 0) {
@@ -1628,7 +1640,7 @@
           try {
             storage.setItem(BIAS_NOTES_STORAGE_KEY, fallbackRaw);
           } catch (err) {
-            console.warn("No se pudo sincronizar apuntes guardados", err);
+            logWarn("No se pudo sincronizar apuntes guardados", err);
           }
         }
       }
@@ -1644,7 +1656,7 @@
         try {
           serialized = JSON.stringify(store);
         } catch (err) {
-          console.warn("No se pudo serializar apuntes de sesgos", err);
+          logWarn("No se pudo serializar apuntes de sesgos", err);
           return;
         }
       }
@@ -1657,7 +1669,7 @@
             storage.setItem(BIAS_NOTES_STORAGE_KEY, serialized);
           }
         } catch (err) {
-          console.warn("No se pudo guardar apuntes de sesgos", err);
+          logWarn("No se pudo guardar apuntes de sesgos", err);
         }
       });
     }
@@ -7002,7 +7014,7 @@ function buildVariantEntries(profile) {
         document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
         const id = views[b.dataset.view];
         const el = document.getElementById(id);
-        if (!el) return console.warn("Vista no encontrada:", id);
+        if (!el) return logWarn("Vista no encontrada:", id);
         el.classList.remove("hidden");
         if (id === "view-guide") mostrarGuia();
         if (id === "view-hypo") refreshHypotesis();
@@ -7090,6 +7102,241 @@ function buildVariantEntries(profile) {
     await refreshSlots();
     await rebuildKnowledge();
     await refreshModesPanel();
+
+    // === Migración Dexie → Supabase (solo interfaz) ===
+    const dexieMigrationBtn = document.getElementById("btn-migrar-dexie");
+    const dexieModal = document.getElementById("dexie-supabase-modal");
+    const dexieList = document.getElementById("dexie-migration-list");
+    const dexieErrors = document.getElementById("dexie-migration-errors");
+    const dexieErrorsList = dexieErrors?.querySelector("ul");
+    const dexieSummary = document.getElementById("dexie-migration-summary");
+    const dexieCloseBtn = document.getElementById("dexie-migration-close");
+    const dexieStatusChip = document.getElementById("dexie-migration-status");
+    const dexieTables = [
+      "draws",
+      "hypotheses",
+      "reasons",
+      "rules",
+      "edges",
+      "knowledge",
+      "hypothesis_logs",
+      "prediction_logs",
+      "game_modes",
+      "game_mode_examples",
+      "game_mode_logs",
+      "hypothesis_reminders",
+      "notebook_entries",
+      "pega3",
+    ];
+    let dexieMigrationRunning = false;
+    const dexieTableState = new Map();
+
+    const setDexieState = (table, patch = {}) => {
+      const current = dexieTableState.get(table) || {};
+      dexieTableState.set(table, { ...current, ...patch });
+      const row = dexieList?.querySelector(`[data-table="${table}"]`);
+      if (!row) return;
+      const meta = row.querySelector("[data-meta]");
+      const status = row.querySelector("[data-status]");
+      const bar = row.querySelector("[data-bar]");
+      const { total, processed, state, message } = dexieTableState.get(table);
+      if (status && state) {
+        status.textContent = {
+          pending: "Pendiente",
+          running: "Importando",
+          done: "Completada",
+          empty: "Sin datos",
+          error: "Error",
+        }[state] || state;
+        row.dataset.state = state;
+      }
+      if (meta) {
+        if (message) {
+          meta.textContent = message;
+        } else if (Number.isFinite(processed) && Number.isFinite(total) && total > 0) {
+          meta.textContent = `${processed}/${total} registros`;
+        } else if (Number.isFinite(total) && total === 0) {
+          meta.textContent = "Sin registros";
+        } else {
+          meta.textContent = "En espera…";
+        }
+      }
+      if (bar) {
+        if (Number.isFinite(processed) && Number.isFinite(total) && total > 0) {
+          const percent = Math.min(100, Math.round((processed / total) * 100));
+          bar.style.width = `${percent}%`;
+        } else {
+          bar.style.width = "0%";
+        }
+      }
+    };
+
+    const resetDexieUI = () => {
+      dexieTableState.clear();
+      if (dexieList) dexieList.innerHTML = "";
+      dexieTables.forEach((table) => {
+        const row = document.createElement("div");
+        row.className = "migration-row";
+        row.dataset.table = table;
+        const head = document.createElement("div");
+        head.className = "migration-row__head";
+        const title = document.createElement("strong");
+        title.textContent = table;
+        const status = document.createElement("span");
+        status.className = "migration-row__status";
+        status.dataset.status = "true";
+        head.appendChild(title);
+        head.appendChild(status);
+        const bar = document.createElement("div");
+        bar.className = "migration-row__bar";
+        const fill = document.createElement("div");
+        fill.className = "migration-row__bar-fill";
+        fill.dataset.bar = "true";
+        bar.appendChild(fill);
+        const meta = document.createElement("div");
+        meta.className = "migration-row__meta";
+        meta.dataset.meta = "true";
+        row.appendChild(head);
+        row.appendChild(bar);
+        row.appendChild(meta);
+        dexieList?.appendChild(row);
+        setDexieState(table, { state: "pending" });
+      });
+      if (dexieErrors) dexieErrors.classList.add("hidden");
+      if (dexieErrorsList) dexieErrorsList.innerHTML = "";
+      if (dexieSummary) dexieSummary.textContent = "Listo para migrar con el importador existente.";
+      if (dexieStatusChip) dexieStatusChip.textContent = "En espera";
+      if (dexieCloseBtn) {
+        dexieCloseBtn.disabled = true;
+        dexieCloseBtn.textContent = "Importando…";
+      }
+    };
+
+    const openDexieModal = () => {
+      if (!dexieModal) return;
+      dexieModal.classList.remove("hidden");
+    };
+
+    const closeDexieModal = () => {
+      if (!dexieModal) return;
+      if (dexieMigrationRunning) return;
+      dexieModal.classList.add("hidden");
+    };
+
+    const addDexieError = (message) => {
+      if (!dexieErrors || !dexieErrorsList) return;
+      dexieErrors.classList.remove("hidden");
+      const item = document.createElement("li");
+      item.textContent = message;
+      dexieErrorsList.appendChild(item);
+    };
+
+    const attachDexieConsoleTap = () => {
+      const originalInfo = console.info;
+      const originalError = console.error;
+      const originalWarn = console.warn;
+
+      const parseInfo = (text = "") => {
+        const start = text.match(/^\[(.+?)\] Iniciando importación \((\d+) registros\)/);
+        if (start) {
+          const [, table, total] = start;
+          setDexieState(table, { total: Number(total), processed: 0, state: "running", message: "" });
+          return;
+        }
+        const progress = text.match(/^\[(.+?)\] (\d+)\/(\d+)/);
+        if (progress) {
+          const [, table, processed, total] = progress;
+          setDexieState(table, {
+            total: Number(total),
+            processed: Number(processed),
+            state: "running",
+            message: "",
+          });
+          return;
+        }
+        const done = text.match(/^\[(.+?)\] Importación completa \((\d+) registros\)\./);
+        if (done) {
+          const [, table, total] = done;
+          setDexieState(table, {
+            total: Number(total),
+            processed: Number(total),
+            state: "done",
+            message: "",
+          });
+          return;
+        }
+        const empty = text.match(/^\[(.+?)\] Tabla vacía, se omite\./);
+        if (empty) {
+          const [, table] = empty;
+          setDexieState(table, { total: 0, processed: 0, state: "empty", message: "" });
+        }
+      };
+
+      console.info = (...args) => {
+        if (args.length) {
+          const text = typeof args[0] === "string" ? args[0] : "";
+          parseInfo(text);
+        }
+        return originalInfo.apply(console, args);
+      };
+
+      console.warn = (...args) => originalWarn.apply(console, args);
+
+      console.error = (...args) => {
+        if (args.length) {
+          const text = typeof args[0] === "string" ? args[0] : "";
+          const match = text.match(/^\[(.+?)\] Error durante la importación:/);
+          if (match) {
+            const [, table] = match;
+            setDexieState(table, { state: "error", message: "Falló la importación" });
+            addDexieError(`${table}: ${args[1]?.message || args[1] || "Error desconocido"}`);
+          } else {
+            addDexieError(args.map((a) => (a instanceof Error ? a.message : String(a))).join(" "));
+          }
+        }
+        return originalError.apply(console, args);
+      };
+
+      return () => {
+        console.info = originalInfo;
+        console.error = originalError;
+        console.warn = originalWarn;
+      };
+    };
+
+    const startDexieMigration = async () => {
+      if (dexieMigrationRunning) {
+        showToast("Ya hay una migración en curso.", { variant: "warning" });
+        return;
+      }
+      resetDexieUI();
+      openDexieModal();
+      dexieMigrationRunning = true;
+      if (dexieStatusChip) dexieStatusChip.textContent = "Importando…";
+      const detach = attachDexieConsoleTap();
+      try {
+        await runDexieToSupabaseImport();
+        if (dexieSummary) dexieSummary.textContent = "Migración finalizada. Revisa el detalle por tabla.";
+      } catch (err) {
+        addDexieError(err?.message || String(err));
+        if (dexieSummary) dexieSummary.textContent = "No se pudo completar la migración.";
+      } finally {
+        detach?.();
+        dexieMigrationRunning = false;
+        if (dexieCloseBtn) {
+          dexieCloseBtn.disabled = false;
+          dexieCloseBtn.textContent = "Cerrar";
+        }
+        const hasErrors = Boolean(dexieErrorsList && dexieErrorsList.children.length);
+        if (dexieStatusChip) dexieStatusChip.textContent = hasErrors ? "Finalizado con errores" : "Completado";
+        if (hasErrors && dexieSummary && !dexieSummary.textContent.includes("No se pudo")) {
+          dexieSummary.textContent = "Migración completa con errores. Revisa los detalles.";
+        }
+      }
+    };
+
+    if (dexieMigrationBtn) dexieMigrationBtn.addEventListener("click", startDexieMigration);
+    if (dexieCloseBtn) dexieCloseBtn.addEventListener("click", closeDexieModal);
 
     // === SISTEMA DE MODALES UNIFICADO ===
     function mostrarModal(titulo, mensaje, opciones = {}) {
@@ -7363,6 +7610,29 @@ function buildVariantEntries(profile) {
       });
     }
   </script>
+
+  <!-- === MODAL MIGRACIÓN DEXIE → SUPABASE === -->
+  <div id="dexie-supabase-modal" class="modal hidden">
+    <div class="modal-content modal-content--wide">
+      <div class="modal-head modal-head--spread">
+        <h3>Migración Dexie → Supabase</h3>
+        <span id="dexie-migration-status" class="migration-chip">En espera</span>
+      </div>
+      <div class="modal-body">
+        <p id="dexie-migration-summary" class="migration-summary">
+          Listo para migrar con el importador existente.
+        </p>
+        <div id="dexie-migration-list" class="migration-table-list"></div>
+        <div id="dexie-migration-errors" class="migration-errors hidden">
+          <strong>Errores detectados</strong>
+          <ul></ul>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="dexie-migration-close" disabled>Cerrar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- === MODAL DEL SISTEMA === -->
   <div id="sys-modal" class="modal hidden">
