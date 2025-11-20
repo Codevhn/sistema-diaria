@@ -6,13 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La Diaria — Acceso</title>
   <link rel="stylesheet" href="./style.css" />
-  <script>
-    (function redirectIfAuthenticated() {
-      if (localStorage.getItem("auth") === "true") {
-        window.location.href = "./index.html";
-      }
-    })();
-  </script>
 </head>
 
 <body class="login-page">
@@ -20,8 +13,8 @@
     <section class="login-card">
       <div class="login-card__head">
         <p class="login-tag">LD v3.2</p>
-        <h1>🔐 Acceso</h1>
-        <p class="login-lead">Ingresa tus credenciales para continuar.</p>
+        <h1>Acceso seguro</h1>
+        <p class="login-lead">Inicia sesión con tu cuenta Supabase para continuar.</p>
       </div>
       <form id="login-form" class="login-form">
         <label>
@@ -37,7 +30,56 @@
       </form>
     </section>
   </main>
-  <script type="module" src="./login.js"></script>
+
+  <script type="module">
+    import { login, getCurrentUser } from "./src/auth.js";
+
+    const form = document.getElementById("login-form");
+    const emailInput = document.getElementById("login-email");
+    const passwordInput = document.getElementById("login-password");
+    const errorBox = document.getElementById("login-error");
+
+    function showError(message) {
+      if (!errorBox) return;
+      errorBox.textContent = message;
+      errorBox.classList.remove("hidden");
+    }
+
+    function clearError() {
+      if (!errorBox) return;
+      errorBox.textContent = "";
+      errorBox.classList.add("hidden");
+    }
+
+    emailInput?.addEventListener("input", clearError);
+    passwordInput?.addEventListener("input", clearError);
+
+    (async () => {
+      const user = await getCurrentUser();
+      if (user) {
+        window.location.href = "./index.html";
+      }
+    })();
+
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearError();
+      const email = (emailInput?.value || "").trim();
+      const password = passwordInput?.value || "";
+      const button = form.querySelector("button[type='submit']");
+      button?.setAttribute("disabled", "true");
+      button?.classList.add("loading");
+      try {
+        await login(email, password);
+        window.location.href = "./index.html";
+      } catch (err) {
+        showError(err?.message || "No se pudo iniciar sesión.");
+      } finally {
+        button?.removeAttribute("disabled");
+        button?.classList.remove("loading");
+      }
+    });
+  </script>
 </body>
 
 </html>
