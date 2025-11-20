@@ -191,6 +191,12 @@
     "elemento": "planta",
     "polaridad": "positiva"
   },
+   "45": {
+    "simbolo": "Iglesia",
+    "familia": "espiritual",
+    "elemento": "lugar",
+    "polaridad": "positiva"
+  },
   "87": {
     "simbolo": "León",
     "familia": "naturaleza",
@@ -449,6 +455,12 @@
     "elemento": "persona",
     "polaridad": "positiva"
   },
+   "43": {
+    "simbolo": "Pantera",
+    "familia": "naturaleza",
+    "elemento": "animal",
+    "polaridad": "positiva"
+  },
   "51": {
     "simbolo": "Policía",
     "familia": "autoridad",
@@ -497,11 +509,29 @@
     "elemento": "animal",
     "polaridad": "positiva"
   },
+    "80": {
+    "simbolo": "Café",
+    "familia": "alimentos",
+    "elemento": "bebida",
+    "polaridad": "positiva"
+  },
   "32": {
     "simbolo": "Culebra",
     "familia": "naturaleza",
     "elemento": "animal",
     "polaridad": "negativa"
+  },
+  "57": {
+    "simbolo": "Cuchillo",
+    "familia": "arma",
+    "elemento": "objeto",
+    "polaridad": "negativa"
+  },
+   "40": {
+    "simbolo": "Cielo",
+    "familia": "naturaleza",
+    "elemento": "fenómeno",
+    "polaridad": "positiva"
   },
   "08": {
     "simbolo": "Conejo",
@@ -513,6 +543,12 @@
     "simbolo": "Coronas",
     "familia": "poder",
     "elemento": "objeto",
+    "polaridad": "positiva"
+  },
+   "95": {
+    "simbolo": "Costurera",
+    "familia": "oficio",
+    "elemento": "persona",
     "polaridad": "positiva"
   },
   "55": {
