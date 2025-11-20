@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La Diaria — Acceso</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script>
+    (function redirectIfAuthenticated() {
+      if (localStorage.getItem("auth") === "true") {
+        window.location.href = "./index.html";
+      }
+    })();
+  </script>
+</head>
+
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-card">
+      <div class="login-card__head">
+        <p class="login-tag">LD v3.2</p>
+        <h1>🔐 Acceso</h1>
+        <p class="login-lead">Ingresa tus credenciales para continuar.</p>
+      </div>
+      <form id="login-form" class="login-form">
+        <label>
+          Email
+          <input type="email" id="login-email" placeholder="tucorreo@example.com" required />
+        </label>
+        <label>
+          Contraseña
+          <input type="password" id="login-password" placeholder="********" required />
+        </label>
+        <div id="login-error" class="hint hidden" role="alert"></div>
+        <button type="submit" class="btn-primary">Entrar</button>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="./login.js"></script>
+</body>
+
+</html>

@@ -3,6 +3,7 @@ import Dexie from "../vendor/dexie.mjs";
 import { parseDrawDate, formatDateISO } from "./date-utils.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const PEGAS_TURNOS = ["11AM", "3PM", "9PM"];
 
 export const db = new Dexie("la_diaria_v3");
 
@@ -111,6 +112,48 @@ db.version(8).stores({
     "++id, modeId, fecha, pais, turno, notas, createdAt, [modeId+fecha]",
   hypothesis_reminders: "++id, numero, createdAt",
   notebook_entries: "++id, fecha, pais, createdAt",
+});
+
+db.version(9).stores({
+  draws:
+    "++id, fecha, pais, horario, numero, isTest, createdAt, [fecha+pais+horario+numero]",
+  hypotheses: "++id, numero, simbolo, estado, fecha, turno, createdAt",
+  reasons: "++id, ownerType, ownerId, texto, tags, createdAt",
+  rules: "++id, tipo, descripcion, createdAt",
+  edges: "++id, fromFactId, toId, ruleId, weight, createdAt",
+  knowledge: "&key, scope, updatedAt",
+  hypothesis_logs:
+    "++id, hypothesisId, numero, estado, fechaResultado, paisResultado, horarioResultado, createdAt, [numero+estado]",
+  prediction_logs:
+    "++id, targetFecha, targetPais, turno, numero, estado, createdAt, [targetFecha+targetPais]",
+  game_modes: "++id, nombre, tipo, descripcion, createdAt",
+  game_mode_examples: "++id, modeId, original, resultado, nota, createdAt",
+  game_mode_logs:
+    "++id, modeId, fecha, pais, turno, notas, createdAt, [modeId+fecha]",
+  hypothesis_reminders: "++id, numero, createdAt",
+  notebook_entries: "++id, fecha, pais, createdAt",
+  pega3: "++id, fecha, horario, pais, pares, createdAt, [fecha+horario+pais]",
+});
+
+db.version(10).stores({
+  draws:
+    "++id, fecha, pais, horario, numero, isTest, createdAt, [fecha+pais+horario+numero]",
+  hypotheses: "++id, numero, simbolo, estado, fecha, turno, createdAt",
+  reasons: "++id, ownerType, ownerId, texto, tags, createdAt",
+  rules: "++id, tipo, descripcion, createdAt",
+  edges: "++id, fromFactId, toId, ruleId, weight, createdAt",
+  knowledge: "&key, scope, updatedAt",
+  hypothesis_logs:
+    "++id, hypothesisId, numero, estado, fechaResultado, paisResultado, horarioResultado, createdAt, [numero+estado]",
+  prediction_logs:
+    "++id, targetFecha, targetPais, turno, numero, estado, createdAt, [targetFecha+targetPais]",
+  game_modes: "++id, nombre, tipo, descripcion, createdAt",
+  game_mode_examples: "++id, modeId, original, resultado, nota, createdAt",
+  game_mode_logs:
+    "++id, modeId, fecha, pais, turno, notas, createdAt, [modeId+fecha]",
+  hypothesis_reminders: "++id, numero, createdAt",
+  notebook_entries: "++id, fecha, pais, createdAt",
+  pega3: "++id, fecha, horario, pais, pares, createdAt, [fecha+horario+pais]",
 });
 
 const withTimestamp = (data = {}) => ({
@@ -520,5 +563,50 @@ export const DB = {
 
   async updateNotebookEntry(id, changes = {}) {
     return db.notebook_entries.update(id, changes);
+  },
+
+  async savePega3Draw(draw = {}) {
+    if (!db.pega3) throw new Error("Base de datos Pega3 no inicializada");
+    const fecha = (draw.fecha || "").trim();
+    const horario = PEGAS_TURNOS.includes(draw.horario) ? draw.horario : null;
+    const pais = (draw.pais || "").trim().toUpperCase() || "HN";
+    const paresRaw = Array.isArray(draw.pares) ? draw.pares : [];
+    if (!fecha || !horario || !paresRaw.length) {
+      throw new Error("savePega3Draw: datos incompletos");
+    }
+    const pares = paresRaw.map((value) => {
+      const numero = typeof value === "number" ? value : parseInt(value, 10);
+      if (!Number.isFinite(numero) || numero < 0 || numero > 99) {
+        throw new Error("savePega3Draw: pares deben ser números 00-99");
+      }
+      return numero;
+    });
+    if (pares.length !== 3) {
+      throw new Error("savePega3Draw: cada sorteo debe contener 3 pares");
+    }
+    const existing = await db.pega3.where("[fecha+horario+pais]").equals([fecha, horario, pais]).first();
+    const payload = {
+      fecha,
+      horario,
+      pais,
+      pares,
+      createdAt: Date.now(),
+    };
+    if (existing) {
+      await db.pega3.update(existing.id, payload);
+      return existing.id;
+    }
+    return db.pega3.add(payload);
+  },
+
+  async listPega3Draws({ pais = null, turno = null } = {}) {
+    if (!db.pega3) return [];
+    let collection = db.pega3.orderBy("fecha");
+    const rows = await collection.toArray();
+    return rows.filter((row) => {
+      if (pais && row.pais !== pais) return false;
+      if (turno && row.horario !== turno) return false;
+      return true;
+    });
   },
 };

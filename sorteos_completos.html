@@ -5,6 +5,13 @@
   <meta charset="UTF-8">
   <title>Exportar DB La Diaria — Todos los años</title>
   <link rel="icon" href="data:,">
+  <script>
+    (function enforceSession() {
+      if (localStorage.getItem("auth") !== "true") {
+        window.location.href = "./login.html";
+      }
+    })();
+  </script>
   <script type="module">
     import Dexie from "./vendor/dexie.mjs";
 

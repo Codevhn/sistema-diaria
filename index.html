@@ -9,6 +9,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script>
+    (function enforceSession() {
+      if (localStorage.getItem("auth") !== "true") {
+        window.location.href = "./login.html";
+      }
+    })();
+  </script>
 
 
 </head>
@@ -24,6 +31,7 @@
   </div>
   <aside class="sidebar expanded" id="sidebar">
     <div class="brand">LD v3.2</div>
+    <button data-view="login"><i>🔐 Acceso</i></button>
     <button data-view="day"><span class="sidebar-icon fa-solid fa-gauge"></span><i>Panel del día</i></button>
     <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
     <button data-view="analysis"><span
@@ -31,6 +39,7 @@
     <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
     <button data-view="strategies"><span class="sidebar-icon fa-solid fa-brain"></span><i>Estrategias</i></button>
     <button data-view="weekly"><span class="sidebar-icon fa-solid fa-calendar-week"></span><i>Secuencias</i></button>
+    <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
     <button data-view="notebook"><span class="sidebar-icon fa-solid fa-bookmark"></span><i>Cuaderno</i></button>
     <button data-view="geometry"><span
         class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
@@ -51,6 +60,7 @@
         <div class="countdown-target" data-countdown-target>—</div>
         <div class="countdown-timer" data-countdown-timer>--:--:--</div>
       </div>
+      <button id="btn-logout" class="btn-outline" type="button">Cerrar sesión</button>
     </div>
 
     <!-- PANEL DEL DÍA -->
@@ -260,6 +270,79 @@
       </div>
     </section>
 
+    <!-- PEGA3 -->
+    <section id="view-pega3" class="view hidden">
+      <h2>Pega3 · módulo independiente</h2>
+      <p class="hint">
+        Este módulo opera con su propio motor estadístico y base histórica para descubrir patrones reales del juego Pega3.
+        Los datos y sesgos mostrados aquí no afectan el sistema de La Diaria.
+      </p>
+      <div class="pega3-grid">
+        <article class="card pega3-card">
+          <div class="card-head">Registrar sorteo Pega3</div>
+          <div class="card-body pega3-form">
+            <label>
+              Fecha
+              <input type="date" id="pega3-fecha" />
+            </label>
+            <label>
+              Turno
+              <select id="pega3-turno">
+                <option value="11AM">11 AM</option>
+                <option value="3PM">3 PM</option>
+                <option value="9PM">9 PM</option>
+              </select>
+            </label>
+            <label>
+              País
+              <select id="pega3-pais">
+                <option value="HN">Honduras</option>
+                <option value="NI">Nicaragua</option>
+                <option value="SV">El Salvador</option>
+              </select>
+            </label>
+            <div class="pega3-pares">
+              <div class="pega3-par">
+                <span class="pega3-par__label">Primer par</span>
+                <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-1" placeholder="00" class="pega3-par__input" />
+                <span class="pega3-par__help">Posición inicial</span>
+              </div>
+              <div class="pega3-par">
+                <span class="pega3-par__label">Segundo par</span>
+                <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-2" placeholder="00" class="pega3-par__input" />
+                <span class="pega3-par__help">Posición central</span>
+              </div>
+              <div class="pega3-par">
+                <span class="pega3-par__label">Tercer par</span>
+                <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-3" placeholder="00" class="pega3-par__input" />
+                <span class="pega3-par__help">Posición final</span>
+              </div>
+            </div>
+            <button id="pega3-btn-registrar" class="btn-primary">Guardar sorteo</button>
+            <button id="pega3-btn-cargar" class="btn-outline">Actualizar historial</button>
+            <p class="hint small">La tabla Pega3 se mantiene separada; puedes registrar históricos sin afectar La Diaria.</p>
+          </div>
+        </article>
+        <article class="card pega3-card">
+          <div class="card-head">Historial Pega3</div>
+          <div id="pega3-historial" class="pega3-historial">
+            <p class="hint">Registra sorteos para comenzar el análisis.</p>
+          </div>
+        </article>
+        <article class="card pega3-card">
+          <div class="card-head">
+            Motor analítico Pega3
+            <button id="pega3-btn-analizar" class="btn-outline small">Analizar patrones</button>
+          </div>
+          <div id="pega3-resumen" class="pega3-panel">
+            <p class="hint">Cuando existan datos suficientes, aquí verás frecuencias, sesgos y co-ocurrencias descubiertas.</p>
+          </div>
+          <div id="pega3-sesgos" class="pega3-panel"></div>
+          <div id="pega3-seleccion" class="pega3-panel"></div>
+        </article>
+      </div>
+    </section>
+
     <!-- HIPÓTESIS -->
     <section id="view-hypo" class="view hidden">
       <h2>Hipótesis manuales</h2>
@@ -329,7 +412,6 @@
       <div class="cards" id="result-recomendacion"></div>
       <div class="cards" id="result-plan"></div>
       <div class="cards" id="result-day-bias"></div>
-      <div class="cards" id="result-final-selection"></div>
       <div class="cards" id="result-escenarios"></div>
     </section>
 
@@ -780,9 +862,8 @@
       obtenerResumenPredicciones,
     } from "./src/learning.js";
     import { analizarSesgos } from "./src/bias-analyzer.js";
-    import { evaluarSesgosExtendidos } from "./src/bias-tiers.js";
-    import { calcularSeleccionFinal } from "./src/final-selection.js";
     import { analizarSecuenciasSemanales, analizarComparacionMensual } from "./src/weekly-patterns.js";
+    import { evaluarMotorPega3 } from "./src/pega3-engine.js";
     import {
       createMode,
       updateMode,
@@ -1366,15 +1447,24 @@
       "Sábado",
     ];
     const BASELINE_DOW_RATIO = 1 / 7;
-    const DEFAULT_TARGET_TURN = TURNOS[TURNOS.length - 1] || TURNOS[0];
+    const DEFAULT_RANKING_TURN = TURNOS[TURNOS.length - 1] || TURNOS[0];
     let biasPanelState = {
       dow: null,
-      targetTurn: DEFAULT_TARGET_TURN,
+      page: 0,
+      selected: [],
+      rankingTurn: DEFAULT_RANKING_TURN,
+      expiresAt: 0,
     };
     const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
     const TRACKING_STORAGE_KEY = "ld-v3-tracking-day";
     const DRAW_CACHE_TTL = 15 * 1000;
+    const BIAS_NOTES_STORAGE_KEY = "ld-v3-bias-notes";
     const BIAS_LAST_DOW_KEY = "ld-v3-bias-last-dow";
+    const BIAS_TURN_SCHEDULE = {
+      "11AM": { hour: 11, minute: 0 },
+      "3PM": { hour: 15, minute: 0 },
+      "9PM": { hour: 21, minute: 0 },
+    };
     let biasLocalStorageWarned = false;
     let biasSessionStorageWarned = false;
 
@@ -1442,6 +1532,8 @@
       contexto: null,
       patrones: null,
     };
+    let pega3DrawCache = [];
+    let pega3AnalysisCache = null;
     const formatFriendlyDate = (value) => {
       if (!value) return "";
       const date =
@@ -1494,6 +1586,152 @@
       } catch (err) {
         console.warn("save tracking state failed", err);
       }
+    }
+
+    function computeBiasNoteExpiry(turno = DEFAULT_RANKING_TURN) {
+      const schedule = BIAS_TURN_SCHEDULE[turno] || BIAS_TURN_SCHEDULE["9PM"] || { hour: 21, minute: 0 };
+      const now = new Date();
+      const target = new Date(now);
+      target.setHours(schedule.hour, schedule.minute || 0, 0, 0);
+      if (target <= now) target.setDate(target.getDate() + 1);
+      target.setMinutes(target.getMinutes() + 5);
+      return target.getTime();
+    }
+
+    function loadBiasNotesStore() {
+      const stores = getBiasStorageProviders();
+      if (!stores.length) return {};
+      let fallbackRaw = null;
+      let fallbackData = null;
+      let sourceIndex = -1;
+      for (let i = 0; i < stores.length; i += 1) {
+        const storage = stores[i];
+        if (!storage) continue;
+        try {
+          const raw = storage.getItem(BIAS_NOTES_STORAGE_KEY);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            fallbackRaw = raw;
+            fallbackData = parsed;
+            sourceIndex = i;
+            break;
+          }
+        } catch (err) {
+          console.warn("No se pudo cargar apuntes de sesgos", err);
+        }
+      }
+      if (fallbackData && sourceIndex > 0) {
+        for (let i = 0; i < sourceIndex; i += 1) {
+          const storage = stores[i];
+          if (!storage) continue;
+          try {
+            storage.setItem(BIAS_NOTES_STORAGE_KEY, fallbackRaw);
+          } catch (err) {
+            console.warn("No se pudo sincronizar apuntes guardados", err);
+          }
+        }
+      }
+      return fallbackData || {};
+    }
+
+    function saveBiasNotesStore(store) {
+      const stores = getBiasStorageProviders();
+      if (!stores.length) return;
+      const isEmpty = !store || !Object.keys(store).length;
+      let serialized = "";
+      if (!isEmpty) {
+        try {
+          serialized = JSON.stringify(store);
+        } catch (err) {
+          console.warn("No se pudo serializar apuntes de sesgos", err);
+          return;
+        }
+      }
+      stores.forEach((storage) => {
+        if (!storage) return;
+        try {
+          if (isEmpty) {
+            storage.removeItem(BIAS_NOTES_STORAGE_KEY);
+          } else {
+            storage.setItem(BIAS_NOTES_STORAGE_KEY, serialized);
+          }
+        } catch (err) {
+          console.warn("No se pudo guardar apuntes de sesgos", err);
+        }
+      });
+    }
+
+    function cleanupBiasNotesStore(store = {}) {
+      const now = Date.now();
+      let dirty = false;
+      Object.keys(store).forEach((key) => {
+        const entry = store[key];
+        if (!entry || (entry.expiresAt && entry.expiresAt < now)) {
+          delete store[key];
+          dirty = true;
+        }
+      });
+      return dirty;
+    }
+
+    function getBiasNotesForDow(dow) {
+      if (!Number.isFinite(dow)) return null;
+      const store = loadBiasNotesStore();
+      const key = `dow-${dow}`;
+      const entry = store[key];
+      if (!entry) return null;
+      if (entry.expiresAt && entry.expiresAt < Date.now()) {
+        delete store[key];
+        saveBiasNotesStore(store);
+        return null;
+      }
+      return entry;
+    }
+
+    function persistBiasNotesForDow(dow, state = {}) {
+      if (!Number.isFinite(dow)) return;
+      const store = loadBiasNotesStore();
+      const key = `dow-${dow}`;
+      const selected = Array.isArray(state.selected) ? state.selected : [];
+      const rankingTurn = state.rankingTurn || DEFAULT_RANKING_TURN;
+      if (!selected.length) {
+        if (store[key]) {
+          delete store[key];
+          cleanupBiasNotesStore(store);
+          saveBiasNotesStore(store);
+        }
+        return;
+      }
+      persistBiasDowPreference(dow);
+      const expiresAt = computeBiasNoteExpiry(rankingTurn);
+      const storedSelected = selected.map((entry) => ({
+        ...entry,
+        turnBreakdown: Array.isArray(entry.turnBreakdown)
+          ? entry.turnBreakdown.map((turn) => ({ ...turn }))
+          : [],
+      }));
+      store[key] = {
+        dow,
+        selected: storedSelected,
+        rankingTurn,
+        expiresAt,
+        savedAt: Date.now(),
+      };
+      cleanupBiasNotesStore(store);
+      saveBiasNotesStore(store);
+    }
+
+    function syncBiasNotesPersistence(dow) {
+      if (!Number.isFinite(dow)) return;
+      const selected = Array.isArray(biasPanelState?.selected) ? biasPanelState.selected : [];
+      const rankingTurn = biasPanelState?.rankingTurn || DEFAULT_RANKING_TURN;
+      if (selected.length) {
+        biasPanelState.expiresAt = computeBiasNoteExpiry(rankingTurn);
+      } else {
+        biasPanelState.expiresAt = 0;
+      }
+      persistBiasNotesForDow(dow, { selected, rankingTurn });
     }
 
     async function getCachedDraws({ force = false } = {}) {
@@ -3762,7 +4000,18 @@
     const resultRecomendacion = document.getElementById("result-recomendacion");
     const resultPlan = document.getElementById("result-plan");
     const resultBias = document.getElementById("result-day-bias");
-    const resultFinalSelection = document.getElementById("result-final-selection");
+    const pega3FechaInput = document.getElementById("pega3-fecha");
+    const pega3TurnoSelect = document.getElementById("pega3-turno");
+    const pega3PaisSelect = document.getElementById("pega3-pais");
+    const pega3ParInputs = [
+      document.getElementById("pega3-par-1"),
+      document.getElementById("pega3-par-2"),
+      document.getElementById("pega3-par-3"),
+    ];
+    const pega3Historial = document.getElementById("pega3-historial");
+    const pega3Resumen = document.getElementById("pega3-resumen");
+    const pega3Sesgos = document.getElementById("pega3-sesgos");
+    const pega3Seleccion = document.getElementById("pega3-seleccion");
 
     async function ejecutarAnalisis({ auto = false } = {}) {
       if (!auto) {
@@ -3800,23 +4049,7 @@
           patrones,
         };
         biasPanelState.dow = contextoPred.dow;
-        const biasResult = renderSesgosPorDia();
-        renderFinalSelection(biasResult);
-        const strongNumbers = (biasResult.activos || []).map((entry) => entry.numero);
-        const moderateNumbers = (biasResult.moderados || []).map((entry) => entry.numero);
-        const weakNumbers = (biasResult.debiles || []).map((entry) => entry.numero);
-        const priorityOrder = [];
-        const seenBiasNumbers = new Set();
-        const addNumber = (numero) => {
-          if (!Number.isFinite(numero) || seenBiasNumbers.has(numero)) return;
-          seenBiasNumbers.add(numero);
-          priorityOrder.push(numero);
-        };
-        strongNumbers.forEach(addNumber);
-        if (priorityOrder.length < 9) moderateNumbers.forEach(addNumber);
-        const hasBaseTier = priorityOrder.length > 0;
-        if (hasBaseTier && priorityOrder.length < 9) weakNumbers.forEach(addNumber);
-        const prioritizedNumbers = priorityOrder.slice(0, 9);
+        renderSesgosPorDia(perfilMap, { dow: contextoPred.dow, year: contextoPred.year });
 
         let predicciones = generarPredicciones(memoria.perfiles || [], { top: 9, contexto: contextoPred });
         predicciones = mezclarPrediccionesConModos(predicciones, modoEval);
@@ -3825,28 +4058,6 @@
           patrones.estrategiasAritmeticas || [],
           { fecha: fechaFiltro || null, pais: paisFiltro || null }
         );
-        if (prioritizedNumbers.length) {
-          const prioritySet = new Set(prioritizedNumbers);
-          let filtered = predicciones.filter((p) => prioritySet.has(p.numero));
-          if (filtered.length < prioritizedNumbers.length) {
-            const missing = prioritizedNumbers.filter(
-              (numero) => !filtered.some((p) => p.numero === numero)
-            );
-            missing.forEach((numero) => {
-              const fallback = biasPredicciones.find((p) => p.numero === numero);
-              if (fallback) filtered.push(fallback);
-            });
-          }
-          const orderMap = new Map(prioritizedNumbers.map((numero, idx) => [numero, idx]));
-          filtered.sort((a, b) => {
-            const idxA = orderMap.get(a.numero) ?? Number.MAX_SAFE_INTEGER;
-            const idxB = orderMap.get(b.numero) ?? Number.MAX_SAFE_INTEGER;
-            return idxA - idxB;
-          });
-          predicciones = filtered.slice(0, prioritizedNumbers.length);
-        } else {
-          predicciones = [];
-        }
         const insights = generarInsights(memoria.perfiles || []);
         const shouldLogPreds = !auto && predicciones.length && (fechaFiltro || paisFiltro);
 
@@ -4551,373 +4762,613 @@
       resultPlan.appendChild(note);
     }
 
-    function renderSesgosPorDia() {
-      if (!resultBias) return { activos: [], historicos: [] };
-      const hasData =
-        biasDataInput.perfilMap &&
-        biasDataInput.perfilMap.size &&
-        Array.isArray(biasDataInput.predictions) &&
-        biasDataInput.predictions.length;
-      if (!hasData) {
-        resultBias.innerHTML = "<p class='hint'>Aún no hay datos suficientes para sesgos.</p>";
-        return { activos: [], historicos: [] };
-      }
-      const contextoBase = biasDataInput.contexto || {};
-      if (!Number.isFinite(biasPanelState.dow)) {
-        biasPanelState.dow = contextoBase.dow ?? null;
-      }
-      if (!Number.isFinite(biasPanelState.dow)) {
-        resultBias.innerHTML = "<p class='hint'>Selecciona un día para revisar los sesgos.</p>";
-        return { activos: [], historicos: [] };
-      }
-      const sesgosBase = analizarSesgos({
-        draws: biasDataInput.draws,
-        perfiles: Array.from(biasDataInput.perfilMap.values()),
-        predicciones: biasDataInput.predictions,
-        contexto: { ...contextoBase, dow: biasPanelState.dow },
-        targetTurn: biasPanelState.targetTurn,
-      });
-      const fuertes = (sesgosBase.activos || []).map((entry) => ({
-        ...entry,
-        level: "fuerte",
-        narrativaWindow: entry.narrativa?.windowDays || 30,
-      }));
-      const historicos = (sesgosBase.historicos || []).map((entry) => ({
-        ...entry,
-        level: "historico",
-      }));
-      let moderados = [];
-      let debiles = [];
-      const perfilesList = biasDataInput.perfilMap ? Array.from(biasDataInput.perfilMap.values()) : [];
-      if (biasDataInput.draws?.length && perfilesList.length) {
-        const extendidos = evaluarSesgosExtendidos({
-          draws: biasDataInput.draws,
-          perfiles: perfilesList,
-          predicciones: biasDataInput.predictions,
-          contexto: { ...contextoBase, dow: biasPanelState.dow },
-          targetTurn: biasPanelState.targetTurn,
-          windowDays: 120,
-          fuertes,
-          patrones: biasDataInput.patrones,
-        });
-        moderados = (extendidos.moderados || []).map((entry) => ({ ...entry, level: "moderado" }));
-        debiles = (extendidos.debiles || []).map((entry) => ({ ...entry, level: "debil" }));
-      }
-      const sesgos = {
-        ...sesgosBase,
-        activos: fuertes,
-        historicos,
-        moderados,
-        debiles,
-      };
+    function renderSesgosPorDia(perfilMap = null, { dow = null, year = null } = {}) {
+      if (!resultBias) return;
       resultBias.innerHTML = "";
-      const wrapper = document.createElement("div");
-      wrapper.className = "bias-wrapper";
-      wrapper.appendChild(buildBiasHeader(sesgos.window));
-      wrapper.appendChild(
-        buildBiasSections({
-          fuertes,
-          moderados,
-          debiles,
-          historicos,
-        })
-      );
-      resultBias.appendChild(wrapper);
-      return sesgos;
-    }
-
-    function buildBiasHeader(windowInfo) {
-      const header = document.createElement("div");
-      header.className = "bias-header";
-      const info = document.createElement("div");
-      const title = document.createElement("h3");
-      const dowLabel = DOW_FULL_LABEL[biasPanelState.dow] || "el día";
-      title.textContent = `Sesgos activos de ${dowLabel}`;
-      info.appendChild(title);
-      const note = document.createElement("p");
-      note.className = "hint";
-      if (windowInfo?.start && windowInfo?.end) {
-        note.textContent = `Ventana analizada: ${formatFriendlyDate(windowInfo.start)} – ${formatFriendlyDate(windowInfo.end)} (120 días).`;
-      } else {
-        note.textContent = "Agrega sorteos recientes para habilitar la ventana activa de 120 días.";
-      }
-      info.appendChild(note);
-      header.appendChild(info);
-
-      const controls = document.createElement("div");
-      controls.className = "bias-controls";
-      const turnLabel = document.createElement("label");
-      turnLabel.textContent = "Horario objetivo";
-      const select = document.createElement("select");
-      TURNOS.forEach((turno) => {
-        const option = document.createElement("option");
-        option.value = turno;
-        option.textContent = turno;
-        if (turno === biasPanelState.targetTurn) option.selected = true;
-        select.appendChild(option);
-      });
-      select.addEventListener("change", (event) => {
-        const value = event.target.value;
-        if (!value || value === biasPanelState.targetTurn) return;
-        biasPanelState.targetTurn = value;
-        ejecutarAnalisis();
-      });
-      turnLabel.appendChild(select);
-      controls.appendChild(turnLabel);
-      header.appendChild(controls);
-      return header;
-    }
-
-    function buildBiasSections({ fuertes = [], moderados = [], debiles = [], historicos = [] } = {}) {
-      const container = document.createElement("div");
-      container.className = "bias-sections";
-      container.appendChild(
-        buildBiasSection({
-          title: "Sesgos fuertes",
-          items: fuertes,
-          tier: "fuerte",
-          emptyMessage: "Ningún número cumple los criterios de sesgo fuerte.",
-        })
-      );
-      container.appendChild(
-        buildBiasSection({
-          title: "Sesgos moderados",
-          items: moderados,
-          tier: "moderado",
-          emptyMessage: "Ningún número cumple criterios moderados.",
-        })
-      );
-      container.appendChild(
-        buildBiasSection({
-          title: "Sesgos débiles",
-          items: debiles,
-          tier: "debil",
-          emptyMessage: "No hay sesgos débiles detectables para este turno.",
-        })
-      );
-      container.appendChild(
-        buildBiasSection({
-          title: "Sesgos históricos",
-          items: historicos,
-          tier: "historico",
-        })
-      );
-      return container;
-    }
-
-    function buildBiasSection({ title, items, tier = "historico", emptyMessage = "" } = {}) {
-      const section = document.createElement("section");
-      const tierClass = tier ? `bias-section--${tier}` : "";
-      const isHistoric = tier === "historico";
-      const classList = ["bias-section", tierClass];
-      classList.push(isHistoric ? "bias-section--historic" : "bias-section--active");
-      section.className = classList.filter(Boolean).join(" ");
-      const head = document.createElement("div");
-      head.className = "bias-section__head";
-      const heading = document.createElement("h4");
-      heading.textContent = title;
-      head.appendChild(heading);
-      section.appendChild(head);
-      if (!items.length) {
-        const hint = document.createElement("p");
-        hint.className = "hint";
-        hint.textContent = emptyMessage || (isHistoric ? "Los datos más antiguos se listan aquí solo para referencia." : "Sin datos disponibles.");
-        section.appendChild(hint);
-        return section;
-      }
-      const grid = document.createElement("div");
-      grid.className = "bias-card-grid";
-      items.forEach((entry) => {
-        grid.appendChild(buildBiasCard(entry, { tier }));
-      });
-      section.appendChild(grid);
-      return section;
-    }
-
-    function buildBiasCard(entry, { tier = "historico" } = {}) {
-      const card = document.createElement("article");
-      const tierClass = tier ? `bias-card--${tier}` : "";
-      const isHistoric = tier === "historico";
-      const baseClass = isHistoric ? "bias-card--historic" : "bias-card--active";
-      card.className = `bias-card ${baseClass} ${tierClass}`.trim();
-      const symbol = getSymbol(entry.numero);
-      const head = document.createElement("div");
-      head.className = "bias-card__head";
-      const score = Math.max(0, Math.min(1, entry.score || 0));
-      head.innerHTML = `
-        <div>
-          <span class="bias-card__number">${formatNumber(entry.numero)}</span>
-          <span class="bias-card__symbol">${symbol || ""}</span>
-        </div>
-        <div class="bias-card__score">${(score * 100).toFixed(1)}%</div>
-      `;
-      card.appendChild(head);
-
-      const freqRow = document.createElement("div");
-      freqRow.className = "bias-card__metrics";
-      const freq = (entry.windowFreq || 0) * 100;
-      const recencia = (entry.recencia || 0) * 100;
-      freqRow.innerHTML = `<span>Frecuencia ventana: ${freq.toFixed(2)}%</span><span>Recencia ${recencia.toFixed(1)}%</span>`;
-      card.appendChild(freqRow);
-
-      const biasRow = document.createElement("div");
-      biasRow.className = "bias-card__metrics";
-      const dowRatio = ((entry.dowRatio || 0) * 100).toFixed(1);
-      const turnRatio = ((entry.turnRatio || 0) * 100).toFixed(1);
-      const dowLabel = DOW_FULL_LABEL[biasPanelState.dow] || "Día";
-      biasRow.innerHTML = `<span>${dowLabel}: ${dowRatio}%</span><span>${biasPanelState.targetTurn}: ${turnRatio}%</span>`;
-      card.appendChild(biasRow);
-
-      const showPremiumMeta = tier === "fuerte" || tier === "moderado";
-      if (showPremiumMeta) {
-        const gapRow = document.createElement("div");
-        gapRow.className = "bias-card__meta";
-        const gapMode = entry.gap?.mode;
-        const daysSince = entry.gap?.daysSince;
-        const modeLabel = gapMode !== null && gapMode !== undefined ? `${gapMode} días` : "—";
-        const sinceLabel = daysSince !== null && daysSince !== undefined ? `${daysSince} días` : "—";
-        gapRow.innerHTML = `<span>Gap modal: ${modeLabel}</span><span>Último intervalo: ${sinceLabel}</span>`;
-        card.appendChild(gapRow);
-
-        const narrativaRow = document.createElement("div");
-        narrativaRow.className = "bias-card__meta";
-        const narrativa = entry.narrativa?.active
-          ? `${formatFriendlyDate(entry.narrativa.fecha)} · ${entry.narrativa.fuente || "tema"}`
-          : `Sin narrativa confirmada en ${entry.narrativaWindow || 30} días`;
-        narrativaRow.innerHTML = `<span>Narrativa: ${narrativa}</span>`;
-        card.appendChild(narrativaRow);
-      }
-
-      const countRow = document.createElement("div");
-      countRow.className = "bias-card__meta";
-      const windowCount = entry.windowCount || 0;
-      countRow.innerHTML = `<span>Registros en ventana: ${windowCount}</span>`;
-      card.appendChild(countRow);
-
-      const lastRow = document.createElement("div");
-      lastRow.className = "bias-card__meta";
-      const last = entry.last;
-      const lastText = last?.fecha
-        ? `${formatFriendlyDate(last.fecha)}${last.horario ? ` · ${last.horario}` : ""}${last.pais ? ` · ${last.pais}` : ""}`
-        : "Sin registro reciente";
-      lastRow.innerHTML = `<span>Última vez: ${lastText}</span>`;
-      card.appendChild(lastRow);
-
-      if (Array.isArray(entry.triggers) && entry.triggers.length) {
-        const tagsRow = document.createElement("div");
-        tagsRow.className = "bias-card__tags";
-        entry.triggers.slice(0, 4).forEach((label) => {
-          const tag = document.createElement("span");
-          tag.className = "bias-card__tag";
-          tag.textContent = label;
-          tagsRow.appendChild(tag);
-        });
-        card.appendChild(tagsRow);
-      }
-
-      return card;
-    }
-
-    function renderFinalSelection(sesgos) {
-      if (!resultFinalSelection) return;
-      resultFinalSelection.innerHTML = "";
-      const hasSesgos = sesgos && (sesgos.activos?.length || sesgos.moderados?.length || sesgos.debiles?.length);
-      if (!hasSesgos) {
-        resultFinalSelection.innerHTML = "<p class='hint'>Calcula los sesgos activos para generar la selección final.</p>";
+      const map = perfilMap || biasDataInput.perfilMap;
+      if (!map || !map.size) {
+        resultBias.innerHTML = "<p class='hint'>Aún no hay datos suficientes para sesgos diarios.</p>";
         return;
       }
-      const selection = calcularSeleccionFinal({
-        fuertes: sesgos.activos || [],
-        moderados: sesgos.moderados || [],
-        debiles: sesgos.debiles || [],
-        draws: biasDataInput.draws || [],
-      });
-      const wrapper = document.createElement("section");
-      wrapper.className = "final-selection";
-      const head = document.createElement("div");
-      head.className = "final-selection__head";
-      const title = document.createElement("h3");
-      title.textContent = "Selección final de candidatos";
-      head.appendChild(title);
-      const turnoHint = document.createElement("p");
-      turnoHint.className = "hint";
-      if (selection?.turnoObjetivo?.label) {
-        turnoHint.textContent = `Turno objetivo: ${selection.turnoObjetivo.label}`;
+      const targetDow = Number.isFinite(dow) ? dow : Number.isFinite(biasPanelState.dow) ? biasPanelState.dow : null;
+      if (!Number.isFinite(targetDow)) {
+        resultBias.innerHTML = "<p class='hint'>Selecciona un día para revisar sesgos históricos.</p>";
+        return;
+      }
+      const perfiles = Array.from(map.values());
+      const entries = perfiles
+        .map((perfil) => {
+          const stats = computePerfilSesgoDia(perfil, targetDow, year);
+          if (!stats) return null;
+          const dayTurn = perfil.porDiaHorario?.[targetDow] || {};
+          const turnBreakdown = TURNOS.map((turno) => {
+            const countTurno = dayTurn?.[turno] || 0;
+            return {
+              turno,
+              count: countTurno,
+              ratio: stats.count ? countTurno / Math.max(stats.count, 1) : 0,
+            };
+          });
+          return {
+            numero: perfil.numero,
+            ...stats,
+            turnBreakdown,
+          };
+        })
+        .filter(Boolean);
+      if (!entries.length) {
+        resultBias.innerHTML = "<p class='hint'>Sin registros suficientes para evaluar sesgos.</p>";
+        return;
+      }
+      const strongBias = entries
+        .filter((entry) => entry.bias > 0.01)
+        .sort((a, b) => b.bias - a.bias);
+      let usedStrongBias = strongBias.length > 0;
+      let sortedEntries = usedStrongBias ? strongBias : entries.slice().sort((a, b) => b.ratio - a.ratio);
+      if (!sortedEntries.length) {
+        resultBias.innerHTML = "<p class='hint'>Sin números con recurrencia destacada para ese día.</p>";
+        return;
+      }
+      if (biasPanelState.dow !== targetDow) {
+        biasPanelState = {
+          dow: targetDow,
+          page: 0,
+          selected: [],
+          rankingTurn: biasPanelState.rankingTurn || DEFAULT_RANKING_TURN,
+          expiresAt: 0,
+        };
       } else {
-        turnoHint.textContent = "Turno objetivo pendiente de registros del día.";
+        if (!Array.isArray(biasPanelState.selected)) biasPanelState.selected = [];
+        if (!biasPanelState.rankingTurn) biasPanelState.rankingTurn = DEFAULT_RANKING_TURN;
       }
-      head.appendChild(turnoHint);
-      wrapper.appendChild(head);
-
-      wrapper.appendChild(
-        buildFinalBlock("Top Picks · números principales", selection?.topPicks || [], {
-          emptyMessage: "No hay candidatos destacados aún.",
-        })
-      );
-      wrapper.appendChild(
-        buildFinalBlock("Candidatos secundarios", selection?.secundarios || [], {
-          emptyMessage: "Sin secundarios ≥ 30% en este momento.",
-        })
-      );
-      wrapper.appendChild(
-        buildWildcardBlock("Comodín disruptor", selection?.comodin, {
-          message: "Sin comodín disponible — registra más sorteos.",
-        })
-      );
-
-      resultFinalSelection.appendChild(wrapper);
-    }
-
-    function buildFinalBlock(title, items, { emptyMessage = "" } = {}) {
-      const block = document.createElement("article");
-      block.className = "final-block";
-      const head = document.createElement("h4");
-      head.textContent = title;
-      block.appendChild(head);
-      if (!items.length) {
-        const hint = document.createElement("p");
-        hint.className = "hint";
-        hint.textContent = emptyMessage || "Sin datos disponibles.";
-        block.appendChild(hint);
-        return block;
+      if (biasPanelState.expiresAt && biasPanelState.expiresAt < Date.now()) {
+        biasPanelState.selected = [];
+        biasPanelState.expiresAt = 0;
       }
-      const list = document.createElement("ul");
-      list.className = "final-block__list";
-      items.forEach((item) => {
-        const row = document.createElement("li");
-        row.className = "final-block__item";
-        const left = document.createElement("span");
-        left.textContent = formatNumber(item.numero);
-        const right = document.createElement("span");
-        const percent = Math.round(item.percent ?? item.total * 100);
-        right.textContent = `${percent}%`;
-        row.appendChild(left);
-        row.appendChild(right);
+      const persistedNotes = getBiasNotesForDow(targetDow);
+      if (persistedNotes) {
+        const persistedSelected = Array.isArray(persistedNotes.selected) ? persistedNotes.selected : [];
+        biasPanelState.selected = persistedSelected.map((entry) => ({
+          ...entry,
+          turnBreakdown: Array.isArray(entry.turnBreakdown)
+            ? entry.turnBreakdown.map((turn) => ({ ...turn }))
+            : [],
+        }));
+        biasPanelState.rankingTurn = persistedNotes.rankingTurn || biasPanelState.rankingTurn || DEFAULT_RANKING_TURN;
+        biasPanelState.expiresAt = persistedNotes.expiresAt || biasPanelState.expiresAt || 0;
+      }
+      const pageSize = 6;
+      const totalPages = Math.max(1, Math.ceil(sortedEntries.length / pageSize));
+      const currentPage = Math.min(Math.max(biasPanelState.page || 0, 0), totalPages - 1);
+      if (biasPanelState.page !== currentPage) biasPanelState.page = currentPage;
+      const pageEntries = sortedEntries.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
+      if (!pageEntries.length) {
+        biasPanelState.page = 0;
+        renderSesgosPorDia(map, { dow: targetDow, year });
+        return;
+      }
+      const dowLabel = DOW_FULL_LABEL[targetDow] || "este día";
+      const card = document.createElement("div");
+      card.className = "analysis-card bias accent-soft";
+
+      const head = document.createElement("div");
+      head.className = "card-head";
+      head.textContent = `Sesgos ${dowLabel}`;
+      card.appendChild(head);
+
+      const meta = document.createElement("div");
+      meta.className = "analysis-note";
+      const yearLabel = Number.isFinite(year) ? ` ${year}` : "";
+      meta.textContent = usedStrongBias
+        ? `Top sesgos positivos para ${dowLabel}${yearLabel ? ` (${yearLabel})` : ""}.`
+        : `Sin sesgos fuertes para ${dowLabel}; se muestran las participaciones más altas${yearLabel ? ` ${yearLabel}` : ""}.`;
+      card.appendChild(meta);
+
+      let selectedEntries = Array.isArray(biasPanelState.selected) ? biasPanelState.selected : [];
+      let needsSelectionResync = false;
+      selectedEntries = selectedEntries.map((entry) => {
+        const resolvedSymbol = entry.symbol || getSymbol(entry.numero) || "";
+        if (entry.symbol !== resolvedSymbol) needsSelectionResync = true;
+        return {
+          ...entry,
+          symbol: resolvedSymbol,
+          turnBreakdown: Array.isArray(entry.turnBreakdown)
+            ? entry.turnBreakdown.map((turn) => ({ ...turn }))
+            : [],
+        };
+      });
+      biasPanelState.selected = selectedEntries;
+      if (needsSelectionResync && selectedEntries.length) {
+        syncBiasNotesPersistence(targetDow);
+      }
+
+      const selectionPanel = document.createElement("div");
+      selectionPanel.className = "bias-selection";
+      const selectionTitle = document.createElement("div");
+      selectionTitle.className = "bias-selection__title";
+      selectionTitle.textContent = "Apunte rápido";
+      selectionPanel.appendChild(selectionTitle);
+      const selectionBody = document.createElement("div");
+      selectionBody.className = "bias-selection__body";
+      if (!selectedEntries.length) {
+        selectionBody.textContent = "Selecciona uno o varios números para guardarlos mientras revisas este día.";
+        selectionPanel.appendChild(selectionBody);
+      } else {
+        const selectionGrid = document.createElement("div");
+        selectionGrid.className = "bias-selection__grid";
+        selectedEntries.forEach((savedEntry) => {
+          const chip = document.createElement("div");
+          chip.className = "bias-selection-chip";
+
+          const chipHead = document.createElement("div");
+          chipHead.className = "bias-selection-chip__head";
+          const chipNumber = document.createElement("div");
+          chipNumber.className = "bias-selection-chip__number";
+          const chipSymbol = savedEntry.symbol ? `<span class="bias-number-symbol">${savedEntry.symbol}</span>` : "";
+          chipNumber.innerHTML = `<span class="bias-selection-chip__number-main">${formatNumber(savedEntry.numero)}</span>${chipSymbol}`;
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "bias-selection-chip__remove";
+          removeBtn.textContent = "Quitar";
+          removeBtn.addEventListener("click", () => {
+            biasPanelState.selected = selectedEntries.filter((item) => item.numero !== savedEntry.numero);
+            syncBiasNotesPersistence(targetDow);
+            renderSesgosPorDia(map, { dow: targetDow, year });
+          });
+          chipHead.append(chipNumber, removeBtn);
+          chip.appendChild(chipHead);
+
+        const chipMeta = document.createElement("div");
+        chipMeta.className = "bias-selection-chip__meta";
+        const totalMuestras = Number.isFinite(savedEntry.total) ? savedEntry.total : "?";
+        const countMuestras = Number.isFinite(savedEntry.count) ? savedEntry.count : 0;
+        chipMeta.textContent = `Sesgo ${(savedEntry.bias * 100).toFixed(2)} pts · ${countMuestras}/${totalMuestras} muestras`;
+        chip.appendChild(chipMeta);
+          const turnEl = savedEntry.turnBreakdown?.length
+            ? (() => {
+                const turn = document.createElement("div");
+                turn.className = "bias-selection-chip__turn";
+                const breakdown = savedEntry.turnBreakdown
+                  .filter((t) => t.count)
+                  .map((t) => `${t.turno}: ${(t.ratio * 100).toFixed(0)}% (${t.count}x)`);
+                turn.textContent = breakdown.length ? breakdown.join(" · ") : "Sin historial por turno";
+                return turn;
+              })()
+            : null;
+
+          chip.append(chipHead, chipMeta);
+          if (turnEl) chip.appendChild(turnEl);
+          selectionGrid.appendChild(chip);
+        });
+        selectionBody.appendChild(selectionGrid);
+        selectionPanel.appendChild(selectionBody);
+        const clearBtn = document.createElement("button");
+        clearBtn.type = "button";
+        clearBtn.className = "bias-selection__reset";
+        clearBtn.textContent = "Vaciar apunte";
+        clearBtn.addEventListener("click", () => {
+          biasPanelState.selected = [];
+          syncBiasNotesPersistence(targetDow);
+          renderSesgosPorDia(map, { dow: targetDow, year });
+        });
+        selectionPanel.appendChild(clearBtn);
+      }
+      card.appendChild(selectionPanel);
+
+      if (selectedEntries.length) {
+        const rankingTurn = TURNOS.includes(biasPanelState.rankingTurn) ? biasPanelState.rankingTurn : DEFAULT_RANKING_TURN;
+        if (rankingTurn !== biasPanelState.rankingTurn) biasPanelState.rankingTurn = rankingTurn;
+        const rankingBlock = document.createElement("div");
+        rankingBlock.className = "bias-ranking";
+        const rankingHead = document.createElement("div");
+        rankingHead.className = "bias-ranking__head";
+        const rankingTitle = document.createElement("div");
+        rankingTitle.className = "bias-ranking__title";
+        rankingTitle.textContent = "Ranking por sorteo";
+        const rankingControl = document.createElement("label");
+        rankingControl.className = "bias-ranking-control";
+        const rankingLabel = document.createElement("span");
+        rankingLabel.textContent = "Horario objetivo";
+        const rankingSelect = document.createElement("select");
+        TURNOS.forEach((turno) => {
+          const option = document.createElement("option");
+          option.value = turno;
+          option.textContent = turno;
+          if (turno === rankingTurn) option.selected = true;
+          rankingSelect.appendChild(option);
+        });
+        rankingSelect.addEventListener("change", (e) => {
+          biasPanelState.rankingTurn = e.target.value;
+          syncBiasNotesPersistence(targetDow);
+          renderSesgosPorDia(map, { dow: targetDow, year });
+        });
+        rankingControl.append(rankingLabel, rankingSelect);
+        rankingHead.append(rankingTitle, rankingControl);
+        rankingBlock.appendChild(rankingHead);
+
+        const rankingEntries = selectedEntries
+          .map((entry) => {
+            const matchTurn = (entry.turnBreakdown || []).find((turn) => turn.turno === rankingTurn) || null;
+            const turnRatio = matchTurn?.ratio || 0;
+            const turnCount = matchTurn?.count || 0;
+            return {
+              numero: entry.numero,
+              symbol: entry.symbol || "",
+              turnRatio,
+              turnCount,
+            };
+          })
+          .sort((a, b) => b.turnRatio - a.turnRatio || b.turnCount - a.turnCount);
+
+        const rankingList = document.createElement("div");
+        rankingList.className = "bias-ranking__list";
+        rankingEntries.forEach((entry, index) => {
+          const item = document.createElement("div");
+          item.className = "bias-ranking-item";
+          const ratio = Math.max(0, Math.min(1, entry.turnRatio || 0));
+          const hue = 150 - ratio * 90;
+          const light = 45 + Math.min(index, 5) * 3;
+          const accent = `hsl(${hue}, 75%, ${light}%)`;
+          const glow = `hsla(${hue}, 80%, ${Math.min(light + 15, 75)}%, 0.55)`;
+          item.style.setProperty("--rank-accent", accent);
+          item.style.setProperty("--rank-glow", glow);
+
+          const numberEl = document.createElement("div");
+          numberEl.className = "bias-ranking-item__number";
+          const rankingSymbol = entry.symbol ? `<span class="bias-number-symbol">${entry.symbol}</span>` : "";
+          numberEl.innerHTML = `<span class="bias-selection-chip__number-main">${formatNumber(entry.numero)}</span>${rankingSymbol}`;
+
+          const details = document.createElement("div");
+          details.className = "bias-ranking-item__details";
+          const pct = (ratio * 100).toFixed(1);
+          details.innerHTML = `<strong>${pct}%</strong> en ${rankingTurn} · ${entry.turnCount} apariciones`;
+
+          const meter = document.createElement("div");
+          meter.className = "bias-ranking-item__meter";
+          const fill = document.createElement("div");
+          fill.className = "bias-ranking-item__meter-fill";
+          fill.style.width = `${Math.min(100, ratio * 100)}%`;
+          meter.appendChild(fill);
+
+          item.append(numberEl, details, meter);
+          rankingList.appendChild(item);
+        });
+        rankingBlock.appendChild(rankingList);
+        card.appendChild(rankingBlock);
+      }
+
+      const list = document.createElement("div");
+      list.className = "bias-list";
+
+      const selectedSet = new Set(selectedEntries.map((entry) => entry.numero));
+      pageEntries.forEach((entry) => {
+        const row = document.createElement("div");
+        row.className = "bias-row";
+        const isSelected = selectedSet.has(entry.numero);
+        if (isSelected) row.classList.add("bias-row--selected");
+
+        const numberEl = document.createElement("div");
+        numberEl.className = "bias-number";
+        const symbol = getSymbol(entry.numero);
+        const symbolSpan = symbol ? `<span class="bias-number-symbol">${symbol}</span>` : "";
+        numberEl.innerHTML = `<span class="bias-number-main">${formatNumber(entry.numero)}</span>${symbolSpan}`;
+
+        const statsEl = document.createElement("div");
+        statsEl.className = "bias-metrics";
+        const ratioPct = (entry.ratio * 100).toFixed(1);
+        const biasPct = (entry.bias * 100).toFixed(1);
+        const biasTag = document.createElement("span");
+        biasTag.className = `bias-chip ${entry.bias >= 0 ? "bias-chip--positive" : "bias-chip--neutral"}`;
+        biasTag.textContent = `${entry.bias >= 0 ? "+" : ""}${biasPct} pts`;
+        statsEl.innerHTML = `<strong>${ratioPct}%</strong> apariciones`;
+        statsEl.appendChild(biasTag);
+
+        const metaEl = document.createElement("div");
+        metaEl.className = "bias-meta";
+        const totalReg = Number.isFinite(entry.total) ? entry.total : "?";
+        metaEl.textContent = `${entry.count} de ${totalReg} registros`;
+
+        row.appendChild(numberEl);
+        row.appendChild(statsEl);
+        row.appendChild(metaEl);
+        const turnWrap = document.createElement("div");
+        turnWrap.className = "bias-turns";
+        entry.turnBreakdown.forEach((turnEntry) => {
+          const chip = document.createElement("span");
+          chip.className = "bias-turn";
+          if (!turnEntry.count) chip.classList.add("bias-turn--zero");
+          chip.innerHTML = `<strong>${turnEntry.turno}</strong> ${(turnEntry.ratio * 100).toFixed(0)}% · ${turnEntry.count}x`;
+          turnWrap.appendChild(chip);
+        });
+        row.appendChild(turnWrap);
+
+        const actions = document.createElement("div");
+        actions.className = "bias-row-actions";
+        const selectBtn = document.createElement("button");
+        selectBtn.type = "button";
+        selectBtn.className = `bias-select-btn${isSelected ? " bias-select-btn--active" : ""}`;
+        selectBtn.textContent = isSelected ? "En apunte" : "Agregar al apunte";
+        selectBtn.disabled = isSelected;
+        selectBtn.addEventListener("click", () => {
+          if (isSelected) return;
+          const payload = {
+            numero: entry.numero,
+            ratio: entry.ratio,
+            bias: entry.bias,
+            count: entry.count,
+            total: Number.isFinite(entry.total) ? entry.total : null,
+            turnBreakdown: entry.turnBreakdown.map((turn) => ({ ...turn })),
+            symbol: symbol || "",
+          };
+          biasPanelState.selected = [...selectedEntries, payload];
+          syncBiasNotesPersistence(targetDow);
+          renderSesgosPorDia(map, { dow: targetDow, year });
+        });
+        actions.appendChild(selectBtn);
+        row.appendChild(actions);
+
         list.appendChild(row);
       });
-      block.appendChild(list);
-      return block;
+
+      card.appendChild(list);
+      if (totalPages > 1) {
+        const pager = document.createElement("div");
+        pager.className = "bias-pagination";
+        const prevBtn = document.createElement("button");
+        prevBtn.type = "button";
+        prevBtn.textContent = "‹";
+        prevBtn.disabled = currentPage === 0;
+        prevBtn.addEventListener("click", () => {
+          if (biasPanelState.page > 0) {
+            biasPanelState.page -= 1;
+            renderSesgosPorDia(map, { dow: targetDow, year });
+          }
+        });
+        const info = document.createElement("span");
+        info.textContent = `Página ${currentPage + 1}/${totalPages}`;
+        const nextBtn = document.createElement("button");
+        nextBtn.type = "button";
+        nextBtn.textContent = "›";
+        nextBtn.disabled = currentPage >= totalPages - 1;
+        nextBtn.addEventListener("click", () => {
+          if (biasPanelState.page < totalPages - 1) {
+            biasPanelState.page += 1;
+            renderSesgosPorDia(map, { dow: targetDow, year });
+          }
+        });
+        pager.append(prevBtn, info, nextBtn);
+        card.appendChild(pager);
+      }
+      resultBias.appendChild(card);
     }
 
-    function buildWildcardBlock(title, numero, { message = "" } = {}) {
-      const block = document.createElement("article");
-      block.className = "final-block final-block--wildcard";
-      const head = document.createElement("h4");
-      head.textContent = title;
-      block.appendChild(head);
-      if (Number.isFinite(numero)) {
-        const value = document.createElement("div");
-        value.className = "final-block__wildcard";
-        value.textContent = formatNumber(numero);
-        block.appendChild(value);
-        return block;
+    function computePerfilSesgoDia(perfil, dow, year = null) {
+      if (!perfil || !Number.isFinite(dow)) return null;
+      const total = perfil.total || 0;
+      if (!total) return null;
+      const porDia = perfil.porDiaSemana || {};
+      const histCount = porDia[dow] || 0;
+      const histRatio = total ? histCount / total : 0;
+      let combined = histRatio;
+      if (year !== null && perfil.porDiaSemanaPorAnio?.[year]) {
+        const bucket = perfil.porDiaSemanaPorAnio[year];
+        const yearTotal = bucket?._total || 0;
+        if (yearTotal) {
+          const yearRatio = (bucket[dow] || 0) / yearTotal;
+          combined = yearRatio * 0.7 + histRatio * 0.3;
+        }
       }
-      const hint = document.createElement("p");
-      hint.className = "hint";
-      hint.textContent = message || "Sin comodín disponible.";
-      block.appendChild(hint);
-      return block;
+      const bias = combined - BASELINE_DOW_RATIO;
+      return {
+        ratio: combined,
+        bias,
+        count: histCount,
+        total,
+      };
     }
+
+
+    if (pega3FechaInput && !pega3FechaInput.value) {
+      pega3FechaInput.value = getTodayISODate();
+    }
+
+    async function handlePega3Save(event) {
+      event?.preventDefault();
+      const fecha = pega3FechaInput?.value;
+      const horario = pega3TurnoSelect?.value || "11AM";
+      const pais = pega3PaisSelect?.value || "HN";
+      const pares = pega3ParInputs
+        .map((input) => parseInt(input?.value ?? "", 10))
+        .filter((value) => Number.isFinite(value));
+      if (!fecha || pares.length !== 3) {
+        showToast("Completa la fecha y los tres pares antes de guardar.", { variant: "warning" });
+        return;
+      }
+      try {
+        await DB.savePega3Draw({ fecha, horario, pais, pares });
+        showToast("Sorteo Pega3 guardado.", { variant: "success", timeout: 2000 });
+        pega3ParInputs.forEach((input) => {
+          if (input) input.value = "";
+        });
+        await refreshPega3Historial({ silent: true });
+      } catch (err) {
+        console.error("pega3 save error", err);
+        showToast(`No se pudo guardar el sorteo: ${err.message}`, { variant: "danger" });
+      }
+    }
+
+    async function refreshPega3Historial({ silent = false } = {}) {
+      if (!pega3Historial) return;
+      if (!silent) pega3Historial.innerHTML = "<p class='hint'>Cargando historial…</p>";
+      try {
+        const list = await DB.listPega3Draws();
+        pega3DrawCache = list
+          .slice()
+          .sort((a, b) => {
+            if (a.fecha === b.fecha) {
+              return TURNOS.indexOf(b.horario) - TURNOS.indexOf(a.horario);
+            }
+            return a.fecha > b.fecha ? -1 : 1;
+          });
+        renderPega3HistorialList(pega3DrawCache);
+      } catch (err) {
+        console.error("pega3 historial error", err);
+        pega3Historial.innerHTML = `<p class='hint'>No se pudo leer el historial: ${err.message}</p>`;
+      }
+    }
+
+    function renderPega3HistorialList(draws = []) {
+      if (!pega3Historial) return;
+      if (!draws.length) {
+        pega3Historial.innerHTML = "<p class='hint'>Aún no registras sorteos Pega3.</p>";
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      draws.slice(0, 60).forEach((row) => {
+        const item = document.createElement("div");
+        item.className = "pega3-entry";
+        const date = document.createElement("span");
+        date.textContent = `${row.fecha} · ${row.horario} · ${row.pais || ""}`;
+        const nums = document.createElement("span");
+        nums.textContent = row.pares.map((n) => formatNumber(n)).join(" – ");
+        item.appendChild(date);
+        item.appendChild(nums);
+        fragment.appendChild(item);
+      });
+      pega3Historial.innerHTML = "";
+      pega3Historial.appendChild(fragment);
+    }
+
+    async function runPega3Analysis() {
+      if (!pega3DrawCache.length) {
+        showToast("Registra sorteos Pega3 para analizar.", { variant: "info" });
+        return;
+      }
+      pega3Resumen.innerHTML = "<p class='hint'>Analizando patrones…</p>";
+      pega3Sesgos.innerHTML = "";
+      pega3Seleccion.innerHTML = "";
+      try {
+        const diariaDraws = await DB.listDraws({ excludeTest: true });
+        const resultado = evaluarMotorPega3(pega3DrawCache, { externa: diariaDraws });
+        pega3AnalysisCache = resultado;
+        renderPega3Panels();
+      } catch (err) {
+        console.error("pega3 analysis error", err);
+        pega3Resumen.innerHTML = `<p class='hint'>No se pudo completar el análisis: ${err.message}</p>`;
+      }
+    }
+
+    function renderPega3Panels() {
+      if (!pega3Resumen) return;
+      if (!pega3AnalysisCache?.stats) {
+        pega3Resumen.innerHTML = "<p class='hint'>Registra sorteos y ejecuta el análisis para ver los hallazgos.</p>";
+        pega3Sesgos.innerHTML = "";
+        pega3Seleccion.innerHTML = "";
+        return;
+      }
+      renderPega3Summary(pega3AnalysisCache.stats);
+      renderPega3Sesgos(pega3AnalysisCache.sesgos);
+      renderPega3Seleccion(pega3AnalysisCache.seleccion);
+    }
+
+    function renderPega3Summary(stats) {
+      if (!pega3Resumen) return;
+      const totalDraws = stats.totalDraws || 0;
+      const topNumero = stats.numeroList?.[0];
+      const topPair = stats.pairList?.[0];
+      const pattern = stats.patternSummary || {};
+      const cross = stats.crossTurn || {};
+      const external = stats.externalSummary || [];
+      const parts = [];
+      parts.push(`<strong>Total sorteos:</strong> ${totalDraws}`);
+      if (topNumero) {
+        parts.push(
+          `<strong>Número dominante:</strong> ${formatNumber(topNumero.numero)} · ${(topNumero.freq * 100).toFixed(2)}% global · Turno favorito ${topNumero.turnoFuerte}`,
+        );
+      }
+      if (topPair) {
+        parts.push(
+          `<strong>Par destacado:</strong> [${topPair.numeros.map((n) => formatNumber(n)).join(" – ")}] · ${topPair.total} repeticiones`,
+        );
+      }
+      parts.push(
+        `<strong>Patrones internos:</strong> repetidos ${pattern.repetidos || 0}, vecinos ${pattern.vecinos || 0}, espejos ${pattern.espejos || 0}, progresiones ${pattern.escaleras || 0}`,
+      );
+      parts.push(
+        `<strong>Arrastres entre turnos:</strong> coincidencias directas ${cross.directas || 0}, espejos ${cross.espejos || 0}, repeticiones ${cross.repeticiones || 0}`,
+      );
+      if (external.length) {
+        const topExt = external.slice(0, 2).map((item) => `${formatNumber(item.numero)} (${Math.round(item.coef * 100)}%)`);
+        parts.push(`<strong>Correlación con La Diaria:</strong> ${topExt.join(" · ")}`);
+      }
+      pega3Resumen.innerHTML = `<ul class="analysis-note">${parts.map((text) => `<li>${text}</li>`).join("")}</ul>`;
+    }
+
+    function renderPega3Sesgos({ fuertes = [], moderados = [], debiles = [] } = {}) {
+      if (!pega3Sesgos) return;
+      const build = (titulo, lista) => {
+        if (!lista.length) {
+          return `<p class="hint">${titulo}: sin datos.</p>`;
+        }
+        const items = lista
+          .slice(0, 8)
+          .map(
+            (entry) =>
+              `<li><span>${formatNumber(entry.numero)}</span><span>${Math.round((entry.score || 0) * 100)}%</span></li>`,
+          )
+          .join("");
+        return `<div class="pega3-sesgo"><h5>${titulo}</h5><ul>${items}</ul></div>`;
+      };
+      pega3Sesgos.innerHTML = `
+        <div class="pega3-sesgos-grid">
+          ${build("Sesgos fuertes", fuertes)}
+          ${build("Sesgos moderados", moderados)}
+          ${build("Sesgos débiles", debiles)}
+        </div>
+      `;
+    }
+
+    function renderPega3Seleccion(seleccion) {
+      if (!pega3Seleccion) return;
+      if (!seleccion?.top?.length) {
+        pega3Seleccion.innerHTML = "<p class='hint'>Calcula los sesgos para generar candidatos finales.</p>";
+        return;
+      }
+      const topList = seleccion.top
+        .map((item) => `<li><span>${formatNumber(item.numero)}</span><span>${Math.round(item.score * 100)}%</span></li>`)
+        .join("");
+      const secList = (seleccion.secundarios || [])
+        .map((item) => `<li><span>${formatNumber(item.numero)}</span><span>${Math.round(item.score * 100)}%</span></li>`)
+        .join("");
+      pega3Seleccion.innerHTML = `
+        <div class="final-selection">
+          <div class="final-selection__head">
+            <h3>Selección final Pega3</h3>
+            <p class="hint">Turno objetivo: ${seleccion.turnoObjetivo?.label || "pendiente"}</p>
+          </div>
+          <article class="final-block">
+            <h4>Top Picks</h4>
+            <ul class="final-block__list">${topList}</ul>
+          </article>
+          <article class="final-block">
+            <h4>Candidatos secundarios</h4>
+            ${
+              secList
+                ? `<ul class="final-block__list">${secList}</ul>`
+                : "<p class='hint'>Sin secundarios con score ≥ 35%.</p>"
+            }
+          </article>
+          <article class="final-block final-block--wildcard">
+            <h4>Comodín disruptor</h4>
+            <div class="final-block__wildcard">${formatNumber(seleccion.comodin ?? seleccion.top[seleccion.top.length - 1].numero)}</div>
+          </article>
+        </div>
+      `;
+    }
+
+    document.getElementById("pega3-btn-registrar")?.addEventListener("click", handlePega3Save);
+    document.getElementById("pega3-btn-cargar")?.addEventListener("click", () => refreshPega3Historial());
+    document.getElementById("pega3-btn-analizar")?.addEventListener("click", () => runPega3Analysis());
 
     function aplicarBonusEstrategias(predicciones = [], estrategias = [], contexto = {}) {
       if (!Array.isArray(predicciones) || !predicciones.length) return predicciones;
@@ -6497,6 +6948,14 @@ function buildVariantEntries(profile) {
     // ✅ Navegación lateral
     const sidebar = document.getElementById("sidebar");
     const toggleBtn = document.getElementById("btn-toggle-sidebar");
+    const logoutBtn = document.getElementById("btn-logout");
+
+    function cerrarSesion() {
+      localStorage.removeItem("auth");
+      window.location.href = "./login.html";
+    }
+
+    logoutBtn?.addEventListener("click", cerrarSesion);
 
     const closeSidebarMobile = () => {
       if (!sidebar) return;
@@ -6524,6 +6983,7 @@ function buildVariantEntries(profile) {
       transform: "view-transform",
       strategies: "view-strategies",
       weekly: "view-weekly",
+      pega3: "view-pega3",
       notebook: "view-notebook",
       geometry: "view-geometry",
       memory: "view-memory",
@@ -6535,6 +6995,10 @@ function buildVariantEntries(profile) {
     const sidebarButtons = document.querySelectorAll(".sidebar button");
     sidebarButtons.forEach((b) => {
       b.onclick = () => {
+        if (b.dataset.view === "login") {
+          window.location.href = "./login.html";
+          return;
+        }
         document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
         const id = views[b.dataset.view];
         const el = document.getElementById(id);
@@ -6548,6 +7012,10 @@ function buildVariantEntries(profile) {
         if (id === "view-weekly") {
           refreshWeeklyPanel({ force: true });
           refreshMonthlyPanel({ force: true });
+        }
+        if (id === "view-pega3") {
+          refreshPega3Historial();
+          renderPega3Panels();
         }
         if (id === "view-notebook") refreshNotebookList();
         if (id === "view-memory") {
