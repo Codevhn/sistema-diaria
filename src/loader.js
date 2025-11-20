@@ -1,22 +1,11 @@
-// loader.js — v3.3.1
+// loader.js — guía de sueños
+import { loadGuide } from "./guia.js";
+
 export let GUIA = {};
-
-const DATA_URL = "./data/guia_suenos.json";
-
-async function fetchGuideData() {
-  if (typeof fetch !== "function") {
-    throw new Error("fetch API no disponible en este entorno");
-  }
-  const response = await fetch(DATA_URL, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Error ${response.status} al leer ${DATA_URL}`);
-  }
-  return response.json();
-}
 
 export async function cargarGuia() {
   try {
-    GUIA = await fetchGuideData();
+    GUIA = await loadGuide();
     return GUIA;
   } catch (err) {
     console.error("[loader] No se pudo cargar guia_suenos.json", err);
@@ -24,6 +13,8 @@ export async function cargarGuia() {
     throw err;
   }
 }
+
+export { loadGuide };
 
 export function getColorPolaridad(num) {
   // Simple: coloreo por familias “imaginarias” basadas en dígito para demo estable
