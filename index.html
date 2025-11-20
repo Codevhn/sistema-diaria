@@ -1385,6 +1385,18 @@
 
     const DAY_MS = 24 * 60 * 60 * 1000;
     const formatNumber = (n) => String(n).padStart(2, "0");
+    const normalizeNumeroKey = (value) => {
+      const parsed = parseInt(value, 10);
+      if (!Number.isNaN(parsed)) {
+        const bounded = ((parsed % 100) + 100) % 100; // asegura 0-99
+        return formatNumber(bounded);
+      }
+      const raw = String(value ?? "")
+        .trim()
+        .replace(/[^0-9]/g, "");
+      if (!raw) return "";
+      return formatNumber(parseInt(raw.slice(-2), 10));
+    };
     let memoryCachedDraws = null;
     let memorySelectedNumero = null;
     let memorySummary = [];
@@ -1534,7 +1546,8 @@
     };
 
     const getSymbol = (numero) => {
-      const entry = GUIA[formatNumber(numero)];
+      const key = normalizeNumeroKey(numero);
+      const entry = key ? GUIA[key] : null;
       return entry?.simbolo || "";
     };
 
