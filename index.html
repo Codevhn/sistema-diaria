@@ -21,14 +21,6 @@
 </head>
 
 <body class="layout">
-  <div id="origin-warning" class="origin-warning hidden" role="alert">
-    <div class="origin-warning__message">
-      <strong>Atención:</strong>
-      Estás viendo el sistema en <span data-current-origin></span>. Los datos existentes viven en
-      <span data-canonical-origin>http://localhost:3000</span>. Abre esa dirección para recuperar tu base.
-    </div>
-    <button type="button" class="origin-warning__close" data-close-warning aria-label="Cerrar aviso">&times;</button>
-  </div>
   <aside class="sidebar expanded" id="sidebar">
     <div class="brand">LD v3.2</div>
     <button data-view="login"><i>🔐 Acceso</i></button>
@@ -1355,28 +1347,6 @@
         showToast(`No se pudo guardar el modo: ${err.message}`, { variant: "danger" });
       }
     });
-
-    const CANONICAL_ORIGIN = "http://localhost:3000";
-    const FALLBACK_ORIGIN = "http://127.0.0.1:3000";
-    const originBanner = document.getElementById("origin-warning");
-    if (originBanner) {
-      const origin = window.location.origin;
-      const shouldWarn = origin !== CANONICAL_ORIGIN && origin !== FALLBACK_ORIGIN;
-      if (shouldWarn) {
-        originBanner.classList.remove("hidden");
-        const currentEl = originBanner.querySelector("[data-current-origin]");
-        const canonicalEl = originBanner.querySelector("[data-canonical-origin]");
-        if (currentEl) {
-          const { protocol, hostname, port } = window.location;
-          const fallback = `${protocol}//${hostname}${port ? `:${port}` : ""}`;
-          currentEl.textContent = origin || fallback;
-        }
-        if (canonicalEl) canonicalEl.textContent = CANONICAL_ORIGIN;
-        originBanner
-          .querySelector("[data-close-warning]")
-          ?.addEventListener("click", () => originBanner.classList.add("hidden"));
-      }
-    }
 
     const todayISO = getTodayISODate();
     ["day-fecha", "h-fecha", "g-fecha"].forEach((id) => {
