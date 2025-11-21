@@ -888,6 +888,14 @@
     const processingModal = document.getElementById("processing-modal");
     const showProcessing = () => processingModal?.classList.remove("hidden");
     const hideProcessing = () => processingModal?.classList.add("hidden");
+    const runWithProcessing = async (task) => {
+      showProcessing();
+      try {
+        return await task();
+      } finally {
+        hideProcessing();
+      }
+    };
     showBootLoader();
 
     let guideLoadError = null;
@@ -1882,33 +1890,33 @@
         return;
       }
 
-      try {
-        showProcessing();
-        for (const { config, numero, isTest } of payloads) {
-          const opts = isTest ? { source: "test" } : {};
-          await importarManual({ fecha, pais, horario: config.key, numero }, opts);
+      await runWithProcessing(async () => {
+        try {
+          for (const { config, numero, isTest } of payloads) {
+            const opts = isTest ? { source: "test" } : {};
+            await importarManual({ fecha, pais, horario: config.key, numero }, opts);
+          }
+
+          payloads.forEach(({ input, testCheck }) => {
+            if (input) input.value = "";
+            if (testCheck) testCheck.checked = false;
+          });
+
+          await refreshSlots();
+          await rebuildKnowledge();
+          autoFollowIfToday(fecha, pais);
+          await handleDrawsMutated();
+
+          const detail = payloads
+            .map(({ config, numero }) => `${config.key} ${formatNumber(numero)}`)
+            .join(" · ");
+          showToast(`Se guardaron ${payloads.length} sorteo(s): ${detail}.`, { variant: "success" });
+        } catch (err) {
+          console.error("saveDay error", err);
+          showToast(`No se pudieron guardar los sorteos: ${err.message}`, { variant: "danger" });
+          throw err;
         }
-
-        payloads.forEach(({ input, testCheck }) => {
-          if (input) input.value = "";
-          if (testCheck) testCheck.checked = false;
-        });
-
-        await refreshSlots();
-        await rebuildKnowledge();
-        autoFollowIfToday(fecha, pais);
-        await handleDrawsMutated();
-
-        const detail = payloads
-          .map(({ config, numero }) => `${config.key} ${formatNumber(numero)}`)
-          .join(" · ");
-        showToast(`Se guardaron ${payloads.length} sorteo(s): ${detail}.`, { variant: "success" });
-      } catch (err) {
-        console.error("saveDay error", err);
-        showToast(`No se pudieron guardar los sorteos: ${err.message}`, { variant: "danger" });
-      } finally {
-        hideProcessing();
-      }
+      });
     });
 
     saveDayBtn?.addEventListener("click", () => {
@@ -2084,25 +2092,28 @@
         });
         return;
       }
-      try {
-        for (const draw of draws) {
-          const simbolo = getSymbol(draw.numero);
-          await registrarResultado({
-            numero: draw.numero,
-            simbolo,
-            fecha: draw.fecha,
-            pais: draw.pais,
-            horario: draw.horario,
-          });
+      await runWithProcessing(async () => {
+        try {
+          for (const draw of draws) {
+            const simbolo = getSymbol(draw.numero);
+            await registrarResultado({
+              numero: draw.numero,
+              simbolo,
+              fecha: draw.fecha,
+              pais: draw.pais,
+              horario: draw.horario,
+            });
+          }
+          await DB.closePredictionBatch({ fecha, pais });
+          await rebuildKnowledge();
+          await refreshHypotesis();
+          showToast("Hipótesis actualizadas con los resultados del día.", { variant: "success" });
+        } catch (err) {
+          console.error("aprendizaje error", err);
+          showToast(`Error al registrar resultados: ${err.message}`, { variant: "danger" });
+          throw err;
         }
-        await DB.closePredictionBatch({ fecha, pais });
-        await rebuildKnowledge();
-        await refreshHypotesis();
-        showToast("Hipótesis actualizadas con los resultados del día.", { variant: "success" });
-      } catch (err) {
-        console.error("aprendizaje error", err);
-        showToast(`Error al registrar resultados: ${err.message}`, { variant: "danger" });
-      }
+      });
     });
 
     // === Paneles extendidos: historial, seguimiento, patrones y ranking ===
