@@ -1856,6 +1856,16 @@ button.ghost:hover {
     transform: rotate(360deg);
   }
 }
+.boot-loader {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(74, 227, 181, 0.08), rgba(3, 5, 14, 0.9));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  backdrop-filter: blur(2px);
+}
 .symbol-tag {
   display: flex;
   align-items: center;

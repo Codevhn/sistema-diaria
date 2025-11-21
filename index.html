@@ -824,6 +824,12 @@
   </main>
 
   <div id="toast-container" class="toast-container"></div>
+  <div id="boot-loader" class="boot-loader">
+    <div class="processing-box">
+      <div class="processing-spinner"></div>
+      <div class="processing-text">Cargando sistema…<br />Por favor espere</div>
+    </div>
+  </div>
   <div id="processing-modal" class="processing-modal hidden" aria-live="polite">
     <div class="processing-box">
       <div class="processing-spinner"></div>
@@ -878,9 +884,11 @@
     import { logInfo, logWarn } from "./src/logger.js";
     import { runDexieToSupabaseImport } from "./src/dexieToSupabaseImporter.js";
     import { getCurrentUser, logout as supabaseLogout } from "./src/auth.js";
+    import { showBootLoader, hideBootLoader } from "./src/boot-loader.js";
     const processingModal = document.getElementById("processing-modal");
     const showProcessing = () => processingModal?.classList.remove("hidden");
     const hideProcessing = () => processingModal?.classList.add("hidden");
+    showBootLoader();
 
     let guideLoadError = null;
 
@@ -7107,6 +7115,7 @@ function buildVariantEntries(profile) {
     await refreshSlots();
     await rebuildKnowledge();
     await refreshModesPanel();
+    hideBootLoader();
 
     // === Migración Dexie → Supabase (solo interfaz) ===
     const dexieMigrationBtn = document.getElementById("btn-migrar-dexie");
