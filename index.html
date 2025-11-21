@@ -931,6 +931,17 @@
     }
 
     const toastContainer = document.getElementById("toast-container");
+    function withButtonBusy(button, label = null) {
+      if (!button) return () => {};
+      const prevText = button.textContent;
+      const prevDisabled = button.disabled;
+      button.disabled = true;
+      if (label) button.textContent = label;
+      return () => {
+        if (label) button.textContent = prevText;
+        button.disabled = prevDisabled;
+      };
+    }
 
     function showToast(message, { variant = "info", timeout = 4200 } = {}) {
       if (!toastContainer) {
@@ -1899,33 +1910,36 @@
         return;
       }
 
-      await runWithSavingModal(async () => {
-        try {
+      const endBusy = withButtonBusy(saveDayBtn, "Guardando…");
+      try {
+        await runWithSavingModal(async () => {
           for (const { config, numero, isTest } of payloads) {
             const opts = isTest ? { source: "test" } : {};
             await importarManual({ fecha, pais, horario: config.key, numero }, opts);
           }
+        });
 
-          payloads.forEach(({ input, testCheck }) => {
-            if (input) input.value = "";
-            if (testCheck) testCheck.checked = false;
-          });
+        payloads.forEach(({ input, testCheck }) => {
+          if (input) input.value = "";
+          if (testCheck) testCheck.checked = false;
+        });
 
-          await refreshSlots();
-          await rebuildKnowledge();
-          autoFollowIfToday(fecha, pais);
-          await handleDrawsMutated();
+        await refreshSlots();
+        await rebuildKnowledge();
+        autoFollowIfToday(fecha, pais);
+        await handleDrawsMutated();
 
-          const detail = payloads
-            .map(({ config, numero }) => `${config.key} ${formatNumber(numero)}`)
-            .join(" · ");
-          showToast(`Se guardaron ${payloads.length} sorteo(s): ${detail}.`, { variant: "success" });
-        } catch (err) {
-          console.error("saveDay error", err);
-          showToast(`No se pudieron guardar los sorteos: ${err.message}`, { variant: "danger" });
-          throw err;
-        }
-      });
+        const detail = payloads
+          .map(({ config, numero }) => `${config.key} ${formatNumber(numero)}`)
+          .join(" · ");
+        showToast(`Se guardaron ${payloads.length} sorteo(s): ${detail}.`, { variant: "success" });
+      } catch (err) {
+        console.error("saveDay error", err);
+        showToast(`No se pudieron guardar los sorteos: ${err.message}`, { variant: "danger" });
+        throw err;
+      } finally {
+        endBusy();
+      }
     });
 
     saveDayBtn?.addEventListener("click", () => {
@@ -2101,8 +2115,9 @@
         });
         return;
       }
-      await runWithSavingModal(async () => {
-        try {
+      const endBusy = withButtonBusy(btnAprender, "Procesando…");
+      try {
+        await runWithSavingModal(async () => {
           for (const draw of draws) {
             const simbolo = getSymbol(draw.numero);
             await registrarResultado({
@@ -2114,15 +2129,17 @@
             });
           }
           await DB.closePredictionBatch({ fecha, pais });
-          await rebuildKnowledge();
-          await refreshHypotesis();
-          showToast("Hipótesis actualizadas con los resultados del día.", { variant: "success" });
-        } catch (err) {
-          console.error("aprendizaje error", err);
-          showToast(`Error al registrar resultados: ${err.message}`, { variant: "danger" });
-          throw err;
-        }
-      });
+        });
+        await rebuildKnowledge();
+        await refreshHypotesis();
+        showToast("Hipótesis actualizadas con los resultados del día.", { variant: "success" });
+      } catch (err) {
+        console.error("aprendizaje error", err);
+        showToast(`Error al registrar resultados: ${err.message}`, { variant: "danger" });
+        throw err;
+      } finally {
+        endBusy();
+      }
     });
 
     // === Paneles extendidos: historial, seguimiento, patrones y ranking ===
