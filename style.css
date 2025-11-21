@@ -4092,6 +4092,37 @@ button.ghost:hover {
   flex-wrap: wrap;
   align-items: flex-start;
 }
+.weekly-lines-panel .lines-body {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lines-highlight {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(74, 227, 181, 0.3);
+  background: rgba(4, 18, 32, 0.35);
+  color: var(--color-text);
+}
+.lines-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.lines-card {
+  border: 1px solid rgba(73, 125, 255, 0.25);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: rgba(9, 16, 32, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+.lines-card small {
+  color: var(--color-muted);
+}
 
 .monthly-controls {
   margin: 24px 0;

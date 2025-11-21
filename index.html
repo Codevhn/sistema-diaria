@@ -525,6 +525,19 @@
       <div id="weekly-grid" class="weekly-grid">
         <p class="hint">Aún no se han calculado las secuencias.</p>
       </div>
+      <article class="weekly-monthly-panel weekly-lines-panel">
+        <div class="weekly-monthly-head">
+          <div>
+            <h3>Rotación de líneas</h3>
+            <p class="hint">Detecta si la lotería alterna bloques de dígitos (00-09, 10-19…) por semanas y anticipa el
+              próximo bloque probable.</p>
+          </div>
+          <button id="lines-refresh" class="btn-outline">Detectar rotación</button>
+        </div>
+        <div id="lines-body" class="lines-body">
+          <p class="hint">Calcula la rotación de líneas para ver cuándo se repite un bloque específico.</p>
+        </div>
+      </article>
       <article class="weekly-monthly-panel">
         <div class="weekly-monthly-head">
           <div>
@@ -868,7 +881,7 @@
       obtenerResumenPredicciones,
     } from "./src/learning.js";
     import { analizarSesgos } from "./src/bias-analyzer.js";
-    import { analizarSecuenciasSemanales, analizarComparacionMensual } from "./src/weekly-patterns.js";
+    import { analizarSecuenciasSemanales, analizarComparacionMensual, analizarRotacionLineas } from "./src/weekly-patterns.js";
     import { evaluarMotorPega3 } from "./src/pega3-engine.js";
     import {
       createMode,
@@ -2425,6 +2438,8 @@
     const weeklySummaryEl = document.getElementById("weekly-summary");
     const weeklyGridEl = document.getElementById("weekly-grid");
     const weeklyRefreshBtn = document.getElementById("weekly-refresh");
+    const linesRefreshBtn = document.getElementById("lines-refresh");
+    const linesBodyEl = document.getElementById("lines-body");
     const monthlyPaisSelect = document.getElementById("monthly-pais");
     const monthlyDowSelect = document.getElementById("monthly-dow");
     const monthlyTurnoSelect = document.getElementById("monthly-turno");
@@ -2490,6 +2505,9 @@
 
     weeklyRefreshBtn?.addEventListener("click", () => {
       refreshWeeklyPanel({ force: true });
+    });
+    linesRefreshBtn?.addEventListener("click", () => {
+      refreshLinesPanel({ force: true });
     });
     [weeklyPaisSelect, weeklyTurnoSelect, weeklyWindowInput, weeklyRepeatsInput].forEach((input) => {
       input?.addEventListener("change", () => refreshWeeklyPanel());
@@ -3205,6 +3223,8 @@
     const WEEKLY_DEFAULT_WINDOW = 12;
     let weeklyLoading = false;
     let weeklyLastAnalysis = null;
+    let linesLoading = false;
+    let lastLinesAnalysis = null;
     let monthlyLoading = false;
     let monthlyLastAnalysis = null;
 
@@ -3217,6 +3237,73 @@
           return symbol ? `${formatted} ${symbol}` : formatted;
         })
         .join(" → ");
+    }
+
+    function formatLineBand(band) {
+      if (!Number.isFinite(band)) return "";
+      const start = Math.max(0, Math.min(90, band));
+      const end = Math.min(99, start + 9);
+      return `${String(start).padStart(2, "0")}-${String(end).padStart(2, "0")}`;
+    }
+
+    function formatLinePattern(pattern = []) {
+      if (!Array.isArray(pattern) || !pattern.length) return "";
+      return pattern.map((band) => formatLineBand(band)).join(" → ");
+    }
+
+    function renderLinesRotation(analysis = null) {
+      if (!linesBodyEl) return;
+      if (!analysis || !analysis.weeks?.length) {
+        linesBodyEl.innerHTML = "<p class='hint'>Necesitas más semanas registradas para calcular la rotación.</p>";
+        return;
+      }
+      const { cycle, weeks, filtro } = analysis;
+      const fragment = document.createDocumentFragment();
+      const summary = document.createElement("div");
+      summary.className = "lines-highlight";
+      const coverage = cycle?.coverage ? `${Math.round((cycle.coverage || 0) * 100)}%` : null;
+      if (cycle) {
+        const pattern = formatLinePattern(cycle.pattern);
+        const next = formatLineBand(cycle.nextNumero);
+        summary.innerHTML = `Rotación detectada: <strong>${pattern}</strong> (${cycle.matchedCycles} ciclos). Próximo bloque probable: <strong>${next || "--"}</strong>${coverage ? ` · Cobertura ${coverage}` : ""}.`;
+      } else {
+        const paisLabel = filtro?.pais || "todos los países";
+        const turnoLabel = filtro?.turno || "todos los turnos";
+        summary.textContent = `Sin rotación clara en las últimas ${weeks.length} semanas (${paisLabel} · ${turnoLabel}).`;
+      }
+      fragment.appendChild(summary);
+
+      const grid = document.createElement("div");
+      grid.className = "lines-grid";
+      const recent = weeks.slice(-10).reverse();
+      recent.forEach((week) => {
+        const card = document.createElement("div");
+        card.className = "lines-card";
+        const title = document.createElement("strong");
+        title.textContent = week.key || "Semana";
+        card.appendChild(title);
+        const period = document.createElement("small");
+        period.textContent = week.start && week.end ? `${formatFriendlyDate(week.start)} • ${formatFriendlyDate(week.end)}` : "";
+        card.appendChild(period);
+        const top = document.createElement("div");
+        const topLabel = week.topLine?.label || "—";
+        const topShare = week.topLine?.share ? ` (${Math.round(week.topLine.share * 100)}%)` : "";
+        const topCount = week.topLine?.count ? ` · ${week.topLine.count}/${week.total}` : "";
+        top.textContent = `Bloque dominante: ${topLabel}${topShare}${topCount}`;
+        card.appendChild(top);
+        if (week.topLines?.length) {
+          const breakdown = document.createElement("small");
+          breakdown.textContent = week.topLines
+            .map((line) => `${line.label} (${line.count})`)
+            .join(" · ");
+          card.appendChild(breakdown);
+        }
+        grid.appendChild(card);
+      });
+      fragment.appendChild(grid);
+
+      linesBodyEl.innerHTML = "";
+      linesBodyEl.appendChild(fragment);
     }
 
     function renderWeeklySummary(analysis = null) {
@@ -3377,12 +3464,46 @@
         weeklyLastAnalysis = analysis;
         renderWeeklySummary(analysis);
         renderWeeklyGrid(analysis);
+        await refreshLinesPanel({
+          force: true,
+          draws,
+          weeksOverride: windowValue,
+          repeatsOverride: repeatsValue,
+        });
       } catch (err) {
         console.error("weekly panel error", err);
         if (weeklySummaryEl) weeklySummaryEl.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
         if (weeklyGridEl) weeklyGridEl.innerHTML = "";
       } finally {
         weeklyLoading = false;
+      }
+    }
+
+    async function refreshLinesPanel({ force = false, draws = null, weeksOverride = null, repeatsOverride = null } = {}) {
+      if (!linesBodyEl) return;
+      if (!force && weeklySection?.classList.contains("hidden")) return;
+      if (linesLoading) return;
+      linesLoading = true;
+      linesBodyEl.innerHTML = "<p class='hint'>Calculando rotación de líneas…</p>";
+      try {
+        const paisValue = weeklyPaisSelect?.value || "ALL";
+        const turnoValue = weeklyTurnoSelect?.value || "";
+        const weeksValue = Number.isFinite(weeksOverride) ? weeksOverride : parseInt(weeklyWindowInput?.value, 10);
+        const repeatsValue = Number.isFinite(repeatsOverride) ? repeatsOverride : parseInt(weeklyRepeatsInput?.value, 10);
+        const dataset = Array.isArray(draws) ? draws : await getCachedDraws({ force });
+        const analysis = analizarRotacionLineas(dataset, {
+          pais: paisValue === "ALL" ? null : paisValue,
+          turno: turnoValue || null,
+          weeks: Number.isFinite(weeksValue) && weeksValue > 0 ? weeksValue : WEEKLY_DEFAULT_WINDOW,
+          minRepeats: Number.isFinite(repeatsValue) ? Math.max(2, repeatsValue) : 2,
+        });
+        lastLinesAnalysis = analysis;
+        renderLinesRotation(analysis);
+      } catch (err) {
+        console.error("lines rotation error", err);
+        linesBodyEl.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
+      } finally {
+        linesLoading = false;
       }
     }
 

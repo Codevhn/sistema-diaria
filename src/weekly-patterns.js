@@ -3,6 +3,7 @@ import { parseDrawDate, formatDateISO } from "./date-utils.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
+const LINE_STEP = 10;
 
 function toNumber(value) {
   const n = typeof value === "number" ? value : parseInt(value, 10);
@@ -49,6 +50,36 @@ function detectCycle(values, { minLength = 2, maxLength = 6, minRepeats = 2 } = 
 
 function buildGroupKey({ dow, horario }) {
   return `${dow}|${horario}`;
+}
+
+function getIsoWeekKey(date) {
+  const tmp = new Date(date);
+  const day = tmp.getDay();
+  const diff = (day === 0 ? -6 : 1) - day; // adjust to Monday
+  tmp.setDate(tmp.getDate() + diff);
+  const weekStart = new Date(tmp.getFullYear(), tmp.getMonth(), tmp.getDate());
+  const yearStart = new Date(weekStart.getFullYear(), 0, 1);
+  const daysSinceYearStart = Math.floor((weekStart - yearStart) / DAY_MS);
+  const weekNumber = Math.floor(daysSinceYearStart / 7) + 1;
+  const year = weekStart.getFullYear();
+  return {
+    key: `${year}-W${String(weekNumber).padStart(2, "0")}`,
+    start: weekStart,
+    end: new Date(weekStart.getTime() + 6 * DAY_MS),
+  };
+}
+
+function getLineBand(numero) {
+  if (!Number.isFinite(numero)) return null;
+  const base = Math.floor(numero / LINE_STEP) * LINE_STEP;
+  return Math.max(0, Math.min(90, base));
+}
+
+function formatLineLabel(line) {
+  if (!Number.isFinite(line)) return "";
+  const start = Math.max(0, Math.min(90, line));
+  const end = Math.min(99, start + 9);
+  return `${String(start).padStart(2, "0")}-${String(end).padStart(2, "0")}`;
 }
 
 function parseDraw(draw) {
@@ -165,6 +196,98 @@ export function analizarSecuenciasSemanales(draws = [], options = {}) {
       combosConCiclo: withCycle.length,
       destacados: strongest,
     },
+  };
+}
+
+export function analizarRotacionLineas(draws = [], options = {}) {
+  const {
+    pais = null,
+    turno = null,
+    weeks = 16,
+    minRepeats = 2,
+    maxPattern = 6,
+  } = options || {};
+  const filterPais = pais && pais !== "ALL" ? pais : null;
+  const filterTurno = turno && turno !== "ALL" ? turno : null;
+  const validDraws = Array.isArray(draws) ? draws : [];
+  const weekMap = new Map();
+
+  validDraws.forEach((raw) => {
+    if (raw?.isTest) return;
+    if (filterPais && raw.pais !== filterPais) return;
+    if (filterTurno && raw.horario !== filterTurno) return;
+    const parsed = parseDraw(raw);
+    if (!parsed) return;
+    const band = getLineBand(parsed.numero);
+    if (!Number.isFinite(band)) return;
+    const week = getIsoWeekKey(parsed.fechaDate);
+    if (!week) return;
+    if (!weekMap.has(week.key)) {
+      weekMap.set(week.key, { ...week, entries: [] });
+    }
+    weekMap.get(week.key).entries.push({
+      ...parsed,
+      line: band,
+    });
+  });
+
+  const orderedWeeks = Array.from(weekMap.values()).sort((a, b) => (a.start || 0) - (b.start || 0));
+  const windowed = weeks && weeks > 0 ? orderedWeeks.slice(-weeks) : orderedWeeks;
+  if (!windowed.length) {
+    return {
+      filtro: { pais: filterPais, turno: filterTurno, weeks, minRepeats },
+      weeks: [],
+      cycle: null,
+    };
+  }
+
+  const weekSummaries = windowed.map((week) => {
+    const counts = new Map();
+    week.entries.forEach((entry) => {
+      counts.set(entry.line, (counts.get(entry.line) || 0) + 1);
+    });
+    const sortedLines = Array.from(counts.entries())
+      .map(([line, count]) => ({ line, count }))
+      .sort((a, b) => b.count - a.count || a.line - b.line);
+    const top = sortedLines[0] || null;
+    const total = week.entries.length || 0;
+    return {
+      key: week.key,
+      start: formatDateISO(week.start),
+      end: formatDateISO(week.end),
+      total,
+      topLine: top
+        ? { band: top.line, label: formatLineLabel(top.line), count: top.count, share: total ? top.count / total : 0 }
+        : null,
+      topLines: sortedLines.slice(0, 4).map((item) => ({
+        band: item.line,
+        label: formatLineLabel(item.line),
+        count: item.count,
+        share: total ? item.count / total : 0,
+      })),
+    };
+  });
+
+  const sequence = weekSummaries.map((week) => week.topLine?.band).filter((n) => Number.isFinite(n));
+  const cycle =
+    sequence.length >= minRepeats * 2
+      ? detectCycle(sequence, {
+          minLength: 2,
+          maxLength: Math.max(2, Math.min(maxPattern, sequence.length - 1)),
+          minRepeats,
+        })
+      : null;
+
+  return {
+    filtro: {
+      pais: filterPais,
+      turno: filterTurno,
+      weeks: windowed.length,
+      minRepeats,
+    },
+    weeks: weekSummaries,
+    sequence,
+    cycle,
   };
 }
 
