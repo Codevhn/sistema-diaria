@@ -824,7 +824,7 @@
   </main>
 
   <div id="toast-container" class="toast-container"></div>
-  <div id="boot-loader" class="boot-loader">
+  <div id="boot-loader" class="boot-loader hidden" aria-live="polite">
     <div class="processing-box">
       <div class="processing-spinner"></div>
       <div class="processing-text">Cargando sistema…<br />Por favor espere</div>
@@ -905,7 +905,6 @@
     };
     hideSavingModal();
     window.addEventListener("pageshow", hideSavingModal);
-    showBootLoader();
 
     let guideLoadError = null;
 
@@ -914,6 +913,7 @@
       window.location.href = "./login.html";
       throw new Error("Auth requerida");
     }
+    showBootLoader();
     try {
       await cargarGuia();
     } catch (err) {
