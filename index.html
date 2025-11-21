@@ -1675,6 +1675,14 @@
       }
       return "";
     };
+    const getInverseNumero = (numero) => {
+      const normalized = normalizeNumeroKey(numero);
+      if (!normalized) return null;
+      const reversed = normalized.split("").reverse().join("");
+      const value = parseInt(reversed, 10);
+      if (Number.isNaN(value)) return null;
+      return { numero: value, symbol: getSymbol(value) || "" };
+    };
 
     function loadTrackingState() {
       if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
@@ -5503,9 +5511,14 @@
         rankingBlock.className = "bias-ranking";
         const rankingHead = document.createElement("div");
         rankingHead.className = "bias-ranking__head";
+        const rankingTitleWrap = document.createElement("div");
+        rankingTitleWrap.className = "bias-ranking__title-wrap";
         const rankingTitle = document.createElement("div");
         rankingTitle.className = "bias-ranking__title";
         rankingTitle.textContent = "Ranking por sorteo";
+        const rankingCount = document.createElement("span");
+        rankingCount.className = "bias-ranking__count";
+        rankingCount.textContent = `${selectedEntries.length} seleccionados`;
         const rankingControl = document.createElement("label");
         rankingControl.className = "bias-ranking-control";
         const rankingLabel = document.createElement("span");
@@ -5524,7 +5537,8 @@
           renderSesgosPorDia(map, { dow: targetDow, year });
         });
         rankingControl.append(rankingLabel, rankingSelect);
-        rankingHead.append(rankingTitle, rankingControl);
+        rankingTitleWrap.append(rankingTitle, rankingCount);
+        rankingHead.append(rankingTitleWrap, rankingControl);
         rankingBlock.appendChild(rankingHead);
 
         const rankingEntries = selectedEntries
@@ -5537,6 +5551,7 @@
               symbol: entry.symbol || "",
               turnRatio,
               turnCount,
+              inverse: getInverseNumero(entry.numero),
             };
           })
           .sort((a, b) => b.turnRatio - a.turnRatio || b.turnCount - a.turnCount);
@@ -5556,8 +5571,41 @@
 
           const numberEl = document.createElement("div");
           numberEl.className = "bias-ranking-item__number";
-          const rankingSymbol = entry.symbol ? `<span class="bias-number-symbol">${entry.symbol}</span>` : "";
-          numberEl.innerHTML = `<span class="bias-selection-chip__number-main">${formatNumber(entry.numero)}</span>${rankingSymbol}`;
+          const indexBadge = document.createElement("span");
+          indexBadge.className = "bias-ranking-item__index";
+          indexBadge.textContent = index + 1;
+
+          const numberBlock = document.createElement("div");
+          numberBlock.className = "bias-ranking-item__number-block";
+          const mainLine = document.createElement("div");
+          mainLine.className = "bias-ranking-item__main";
+          const mainNumber = document.createElement("span");
+          mainNumber.className = "bias-selection-chip__number-main";
+          mainNumber.textContent = formatNumber(entry.numero);
+          mainLine.appendChild(mainNumber);
+          if (entry.symbol) {
+            const symbolSpan = document.createElement("span");
+            symbolSpan.className = "bias-number-symbol";
+            symbolSpan.textContent = entry.symbol;
+            mainLine.appendChild(symbolSpan);
+          }
+          numberBlock.appendChild(mainLine);
+
+          const inverseInfo = entry.inverse || getInverseNumero(entry.numero);
+          if (inverseInfo) {
+            const inverseLine = document.createElement("div");
+            inverseLine.className = "bias-ranking-item__inverse";
+            inverseLine.textContent = formatNumber(inverseInfo.numero);
+            if (inverseInfo.symbol) {
+              const inverseSymbol = document.createElement("span");
+              inverseSymbol.className = "bias-number-symbol";
+              inverseSymbol.textContent = inverseInfo.symbol;
+              inverseLine.appendChild(inverseSymbol);
+            }
+            numberBlock.appendChild(inverseLine);
+          }
+
+          numberEl.append(indexBadge, numberBlock);
 
           const details = document.createElement("div");
           details.className = "bias-ranking-item__details";

@@ -4476,11 +4476,24 @@ button.ghost:hover {
   flex-wrap: wrap;
 }
 
+.bias-ranking__title-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  flex: 1;
+}
+
 .bias-ranking__title {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-muted);
+}
+
+.bias-ranking__count {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  letter-spacing: 0.04em;
 }
 
 .bias-ranking-control {
@@ -4515,15 +4528,48 @@ button.ghost:hover {
 
 .bias-ranking-item__number {
   display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 0.45rem;
   font-size: 1.3rem;
   font-weight: 600;
   color: var(--rank-accent);
 }
 
+.bias-ranking-item__index {
+  width: 1.6rem;
+  height: 1.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(74, 227, 181, 0.5);
+  background: rgba(74, 227, 181, 0.12);
+  color: var(--rank-accent);
+  font-size: 0.85rem;
+}
+
+.bias-ranking-item__number-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.bias-ranking-item__main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
 .bias-ranking-item__number .bias-selection-chip__number-main {
   font-size: 1.3rem;
+}
+
+.bias-ranking-item__inverse {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .bias-ranking-item__details {
