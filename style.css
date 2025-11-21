@@ -4203,6 +4203,59 @@ button.ghost:hover {
   }
 }
 
+/* === Secuencia gatillo === */
+.gatillo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  margin: 18px 0;
+}
+.gatillo-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+  font-size: 0.95rem;
+}
+.gatillo-controls input,
+.gatillo-controls select {
+  background: rgba(13, 24, 41, 0.95);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+.gatillo-output {
+  border: 1px solid rgba(73, 125, 255, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  background: rgba(7, 12, 24, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.gatillo-summary {
+  color: var(--color-text);
+}
+.gatillo-list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.gatillo-card {
+  border: 1px solid rgba(73, 125, 255, 0.25);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: rgba(9, 16, 32, 0.7);
+}
+.gatillo-card strong {
+  font-size: 1.1rem;
+}
+.gatillo-card small {
+  color: var(--color-muted);
+}
+
 .monthly-controls {
   margin: 24px 0;
   display: flex;

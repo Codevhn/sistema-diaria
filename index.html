@@ -34,6 +34,7 @@
         class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
     <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
     <button data-view="abono"><span class="sidebar-icon fa-solid fa-clover"></span><i>Abono del día</i></button>
+    <button data-view="gatillo"><span class="sidebar-icon fa-solid fa-link"></span><i>Secuencia gatillo</i></button>
   </aside>
 
   <main class="content">
@@ -619,6 +620,36 @@
       </div>
       <div id="abono-output" class="abono-output">
         <p class="hint">Configura los filtros y genera tu abono.</p>
+      </div>
+    </section>
+
+    <!-- SECUENCIA GATILLO -->
+    <section id="view-gatillo" class="view hidden">
+      <h2>Secuencia gatillo</h2>
+      <p class="hint">Descubre qué números suelen salir inmediatamente después de un número gatillo. Usa el historial
+        reciente ordenado por fecha y turno.</p>
+      <div class="gatillo-controls">
+        <label>
+          Número gatillo
+          <input id="gatillo-num" type="number" min="0" max="99" placeholder="00-99" />
+        </label>
+        <label>
+          País
+          <select id="gatillo-pais">
+            <option value="ALL">Todos</option>
+            <option value="HN">HN</option>
+            <option value="NI">NI</option>
+            <option value="SV">SV</option>
+          </select>
+        </label>
+        <label>
+          Ventana (últimos sorteos)
+          <input id="gatillo-window" type="number" min="30" max="400" value="180" />
+        </label>
+        <button id="gatillo-calcular" class="btn-primary">Calcular secuencia</button>
+      </div>
+      <div id="gatillo-output" class="gatillo-output">
+        <p class="hint">Ingresa un número gatillo y calcula para ver sus seguidores habituales.</p>
       </div>
     </section>
 
@@ -2475,6 +2506,11 @@
     const abonoWindowInput = document.getElementById("abono-window");
     const abonoGenerarBtn = document.getElementById("abono-generar");
     const abonoOutput = document.getElementById("abono-output");
+    const gatilloNumInput = document.getElementById("gatillo-num");
+    const gatilloPaisSelect = document.getElementById("gatillo-pais");
+    const gatilloWindowInput = document.getElementById("gatillo-window");
+    const gatilloCalcularBtn = document.getElementById("gatillo-calcular");
+    const gatilloOutput = document.getElementById("gatillo-output");
     const monthlyPaisSelect = document.getElementById("monthly-pais");
     const monthlyDowSelect = document.getElementById("monthly-dow");
     const monthlyTurnoSelect = document.getElementById("monthly-turno");
@@ -2490,6 +2526,7 @@
     if (trackingDateInput && defaultTrackingFecha) trackingDateInput.value = defaultTrackingFecha;
     if (trackingPaisSelect && defaultTrackingPais) trackingPaisSelect.value = defaultTrackingPais;
     if (abonoFechaInput && !abonoFechaInput.value) abonoFechaInput.value = todayISO;
+    if (gatilloWindowInput && !gatilloWindowInput.value) gatilloWindowInput.value = "180";
 
     let patternsCache = null;
     let patternsLoading = false;
@@ -2550,6 +2587,12 @@
     });
     [abonoFechaInput, abonoPaisSelect, abonoWindowInput].forEach((input) => {
       input?.addEventListener("change", () => runAbonoGenerator());
+    });
+    gatilloCalcularBtn?.addEventListener("click", () => {
+      runGatillo({ force: true });
+    });
+    [gatilloNumInput, gatilloPaisSelect, gatilloWindowInput].forEach((input) => {
+      input?.addEventListener("change", () => runGatillo());
     });
     [weeklyPaisSelect, weeklyTurnoSelect, weeklyWindowInput, weeklyRepeatsInput].forEach((input) => {
       input?.addEventListener("change", () => refreshWeeklyPanel());
@@ -3270,6 +3313,7 @@
     let abonoSpinTimer = null;
     let monthlyLoading = false;
     let monthlyLastAnalysis = null;
+    let gatilloCache = null;
 
     function formatPatternWithSymbols(pattern = []) {
       if (!Array.isArray(pattern) || !pattern.length) return "";
@@ -3496,6 +3540,133 @@
         abonoSpinTimer = null;
         displayEl.textContent = winner ? formatNumber(winner.numero) : "--";
       }, 1400);
+    }
+
+    function computeGatillo(draws = [], options = {}) {
+      const { gatillo, pais = null, window = 180 } = options || {};
+      const num = Number.parseInt(gatillo, 10);
+      if (!Number.isFinite(num) || num < 0 || num > 99) {
+        return { error: "Número gatillo inválido." };
+      }
+      const filtered = (Array.isArray(draws) ? draws : []).filter((d) => !d?.isTest && (!pais || d.pais === pais));
+      const parsed = filtered
+        .map((d) => {
+          const fechaDate = parseDrawDate(d.fecha);
+          if (!fechaDate) return null;
+          const turnoIdx = HORARIO_ORDER[d.horario] ?? 0;
+          return {
+            numero: Number.parseInt(d.numero, 10),
+            fechaDate,
+            horario: d.horario,
+            turnoIdx,
+            timestamp: fechaDate.getTime() + turnoIdx / 10,
+            raw: d,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.timestamp - b.timestamp);
+
+      const windowed = window > 0 ? parsed.slice(-window) : parsed;
+      const counts = new Map();
+      let occurrences = 0;
+
+      for (let i = 0; i < windowed.length - 1; i += 1) {
+        const current = windowed[i];
+        const next = windowed[i + 1];
+        if (!current || !next) continue;
+        if (current.numero !== num) continue;
+        occurrences += 1;
+        const entry = counts.get(next.numero) || { numero: next.numero, count: 0, last: next.fechaDate };
+        entry.count += 1;
+        if (next.fechaDate > entry.last) entry.last = next.fechaDate;
+        counts.set(next.numero, entry);
+      }
+
+      const result = Array.from(counts.values()).map((item) => ({
+        numero: item.numero,
+        count: item.count,
+        last: item.last,
+        ratio: occurrences ? item.count / occurrences : 0,
+      }));
+      result.sort((a, b) => b.ratio - a.ratio || b.count - a.count || (b.last || 0) - (a.last || 0));
+
+      return {
+        gatillo: num,
+        pais,
+        window: windowed.length,
+        occurrences,
+        siguientes: result,
+      };
+    }
+
+    async function runGatillo({ force = false } = {}) {
+      if (!gatilloOutput) return;
+      const gatilloValue = gatilloNumInput?.value?.trim();
+      const pais = gatilloPaisSelect?.value || "ALL";
+      const windowVal = parseInt(gatilloWindowInput?.value, 10);
+      const windowSize = Number.isFinite(windowVal) && windowVal > 0 ? windowVal : 180;
+      gatilloOutput.innerHTML = "<p class='hint'>Buscando secuencias posteriores…</p>";
+      try {
+        const draws = await getCachedDraws({ force });
+        const analysis = computeGatillo(draws, {
+          gatillo: gatilloValue,
+          pais: pais === "ALL" ? null : pais,
+          window: windowSize,
+        });
+        gatilloCache = analysis;
+        renderGatillo(analysis);
+      } catch (err) {
+        console.error("gatillo error", err);
+        gatilloOutput.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
+      }
+    }
+
+    function renderGatillo(analysis) {
+      if (!gatilloOutput) return;
+      if (!analysis || analysis.error) {
+        gatilloOutput.innerHTML = `<p class='hint'>${analysis?.error || "No se pudo calcular."}</p>`;
+        return;
+      }
+      const { gatillo, pais, window: win, occurrences, siguientes } = analysis;
+      if (!occurrences) {
+        gatilloOutput.innerHTML =
+          "<p class='hint'>Este número no aparece en la ventana seleccionada o no tiene números siguientes registrados.</p>";
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      const summary = document.createElement("div");
+      summary.className = "gatillo-summary";
+      const paisLabel = pais || "todos";
+      summary.innerHTML = `Gatillo <strong>${formatNumber(gatillo)}</strong> · País ${paisLabel} · Ventana ${win} sorteos · Ocurrencias ${occurrences}.`;
+      fragment.appendChild(summary);
+
+      if (siguientes?.length) {
+        const list = document.createElement("div");
+        list.className = "gatillo-list";
+        const top = siguientes.slice(0, 12);
+        top.forEach((item, idx) => {
+          const card = document.createElement("div");
+          card.className = "gatillo-card";
+          const head = document.createElement("div");
+          head.innerHTML = `<strong>${formatNumber(item.numero)}</strong> · ${
+            item.count
+          } veces (${Math.round((item.ratio || 0) * 100)}%)`;
+          card.appendChild(head);
+          const meta = document.createElement("small");
+          meta.textContent = item.last ? `Última vez: ${formatFriendlyDate(item.last)}` : "";
+          card.appendChild(meta);
+          if (idx === 0) {
+            const chip = document.createElement("small");
+            chip.textContent = "Más recurrente";
+            card.appendChild(chip);
+          }
+          list.appendChild(card);
+        });
+        fragment.appendChild(list);
+      }
+
+      gatilloOutput.innerHTML = "";
+      gatilloOutput.appendChild(fragment);
     }
 
     function renderWeeklySummary(analysis = null) {
@@ -7359,6 +7530,7 @@ function buildVariantEntries(profile) {
       strategies: "view-strategies",
       weekly: "view-weekly",
       abono: "view-abono",
+      gatillo: "view-gatillo",
       pega3: "view-pega3",
       notebook: "view-notebook",
       geometry: "view-geometry",
@@ -7391,6 +7563,9 @@ function buildVariantEntries(profile) {
         }
         if (id === "view-abono") {
           runAbonoGenerator({ force: true });
+        }
+        if (id === "view-gatillo") {
+          runGatillo({ force: true });
         }
         if (id === "view-pega3") {
           refreshPega3Historial();
