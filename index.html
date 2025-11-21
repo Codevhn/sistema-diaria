@@ -33,6 +33,7 @@
     <button data-view="maint"><span
         class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
     <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
+    <button data-view="abono"><span class="sidebar-icon fa-solid fa-clover"></span><i>Abono del día</i></button>
   </aside>
 
   <main class="content">
@@ -592,6 +593,35 @@
       </article>
     </section>
 
+    <!-- ABONO DEL DÍA -->
+    <section id="view-abono" class="view hidden">
+      <h2>Abono del día</h2>
+      <p class="hint">Genera un abono único basado en los números que más se repiten en este día de la semana. Usa el
+        historial real y una ruleta rápida para elegir el candidato.</p>
+      <div class="abono-controls">
+        <label>
+          Fecha objetivo
+          <input id="abono-fecha" type="date" />
+        </label>
+        <label>
+          País
+          <select id="abono-pais">
+            <option value="HN">HN</option>
+            <option value="NI">NI</option>
+            <option value="SV">SV</option>
+          </select>
+        </label>
+        <label>
+          Ventana (semanas)
+          <input id="abono-window" type="number" min="6" max="40" value="16" />
+        </label>
+        <button id="abono-generar" class="btn-primary">Generar abono</button>
+      </div>
+      <div id="abono-output" class="abono-output">
+        <p class="hint">Configura los filtros y genera tu abono.</p>
+      </div>
+    </section>
+
     <!-- CUADERNO -->
     <section id="view-notebook" class="view hidden">
       <h2>Cuaderno de seguimiento</h2>
@@ -893,7 +923,7 @@
       listModeUsage,
     } from "./src/modes.js";
     import { evaluarModos } from "./src/mode-engine.js";
-    import { formatDateISO, getTodayISODate } from "./src/date-utils.js";
+    import { formatDateISO, getTodayISODate, parseDrawDate } from "./src/date-utils.js";
     import { logInfo, logWarn } from "./src/logger.js";
     import { runDexieToSupabaseImport } from "./src/dexieToSupabaseImporter.js";
     import { getCurrentUser, logout as supabaseLogout } from "./src/auth.js";
@@ -2440,6 +2470,11 @@
     const weeklyRefreshBtn = document.getElementById("weekly-refresh");
     const linesRefreshBtn = document.getElementById("lines-refresh");
     const linesBodyEl = document.getElementById("lines-body");
+    const abonoFechaInput = document.getElementById("abono-fecha");
+    const abonoPaisSelect = document.getElementById("abono-pais");
+    const abonoWindowInput = document.getElementById("abono-window");
+    const abonoGenerarBtn = document.getElementById("abono-generar");
+    const abonoOutput = document.getElementById("abono-output");
     const monthlyPaisSelect = document.getElementById("monthly-pais");
     const monthlyDowSelect = document.getElementById("monthly-dow");
     const monthlyTurnoSelect = document.getElementById("monthly-turno");
@@ -2454,6 +2489,7 @@
     if (historyLimitSelect && !historyLimitSelect.value) historyLimitSelect.value = "9";
     if (trackingDateInput && defaultTrackingFecha) trackingDateInput.value = defaultTrackingFecha;
     if (trackingPaisSelect && defaultTrackingPais) trackingPaisSelect.value = defaultTrackingPais;
+    if (abonoFechaInput && !abonoFechaInput.value) abonoFechaInput.value = todayISO;
 
     let patternsCache = null;
     let patternsLoading = false;
@@ -2508,6 +2544,12 @@
     });
     linesRefreshBtn?.addEventListener("click", () => {
       refreshLinesPanel({ force: true });
+    });
+    abonoGenerarBtn?.addEventListener("click", () => {
+      runAbonoGenerator({ force: true });
+    });
+    [abonoFechaInput, abonoPaisSelect, abonoWindowInput].forEach((input) => {
+      input?.addEventListener("change", () => runAbonoGenerator());
     });
     [weeklyPaisSelect, weeklyTurnoSelect, weeklyWindowInput, weeklyRepeatsInput].forEach((input) => {
       input?.addEventListener("change", () => refreshWeeklyPanel());
@@ -3225,6 +3267,7 @@
     let weeklyLastAnalysis = null;
     let linesLoading = false;
     let lastLinesAnalysis = null;
+    let abonoSpinTimer = null;
     let monthlyLoading = false;
     let monthlyLastAnalysis = null;
 
@@ -3304,6 +3347,155 @@
 
       linesBodyEl.innerHTML = "";
       linesBodyEl.appendChild(fragment);
+    }
+
+    async function runAbonoGenerator({ force = false } = {}) {
+      if (!abonoOutput) return;
+      const fecha = abonoFechaInput?.value || getTodayISODate();
+      const pais = abonoPaisSelect?.value || "HN";
+      const weeksValue = parseInt(abonoWindowInput?.value, 10);
+      const windowWeeks = Number.isFinite(weeksValue) && weeksValue > 0 ? weeksValue : 16;
+      abonoOutput.innerHTML = "<p class='hint'>Armando candidatos…</p>";
+      try {
+        const draws = await getCachedDraws({ force });
+        const result = computeAbono(draws, { fecha, pais, weeks: windowWeeks });
+        renderAbono(result);
+      } catch (err) {
+        console.error("abono error", err);
+        abonoOutput.innerHTML = `<p class='hint'>No se pudo generar el abono: ${err.message}</p>`;
+      }
+    }
+
+    function computeAbono(draws = [], options = {}) {
+      const { fecha, pais = null, weeks = 16 } = options || {};
+      const targetDate = parseDrawDate(fecha) || new Date();
+      const targetDow = targetDate.getDay();
+      const cutoff = new Date(targetDate.getTime() - Math.max(1, weeks) * 7 * DAY_MS);
+      const freq = new Map();
+      let totalMatches = 0;
+      const candidates = [];
+
+      draws.forEach((raw) => {
+        if (raw?.isTest) return;
+        if (pais && raw.pais && raw.pais !== pais) return;
+        const parsedDate = parseDrawDate(raw.fecha);
+        if (!parsedDate) return;
+        if (parsedDate < cutoff) return;
+        if (parsedDate.getDay() !== targetDow) return;
+        const numero = parseInt(raw.numero, 10);
+        if (!Number.isFinite(numero)) return;
+        totalMatches += 1;
+        const key = numero;
+        const entry = freq.get(key) || { numero: key, count: 0, last: 0 };
+        entry.count += 1;
+        const ts = parsedDate.getTime();
+        if (ts > entry.last) entry.last = ts;
+        freq.set(key, entry);
+      });
+
+      const scored = Array.from(freq.values()).map((entry) => {
+        const recencyWeeks = entry.last ? (targetDate - entry.last) / DAY_MS / 7 : Infinity;
+        const recencyBoost = recencyWeeks === Infinity ? 0 : Math.max(0, 1.2 - recencyWeeks * 0.1);
+        const weight = entry.count + recencyBoost;
+        return {
+          numero: entry.numero,
+          count: entry.count,
+          last: entry.last || null,
+          weight,
+        };
+      });
+
+      scored.sort((a, b) => b.weight - a.weight || b.count - a.count || (b.last || 0) - (a.last || 0));
+      const topList = scored.slice(0, 14);
+      const weightSum = topList.reduce((sum, item) => sum + item.weight, 0);
+      let pick = null;
+      if (topList.length) {
+        let r = Math.random() * (weightSum || 1);
+        for (const item of topList) {
+          r -= item.weight;
+          if (r <= 0) {
+            pick = item;
+            break;
+          }
+        }
+        if (!pick) pick = topList[topList.length - 1];
+      }
+
+      return {
+        fechaObjetivo: formatDateISO(targetDate),
+        dow: targetDow,
+        pais,
+        weeks,
+        totalMatches,
+        candidatos: topList,
+        abono: pick,
+      };
+    }
+
+    function renderAbono(result) {
+      if (!abonoOutput) return;
+      if (!result?.candidatos?.length) {
+        abonoOutput.innerHTML =
+          "<p class='hint'>No hay suficientes sorteos para este día/país en la ventana seleccionada.</p>";
+        return;
+      }
+      const { candidatos, abono, fechaObjetivo, dow, weeks, totalMatches, pais } = result;
+      const fragment = document.createDocumentFragment();
+
+      const roulette = document.createElement("div");
+      roulette.className = "abono-roulette";
+      const display = document.createElement("div");
+      display.className = "abono-roulette__display";
+      display.textContent = abono ? formatNumber(abono.numero) : "--";
+      display.dataset.abonoDisplay = "true";
+      const label = document.createElement("div");
+      label.className = "abono-roulette__label";
+      label.textContent = `Ruleta entre ${candidatos.length} candidatos frecuentes`;
+      roulette.appendChild(display);
+      roulette.appendChild(label);
+      fragment.appendChild(roulette);
+
+      const meta = document.createElement("div");
+      meta.className = "abono-meta";
+      const dowLabel = DOW_FULL_LABEL[dow] || "día";
+      meta.textContent = `Día objetivo: ${dowLabel} (${fechaObjetivo}) · País ${pais || "—"} · Ventana ${weeks} semanas · ${totalMatches} sorteos analizados.`;
+      fragment.appendChild(meta);
+
+      const chips = document.createElement("div");
+      chips.className = "abono-candidates";
+      candidatos.forEach((item, idx) => {
+        const chip = document.createElement("div");
+        chip.className = "abono-chip";
+        chip.innerHTML = `<strong>${formatNumber(item.numero)}</strong> ${item.count} repeticiones`;
+        if (idx === 0) chip.dataset.top = "true";
+        chips.appendChild(chip);
+      });
+      fragment.appendChild(chips);
+
+      abonoOutput.innerHTML = "";
+      abonoOutput.appendChild(fragment);
+
+      const displayEl = abonoOutput.querySelector("[data-abono-display]");
+      if (displayEl && abono) {
+        startAbonoRoulette(displayEl, candidatos, abono);
+      }
+    }
+
+    function startAbonoRoulette(displayEl, candidates, winner) {
+      if (!displayEl) return;
+      const pool = Array.isArray(candidates) && candidates.length ? candidates : [winner];
+      if (abonoSpinTimer) clearInterval(abonoSpinTimer);
+      let iterations = 0;
+      abonoSpinTimer = setInterval(() => {
+        iterations += 1;
+        const item = pool[iterations % pool.length] || winner;
+        displayEl.textContent = item ? formatNumber(item.numero) : "--";
+      }, 90);
+      setTimeout(() => {
+        clearInterval(abonoSpinTimer);
+        abonoSpinTimer = null;
+        displayEl.textContent = winner ? formatNumber(winner.numero) : "--";
+      }, 1400);
     }
 
     function renderWeeklySummary(analysis = null) {
@@ -7166,6 +7358,7 @@ function buildVariantEntries(profile) {
       transform: "view-transform",
       strategies: "view-strategies",
       weekly: "view-weekly",
+      abono: "view-abono",
       pega3: "view-pega3",
       notebook: "view-notebook",
       geometry: "view-geometry",
@@ -7195,6 +7388,9 @@ function buildVariantEntries(profile) {
         if (id === "view-weekly") {
           refreshWeeklyPanel({ force: true });
           refreshMonthlyPanel({ force: true });
+        }
+        if (id === "view-abono") {
+          runAbonoGenerator({ force: true });
         }
         if (id === "view-pega3") {
           refreshPega3Historial();
