@@ -158,3 +158,22 @@ CREATE TABLE pega3 (
 
 CREATE INDEX idx_pega3_fecha_horario_pais
   ON pega3 (fecha, horario, pais);
+
+CREATE TABLE user_preferences (
+  user_id     UUID PRIMARY KEY REFERENCES auth.users (id),
+  data        JSONB        NOT NULL DEFAULT '{}'::JSONB,
+  updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION set_user_preferences_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_user_preferences_updated_at
+BEFORE UPDATE ON user_preferences
+FOR EACH ROW
+EXECUTE FUNCTION set_user_preferences_updated_at();

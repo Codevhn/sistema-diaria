@@ -944,6 +944,7 @@
     import { analizarSesgos } from "./src/bias-analyzer.js";
     import { analizarSecuenciasSemanales, analizarComparacionMensual, analizarRotacionLineas } from "./src/weekly-patterns.js";
     import { evaluarMotorPega3 } from "./src/pega3-engine.js";
+    import { loadUserPreferences, saveUserPreferences } from "./src/user-preferences.js";
     import {
       createMode,
       updateMode,
@@ -981,12 +982,41 @@
     window.addEventListener("pageshow", hideSavingModal);
 
     let guideLoadError = null;
+    let userPreferences = {};
+    let userPrefsSaveTimer = null;
+
+    async function initUserPreferences(user) {
+      if (!user?.id) return;
+      try {
+        const prefs = await loadUserPreferences(user.id);
+        if (prefs && typeof prefs === "object") {
+          userPreferences = prefs;
+        }
+      } catch (err) {
+        logWarn("No se pudieron inicializar preferencias de usuario", err);
+      }
+    }
+
+    function queueUserPreferencesSave(patch = {}) {
+      if (!currentUser?.id) return;
+      userPreferences = { ...(userPreferences || {}), ...patch };
+      if (userPrefsSaveTimer) clearTimeout(userPrefsSaveTimer);
+      userPrefsSaveTimer = setTimeout(async () => {
+        userPrefsSaveTimer = null;
+        try {
+          await saveUserPreferences(currentUser.id, userPreferences);
+        } catch (err) {
+          logWarn("No se pudieron guardar preferencias de usuario", err);
+        }
+      }, 350);
+    }
 
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       window.location.href = "./login.html";
       throw new Error("Auth requerida");
     }
+    await initUserPreferences(currentUser);
     showBootLoader();
     try {
       await cargarGuia();
@@ -1604,6 +1634,7 @@
 
     function persistBiasDowPreference(value) {
       if (typeof window === "undefined") return;
+      queueUserPreferencesSave({ biasLastDow: value ?? null });
       const stores = getBiasStorageProviders();
       stores.forEach((storage) => {
         if (!storage) return;
@@ -1620,6 +1651,10 @@
     }
 
     function readBiasDowPreference() {
+      if (userPreferences && Object.prototype.hasOwnProperty.call(userPreferences, "biasLastDow")) {
+        const pref = userPreferences.biasLastDow;
+        return pref === null || pref === undefined || pref === "" ? null : pref;
+      }
       if (typeof window === "undefined") return null;
       const stores = getBiasStorageProviders();
       for (const storage of stores) {
@@ -1685,6 +1720,7 @@
     };
 
     function loadTrackingState() {
+      if (userPreferences?.trackingState?.fecha) return userPreferences.trackingState;
       if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
         return null;
       }
@@ -1701,6 +1737,7 @@
     }
 
     function saveTrackingState(state) {
+      queueUserPreferencesSave({ trackingState: state || null });
       if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
         return;
       }
@@ -1715,6 +1752,28 @@
       }
     }
 
+    function getRecencyWarnTs() {
+      if (userPreferences && Object.prototype.hasOwnProperty.call(userPreferences, "recencyWarnTs")) {
+        return userPreferences.recencyWarnTs || 0;
+      }
+      if (typeof window === "undefined" || typeof window.localStorage === "undefined") return 0;
+      return parseInt(localStorage.getItem("recencyWarnTs"), 10) || 0;
+    }
+
+    function setRecencyWarnTs(value) {
+      queueUserPreferencesSave({ recencyWarnTs: value || null });
+      if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
+      try {
+        if (!value) {
+          localStorage.removeItem("recencyWarnTs");
+        } else {
+          localStorage.setItem("recencyWarnTs", String(value));
+        }
+      } catch (err) {
+        logWarn("No se pudo persistir recencyWarnTs", err);
+      }
+    }
+
     function computeBiasNoteExpiry(turno = DEFAULT_RANKING_TURN) {
       const schedule = BIAS_TURN_SCHEDULE[turno] || BIAS_TURN_SCHEDULE["9PM"] || { hour: 21, minute: 0 };
       const now = new Date();
@@ -1726,6 +1785,9 @@
     }
 
     function loadBiasNotesStore() {
+      if (userPreferences?.biasNotesStore && typeof userPreferences.biasNotesStore === "object") {
+        return { ...userPreferences.biasNotesStore };
+      }
       const stores = getBiasStorageProviders();
       if (!stores.length) return {};
       let fallbackRaw = null;
@@ -1764,7 +1826,7 @@
 
     function saveBiasNotesStore(store) {
       const stores = getBiasStorageProviders();
-      if (!stores.length) return;
+      const hasStores = stores.length > 0;
       const isEmpty = !store || !Object.keys(store).length;
       let serialized = "";
       if (!isEmpty) {
@@ -1775,18 +1837,21 @@
           return;
         }
       }
-      stores.forEach((storage) => {
-        if (!storage) return;
-        try {
-          if (isEmpty) {
-            storage.removeItem(BIAS_NOTES_STORAGE_KEY);
-          } else {
-            storage.setItem(BIAS_NOTES_STORAGE_KEY, serialized);
+      if (hasStores) {
+        stores.forEach((storage) => {
+          if (!storage) return;
+          try {
+            if (isEmpty) {
+              storage.removeItem(BIAS_NOTES_STORAGE_KEY);
+            } else {
+              storage.setItem(BIAS_NOTES_STORAGE_KEY, serialized);
+            }
+          } catch (err) {
+            logWarn("No se pudo guardar apuntes de sesgos", err);
           }
-        } catch (err) {
-          logWarn("No se pudo guardar apuntes de sesgos", err);
-        }
-      });
+        });
+      }
+      queueUserPreferencesSave({ biasNotesStore: isEmpty ? {} : store });
     }
 
     function cleanupBiasNotesStore(store = {}) {
@@ -6060,14 +6125,14 @@
       if (latestTimestamp) {
         const daysDiff = Math.floor((Date.now() - latestTimestamp) / (1000 * 60 * 60 * 24));
         if (daysDiff > 30) {
-          const lastWarnTs = parseInt(localStorage.getItem("recencyWarnTs"), 10) || 0;
+          const lastWarnTs = getRecencyWarnTs();
           if (lastWarnTs !== latestTimestamp) {
             const lastDate = formatDateISO(latestTimestamp);
             showToast(
               `Último sorteo registrado: ${lastDate} (≈${daysDiff} días). Agrega resultados recientes para reemplazar las predicciones simuladas.`,
               { variant: "warning", timeout: 9000 }
             );
-            localStorage.setItem("recencyWarnTs", String(latestTimestamp));
+            setRecencyWarnTs(latestTimestamp);
           }
         }
       }
