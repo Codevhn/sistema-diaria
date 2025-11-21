@@ -885,15 +885,22 @@
     import { runDexieToSupabaseImport } from "./src/dexieToSupabaseImporter.js";
     import { getCurrentUser, logout as supabaseLogout } from "./src/auth.js";
     import { showBootLoader, hideBootLoader } from "./src/boot-loader.js";
+    const bootOverlay = document.getElementById("boot-loader");
     const processingModal = document.getElementById("processing-modal");
-    const showProcessing = () => processingModal?.classList.remove("hidden");
-    const hideProcessing = () => processingModal?.classList.add("hidden");
-    const runWithProcessing = async (task) => {
-      showProcessing();
+    const waitForFirstPaint = () =>
+      new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const isBooting = () => !!bootOverlay && !bootOverlay.classList.contains("hidden");
+    const showSavingModal = () => {
+      if (isBooting()) return;
+      processingModal?.classList.remove("hidden");
+    };
+    const hideSavingModal = () => processingModal?.classList.add("hidden");
+    const runWithSavingModal = async (task) => {
+      showSavingModal();
       try {
         return await task();
       } finally {
-        hideProcessing();
+        hideSavingModal();
       }
     };
     showBootLoader();
@@ -1890,7 +1897,7 @@
         return;
       }
 
-      await runWithProcessing(async () => {
+      await runWithSavingModal(async () => {
         try {
           for (const { config, numero, isTest } of payloads) {
             const opts = isTest ? { source: "test" } : {};
@@ -2092,7 +2099,7 @@
         });
         return;
       }
-      await runWithProcessing(async () => {
+      await runWithSavingModal(async () => {
         try {
           for (const draw of draws) {
             const simbolo = getSymbol(draw.numero);
@@ -7122,11 +7129,18 @@ function buildVariantEntries(profile) {
       });
     }
 
-    await refreshHypotesis();
-    await refreshSlots();
-    await rebuildKnowledge();
-    await refreshModesPanel();
-    hideBootLoader();
+    try {
+      await refreshHypotesis();
+      await refreshSlots();
+      await rebuildKnowledge();
+      await refreshModesPanel();
+    } catch (err) {
+      console.error("initial load error", err);
+      showToast("La app no pudo cargar completamente. Revisa la consola para más detalles.", { variant: "danger" });
+    } finally {
+      await waitForFirstPaint();
+      hideBootLoader();
+    }
 
     // === Migración Dexie → Supabase (solo interfaz) ===
     const dexieMigrationBtn = document.getElementById("btn-migrar-dexie");
