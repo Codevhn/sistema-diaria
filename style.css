@@ -1812,11 +1812,11 @@ button.ghost:hover {
   color: var(--color-text);
 }
 .hidden {
-  display: none;
+  display: none !important;
 }
 .processing-modal.hidden,
 .boot-loader.hidden {
-  display: none;
+  display: none !important;
 }
 .processing-modal {
   position: fixed;
