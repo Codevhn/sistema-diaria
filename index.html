@@ -903,6 +903,8 @@
         hideSavingModal();
       }
     };
+    hideSavingModal();
+    window.addEventListener("pageshow", hideSavingModal);
     showBootLoader();
 
     let guideLoadError = null;
@@ -7138,6 +7140,7 @@ function buildVariantEntries(profile) {
       console.error("initial load error", err);
       showToast("La app no pudo cargar completamente. Revisa la consola para más detalles.", { variant: "danger" });
     } finally {
+      hideSavingModal();
       await waitForFirstPaint();
       hideBootLoader();
     }
