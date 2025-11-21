@@ -1814,6 +1814,10 @@ button.ghost:hover {
 .hidden {
   display: none;
 }
+.processing-modal.hidden,
+.boot-loader.hidden {
+  display: none;
+}
 .processing-modal {
   position: fixed;
   inset: 0;
