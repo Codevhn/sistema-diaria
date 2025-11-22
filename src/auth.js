@@ -3,7 +3,6 @@ import { supabase } from "./supabaseClient.js";
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
 let inactivityTimer = null;
 let activityListenersAttached = false;
-let exitHooksAttached = false;
 const activityEvents = ["click", "keydown", "scroll", "mousemove", "touchstart"];
 const handleVisibilityChange = () => {
   if (document.visibilityState === "visible") resetInactivityTimer();
@@ -21,23 +20,11 @@ function clearSupabaseSessionStorage() {
   keys.forEach((key) => window.sessionStorage.removeItem(key));
 }
 
-function attachExitHooks() {
-  if (exitHooksAttached || typeof window === "undefined") return;
-  const handleExit = () => {
-    clearSupabaseSessionStorage();
-    supabase.auth.signOut().catch(() => {});
-  };
-  window.addEventListener("pagehide", handleExit, { capture: true });
-  window.addEventListener("beforeunload", handleExit, { capture: true });
-  exitHooksAttached = true;
-}
-
 export async function login(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     throw new Error(error.message || "Error al iniciar sesión");
   }
-  attachExitHooks();
   startSessionInactivityTimer();
   return data?.user ?? null;
 }
@@ -61,7 +48,6 @@ export async function getCurrentUser() {
       clearSupabaseSessionStorage();
       return null;
     }
-    attachExitHooks();
     return data?.session?.user ?? null;
   } catch (err) {
     console.error("Supabase auth error:", err?.message || err);
@@ -81,7 +67,6 @@ export async function requireAuthOrRedirect(redirectTo = "./login.html") {
       window.location.replace(redirectTo);
       return null;
     }
-    attachExitHooks();
     startSessionInactivityTimer();
     return session.user;
   } catch (err) {

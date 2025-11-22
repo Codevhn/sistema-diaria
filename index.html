@@ -22,8 +22,8 @@
     if (!user) {
       throw new Error("Redirigiendo a login por sesión inválida.");
     }
-    window.__LD_AUTH_UNLOCKED__ = true;
     document.documentElement.classList.remove("auth-locked");
+    window.__LD_AUTH_UNLOCKED__ = true;
   </script>
 
 </head>
