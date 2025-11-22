@@ -39,7 +39,7 @@
   </main>
 
   <script type="module">
-    import { login, getCurrentUser, logout, setLoginStamp, clearLoginStamp } from "./src/auth.js";
+    import { login, getCurrentUser, logout } from "./src/auth.js";
 
     const form = document.getElementById("login-form");
     const emailInput = document.getElementById("login-email");
@@ -69,6 +69,9 @@
       if (user && sessionBox && form) {
         form.classList.add("hidden");
         sessionBox.classList.remove("hidden");
+      } else {
+        form?.classList.remove("hidden");
+        sessionBox?.classList.add("hidden");
       }
     })();
 
@@ -82,7 +85,6 @@
       button?.classList.add("loading");
       try {
         await login(email, password);
-        setLoginStamp(Date.now());
         window.location.href = "./index.html";
       } catch (err) {
         showError(err?.message || "No se pudo iniciar sesión.");
@@ -99,7 +101,6 @@
     sessionSwitch?.addEventListener("click", async () => {
       try {
         await logout();
-        clearLoginStamp();
       } catch (err) {
         console.warn("No se pudo cerrar sesión previa", err);
       } finally {
