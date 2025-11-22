@@ -28,16 +28,26 @@
         <div id="login-error" class="hint hidden" role="alert"></div>
         <button type="submit" class="btn-primary">Entrar</button>
       </form>
+      <div id="login-session" class="login-session hidden">
+        <p class="hint">Ya tienes una sesión activa. ¿Deseas continuar o cambiar de cuenta?</p>
+        <div class="login-session__actions">
+          <button type="button" id="login-continue" class="btn-primary">Ir al panel</button>
+          <button type="button" id="login-switch" class="btn-outline">Cambiar de usuario</button>
+        </div>
+      </div>
     </section>
   </main>
 
   <script type="module">
-    import { login, getCurrentUser } from "./src/auth.js";
+    import { login, getCurrentUser, logout } from "./src/auth.js";
 
     const form = document.getElementById("login-form");
     const emailInput = document.getElementById("login-email");
     const passwordInput = document.getElementById("login-password");
     const errorBox = document.getElementById("login-error");
+    const sessionBox = document.getElementById("login-session");
+    const sessionContinue = document.getElementById("login-continue");
+    const sessionSwitch = document.getElementById("login-switch");
 
     function showError(message) {
       if (!errorBox) return;
@@ -56,8 +66,9 @@
 
     (async () => {
       const user = await getCurrentUser();
-      if (user) {
-        window.location.href = "./index.html";
+      if (user && sessionBox && form) {
+        form.classList.add("hidden");
+        sessionBox.classList.remove("hidden");
       }
     })();
 
@@ -77,6 +88,23 @@
       } finally {
         button?.removeAttribute("disabled");
         button?.classList.remove("loading");
+      }
+    });
+
+    sessionContinue?.addEventListener("click", () => {
+      window.location.href = "./index.html";
+    });
+
+    sessionSwitch?.addEventListener("click", async () => {
+      try {
+        await logout();
+      } catch (err) {
+        console.warn("No se pudo cerrar sesión previa", err);
+      } finally {
+        if (sessionBox && form) {
+          sessionBox.classList.add("hidden");
+          form.classList.remove("hidden");
+        }
       }
     });
   </script>

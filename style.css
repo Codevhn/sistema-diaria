@@ -5036,6 +5036,18 @@ body.login-page {
   margin: 0;
 }
 
+.login-session {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-session__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 640px) {
   .login-card {
     padding: 28px 24px;

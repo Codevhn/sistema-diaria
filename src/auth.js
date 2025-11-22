@@ -24,3 +24,24 @@ export async function getCurrentUser() {
   }
   return data?.user ?? null;
 }
+
+export async function requireAuthOrRedirect(redirectTo = "./login.html") {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data?.session?.user) {
+      await supabase.auth.signOut();
+      window.location.href = redirectTo;
+      return null;
+    }
+    return data.session.user;
+  } catch (err) {
+    console.error("Supabase auth error:", err?.message || err);
+    try {
+      await supabase.auth.signOut();
+    } catch (_) {
+      /* noop */
+    }
+    window.location.href = redirectTo;
+    return null;
+  }
+}

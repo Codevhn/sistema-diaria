@@ -958,7 +958,8 @@
     import { formatDateISO, getTodayISODate, parseDrawDate } from "./src/date-utils.js";
     import { logInfo, logWarn } from "./src/logger.js";
     import { runDexieToSupabaseImport } from "./src/dexieToSupabaseImporter.js";
-    import { getCurrentUser, logout as supabaseLogout } from "./src/auth.js";
+    import { supabase } from "./src/supabaseClient.js";
+    import { getCurrentUser, logout as supabaseLogout, requireAuthOrRedirect } from "./src/auth.js";
     import { showBootLoader, hideBootLoader } from "./src/boot-loader.js";
     const bootOverlay = document.getElementById("boot-loader");
     const processingModal = document.getElementById("processing-modal");
@@ -1011,11 +1012,13 @@
       }, 350);
     }
 
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      window.location.href = "./login.html";
-      throw new Error("Auth requerida");
-    }
+    const currentUser = await requireAuthOrRedirect("./login.html");
+    if (!currentUser) throw new Error("Auth requerida");
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session?.user) {
+        window.location.href = "./login.html";
+      }
+    });
     await initUserPreferences(currentUser);
     showBootLoader();
     try {
