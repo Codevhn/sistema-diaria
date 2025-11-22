@@ -959,7 +959,7 @@
     import { logInfo, logWarn } from "./src/logger.js";
     import { runDexieToSupabaseImport } from "./src/dexieToSupabaseImporter.js";
     import { supabase } from "./src/supabaseClient.js";
-    import { getCurrentUser, logout as supabaseLogout, requireAuthOrRedirect } from "./src/auth.js";
+    import { getCurrentUser, logout as supabaseLogout, requireAuthOrRedirect, setLoginStamp } from "./src/auth.js";
     import { showBootLoader, hideBootLoader } from "./src/boot-loader.js";
     const bootOverlay = document.getElementById("boot-loader");
     const processingModal = document.getElementById("processing-modal");
@@ -1014,6 +1014,7 @@
 
     const currentUser = await requireAuthOrRedirect("./login.html");
     if (!currentUser) throw new Error("Auth requerida");
+    setLoginStamp(Date.now());
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || !session?.user) {
         window.location.href = "./login.html";
