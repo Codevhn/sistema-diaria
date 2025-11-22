@@ -23,7 +23,6 @@
       throw new Error("Redirigiendo a login por sesión inválida.");
     }
     window.__LD_AUTH_UNLOCKED__ = true;
-    window.__LD_CURRENT_USER__ = user;
     document.documentElement.classList.remove("auth-locked");
   </script>
 
@@ -1033,7 +1032,7 @@
       }, 350);
     }
 
-    const currentUser = window.__LD_CURRENT_USER__ || (await requireAuthOrRedirect("./login.html"));
+    const currentUser = await requireAuthOrRedirect("./login.html");
     if (!currentUser) throw new Error("Auth requerida");
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || !session?.user) {

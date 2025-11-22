@@ -3,15 +3,11 @@ import { supabase } from "./supabaseClient.js";
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
 let inactivityTimer = null;
 let activityListenersAttached = false;
+let exitHooksAttached = false;
 const activityEvents = ["click", "keydown", "scroll", "mousemove", "touchstart"];
 const handleVisibilityChange = () => {
   if (document.visibilityState === "visible") resetInactivityTimer();
 };
-
-function cacheSession(session) {
-  if (typeof window === "undefined") return;
-  window.__LD_SESSION__ = session || null;
-}
 
 function clearSupabaseSessionStorage() {
   if (typeof window === "undefined" || !window.sessionStorage) return;
@@ -25,12 +21,23 @@ function clearSupabaseSessionStorage() {
   keys.forEach((key) => window.sessionStorage.removeItem(key));
 }
 
+function attachExitHooks() {
+  if (exitHooksAttached || typeof window === "undefined") return;
+  const handleExit = () => {
+    clearSupabaseSessionStorage();
+    supabase.auth.signOut().catch(() => {});
+  };
+  window.addEventListener("pagehide", handleExit, { capture: true });
+  window.addEventListener("beforeunload", handleExit, { capture: true });
+  exitHooksAttached = true;
+}
+
 export async function login(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     throw new Error(error.message || "Error al iniciar sesión");
   }
-  cacheSession(data?.session || null);
+  attachExitHooks();
   startSessionInactivityTimer();
   return data?.user ?? null;
 }
@@ -40,7 +47,6 @@ export async function logout() {
   if (error) {
     throw new Error(error.message || "Error al cerrar sesión");
   }
-  cacheSession(null);
   clearSupabaseSessionStorage();
   stopSessionInactivityTimer();
   return true;
@@ -53,16 +59,14 @@ export async function getCurrentUser() {
       console.error("Supabase auth error:", error.message || error);
       await supabase.auth.signOut().catch(() => {});
       clearSupabaseSessionStorage();
-      cacheSession(null);
       return null;
     }
-    cacheSession(data?.session || null);
+    attachExitHooks();
     return data?.session?.user ?? null;
   } catch (err) {
     console.error("Supabase auth error:", err?.message || err);
     await supabase.auth.signOut().catch(() => {});
     clearSupabaseSessionStorage();
-    cacheSession(null);
     return null;
   }
 }
@@ -72,18 +76,16 @@ export async function requireAuthOrRedirect(redirectTo = "./login.html") {
     const { data, error } = await supabase.auth.getSession();
     const session = data?.session;
     if (error || !session?.user) {
-      cacheSession(null);
       await supabase.auth.signOut().catch(() => {});
       clearSupabaseSessionStorage();
       window.location.replace(redirectTo);
       return null;
     }
-    cacheSession(session || null);
+    attachExitHooks();
     startSessionInactivityTimer();
     return session.user;
   } catch (err) {
     console.error("Supabase auth error:", err?.message || err);
-    cacheSession(null);
     await supabase.auth.signOut().catch(() => {});
     clearSupabaseSessionStorage();
     window.location.replace(redirectTo);
@@ -98,7 +100,6 @@ async function handleInactivityTimeout() {
     console.error("Error al cerrar sesión por inactividad", err);
   } finally {
     clearSupabaseSessionStorage();
-    cacheSession(null);
     window.location.replace("./login.html");
   }
 }
