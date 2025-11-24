@@ -5040,7 +5040,7 @@ button.ghost:hover {
 }
 
 .pega3-card--form {
-  grid-column: span 1;
+  grid-column: 1 / -1;
 }
 
 .pega3-card--insights {

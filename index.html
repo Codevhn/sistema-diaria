@@ -308,7 +308,7 @@
             <div class="pega3-context-actions">
               <button type="button" id="pega3-context-sync" class="btn-ghost small">Detectar fecha y turno actuales</button>
             </div>
-            <p class="hint small">Usa el botón para autocompletar o ajusta manualmente para cargar sorteos históricos.</p>
+            <p class="hint small">Usa el botón para autocompletar o ajusta manualmente para cargar sorteos históricos. Cada vez que guardes un sorteo, el turno avanzará automáticamente (11AM → 3PM → 9PM).</p>
             <div class="pega3-slot-grid">
               <div class="slot pega3-slot">
                 <div class="slot-header">
@@ -5045,6 +5045,7 @@
     const pega3Resumen = document.getElementById("pega3-resumen");
     const pega3Sesgos = document.getElementById("pega3-sesgos");
     const pega3Seleccion = document.getElementById("pega3-seleccion");
+    const pega3PendingDeletion = new Map();
 
     async function ejecutarAnalisis({ auto = false } = {}) {
       if (!auto) {
@@ -6246,6 +6247,8 @@
       "3PM": "3 PM",
       "9PM": "9 PM",
     };
+    const PEGA3_TURN_SEQUENCE = ["11AM", "3PM", "9PM"];
+    let pega3TurnPointer = 0;
     const PEGA3_COUNTRY_LABELS = {
       HN: "Honduras",
       NI: "Nicaragua",
@@ -6257,6 +6260,19 @@
       if (hour >= 20) return "9PM";
       if (hour >= 14) return "3PM";
       return "11AM";
+    }
+
+    function updatePega3TurnPointer(value) {
+      const idx = PEGA3_TURN_SEQUENCE.indexOf(value);
+      pega3TurnPointer = idx >= 0 ? idx : 0;
+    }
+
+    function advancePega3TurnPointer() {
+      pega3TurnPointer = (pega3TurnPointer + 1) % PEGA3_TURN_SEQUENCE.length;
+      if (pega3TurnoSelect) {
+        pega3TurnoSelect.value = PEGA3_TURN_SEQUENCE[pega3TurnPointer];
+        prefillPega3Inputs({ forceClear: true });
+      }
     }
 
     function syncPega3Context({ force = false } = {}) {
@@ -6271,10 +6287,18 @@
       if (force || !pega3PaisSelect.value) {
         pega3PaisSelect.value = "HN";
       }
+      updatePega3TurnPointer(pega3TurnoSelect.value);
+      prefillPega3Inputs({ forceClear: true });
     }
 
     syncPega3Context();
     pega3ContextSyncBtn?.addEventListener("click", () => syncPega3Context({ force: true }));
+    pega3TurnoSelect?.addEventListener("change", () => {
+      updatePega3TurnPointer(pega3TurnoSelect.value);
+      prefillPega3Inputs({ forceClear: true });
+    });
+    pega3FechaInput?.addEventListener("change", () => prefillPega3Inputs({ forceClear: true }));
+    pega3PaisSelect?.addEventListener("change", () => prefillPega3Inputs({ forceClear: true }));
 
     async function handlePega3Save(event) {
       event?.preventDefault();
@@ -6294,6 +6318,7 @@
         pega3ParInputs.forEach((input) => {
           if (input) input.value = "";
         });
+        advancePega3TurnPointer();
         await refreshPega3Historial({ silent: true });
       } catch (err) {
         console.error("pega3 save error", err);
@@ -6315,13 +6340,49 @@
             return a.fecha > b.fecha ? -1 : 1;
           });
         renderPega3HistorialList(pega3DrawCache);
+        prefillPega3Inputs();
       } catch (err) {
         console.error("pega3 historial error", err);
         pega3Historial.innerHTML = `<p class='hint'>No se pudo leer el historial: ${err.message}</p>`;
       }
     }
 
-    const pega3PendingDeletion = new Map();
+    function clearPega3Inputs() {
+      pega3ParInputs.forEach((input) => {
+        if (input) input.value = "";
+      });
+    }
+
+    function fillPega3InputsFromDraw(draw) {
+      if (!draw) return;
+      pega3ParInputs.forEach((input, idx) => {
+        if (!input) return;
+        const value = Array.isArray(draw.pares) ? draw.pares[idx] : null;
+        input.value = Number.isFinite(value) ? formatNumber(value) : "";
+      });
+    }
+
+    function prefillPega3Inputs({ forceClear = false } = {}) {
+      if (!pega3FechaInput || !pega3TurnoSelect) return;
+      const fecha = pega3FechaInput.value;
+      const turno = pega3TurnoSelect.value;
+      if (!fecha || !turno) {
+        if (forceClear) clearPega3Inputs();
+        return;
+      }
+      const paisValue = (pega3PaisSelect?.value || "HN").toUpperCase();
+      const match = (pega3DrawCache || []).find(
+        (draw) =>
+          draw.fecha === fecha &&
+          draw.horario === turno &&
+          ((draw.pais || "HN").toUpperCase() === paisValue),
+      );
+      if (match) {
+        fillPega3InputsFromDraw(match);
+      } else if (forceClear || pega3ParInputs.every((input) => !input || !input.value?.trim())) {
+        clearPega3Inputs();
+      }
+    }
 
     function renderPega3HistorialList(draws = []) {
       if (!pega3Historial) return;
