@@ -1,12 +1,40 @@
 import { supabase } from "./supabaseClient.js";
 
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
+const SESSION_RETRY_ATTEMPTS = 5;
+const SESSION_RETRY_DELAY_MS = 200;
 let inactivityTimer = null;
 let activityListenersAttached = false;
 const activityEvents = ["click", "keydown", "scroll", "mousemove", "touchstart"];
 const handleVisibilityChange = () => {
   if (document.visibilityState === "visible") resetInactivityTimer();
 };
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchSessionWithRetry(options = {}) {
+  const attempts = Math.max(1, options?.attempts ?? SESSION_RETRY_ATTEMPTS);
+  const delayMs = options?.delayMs ?? SESSION_RETRY_DELAY_MS;
+  let lastError = null;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (data?.session?.user) {
+        return data.session;
+      }
+      lastError = null;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+    }
+    if (i < attempts - 1) {
+      await wait(delayMs * (i + 1));
+    }
+  }
+  if (lastError) {
+    throw lastError;
+  }
+  return null;
+}
 
 function clearSupabaseSessionStorage() {
   if (typeof window === "undefined" || !window.sessionStorage) return;
@@ -39,16 +67,10 @@ export async function logout() {
   return true;
 }
 
-export async function getCurrentUser() {
+export async function getCurrentUser(options = {}) {
   try {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error("Supabase auth error:", error.message || error);
-      await supabase.auth.signOut().catch(() => {});
-      clearSupabaseSessionStorage();
-      return null;
-    }
-    return data?.session?.user ?? null;
+    const session = await fetchSessionWithRetry(options);
+    return session?.user ?? null;
   } catch (err) {
     console.error("Supabase auth error:", err?.message || err);
     await supabase.auth.signOut().catch(() => {});
@@ -57,25 +79,16 @@ export async function getCurrentUser() {
   }
 }
 
-export async function requireAuthOrRedirect(redirectTo = "./login.html") {
-  try {
-    const { data, error } = await supabase.auth.getSession();
-    const session = data?.session;
-    if (error || !session?.user) {
-      await supabase.auth.signOut().catch(() => {});
-      clearSupabaseSessionStorage();
-      window.location.replace(redirectTo);
-      return null;
-    }
-    startSessionInactivityTimer();
-    return session.user;
-  } catch (err) {
-    console.error("Supabase auth error:", err?.message || err);
+export async function requireAuthOrRedirect(redirectTo = "./login.html", options = {}) {
+  const user = await getCurrentUser(options);
+  if (!user) {
     await supabase.auth.signOut().catch(() => {});
     clearSupabaseSessionStorage();
     window.location.replace(redirectTo);
     return null;
   }
+  startSessionInactivityTimer();
+  return user;
 }
 
 async function handleInactivityTimeout() {
