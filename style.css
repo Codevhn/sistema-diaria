@@ -4092,6 +4092,207 @@ button.ghost:hover {
   flex-wrap: wrap;
   align-items: flex-start;
 }
+.monthly-trends-panel {
+  margin-top: 32px;
+}
+.monthly-trend-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 18px 0 8px;
+}
+.monthly-trend-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+.monthly-trend-controls select,
+.monthly-trend-controls input {
+  background: rgba(13, 24, 41, 0.95);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+}
+.monthly-trend-metrics {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.monthly-metric {
+  background: rgba(8, 14, 30, 0.8);
+  border: 1px solid rgba(73, 125, 255, 0.2);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.monthly-metric span {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.monthly-metric strong {
+  font-size: 1.2rem;
+  color: var(--color-text);
+}
+.monthly-trend-alerts {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+.trend-alert {
+  border: 1px solid rgba(73, 125, 255, 0.25);
+  border-left: 4px solid rgba(73, 125, 255, 0.45);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  background: rgba(7, 15, 28, 0.85);
+}
+.trend-alert[data-type="repeat"] {
+  border-color: rgba(255, 193, 7, 0.4);
+  border-left-color: rgba(255, 193, 7, 0.7);
+}
+.trend-alert[data-type="number"],
+.trend-alert[data-type="streak"] {
+  border-color: rgba(74, 227, 181, 0.35);
+  border-left-color: rgba(74, 227, 181, 0.75);
+}
+.trend-alert[data-type="line"],
+.trend-alert[data-type="trend"] {
+  border-color: rgba(73, 125, 255, 0.4);
+  border-left-color: rgba(73, 125, 255, 0.85);
+}
+.trend-alert strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.trend-chart__svg {
+  width: 100%;
+  height: 240px;
+}
+.monthly-trend-chart {
+  margin-top: 16px;
+  border: 1px solid rgba(73, 125, 255, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  background: rgba(3, 10, 20, 0.65);
+}
+.trend-chart__grid {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-dasharray: 4 6;
+}
+.trend-chart__grid-label {
+  font-size: 0.7rem;
+  fill: rgba(255, 255, 255, 0.35);
+}
+.trend-chart__path {
+  fill: none;
+  stroke: rgba(73, 125, 255, 0.85);
+  stroke-width: 2;
+}
+.trend-chart__point {
+  fill: rgba(74, 227, 181, 0.75);
+}
+.trend-chart__point--repeat {
+  fill: rgba(255, 193, 7, 0.9);
+}
+.trend-chart__legend {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+.monthly-trend-grid {
+  margin-top: 22px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.monthly-trend-card {
+  border: 1px solid rgba(73, 125, 255, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  background: rgba(7, 15, 28, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.monthly-trend-card__head h4 {
+  margin: 0;
+}
+.monthly-trend-hotlist__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.monthly-trend-hotlist__list li {
+  border: 1px solid rgba(73, 125, 255, 0.25);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(3, 10, 20, 0.65);
+}
+.hotlist-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.hotlist-number {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.hotlist-count {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+.hotlist-meta {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+.monthly-trend-hotlist__list button {
+  align-self: flex-start;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(73, 125, 255, 0.45);
+  background: transparent;
+  color: var(--color-text);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.monthly-trend-hotlist__list button:hover {
+  border-color: rgba(74, 227, 181, 0.5);
+  color: var(--color-accent);
+}
+.monthly-trend-years__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.monthly-trend-years__table th,
+.monthly-trend-years__table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 6px 4px;
+  text-align: left;
+}
+.monthly-trend-years__table th {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+.monthly-trend-years__table tr:last-child td {
+  border-bottom: none;
+}
 .weekly-lines-panel .lines-body {
   margin-top: 12px;
   display: flex;

@@ -69,12 +69,13 @@
     (async () => {
       const user = await getCurrentUser();
       if (user) {
-        if (forceSwitchMode && sessionBox && form) {
-          form.classList.add("hidden");
-          sessionBox.classList.remove("hidden");
+        if (forceSwitchMode) {
+          form?.classList.remove("hidden");
+          sessionBox?.classList.add("hidden");
           return;
         }
-        window.location.replace("./index.html");
+        form?.classList.add("hidden");
+        sessionBox?.classList.remove("hidden");
         return;
       }
       form?.classList.remove("hidden");
