@@ -309,6 +309,7 @@
               <button type="button" id="pega3-context-sync" class="btn-ghost small">Detectar fecha y turno actuales</button>
             </div>
             <p class="hint small">Usa el botón para autocompletar o ajusta manualmente para cargar sorteos históricos. Cada vez que guardes un sorteo, el turno avanzará automáticamente (11AM → 3PM → 9PM).</p>
+            <div id="pega3-form-status" class="pega3-form-status hint small" aria-live="polite"></div>
             <div class="pega3-slot-grid">
               <div class="slot pega3-slot">
                 <div class="slot-header">
@@ -1818,6 +1819,7 @@
       patrones: null,
     };
     let pega3DrawCache = [];
+    let pega3ActiveDrawId = null;
     let pega3AnalysisCache = null;
     const formatFriendlyDate = (value) => {
       if (!value) return "";
@@ -5036,6 +5038,8 @@
     const pega3TurnoSelect = document.getElementById("pega3-turno");
     const pega3PaisSelect = document.getElementById("pega3-pais");
     const pega3ContextSyncBtn = document.getElementById("pega3-context-sync");
+    const pega3FormStatus = document.getElementById("pega3-form-status");
+    const pega3SaveBtn = document.getElementById("pega3-btn-registrar");
     const pega3ParInputs = [
       document.getElementById("pega3-par-1"),
       document.getElementById("pega3-par-2"),
@@ -6254,6 +6258,7 @@
       NI: "Nicaragua",
       SV: "El Salvador",
     };
+    const PEGA3_COLOR_BUCKETS = 6;
 
     function detectPega3Turno(now = new Date()) {
       const hour = now.getHours();
@@ -6312,9 +6317,11 @@
         showToast("Completa la fecha y los tres pares antes de guardar.", { variant: "warning" });
         return;
       }
+      const isUpdating = Boolean(pega3ActiveDrawId);
       try {
         await DB.savePega3Draw({ fecha, horario, pais, pares });
-        showToast("Sorteo Pega3 guardado.", { variant: "success", timeout: 2000 });
+        const toastMsg = isUpdating ? "Sorteo Pega3 actualizado." : "Sorteo Pega3 guardado.";
+        showToast(toastMsg, { variant: "success", timeout: 2000 });
         pega3ParInputs.forEach((input) => {
           if (input) input.value = "";
         });
@@ -6353,13 +6360,58 @@
       });
     }
 
+    function updatePega3FormStatus(draw = null) {
+      pega3ActiveDrawId = draw?.id ?? null;
+      const statusEl = pega3FormStatus;
+      if (statusEl) {
+        if (draw) {
+          const friendlyDate = draw.fecha ? formatFriendlyDate(draw.fecha) : "";
+          const turnoLabel = PEGA3_TURN_LABELS[draw.horario] || draw.horario || "";
+          const paisCode = (draw.pais || "HN").toUpperCase();
+          const paisLabel = PEGA3_COUNTRY_LABELS[paisCode] || paisCode;
+          const descriptor = [friendlyDate || draw.fecha || "", turnoLabel, paisLabel]
+            .filter(Boolean)
+            .join(" · ");
+          statusEl.textContent = descriptor ? `Sorteo registrado: ${descriptor}` : "Sorteo registrado.";
+          statusEl.dataset.state = "filled";
+        } else {
+          statusEl.textContent = "";
+          statusEl.dataset.state = "empty";
+        }
+      }
+      if (pega3SaveBtn) {
+        pega3SaveBtn.textContent = draw ? "Actualizar sorteo" : "Guardar sorteo";
+      }
+    }
+
+    function normalizePega3Value(value) {
+      if (typeof value === "number") {
+        return Number.isFinite(value) ? value : null;
+      }
+      if (typeof value === "string" && value.trim() !== "") {
+        const parsed = parseInt(value, 10);
+        return Number.isNaN(parsed) ? null : parsed;
+      }
+      return null;
+    }
+
     function fillPega3InputsFromDraw(draw) {
       if (!draw) return;
       pega3ParInputs.forEach((input, idx) => {
         if (!input) return;
-        const value = Array.isArray(draw.pares) ? draw.pares[idx] : null;
-        input.value = Number.isFinite(value) ? formatNumber(value) : "";
+        const rawValue = Array.isArray(draw.pares) ? draw.pares[idx] : null;
+        const normalized = normalizePega3Value(rawValue);
+        input.value = normalized === null ? "" : formatNumber(normalized);
       });
+    }
+
+    function computePega3DateColorIndex(key) {
+      if (!key || !PEGA3_COLOR_BUCKETS) return 0;
+      let hash = 0;
+      for (let i = 0; i < key.length; i += 1) {
+        hash = (hash * 31 + key.charCodeAt(i)) | 0;
+      }
+      return Math.abs(hash) % PEGA3_COLOR_BUCKETS;
     }
 
     function prefillPega3Inputs({ forceClear = false } = {}) {
@@ -6367,7 +6419,10 @@
       const fecha = pega3FechaInput.value;
       const turno = pega3TurnoSelect.value;
       if (!fecha || !turno) {
-        if (forceClear) clearPega3Inputs();
+        if (forceClear) {
+          clearPega3Inputs();
+          updatePega3FormStatus(null);
+        }
         return;
       }
       const paisValue = (pega3PaisSelect?.value || "HN").toUpperCase();
@@ -6379,8 +6434,12 @@
       );
       if (match) {
         fillPega3InputsFromDraw(match);
-      } else if (forceClear || pega3ParInputs.every((input) => !input || !input.value?.trim())) {
-        clearPega3Inputs();
+        updatePega3FormStatus(match);
+      } else {
+        if (forceClear || pega3ParInputs.every((input) => !input || !input.value?.trim())) {
+          clearPega3Inputs();
+        }
+        updatePega3FormStatus(null);
       }
     }
 
@@ -6394,6 +6453,8 @@
       draws.slice(0, 60).forEach((row) => {
         const item = document.createElement("div");
         item.className = "pega3-entry";
+        const colorIndex = computePega3DateColorIndex(row.fecha || "");
+        item.dataset.colorIndex = colorIndex;
         const info = document.createElement("div");
         info.className = "pega3-entry__info";
         const title = document.createElement("strong");
@@ -6582,7 +6643,7 @@
       `;
     }
 
-    document.getElementById("pega3-btn-registrar")?.addEventListener("click", handlePega3Save);
+    pega3SaveBtn?.addEventListener("click", handlePega3Save);
     document.getElementById("pega3-btn-cargar")?.addEventListener("click", () => refreshPega3Historial());
     document.getElementById("pega3-btn-analizar")?.addEventListener("click", () => runPega3Analysis());
 

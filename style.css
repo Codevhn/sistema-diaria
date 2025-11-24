@@ -5098,6 +5098,26 @@ button.ghost:hover {
   justify-content: flex-end;
 }
 
+.pega3-form-status {
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.65rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  min-height: 1.75rem;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.pega3-form-status:empty {
+  display: none;
+}
+
+.pega3-form-status[data-state="filled"] {
+  border-style: solid;
+  border-color: rgba(74, 227, 181, 0.55);
+  background: rgba(74, 227, 181, 0.08);
+  color: var(--color-success);
+}
+
 .pega3-slot-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -5135,51 +5155,87 @@ button.ghost:hover {
 
 
 .pega3-historial {
-  max-height: 280px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.65rem;
+  max-height: none;
+  overflow: visible;
 }
 
 .pega3-historial .pega3-entry {
+  --pega3-entry-border: rgba(255, 255, 255, 0.12);
+  --pega3-entry-bg: rgba(6, 12, 28, 0.8);
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--pega3-entry-border);
+  border-left-width: 4px;
   border-radius: var(--radius-sm);
-  background: rgba(9, 14, 28, 0.75);
+  background: var(--pega3-entry-bg);
+  box-shadow: 0 6px 14px rgba(3, 7, 18, 0.35);
+  min-height: 120px;
 }
 
 .pega3-entry__info {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.2rem;
 }
 
 .pega3-entry__info strong {
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .pega3-entry__meta {
   color: var(--color-muted);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
 }
 
 .pega3-entry__pairs {
-  font-size: 1.1rem;
-  letter-spacing: 0.12em;
+  font-size: 1.25rem;
+  letter-spacing: 0.16em;
 }
 
 .pega3-entry__actions {
-  flex: 0 0 auto;
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .pega3-entry__delete {
   font-size: 0.78rem;
   padding: 0.2rem 0.6rem;
+}
+
+.pega3-entry[data-color-index="0"] {
+  --pega3-entry-border: rgba(74, 227, 181, 0.9);
+  --pega3-entry-bg: rgba(74, 227, 181, 0.08);
+}
+
+.pega3-entry[data-color-index="1"] {
+  --pega3-entry-border: rgba(73, 125, 255, 0.85);
+  --pega3-entry-bg: rgba(73, 125, 255, 0.08);
+}
+
+.pega3-entry[data-color-index="2"] {
+  --pega3-entry-border: rgba(255, 178, 102, 0.88);
+  --pega3-entry-bg: rgba(255, 178, 102, 0.08);
+}
+
+.pega3-entry[data-color-index="3"] {
+  --pega3-entry-border: rgba(255, 95, 109, 0.85);
+  --pega3-entry-bg: rgba(255, 95, 109, 0.08);
+}
+
+.pega3-entry[data-color-index="4"] {
+  --pega3-entry-border: rgba(123, 82, 255, 0.85);
+  --pega3-entry-bg: rgba(123, 82, 255, 0.09);
+}
+
+.pega3-entry[data-color-index="5"] {
+  --pega3-entry-border: rgba(31, 182, 255, 0.85);
+  --pega3-entry-bg: rgba(31, 182, 255, 0.08);
 }
 
 .pega3-panel {
