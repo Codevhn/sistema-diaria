@@ -782,4 +782,12 @@ export const DB = {
       order: [{ column: "fecha", ascending: true }],
     });
   },
+
+  async deletePega3Draw(id) {
+    if (!id && id !== 0) {
+      throw new Error("deletePega3Draw: id requerido");
+    }
+    await deleteByPrimary("pega3", [id], "deletePega3Draw");
+    return true;
+  },
 };

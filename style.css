@@ -5046,18 +5046,18 @@ button.ghost:hover {
 
 .pega3-context {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.65rem;
 }
 
-.pega3-context__item {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-sm);
-  padding: 0.6rem 0.75rem;
-  background: rgba(6, 12, 28, 0.8);
+.pega3-context__field {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  background: rgba(6, 12, 28, 0.85);
 }
 
 .pega3-context__label {
@@ -5067,9 +5067,27 @@ button.ghost:hover {
   color: var(--color-muted);
 }
 
-.pega3-context__item strong {
-  font-size: 1rem;
+.pega3-context__field input,
+.pega3-context__field select {
+  width: 100%;
+  background: rgba(2, 6, 18, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
   color: var(--color-text);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.95rem;
+}
+
+.pega3-context__field input:focus,
+.pega3-context__field select:focus {
+  outline: none;
+  border-color: rgba(74, 227, 181, 0.6);
+  box-shadow: 0 0 0 2px rgba(74, 227, 181, 0.15);
+}
+
+.pega3-context-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .pega3-slot-grid {
@@ -5119,10 +5137,41 @@ button.ghost:hover {
 .pega3-historial .pega3-entry {
   display: flex;
   justify-content: space-between;
-  padding: 0.35rem 0.5rem;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  background: rgba(9, 14, 28, 0.75);
+}
+
+.pega3-entry__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pega3-entry__info strong {
+  font-size: 0.95rem;
+}
+
+.pega3-entry__meta {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.pega3-entry__pairs {
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+}
+
+.pega3-entry__actions {
+  flex: 0 0 auto;
+}
+
+.pega3-entry__delete {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
 }
 
 .pega3-panel {

@@ -284,23 +284,31 @@
           <div class="card-head">Registrar sorteo Pega3</div>
           <div class="card-body pega3-form">
             <div class="pega3-context">
-              <div class="pega3-context__item">
-                <span class="pega3-context__label">Fecha detectada</span>
-                <strong id="pega3-fecha-display">—</strong>
-                <input type="hidden" id="pega3-fecha" />
-              </div>
-              <div class="pega3-context__item">
-                <span class="pega3-context__label">Turno detectado</span>
-                <strong id="pega3-turno-display">—</strong>
-                <input type="hidden" id="pega3-turno" />
-              </div>
-              <div class="pega3-context__item">
+              <label class="pega3-context__field">
+                <span class="pega3-context__label">Fecha</span>
+                <input type="date" id="pega3-fecha" />
+              </label>
+              <label class="pega3-context__field">
+                <span class="pega3-context__label">Turno</span>
+                <select id="pega3-turno">
+                  <option value="11AM">11 AM</option>
+                  <option value="3PM">3 PM</option>
+                  <option value="9PM">9 PM</option>
+                </select>
+              </label>
+              <label class="pega3-context__field">
                 <span class="pega3-context__label">País</span>
-                <strong id="pega3-pais-display">Honduras</strong>
-                <input type="hidden" id="pega3-pais" value="HN" />
-              </div>
+                <select id="pega3-pais">
+                  <option value="HN">Honduras</option>
+                  <option value="NI">Nicaragua</option>
+                  <option value="SV">El Salvador</option>
+                </select>
+              </label>
             </div>
-            <p class="hint small">La fecha y el turno se calculan automáticamente según la hora actual.</p>
+            <div class="pega3-context-actions">
+              <button type="button" id="pega3-context-sync" class="btn-ghost small">Detectar fecha y turno actuales</button>
+            </div>
+            <p class="hint small">Usa el botón para autocompletar o ajusta manualmente para cargar sorteos históricos.</p>
             <div class="pega3-slot-grid">
               <div class="slot pega3-slot">
                 <div class="slot-header">
@@ -5015,9 +5023,7 @@
     const pega3FechaInput = document.getElementById("pega3-fecha");
     const pega3TurnoSelect = document.getElementById("pega3-turno");
     const pega3PaisSelect = document.getElementById("pega3-pais");
-    const pega3FechaDisplay = document.getElementById("pega3-fecha-display");
-    const pega3TurnoDisplay = document.getElementById("pega3-turno-display");
-    const pega3PaisDisplay = document.getElementById("pega3-pais-display");
+    const pega3ContextSyncBtn = document.getElementById("pega3-context-sync");
     const pega3ParInputs = [
       document.getElementById("pega3-par-1"),
       document.getElementById("pega3-par-2"),
@@ -6228,6 +6234,11 @@
       "3PM": "3 PM",
       "9PM": "9 PM",
     };
+    const PEGA3_COUNTRY_LABELS = {
+      HN: "Honduras",
+      NI: "Nicaragua",
+      SV: "El Salvador",
+    };
 
     function detectPega3Turno(now = new Date()) {
       const hour = now.getHours();
@@ -6236,32 +6247,25 @@
       return "11AM";
     }
 
-    function syncPega3Context() {
+    function syncPega3Context({ force = false } = {}) {
       if (!pega3FechaInput || !pega3TurnoSelect || !pega3PaisSelect) return;
       const now = new Date();
-      const fechaISO = getTodayISODate();
-      const turno = detectPega3Turno(now);
-      const pais = "HN";
-      pega3FechaInput.value = fechaISO;
-      pega3TurnoSelect.value = turno;
-      pega3PaisSelect.value = pais;
-      if (pega3FechaDisplay) {
-        pega3FechaDisplay.textContent = formatFriendlyDate(fechaISO) || fechaISO;
+      if (force || !pega3FechaInput.value) {
+        pega3FechaInput.value = getTodayISODate();
       }
-      if (pega3TurnoDisplay) {
-        pega3TurnoDisplay.textContent = PEGA3_TURN_LABELS[turno] || turno;
+      if (force || !pega3TurnoSelect.value) {
+        pega3TurnoSelect.value = detectPega3Turno(now);
       }
-      if (pega3PaisDisplay) {
-        pega3PaisDisplay.textContent = "Honduras";
+      if (force || !pega3PaisSelect.value) {
+        pega3PaisSelect.value = "HN";
       }
     }
 
     syncPega3Context();
-    window.addEventListener("focus", () => syncPega3Context());
+    pega3ContextSyncBtn?.addEventListener("click", () => syncPega3Context({ force: true }));
 
     async function handlePega3Save(event) {
       event?.preventDefault();
-      syncPega3Context();
       const fecha = pega3FechaInput?.value;
       const horario = pega3TurnoSelect?.value || "11AM";
       const pais = pega3PaisSelect?.value || "HN";
@@ -6315,16 +6319,52 @@
       draws.slice(0, 60).forEach((row) => {
         const item = document.createElement("div");
         item.className = "pega3-entry";
-        const date = document.createElement("span");
-        date.textContent = `${row.fecha} · ${row.horario} · ${row.pais || ""}`;
-        const nums = document.createElement("span");
+        const info = document.createElement("div");
+        info.className = "pega3-entry__info";
+        const title = document.createElement("strong");
+        const friendly = row.fecha ? formatFriendlyDate(row.fecha) : row.fecha;
+        title.textContent = `${friendly || "—"}`;
+        const meta = document.createElement("span");
+        meta.className = "pega3-entry__meta";
+        const paisCode = (row.pais || "HN").toUpperCase();
+        const paisLabel = PEGA3_COUNTRY_LABELS[paisCode] || paisCode;
+        meta.textContent = `${PEGA3_TURN_LABELS[row.horario] || row.horario || ""} · ${paisLabel}`;
+        const nums = document.createElement("div");
+        nums.className = "pega3-entry__pairs";
         nums.textContent = row.pares.map((n) => formatNumber(n)).join(" – ");
-        item.appendChild(date);
-        item.appendChild(nums);
+        info.append(title, meta, nums);
+
+        const actions = document.createElement("div");
+        actions.className = "pega3-entry__actions";
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn-ghost pega3-entry__delete";
+        deleteBtn.textContent = "Eliminar";
+        deleteBtn.addEventListener("click", () => handlePega3Delete(row));
+        actions.appendChild(deleteBtn);
+
+        item.appendChild(info);
+        item.appendChild(actions);
         fragment.appendChild(item);
       });
       pega3Historial.innerHTML = "";
       pega3Historial.appendChild(fragment);
+    }
+
+    async function handlePega3Delete(row) {
+      if (!row?.id) return;
+      const labelDate = row.fecha ? formatFriendlyDate(row.fecha) || row.fecha : "este registro";
+      const labelTurn = PEGA3_TURN_LABELS[row.horario] || row.horario || "";
+      const confirmed = window.confirm(`¿Eliminar el sorteo de Pega3 para ${labelDate}${labelTurn ? ` (${labelTurn})` : ""}?`);
+      if (!confirmed) return;
+      try {
+        await DB.deletePega3Draw(row.id);
+        showToast("Sorteo Pega3 eliminado.", { variant: "success" });
+        await refreshPega3Historial({ silent: true });
+      } catch (err) {
+        console.error("pega3 delete error", err);
+        showToast(`No se pudo eliminar: ${err.message}`, { variant: "danger" });
+      }
     }
 
     async function runPega3Analysis() {
