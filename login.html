@@ -48,6 +48,8 @@
     const sessionBox = document.getElementById("login-session");
     const sessionContinue = document.getElementById("login-continue");
     const sessionSwitch = document.getElementById("login-switch");
+    const searchParams = new URLSearchParams(window.location.search);
+    const forceSwitchMode = searchParams.get("mode") === "switch";
 
     function showError(message) {
       if (!errorBox) return;
@@ -66,13 +68,17 @@
 
     (async () => {
       const user = await getCurrentUser();
-      if (user && sessionBox && form) {
-        form.classList.add("hidden");
-        sessionBox.classList.remove("hidden");
-      } else {
-        form?.classList.remove("hidden");
-        sessionBox?.classList.add("hidden");
+      if (user) {
+        if (forceSwitchMode && sessionBox && form) {
+          form.classList.add("hidden");
+          sessionBox.classList.remove("hidden");
+          return;
+        }
+        window.location.replace("./index.html");
+        return;
       }
+      form?.classList.remove("hidden");
+      sessionBox?.classList.add("hidden");
     })();
 
     form?.addEventListener("submit", async (event) => {

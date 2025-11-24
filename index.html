@@ -608,6 +608,84 @@
           <p class="hint">Aún no hay datos suficientes.</p>
         </div>
       </article>
+      <article class="weekly-monthly-panel monthly-trends-panel">
+        <div class="weekly-monthly-head">
+          <div>
+            <h3>Patrones por mes</h3>
+            <p class="hint">Explora cómo se comporta un mes a lo largo de los años: repeticiones, líneas dominantes,
+              tendencia y alertas accionables.</p>
+          </div>
+          <button id="monthly-trend-refresh" class="btn-outline">Analizar mes</button>
+        </div>
+        <div class="monthly-trend-controls">
+          <label>
+            Mes
+            <select id="monthly-trend-month">
+              <option value="0">Enero</option>
+              <option value="1">Febrero</option>
+              <option value="2">Marzo</option>
+              <option value="3">Abril</option>
+              <option value="4">Mayo</option>
+              <option value="5">Junio</option>
+              <option value="6">Julio</option>
+              <option value="7">Agosto</option>
+              <option value="8">Septiembre</option>
+              <option value="9">Octubre</option>
+              <option value="10">Noviembre</option>
+              <option value="11">Diciembre</option>
+            </select>
+          </label>
+          <label>
+            País
+            <select id="monthly-trend-pais">
+              <option value="ALL">Todos</option>
+              <option value="HN">HN</option>
+              <option value="NI">NI</option>
+              <option value="SV">SV</option>
+            </select>
+          </label>
+          <label>
+            Turno
+            <select id="monthly-trend-turno">
+              <option value="">Todos</option>
+              <option value="11AM">11 AM</option>
+              <option value="3PM">3 PM</option>
+              <option value="9PM">9 PM</option>
+            </select>
+          </label>
+          <label>
+            Años a comparar
+            <input id="monthly-trend-years" type="number" min="2" max="10" value="5" />
+          </label>
+        </div>
+        <div id="monthly-trend-summary" class="panel-meta">
+          <p class="hint">Selecciona un mes y recalcula para obtener el resumen histórico.</p>
+        </div>
+        <div id="monthly-trend-alerts" class="monthly-trend-alerts">
+          <p class="hint">Aún no hay alertas detectadas para este análisis.</p>
+        </div>
+        <div id="monthly-trend-chart" class="monthly-trend-chart">
+          <p class="hint">Calcula el mes para mostrar la tendencia de los números ganadores.</p>
+        </div>
+        <div class="monthly-trend-grid">
+          <div class="monthly-trend-card">
+            <div class="monthly-trend-card__head">
+              <h4>Números dominantes</h4>
+            </div>
+            <div id="monthly-trend-hotlist" class="monthly-trend-hotlist">
+              <p class="hint">Procesa el mes para ver los números con mayor reincidencia.</p>
+            </div>
+          </div>
+          <div class="monthly-trend-card">
+            <div class="monthly-trend-card__head">
+              <h4>Actividad por año</h4>
+            </div>
+            <div id="monthly-trend-years-grid" class="monthly-trend-years">
+              <p class="hint">Calcula el mes para revisar el comportamiento anual.</p>
+            </div>
+          </div>
+        </div>
+      </article>
     </section>
 
     <!-- ABONO DEL DÍA -->
@@ -959,6 +1037,7 @@
     } from "./src/learning.js";
     import { analizarSesgos } from "./src/bias-analyzer.js";
     import { analizarSecuenciasSemanales, analizarComparacionMensual, analizarRotacionLineas } from "./src/weekly-patterns.js";
+    import { analizarPatronesMensuales } from "./src/monthly-trends.js";
     import { evaluarMotorPega3 } from "./src/pega3-engine.js";
     import { loadUserPreferences, saveUserPreferences } from "./src/user-preferences.js";
     import {
@@ -2614,6 +2693,16 @@
     const monthlySummaryEl = document.getElementById("monthly-summary");
     const monthlyTableEl = document.getElementById("monthly-table");
     const monthlyRefreshBtn = document.getElementById("monthly-refresh");
+    const monthlyTrendMonthSelect = document.getElementById("monthly-trend-month");
+    const monthlyTrendPaisSelect = document.getElementById("monthly-trend-pais");
+    const monthlyTrendTurnoSelect = document.getElementById("monthly-trend-turno");
+    const monthlyTrendYearsInput = document.getElementById("monthly-trend-years");
+    const monthlyTrendSummaryEl = document.getElementById("monthly-trend-summary");
+    const monthlyTrendAlertsEl = document.getElementById("monthly-trend-alerts");
+    const monthlyTrendChartEl = document.getElementById("monthly-trend-chart");
+    const monthlyTrendHotlistEl = document.getElementById("monthly-trend-hotlist");
+    const monthlyTrendYearsEl = document.getElementById("monthly-trend-years-grid");
+    const monthlyTrendRefreshBtn = document.getElementById("monthly-trend-refresh");
 
     const defaultTrackingFecha = trackingState?.fecha || dayFecha?.value || todayISO;
     const defaultTrackingPais = trackingState?.pais || dayPais?.value || trackingPaisSelect?.value || "HN";
@@ -2623,6 +2712,7 @@
     if (trackingPaisSelect && defaultTrackingPais) trackingPaisSelect.value = defaultTrackingPais;
     if (abonoFechaInput && !abonoFechaInput.value) abonoFechaInput.value = todayISO;
     if (gatilloWindowInput && !gatilloWindowInput.value) gatilloWindowInput.value = "180";
+    if (monthlyTrendMonthSelect) monthlyTrendMonthSelect.value = String(new Date().getMonth());
 
     let patternsCache = null;
     let patternsLoading = false;
@@ -2735,6 +2825,17 @@
       const focusBtn = event.target.closest?.("[data-monthly-focus]");
       if (!focusBtn) return;
       await focusDayPanel(focusBtn.dataset.monthlyFocus || null, focusBtn.dataset.pais || null);
+    });
+    monthlyTrendRefreshBtn?.addEventListener("click", () => {
+      refreshMonthlyTrendsPanel({ force: true });
+    });
+    [monthlyTrendMonthSelect, monthlyTrendPaisSelect, monthlyTrendTurnoSelect, monthlyTrendYearsInput].forEach((input) => {
+      input?.addEventListener("change", () => refreshMonthlyTrendsPanel());
+    });
+    monthlyTrendHotlistEl?.addEventListener("click", async (event) => {
+      const focusBtn = event.target.closest?.("[data-trend-focus]");
+      if (!focusBtn) return;
+      await focusDayPanel(focusBtn.dataset.trendFocus || null, focusBtn.dataset.pais || null);
     });
 
     rankingYearSelect?.addEventListener("change", () => {
@@ -3409,6 +3510,8 @@
     let abonoSpinTimer = null;
     let monthlyLoading = false;
     let monthlyLastAnalysis = null;
+    let monthlyTrendLoading = false;
+    let monthlyTrendLastAnalysis = null;
     let gatilloCache = null;
 
     function formatPatternWithSymbols(pattern = []) {
@@ -4145,6 +4248,262 @@
         if (monthlyTableEl) monthlyTableEl.innerHTML = "";
       } finally {
         monthlyLoading = false;
+      }
+    }
+
+    function renderMonthlyTrendSummary(analysis = null) {
+      if (!monthlyTrendSummaryEl) return;
+      const total = analysis?.stats?.totalDraws || 0;
+      if (!total) {
+        monthlyTrendSummaryEl.innerHTML = "<p class='hint'>No hay suficientes sorteos reales para este mes.</p>";
+        return;
+      }
+      const monthLabel = analysis?.monthLabel || "El mes";
+      const paisLabel = analysis?.filtro?.pais || "todos los países";
+      const turnoLabel = analysis?.filtro?.turno || "todos los turnos";
+      const yearsCount = analysis?.stats?.yearsCount || 0;
+      const repeatPct = Math.round((analysis?.stats?.repeatShare || 0) * 100);
+      const consecutivePct = Math.round((analysis?.stats?.consecutiveShare || 0) * 100);
+      const summary = document.createElement("div");
+      summary.className = "panel-meta";
+      summary.innerHTML = `${monthLabel} (${paisLabel} · ${turnoLabel}): <strong>${total}</strong> sorteos reales en los últimos <strong>${yearsCount}</strong> años. ${repeatPct}% repite números ya vistos en ese mes.`;
+      const trendDelta = analysis?.stats?.trend?.delta;
+      const hasTrendShift = typeof trendDelta === "number" && Math.abs(trendDelta) >= 1;
+      const metrics = document.createElement("div");
+      metrics.className = "monthly-trend-metrics";
+      const metricData = [
+        { label: "Repeticiones", value: `${repeatPct}%` },
+        { label: "Duplicados seguidos", value: `${consecutivePct}%` },
+        { label: "Números únicos", value: analysis?.stats?.uniqueNumbers ?? "—" },
+        {
+          label: "Tendencia",
+          value: hasTrendShift ? `${trendDelta > 0 ? "+" : ""}${Math.round(trendDelta)}` : "Estable",
+        },
+      ];
+      metrics.innerHTML = metricData
+        .map(
+          (item) => `
+            <div class="monthly-metric">
+              <span>${item.label}</span>
+              <strong>${item.value}</strong>
+            </div>
+          `,
+        )
+        .join("");
+      monthlyTrendSummaryEl.innerHTML = "";
+      monthlyTrendSummaryEl.append(summary, metrics);
+    }
+
+    function renderMonthlyTrendAlerts(analysis = null) {
+      if (!monthlyTrendAlertsEl) return;
+      const alerts = analysis?.stats?.alerts || [];
+      if (!alerts.length) {
+        monthlyTrendAlertsEl.innerHTML = "<p class='hint'>Sin alertas críticas para este filtro.</p>";
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      alerts.forEach((alert) => {
+        const card = document.createElement("div");
+        card.className = "trend-alert";
+        card.dataset.type = alert.type || "generic";
+        const title = document.createElement("strong");
+        title.textContent = alert.title || "Alerta";
+        const detail = document.createElement("p");
+        detail.textContent = alert.detail || "";
+        card.append(title, detail);
+        fragment.appendChild(card);
+      });
+      monthlyTrendAlertsEl.innerHTML = "";
+      monthlyTrendAlertsEl.appendChild(fragment);
+    }
+
+    function buildTrendChart(analysis = null) {
+      if (!monthlyTrendChartEl) return;
+      const timeline = analysis?.timeline || [];
+      if (!timeline.length) {
+        monthlyTrendChartEl.innerHTML = "<p class='hint'>No hay datos suficientes para graficar.</p>";
+        return;
+      }
+      const MAX_POINTS = 160;
+      const series = timeline.slice(-MAX_POINTS);
+      const width = Math.max(320, series.length * 12);
+      const height = 220;
+      const padding = 28;
+      const chartWidth = width - padding * 2;
+      const chartHeight = height - padding * 2;
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("preserveAspectRatio", "none");
+      svg.classList.add("trend-chart__svg");
+
+      const gridValues = [0, 25, 50, 75, 99];
+      gridValues.forEach((value) => {
+        const y = padding + chartHeight - (value / 99) * chartHeight;
+        const line = document.createElementNS(svgNS, "line");
+        line.setAttribute("x1", padding);
+        line.setAttribute("x2", width - padding);
+        line.setAttribute("y1", y);
+        line.setAttribute("y2", y);
+        line.classList.add("trend-chart__grid");
+        svg.appendChild(line);
+        const label = document.createElementNS(svgNS, "text");
+        label.setAttribute("x", 6);
+        label.setAttribute("y", y + 4);
+        label.textContent = String(value).padStart(2, "0");
+        label.classList.add("trend-chart__grid-label");
+        svg.appendChild(label);
+      });
+
+      const coords = series.map((entry, idx) => {
+        const step = series.length > 1 ? idx / (series.length - 1) : 0.5;
+        const x = padding + chartWidth * step;
+        const y = padding + chartHeight - (entry.numero / 99) * chartHeight;
+        return { x, y, entry };
+      });
+
+      if (coords.length >= 2) {
+        const path = document.createElementNS(svgNS, "path");
+        path.setAttribute(
+          "d",
+          coords
+            .map((point, idx) => `${idx === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+            .join(" "),
+        );
+        path.classList.add("trend-chart__path");
+        svg.appendChild(path);
+      }
+
+      coords.forEach((point) => {
+        const circle = document.createElementNS(svgNS, "circle");
+        circle.setAttribute("cx", point.x);
+        circle.setAttribute("cy", point.y);
+        circle.setAttribute("r", point.entry.isRepeat ? 3.6 : 2.6);
+        circle.classList.add("trend-chart__point");
+        if (point.entry.isRepeat) circle.classList.add("trend-chart__point--repeat");
+        const tooltip = document.createElementNS(svgNS, "title");
+        const friendly = point.entry.fecha ? formatFriendlyDate(point.entry.fecha) : "";
+        tooltip.textContent = `${friendly} ${point.entry.horario || ""} · ${formatNumber(point.entry.numero)}${
+          point.entry.isRepeat ? " (repetido)" : ""
+        }`;
+        circle.appendChild(tooltip);
+        svg.appendChild(circle);
+      });
+
+      monthlyTrendChartEl.innerHTML = "";
+      monthlyTrendChartEl.appendChild(svg);
+      const legend = document.createElement("div");
+      legend.className = "trend-chart__legend";
+      legend.innerHTML = `
+        <span>${series.length} sorteos recientes</span>
+        <span>${Math.round((analysis?.stats?.repeatShare || 0) * 100)}% repeticiones · ${Math.round(
+        (analysis?.stats?.consecutiveShare || 0) * 100,
+      )}% consecutivas</span>
+      `;
+      monthlyTrendChartEl.appendChild(legend);
+    }
+
+    function renderMonthlyTrendHotlist(analysis = null) {
+      if (!monthlyTrendHotlistEl) return;
+      const topNumbers = analysis?.stats?.topNumbers || [];
+      if (!topNumbers.length) {
+        monthlyTrendHotlistEl.innerHTML = "<p class='hint'>Aún no hay dominantes claros para este mes.</p>";
+        return;
+      }
+      const list = document.createElement("ul");
+      list.className = "monthly-trend-hotlist__list";
+      topNumbers.forEach((item) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <div class="hotlist-main">
+            <span class="hotlist-number">${formatNumber(item.numero)}</span>
+            <span class="hotlist-count">${item.count} repeticiones</span>
+          </div>
+          <div class="hotlist-meta">${item.years?.length || 0} años · Última vez ${item.lastFecha ? formatFriendlyDate(item.lastFecha) : "—"}</div>
+        `;
+        if (item.lastFecha) {
+          const focusBtn = document.createElement("button");
+          focusBtn.type = "button";
+          focusBtn.textContent = "Ver último";
+          focusBtn.dataset.trendFocus = item.lastFecha;
+          if (item.lastPais) focusBtn.dataset.pais = item.lastPais;
+          li.appendChild(focusBtn);
+        }
+        list.appendChild(li);
+      });
+      monthlyTrendHotlistEl.innerHTML = "";
+      monthlyTrendHotlistEl.appendChild(list);
+    }
+
+    function renderMonthlyTrendYears(analysis = null) {
+      if (!monthlyTrendYearsEl) return;
+      const rows = analysis?.yearBreakdown || [];
+      if (!rows.length) {
+        monthlyTrendYearsEl.innerHTML = "<p class='hint'>Registra más sorteos para comparar años.</p>";
+        return;
+      }
+      const table = document.createElement("table");
+      table.className = "monthly-trend-years__table";
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Año</th>
+            <th>Sorteos</th>
+            <th>% repetidos</th>
+            <th>Únicos</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector("tbody");
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.year}</td>
+          <td>${row.total}</td>
+          <td>${Math.round((row.repeatShare || 0) * 100)}%</td>
+          <td>${row.unique}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      monthlyTrendYearsEl.innerHTML = "";
+      monthlyTrendYearsEl.appendChild(table);
+    }
+
+    async function refreshMonthlyTrendsPanel({ force = false } = {}) {
+      if (!monthlyTrendSummaryEl) return;
+      if (monthlyTrendLoading) return;
+      monthlyTrendLoading = true;
+      if (monthlyTrendSummaryEl) monthlyTrendSummaryEl.innerHTML = "<p class='hint'>Calculando patrones del mes…</p>";
+      if (monthlyTrendAlertsEl) monthlyTrendAlertsEl.innerHTML = "<p class='hint'>Buscando alertas…</p>";
+      if (monthlyTrendChartEl) monthlyTrendChartEl.innerHTML = "<p class='hint'>Generando gráfica…</p>";
+      try {
+        const monthValue = parseInt(monthlyTrendMonthSelect?.value, 10);
+        const paisValue = monthlyTrendPaisSelect?.value || "ALL";
+        const turnoValue = monthlyTrendTurnoSelect?.value || "";
+        const yearsValue = parseInt(monthlyTrendYearsInput?.value, 10);
+        const draws = await getCachedDraws({ force });
+        const analysis = analizarPatronesMensuales(draws, {
+          month: Number.isFinite(monthValue) ? monthValue : new Date().getMonth(),
+          pais: paisValue === "ALL" ? null : paisValue,
+          turno: turnoValue || null,
+          yearsBack: Number.isFinite(yearsValue) ? Math.min(Math.max(yearsValue, 2), 10) : 5,
+        });
+        monthlyTrendLastAnalysis = analysis;
+        renderMonthlyTrendSummary(analysis);
+        renderMonthlyTrendAlerts(analysis);
+        buildTrendChart(analysis);
+        renderMonthlyTrendHotlist(analysis);
+        renderMonthlyTrendYears(analysis);
+      } catch (err) {
+        console.error("monthly trend panel error", err);
+        if (monthlyTrendSummaryEl) monthlyTrendSummaryEl.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
+        if (monthlyTrendAlertsEl) monthlyTrendAlertsEl.innerHTML = "";
+        if (monthlyTrendChartEl) monthlyTrendChartEl.innerHTML = "";
+        if (monthlyTrendHotlistEl) monthlyTrendHotlistEl.innerHTML = "<p class='hint'>No disponible.</p>";
+        if (monthlyTrendYearsEl) monthlyTrendYearsEl.innerHTML = "";
+      } finally {
+        monthlyTrendLoading = false;
       }
     }
 
@@ -7680,7 +8039,7 @@ function buildVariantEntries(profile) {
     sidebarButtons.forEach((b) => {
       b.onclick = () => {
         if (b.dataset.view === "login") {
-          window.location.href = "./login.html";
+          window.location.href = "./login.html?mode=switch";
           return;
         }
         document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
@@ -7696,6 +8055,7 @@ function buildVariantEntries(profile) {
         if (id === "view-weekly") {
           refreshWeeklyPanel({ force: true });
           refreshMonthlyPanel({ force: true });
+          refreshMonthlyTrendsPanel({ force: true });
         }
         if (id === "view-abono") {
           runAbonoGenerator({ force: true });
