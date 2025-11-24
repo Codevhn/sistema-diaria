@@ -6309,6 +6309,8 @@
       }
     }
 
+    const pega3PendingDeletion = new Map();
+
     function renderPega3HistorialList(draws = []) {
       if (!pega3Historial) return;
       if (!draws.length) {
@@ -6355,8 +6357,21 @@
       if (!row?.id) return;
       const labelDate = row.fecha ? formatFriendlyDate(row.fecha) || row.fecha : "este registro";
       const labelTurn = PEGA3_TURN_LABELS[row.horario] || row.horario || "";
-      const confirmed = window.confirm(`¿Eliminar el sorteo de Pega3 para ${labelDate}${labelTurn ? ` (${labelTurn})` : ""}?`);
-      if (!confirmed) return;
+      if (!pega3PendingDeletion.has(row.id)) {
+        const timer = setTimeout(() => pega3PendingDeletion.delete(row.id), 5000);
+        pega3PendingDeletion.set(row.id, timer);
+        showToast(`Presiona eliminar otra vez para borrar el sorteo de ${labelDate}${labelTurn ? ` (${labelTurn})` : ""}.`, {
+          variant: "warning",
+          timeout: 3500,
+        });
+        return;
+      }
+      clearTimeout(pega3PendingDeletion.get(row.id));
+      pega3PendingDeletion.delete(row.id);
+      if (typeof DB.deletePega3Draw !== "function") {
+        showToast("Esta versión no soporta eliminar sorteos. Actualiza la aplicación.", { variant: "danger" });
+        return;
+      }
       try {
         await DB.deletePega3Draw(row.id);
         showToast("Sorteo Pega3 eliminado.", { variant: "success" });
