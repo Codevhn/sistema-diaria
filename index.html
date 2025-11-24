@@ -1704,6 +1704,15 @@
       const date = new Date(`${value}T00:00:00`);
       return Number.isNaN(date.getTime()) ? null : date;
     };
+
+    function incrementISODate(value, days = 1) {
+      if (!value || !Number.isFinite(days)) return value;
+      const base = parseISODate(value);
+      if (!base) return value;
+      const next = new Date(base.getTime() + Math.trunc(days) * DAY_MS);
+      if (Number.isNaN(next.getTime())) return value;
+      return formatDateISO(next);
+    }
     const MONTH_NAMES = [
       "enero",
       "febrero",
@@ -6272,9 +6281,16 @@
       pega3TurnPointer = idx >= 0 ? idx : 0;
     }
 
-    function advancePega3TurnPointer() {
+    function advancePega3TurnPointer({ rollDate = false } = {}) {
+      const prevPointer = pega3TurnPointer;
       pega3TurnPointer = (pega3TurnPointer + 1) % PEGA3_TURN_SEQUENCE.length;
+      const loopedToStart =
+        prevPointer === PEGA3_TURN_SEQUENCE.length - 1 && pega3TurnPointer === 0;
       if (pega3TurnoSelect) {
+        if (rollDate && loopedToStart && pega3FechaInput) {
+          const nextDate = incrementISODate(pega3FechaInput.value, 1);
+          if (nextDate) pega3FechaInput.value = nextDate;
+        }
         pega3TurnoSelect.value = PEGA3_TURN_SEQUENCE[pega3TurnPointer];
         prefillPega3Inputs({ forceClear: true });
       }
@@ -6325,7 +6341,7 @@
         pega3ParInputs.forEach((input) => {
           if (input) input.value = "";
         });
-        advancePega3TurnPointer();
+        advancePega3TurnPointer({ rollDate: horario === "9PM" });
         await refreshPega3Historial({ silent: true });
       } catch (err) {
         console.error("pega3 save error", err);

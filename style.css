@@ -5129,6 +5129,14 @@ button.ghost:hover {
   padding-bottom: 16px;
 }
 
+.pega3-slot .slot-controls {
+  justify-content: center;
+}
+
+.pega3-slot .slot-controls > input {
+  flex: 0 0 auto;
+}
+
 .pega3-slot-hint {
   margin: 4px 0 0;
   font-size: 0.78rem;
@@ -5136,21 +5144,35 @@ button.ghost:hover {
 }
 
 .pega3-slot-input {
-  font-size: 2rem;
-  font-weight: 600;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid rgba(73, 125, 255, 0.7);
+  background: radial-gradient(circle at 30% 30%, rgba(74, 227, 181, 0.2), rgba(2, 8, 20, 0.92));
+  box-shadow: 0 14px 30px rgba(3, 7, 18, 0.55), inset 0 0 16px rgba(11, 25, 56, 0.55);
+  font-size: 2.4rem;
+  font-weight: 700;
   text-align: center;
-  padding: 0.45rem 0.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-sm);
-  background: rgba(1, 4, 12, 0.9);
+  padding: 0;
+  letter-spacing: 0.18em;
+  text-transform: none;
+  line-height: 1;
+  caret-color: var(--color-accent);
+  transition: border-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
   color: var(--color-text);
-  letter-spacing: 0.08em;
+  appearance: textfield;
 }
 
 .pega3-slot-input:focus {
   outline: none;
-  border-color: rgba(74, 227, 181, 0.7);
-  box-shadow: 0 0 0 2px rgba(74, 227, 181, 0.15);
+  border-color: rgba(74, 227, 181, 0.85);
+  box-shadow: 0 20px 36px rgba(3, 7, 18, 0.55), 0 0 0 3px rgba(74, 227, 181, 0.18),
+    inset 0 0 20px rgba(20, 40, 76, 0.7);
+  transform: translateY(-2px);
+}
+
+.pega3-slot-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
 }
 
 
