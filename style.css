@@ -5044,51 +5044,69 @@ button.ghost:hover {
   gap: 0.6rem;
 }
 
-.pega3-pares {
+.pega3-context {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.5rem;
 }
 
-.pega3-par {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+.pega3-context__item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
-  padding: 0.45rem 0.55rem;
-  background: rgba(8, 16, 34, 0.8);
+  padding: 0.6rem 0.75rem;
+  background: rgba(6, 12, 28, 0.8);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
-.pega3-par__label {
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
+.pega3-context__label {
+  font-size: 0.72rem;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--color-muted);
 }
 
-.pega3-par__input {
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-align: center;
-  letter-spacing: 0.08em;
-  padding: 0.25rem 0;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: var(--radius-sm);
-  background: rgba(2, 8, 20, 0.85);
+.pega3-context__item strong {
+  font-size: 1rem;
   color: var(--color-text);
 }
 
-.pega3-par__input:focus {
-  border-color: var(--color-accent);
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(74, 227, 181, 0.2);
+.pega3-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
 }
 
-.pega3-par__help {
-  font-size: 0.73rem;
-  color: rgba(255, 255, 255, 0.6);
+.pega3-slot {
+  min-height: 0;
+  padding-bottom: 16px;
 }
+
+.pega3-slot-hint {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.pega3-slot-input {
+  font-size: 2rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.45rem 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(1, 4, 12, 0.9);
+  color: var(--color-text);
+  letter-spacing: 0.08em;
+}
+
+.pega3-slot-input:focus {
+  outline: none;
+  border-color: rgba(74, 227, 181, 0.7);
+  box-shadow: 0 0 0 2px rgba(74, 227, 181, 0.15);
+}
+
 
 .pega3-historial {
   max-height: 280px;

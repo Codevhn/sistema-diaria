@@ -283,41 +283,57 @@
         <article class="card pega3-card">
           <div class="card-head">Registrar sorteo Pega3</div>
           <div class="card-body pega3-form">
-            <label>
-              Fecha
-              <input type="date" id="pega3-fecha" />
-            </label>
-            <label>
-              Turno
-              <select id="pega3-turno">
-                <option value="11AM">11 AM</option>
-                <option value="3PM">3 PM</option>
-                <option value="9PM">9 PM</option>
-              </select>
-            </label>
-            <label>
-              País
-              <select id="pega3-pais">
-                <option value="HN">Honduras</option>
-                <option value="NI">Nicaragua</option>
-                <option value="SV">El Salvador</option>
-              </select>
-            </label>
-            <div class="pega3-pares">
-              <div class="pega3-par">
-                <span class="pega3-par__label">Primer par</span>
-                <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-1" placeholder="00" class="pega3-par__input" />
-                <span class="pega3-par__help">Posición inicial</span>
+            <div class="pega3-context">
+              <div class="pega3-context__item">
+                <span class="pega3-context__label">Fecha detectada</span>
+                <strong id="pega3-fecha-display">—</strong>
+                <input type="hidden" id="pega3-fecha" />
               </div>
-              <div class="pega3-par">
-                <span class="pega3-par__label">Segundo par</span>
-                <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-2" placeholder="00" class="pega3-par__input" />
-                <span class="pega3-par__help">Posición central</span>
+              <div class="pega3-context__item">
+                <span class="pega3-context__label">Turno detectado</span>
+                <strong id="pega3-turno-display">—</strong>
+                <input type="hidden" id="pega3-turno" />
               </div>
-              <div class="pega3-par">
-                <span class="pega3-par__label">Tercer par</span>
-                <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-3" placeholder="00" class="pega3-par__input" />
-                <span class="pega3-par__help">Posición final</span>
+              <div class="pega3-context__item">
+                <span class="pega3-context__label">País</span>
+                <strong id="pega3-pais-display">Honduras</strong>
+                <input type="hidden" id="pega3-pais" value="HN" />
+              </div>
+            </div>
+            <p class="hint small">La fecha y el turno se calculan automáticamente según la hora actual.</p>
+            <div class="pega3-slot-grid">
+              <div class="slot pega3-slot">
+                <div class="slot-header">
+                  <div>
+                    <div class="slot-title">Primer par</div>
+                    <p class="pega3-slot-hint">Posición inicial</p>
+                  </div>
+                </div>
+                <div class="slot-controls">
+                  <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-1" placeholder="00" class="pega3-slot-input" />
+                </div>
+              </div>
+              <div class="slot pega3-slot">
+                <div class="slot-header">
+                  <div>
+                    <div class="slot-title">Segundo par</div>
+                    <p class="pega3-slot-hint">Posición central</p>
+                  </div>
+                </div>
+                <div class="slot-controls">
+                  <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-2" placeholder="00" class="pega3-slot-input" />
+                </div>
+              </div>
+              <div class="slot pega3-slot">
+                <div class="slot-header">
+                  <div>
+                    <div class="slot-title">Tercer par</div>
+                    <p class="pega3-slot-hint">Posición final</p>
+                  </div>
+                </div>
+                <div class="slot-controls">
+                  <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-3" placeholder="00" class="pega3-slot-input" />
+                </div>
               </div>
             </div>
             <button id="pega3-btn-registrar" class="btn-primary">Guardar sorteo</button>
@@ -4999,6 +5015,9 @@
     const pega3FechaInput = document.getElementById("pega3-fecha");
     const pega3TurnoSelect = document.getElementById("pega3-turno");
     const pega3PaisSelect = document.getElementById("pega3-pais");
+    const pega3FechaDisplay = document.getElementById("pega3-fecha-display");
+    const pega3TurnoDisplay = document.getElementById("pega3-turno-display");
+    const pega3PaisDisplay = document.getElementById("pega3-pais-display");
     const pega3ParInputs = [
       document.getElementById("pega3-par-1"),
       document.getElementById("pega3-par-2"),
@@ -6204,12 +6223,45 @@
     }
 
 
-    if (pega3FechaInput && !pega3FechaInput.value) {
-      pega3FechaInput.value = getTodayISODate();
+    const PEGA3_TURN_LABELS = {
+      "11AM": "11 AM",
+      "3PM": "3 PM",
+      "9PM": "9 PM",
+    };
+
+    function detectPega3Turno(now = new Date()) {
+      const hour = now.getHours();
+      if (hour >= 20) return "9PM";
+      if (hour >= 14) return "3PM";
+      return "11AM";
     }
+
+    function syncPega3Context() {
+      if (!pega3FechaInput || !pega3TurnoSelect || !pega3PaisSelect) return;
+      const now = new Date();
+      const fechaISO = getTodayISODate();
+      const turno = detectPega3Turno(now);
+      const pais = "HN";
+      pega3FechaInput.value = fechaISO;
+      pega3TurnoSelect.value = turno;
+      pega3PaisSelect.value = pais;
+      if (pega3FechaDisplay) {
+        pega3FechaDisplay.textContent = formatFriendlyDate(fechaISO) || fechaISO;
+      }
+      if (pega3TurnoDisplay) {
+        pega3TurnoDisplay.textContent = PEGA3_TURN_LABELS[turno] || turno;
+      }
+      if (pega3PaisDisplay) {
+        pega3PaisDisplay.textContent = "Honduras";
+      }
+    }
+
+    syncPega3Context();
+    window.addEventListener("focus", () => syncPega3Context());
 
     async function handlePega3Save(event) {
       event?.preventDefault();
+      syncPega3Context();
       const fecha = pega3FechaInput?.value;
       const horario = pega3TurnoSelect?.value || "11AM";
       const pais = pega3PaisSelect?.value || "HN";
@@ -8064,6 +8116,7 @@ function buildVariantEntries(profile) {
           runGatillo({ force: true });
         }
         if (id === "view-pega3") {
+          syncPega3Context();
           refreshPega3Historial();
           renderPega3Panels();
         }
