@@ -6325,12 +6325,22 @@
       event?.preventDefault();
       const fecha = pega3FechaInput?.value;
       const horario = pega3TurnoSelect?.value || "11AM";
-      const pais = pega3PaisSelect?.value || "HN";
+      const pais = (pega3PaisSelect?.value || "HN").toUpperCase();
       const pares = pega3ParInputs
         .map((input) => parseInt(input?.value ?? "", 10))
         .filter((value) => Number.isFinite(value));
       if (!fecha || pares.length !== 3) {
         showToast("Completa la fecha y los tres pares antes de guardar.", { variant: "warning" });
+        return;
+      }
+      const cachedMatch = findCachedPega3Draw({ fecha, horario, pais });
+      if (cachedMatch && pega3ActiveDrawId !== cachedMatch.id) {
+        showToast("Ya tienes un sorteo registrado para ese turno y fecha. Usa la vista de historial o edita el registro actual.", {
+          variant: "warning",
+          timeout: 4000,
+        });
+        fillPega3InputsFromDraw(cachedMatch);
+        updatePega3FormStatus(cachedMatch);
         return;
       }
       const isUpdating = Boolean(pega3ActiveDrawId);
@@ -6430,10 +6440,22 @@
       return Math.abs(hash) % PEGA3_COLOR_BUCKETS;
     }
 
+    function findCachedPega3Draw({ fecha, horario, pais }) {
+      if (!fecha || !horario) return null;
+      const targetPais = (pais || "HN").toUpperCase();
+      return (pega3DrawCache || []).find(
+        (draw) =>
+          draw.fecha === fecha &&
+          draw.horario === horario &&
+          ((draw.pais || "HN").toUpperCase() === targetPais),
+      );
+    }
+
     function prefillPega3Inputs({ forceClear = false } = {}) {
       if (!pega3FechaInput || !pega3TurnoSelect) return;
       const fecha = pega3FechaInput.value;
       const turno = pega3TurnoSelect.value;
+      const paisValue = (pega3PaisSelect?.value || "HN").toUpperCase();
       if (!fecha || !turno) {
         if (forceClear) {
           clearPega3Inputs();
@@ -6441,13 +6463,7 @@
         }
         return;
       }
-      const paisValue = (pega3PaisSelect?.value || "HN").toUpperCase();
-      const match = (pega3DrawCache || []).find(
-        (draw) =>
-          draw.fecha === fecha &&
-          draw.horario === turno &&
-          ((draw.pais || "HN").toUpperCase() === paisValue),
-      );
+      const match = findCachedPega3Draw({ fecha, horario: turno, pais: paisValue });
       if (match) {
         fillPega3InputsFromDraw(match);
         updatePega3FormStatus(match);
