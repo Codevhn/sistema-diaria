@@ -5029,14 +5029,22 @@ button.ghost:hover {
 
 .pega3-grid {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
 }
 
 .pega3-card {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.pega3-card--form {
+  grid-column: span 1;
+}
+
+.pega3-card--insights {
+  grid-column: span 1;
 }
 
 .pega3-form {
@@ -5182,6 +5190,47 @@ button.ghost:hover {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.pega3-analisis {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pega3-analisis__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pega3-analisis__head h4 {
+  margin: 0;
+}
+
+.pega3-analisis__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.9rem;
+}
+
+.pega3-analisis__grid section {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.8rem;
+  background: rgba(6, 10, 24, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pega3-analisis__grid h5 {
+  margin: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
 }
 
 .pega3-sesgos-grid {

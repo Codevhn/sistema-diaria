@@ -280,7 +280,7 @@
         Los datos y sesgos mostrados aquí no afectan el sistema de La Diaria.
       </p>
       <div class="pega3-grid">
-        <article class="card pega3-card">
+        <article class="card pega3-card pega3-card--form">
           <div class="card-head">Registrar sorteo Pega3</div>
           <div class="card-body pega3-form">
             <div class="pega3-context">
@@ -349,22 +349,34 @@
             <p class="hint small">La tabla Pega3 se mantiene separada; puedes registrar históricos sin afectar La Diaria.</p>
           </div>
         </article>
-        <article class="card pega3-card">
+        </article>
+        <article class="card pega3-card pega3-card--insights">
           <div class="card-head">Historial Pega3</div>
           <div id="pega3-historial" class="pega3-historial">
             <p class="hint">Registra sorteos para comenzar el análisis.</p>
           </div>
-        </article>
-        <article class="card pega3-card">
-          <div class="card-head">
-            Motor analítico Pega3
-            <button id="pega3-btn-analizar" class="btn-outline small">Analizar patrones</button>
+          <div class="pega3-analisis">
+            <div class="pega3-analisis__head">
+              <h4>Motor analítico Pega3</h4>
+              <button id="pega3-btn-analizar" class="btn-outline small">Analizar patrones</button>
+            </div>
+            <div class="pega3-analisis__grid">
+              <section>
+                <h5>Resumen</h5>
+                <div id="pega3-resumen" class="pega3-panel">
+                  <p class="hint">Cuando existan datos suficientes, aquí verás frecuencias, sesgos y co-ocurrencias descubiertas.</p>
+                </div>
+              </section>
+              <section>
+                <h5>Sesgos detectados</h5>
+                <div id="pega3-sesgos" class="pega3-panel"></div>
+              </section>
+              <section>
+                <h5>Selección recomendada</h5>
+                <div id="pega3-seleccion" class="pega3-panel"></div>
+              </section>
+            </div>
           </div>
-          <div id="pega3-resumen" class="pega3-panel">
-            <p class="hint">Cuando existan datos suficientes, aquí verás frecuencias, sesgos y co-ocurrencias descubiertas.</p>
-          </div>
-          <div id="pega3-sesgos" class="pega3-panel"></div>
-          <div id="pega3-seleccion" class="pega3-panel"></div>
         </article>
       </div>
     </section>
