@@ -157,9 +157,9 @@ export function mostrarTransformaciones(numero) {
     // Número
     const t1 = document.createElementNS(svgNS, "text");
     t1.setAttribute("x", cx);
-    t1.setAttribute("y", cy + 4);
+    t1.setAttribute("y", cy + 5);
     t1.setAttribute("fill", color);
-    t1.setAttribute("font-size", "20");
+    t1.setAttribute("font-size", "24");
     t1.setAttribute("text-anchor", "middle");
     t1.textContent = nStr;
     svg.appendChild(t1);
@@ -167,9 +167,9 @@ export function mostrarTransformaciones(numero) {
     // Símbolo
     const t2 = document.createElementNS(svgNS, "text");
     t2.setAttribute("x", cx);
-    t2.setAttribute("y", cy + 48);
+    t2.setAttribute("y", cy + 56);
     t2.setAttribute("fill", "#ccc");
-    t2.setAttribute("font-size", "11");
+    t2.setAttribute("font-size", "13");
     t2.setAttribute("text-anchor", "middle");
     t2.textContent = simb;
     svg.appendChild(t2);
@@ -177,9 +177,9 @@ export function mostrarTransformaciones(numero) {
     if (hasValores && valores.length > 1) {
       const badge = document.createElementNS(svgNS, "text");
       badge.setAttribute("x", cx);
-      badge.setAttribute("y", cy - 32);
+      badge.setAttribute("y", cy - 40);
       badge.setAttribute("fill", "#d4a72c");
-      badge.setAttribute("font-size", "10");
+      badge.setAttribute("font-size", "13");
       badge.setAttribute("text-anchor", "middle");
       badge.textContent = `+${valores.length - 1}`;
       svg.appendChild(badge);
