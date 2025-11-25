@@ -52,6 +52,8 @@
     const forceSwitchMode = searchParams.get("mode") === "switch";
     const sessionContinueLabel = sessionContinue?.textContent?.trim() || "Ir al panel";
     let sessionContinueBusy = false;
+    let currentViewMode = "form";
+    let sessionViewToken = 0;
 
     function showError(message) {
       if (!errorBox) return;
@@ -68,9 +70,14 @@
     emailInput?.addEventListener("input", clearError);
     passwordInput?.addEventListener("input", clearError);
 
-    function toggleSessionPrompt(showPrompt) {
+    function setViewMode(mode, { bumpToken = true } = {}) {
       if (!form || !sessionBox) return;
-      if (showPrompt) {
+      if (currentViewMode === mode && bumpToken !== true) return;
+      if (bumpToken) {
+        sessionViewToken += 1;
+      }
+      currentViewMode = mode === "prompt" ? "prompt" : "form";
+      if (currentViewMode === "prompt") {
         form.classList.add("hidden");
         sessionBox.classList.remove("hidden");
       } else {
@@ -94,12 +101,21 @@
     }
 
     async function refreshSessionPrompt() {
-      const user = await getCurrentUser();
+      const token = sessionViewToken;
+      let user = null;
+      try {
+        user = await getCurrentUser();
+      } catch (err) {
+        console.warn("No se pudo validar sesión existente", err);
+      }
+      if (sessionViewToken !== token) {
+        return !!user && !forceSwitchMode;
+      }
       if (user && !forceSwitchMode) {
-        toggleSessionPrompt(true);
+        setViewMode("prompt", { bumpToken: false });
         return true;
       }
-      toggleSessionPrompt(false);
+      setViewMode("form", { bumpToken: false });
       return false;
     }
 
@@ -115,7 +131,11 @@
       button?.classList.add("loading");
       try {
         await login(email, password);
-        window.location.href = "./index.html";
+        const verifiedUser = await getCurrentUser({ attempts: 8, delayMs: 250 });
+        if (!verifiedUser) {
+          throw new Error("No se pudo establecer la sesión. Intenta nuevamente.");
+        }
+        window.location.replace("./index.html");
       } catch (err) {
         showError(err?.message || "No se pudo iniciar sesión.");
       } finally {
@@ -134,11 +154,16 @@
           window.location.replace("./index.html");
           return;
         }
-        toggleSessionPrompt(false);
+        setViewMode("form");
         showError("La sesión anterior ya no es válida. Por favor, inicia sesión nuevamente.");
       } catch (err) {
-        toggleSessionPrompt(false);
+        setViewMode("form");
         showError("No se pudo validar la sesión. Intenta iniciar sesión de nuevo.");
+        try {
+          await logout();
+        } catch (_) {
+          // ignore logout failures en este flujo
+        }
       } finally {
         setSessionContinueState(false);
       }
