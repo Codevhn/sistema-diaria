@@ -14,6 +14,11 @@ const RAW_MAP = {
 export const CONVERSION_MAP = Object.freeze({ ...RAW_MAP });
 
 const PAD = (value) => String(value).padStart(2, "0");
+const mirrorValue = (value) => {
+  const mirrored = PAD(value).split("").reverse().join("");
+  const num = parseInt(mirrored, 10);
+  return Number.isNaN(num) ? null : num;
+};
 
 export function convertDigit(digit) {
   const key = String(digit);
@@ -45,11 +50,19 @@ export function getCompositeConversions(numero, { includeMirror = true } = {}) {
   const mapped = digits.map(convertDigit);
   if (mapped.some((value) => value === null)) return [];
   const results = new Set();
+  const addNumber = (value) => {
+    const num = typeof value === "number" ? value : parseInt(value, 10);
+    if (!Number.isNaN(num)) results.add(num);
+  };
   const primary = parseInt(mapped.join(""), 10);
-  if (!Number.isNaN(primary)) results.add(primary);
+  if (!Number.isNaN(primary)) addNumber(primary);
   if (includeMirror) {
     const mirror = parseInt([...mapped].reverse().join(""), 10);
-    if (!Number.isNaN(mirror)) results.add(mirror);
+    if (!Number.isNaN(mirror)) addNumber(mirror);
+    getSimpleConversions(numero).forEach((simpleValue) => {
+      const mirroredSimple = mirrorValue(simpleValue);
+      if (mirroredSimple !== null) addNumber(mirroredSimple);
+    });
   }
   return Array.from(results);
 }
