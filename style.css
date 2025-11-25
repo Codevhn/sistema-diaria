@@ -4724,7 +4724,7 @@ button.ghost:hover {
   border-radius: 10px;
   padding: 0.55rem 0.65rem;
   background: rgba(5, 10, 24, 0.8);
-  box-shadow: 0 0 20px var(--rank-glow);
+  box-shadow: 0 12px 22px var(--rank-glow, rgba(5, 10, 24, 0.75));
 }
 
 .bias-ranking-item__number {
@@ -4794,7 +4794,7 @@ button.ghost:hover {
 .bias-ranking-item__meter-fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--rank-accent);
+  background: var(--rank-meter, var(--rank-accent));
 }
 
 .bias-list {

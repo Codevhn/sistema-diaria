@@ -6059,8 +6059,10 @@
           const hue = 150 - ratio * 90;
           const light = 45 + Math.min(index, 5) * 3;
           const accent = `hsl(${hue}, 75%, ${light}%)`;
-          const glow = `hsla(${hue}, 80%, ${Math.min(light + 15, 75)}%, 0.55)`;
+          const meterColor = `hsl(${hue + 12}, 85%, ${Math.min(light + 18, 82)}%)`;
+          const glow = "rgba(8, 14, 32, 0.75)";
           item.style.setProperty("--rank-accent", accent);
+          item.style.setProperty("--rank-meter", meterColor);
           item.style.setProperty("--rank-glow", glow);
 
           const numberEl = document.createElement("div");
