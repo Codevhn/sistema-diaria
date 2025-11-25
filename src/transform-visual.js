@@ -159,7 +159,7 @@ export function mostrarTransformaciones(numero) {
     t1.setAttribute("x", cx);
     t1.setAttribute("y", cy + 4);
     t1.setAttribute("fill", color);
-    t1.setAttribute("font-size", "14");
+    t1.setAttribute("font-size", "20");
     t1.setAttribute("text-anchor", "middle");
     t1.textContent = nStr;
     svg.appendChild(t1);
@@ -167,7 +167,7 @@ export function mostrarTransformaciones(numero) {
     // Símbolo
     const t2 = document.createElementNS(svgNS, "text");
     t2.setAttribute("x", cx);
-    t2.setAttribute("y", cy + 40);
+    t2.setAttribute("y", cy + 48);
     t2.setAttribute("fill", "#ccc");
     t2.setAttribute("font-size", "11");
     t2.setAttribute("text-anchor", "middle");
