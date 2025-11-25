@@ -50,6 +50,8 @@
     const sessionSwitch = document.getElementById("login-switch");
     const searchParams = new URLSearchParams(window.location.search);
     const forceSwitchMode = searchParams.get("mode") === "switch";
+    const sessionContinueLabel = sessionContinue?.textContent?.trim() || "Ir al panel";
+    let sessionContinueBusy = false;
 
     function showError(message) {
       if (!errorBox) return;
@@ -66,21 +68,42 @@
     emailInput?.addEventListener("input", clearError);
     passwordInput?.addEventListener("input", clearError);
 
-    (async () => {
-      const user = await getCurrentUser();
-      if (user) {
-        if (forceSwitchMode) {
-          form?.classList.remove("hidden");
-          sessionBox?.classList.add("hidden");
-          return;
-        }
-        form?.classList.add("hidden");
-        sessionBox?.classList.remove("hidden");
-        return;
+    function toggleSessionPrompt(showPrompt) {
+      if (!form || !sessionBox) return;
+      if (showPrompt) {
+        form.classList.add("hidden");
+        sessionBox.classList.remove("hidden");
+      } else {
+        form.classList.remove("hidden");
+        sessionBox.classList.add("hidden");
       }
-      form?.classList.remove("hidden");
-      sessionBox?.classList.add("hidden");
-    })();
+    }
+
+    function setSessionContinueState(isBusy) {
+      if (!sessionContinue) return;
+      sessionContinueBusy = isBusy;
+      if (isBusy) {
+        sessionContinue.setAttribute("disabled", "true");
+        sessionContinue.classList.add("loading");
+        sessionContinue.textContent = "Entrando...";
+      } else {
+        sessionContinue.removeAttribute("disabled");
+        sessionContinue.classList.remove("loading");
+        sessionContinue.textContent = sessionContinueLabel;
+      }
+    }
+
+    async function refreshSessionPrompt() {
+      const user = await getCurrentUser();
+      if (user && !forceSwitchMode) {
+        toggleSessionPrompt(true);
+        return true;
+      }
+      toggleSessionPrompt(false);
+      return false;
+    }
+
+    refreshSessionPrompt();
 
     form?.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -101,8 +124,24 @@
       }
     });
 
-    sessionContinue?.addEventListener("click", () => {
-      window.location.href = "./index.html";
+    sessionContinue?.addEventListener("click", async () => {
+      if (sessionContinueBusy) return;
+      clearError();
+      setSessionContinueState(true);
+      try {
+        const user = await getCurrentUser({ attempts: 8, delayMs: 250 });
+        if (user) {
+          window.location.replace("./index.html");
+          return;
+        }
+        toggleSessionPrompt(false);
+        showError("La sesión anterior ya no es válida. Por favor, inicia sesión nuevamente.");
+      } catch (err) {
+        toggleSessionPrompt(false);
+        showError("No se pudo validar la sesión. Intenta iniciar sesión de nuevo.");
+      } finally {
+        setSessionContinueState(false);
+      }
     });
 
     sessionSwitch?.addEventListener("click", async () => {
