@@ -1093,10 +1093,6 @@
     import { supabase } from "./src/supabaseClient.js";
     import { logout as supabaseLogout, requireAuthOrRedirect } from "./src/auth.js";
     import { showBootLoader, hideBootLoader } from "./src/boot-loader.js";
-    if (!window.__LD_AUTH_UNLOCKED__) {
-      window.location.replace("./login.html");
-      throw new Error("Autenticación requerida antes de cargar la app.");
-    }
     const bootOverlay = document.getElementById("boot-loader");
     const processingModal = document.getElementById("processing-modal");
     const waitForFirstPaint = () =>
