@@ -5922,3 +5922,118 @@ body.login-page {
 .login-card {
   max-width: 520px;
 }
+
+/* Harmonized widgets */
+.history-coverage {
+  border-color: var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+.history-coverage__title {
+  color: var(--color-muted);
+}
+.history-coverage__row {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+.history-coverage__row--missing {
+  border-color: rgba(244, 63, 94, 0.35);
+  background: rgba(244, 63, 94, 0.12);
+}
+.history-pill {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+.history-pill--recent {
+  border-color: rgba(37, 99, 235, 0.3);
+  color: var(--color-accent);
+  background: rgba(37, 99, 235, 0.1);
+}
+.history-pill--today {
+  color: #fff;
+}
+
+.trend-alert {
+  border-color: var(--color-border);
+  border-left-color: var(--color-accent);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.trend-alert[data-type="number"],
+.trend-alert[data-type="streak"] {
+  border-color: rgba(22, 163, 74, 0.35);
+  border-left-color: rgba(22, 163, 74, 0.65);
+}
+.trend-alert[data-type="line"],
+.trend-alert[data-type="trend"] {
+  border-color: rgba(37, 99, 235, 0.35);
+  border-left-color: rgba(37, 99, 235, 0.65);
+}
+.monthly-trend-chart {
+  border-color: var(--color-border);
+  background: #fff;
+}
+.trend-chart__grid {
+  stroke: rgba(15, 23, 42, 0.08);
+}
+.trend-chart__axis {
+  stroke: rgba(15, 23, 42, 0.2);
+}
+.monthly-trend-hotlist__list li {
+  border-color: var(--color-border);
+  background: var(--color-surface-2);
+}
+.monthly-trend-hotlist__list button {
+  border-color: var(--color-border);
+  color: var(--color-muted);
+}
+
+.monthly-row {
+  border-color: rgba(37, 99, 235, 0.2);
+  background: var(--color-surface);
+}
+.monthly-row__meta {
+  color: var(--color-muted);
+}
+.monthly-row__actions button {
+  border-color: var(--color-border);
+  color: var(--color-accent);
+}
+
+.bias-selection-chip,
+.bias-ranking-item,
+.bias-row {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.bias-selection-chip__meta,
+.bias-selection-chip__turn,
+.bias-row__meta {
+  color: var(--color-muted);
+}
+.bias-selection-chip__remove {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.bias-turn {
+  border-color: var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+.bias-turn--empty {
+  border-color: var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+}
+.bias-select-btn,
+.bias-pagination button {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.bias-select-btn--active {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.6);
+}
