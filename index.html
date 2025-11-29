@@ -3605,7 +3605,7 @@
         renderLinesMissing(null);
         return;
       }
-      const { cycle, weeks, filtro } = analysis;
+      const { cycle, weeks, filtro, lineSummaries = [] } = analysis;
       const fragment = document.createDocumentFragment();
       const summary = document.createElement("div");
       summary.className = "lines-highlight";
@@ -3649,6 +3649,60 @@
         grid.appendChild(card);
       });
       fragment.appendChild(grid);
+
+      const detailBlock = document.createElement("div");
+      detailBlock.className = "lines-overview";
+      const detailHead = document.createElement("div");
+      detailHead.className = "lines-overview__head";
+      detailHead.innerHTML = `<strong>Bloques detallados</strong><span>Visualiza qué números de cada línea ya salieron y cuáles siguen pendientes.</span>`;
+      detailBlock.appendChild(detailHead);
+      const overviewGrid = document.createElement("div");
+      overviewGrid.className = "lines-overview-grid";
+      const linesToShow = lineSummaries.filter((line) => (line?.totalEntries || 0) > 0);
+      if (linesToShow.length) {
+        linesToShow.forEach((line) => {
+          const card = document.createElement("div");
+          card.className = "lines-overview-card";
+          const header = document.createElement("div");
+          header.className = "lines-overview-card__head";
+          const title = document.createElement("div");
+          title.className = "lines-overview-card__title";
+          const coverage = Math.round(((line?.seenUnique || 0) / 10) * 100);
+          title.innerHTML = `<strong>${line?.label || "Línea"}</strong><span>${line?.seenUnique || 0}/10 (${coverage}%)</span>`;
+          const meta = document.createElement("div");
+          meta.className = "lines-overview-card__meta";
+          const last = line?.lastSeen;
+          const lastSymbol = last?.numero !== undefined ? getSymbol(last.numero) || "—" : null;
+          meta.textContent = last?.numero !== undefined
+            ? `Último: ${formatNumber(last.numero)} ${lastSymbol || ""}`.trim()
+            : "Sin actividad";
+          header.append(title, meta);
+          card.appendChild(header);
+
+          const numbersWrap = document.createElement("div");
+          numbersWrap.className = "lines-overview-numbers";
+          const missingSet = new Set(line?.missingNumbers || []);
+          for (let offset = 0; offset < 10; offset += 1) {
+            const numero = Math.min(99, (line?.band ?? 0) + offset);
+            const pill = document.createElement("span");
+            pill.className = "lines-overview-number";
+            const isMissing = missingSet.has(numero);
+            pill.dataset.state = isMissing ? "missing" : "played";
+            const symbol = getSymbol(numero) || "—";
+            pill.innerHTML = `<strong>${formatNumber(numero)}</strong><small>${symbol}</small>`;
+            numbersWrap.appendChild(pill);
+          }
+          card.appendChild(numbersWrap);
+          overviewGrid.appendChild(card);
+        });
+        detailBlock.appendChild(overviewGrid);
+      } else {
+        const empty = document.createElement("p");
+        empty.className = "hint";
+        empty.textContent = "Todavía no hay líneas con registros suficientes en esta ventana.";
+        detailBlock.appendChild(empty);
+      }
+      fragment.appendChild(detailBlock);
 
       linesBodyEl.innerHTML = "";
       linesBodyEl.appendChild(fragment);

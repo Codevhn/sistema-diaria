@@ -4324,6 +4324,89 @@ button.ghost:hover {
 .lines-card small {
   color: var(--color-muted);
 }
+.lines-overview {
+  margin-top: 18px;
+  border: 1px solid rgba(73, 125, 255, 0.25);
+  border-radius: var(--radius-lg);
+  background: rgba(7, 12, 24, 0.9);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lines-overview__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lines-overview__head span {
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+.lines-overview-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.lines-overview-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  background: rgba(6, 10, 24, 0.95);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lines-overview-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lines-overview-card__title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.lines-overview-card__title span {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+.lines-overview-card__meta {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+.lines-overview-numbers {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.lines-overview-number {
+  border-radius: var(--radius-md);
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.lines-overview-number strong {
+  font-size: 1.5rem;
+}
+.lines-overview-number small {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+.lines-overview-number[data-state="played"] {
+  background: radial-gradient(circle at top, rgba(43, 125, 255, 0.2), rgba(7, 12, 24, 0.95));
+  border-color: rgba(43, 125, 255, 0.4);
+}
+.lines-overview-number[data-state="missing"] {
+  background: radial-gradient(circle at top, rgba(255, 80, 80, 0.25), rgba(15, 8, 10, 0.85));
+  border-color: rgba(255, 80, 80, 0.35);
+}
 .lines-missing-panel .lines-missing-body {
   margin-top: 12px;
   display: flex;
