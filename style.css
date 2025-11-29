@@ -4378,17 +4378,19 @@ button.ghost:hover {
 }
 .lines-overview-numbers {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
   gap: 8px;
 }
 .lines-overview-number {
   border-radius: var(--radius-md);
-  padding: 10px 8px;
+  padding: 12px 10px;
+  min-height: 78px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
   justify-content: center;
+  text-align: center;
   font-size: 1.4rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -4398,6 +4400,11 @@ button.ghost:hover {
 .lines-overview-number small {
   font-size: 0.85rem;
   color: var(--color-muted);
+  line-height: 1.2;
+  display: block;
+  width: 100%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .lines-overview-number[data-state="played"] {
   background: radial-gradient(circle at top, rgba(43, 125, 255, 0.2), rgba(7, 12, 24, 0.95));
