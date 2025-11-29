@@ -4,6 +4,21 @@ import { parseDrawDate, formatDateISO } from "./date-utils.js";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
 const LINE_STEP = 10;
+const LINE_BANDS = Array.from({ length: 10 }, (_, idx) => idx * LINE_STEP);
+const MONTH_LABELS = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
 
 function toNumber(value) {
   const n = typeof value === "number" ? value : parseInt(value, 10);
@@ -80,6 +95,11 @@ function formatLineLabel(line) {
   const start = Math.max(0, Math.min(90, line));
   const end = Math.min(99, start + 9);
   return `${String(start).padStart(2, "0")}-${String(end).padStart(2, "0")}`;
+}
+
+function formatMonthYearLabel(year, monthIdx) {
+  const month = MONTH_LABELS[monthIdx] || "Mes";
+  return `${month} ${year}`;
 }
 
 function parseDraw(draw) {
@@ -211,6 +231,7 @@ export function analizarRotacionLineas(draws = [], options = {}) {
   const filterTurno = turno && turno !== "ALL" ? turno : null;
   const validDraws = Array.isArray(draws) ? draws : [];
   const weekMap = new Map();
+  const filteredEntries = [];
 
   validDraws.forEach((raw) => {
     if (raw?.isTest) return;
@@ -225,10 +246,12 @@ export function analizarRotacionLineas(draws = [], options = {}) {
     if (!weekMap.has(week.key)) {
       weekMap.set(week.key, { ...week, entries: [] });
     }
-    weekMap.get(week.key).entries.push({
+    const enhanced = {
       ...parsed,
       line: band,
-    });
+    };
+    weekMap.get(week.key).entries.push(enhanced);
+    filteredEntries.push(enhanced);
   });
 
   const orderedWeeks = Array.from(weekMap.values()).sort((a, b) => (a.start || 0) - (b.start || 0));
@@ -238,6 +261,8 @@ export function analizarRotacionLineas(draws = [], options = {}) {
       filtro: { pais: filterPais, turno: filterTurno, weeks, minRepeats },
       weeks: [],
       cycle: null,
+      lineSummaries: [],
+      windowRange: { start: null, end: null },
     };
   }
 
@@ -278,6 +303,133 @@ export function analizarRotacionLineas(draws = [], options = {}) {
         })
       : null;
 
+  const windowRange = {
+    start: windowed[0]?.start ? formatDateISO(windowed[0].start) : null,
+    end: windowed[windowed.length - 1]?.end ? formatDateISO(windowed[windowed.length - 1].end) : null,
+  };
+
+  const lineMap = new Map();
+  windowed.forEach((week) => {
+    (week.entries || []).forEach((entry) => {
+      const bucket = lineMap.get(entry.line) || { total: 0, numbers: new Map(), lastEntry: null };
+      bucket.total += 1;
+      if (!bucket.numbers.has(entry.numero)) {
+        bucket.numbers.set(entry.numero, {
+          numero: entry.numero,
+          count: 0,
+          last: null,
+        });
+      }
+      const numInfo = bucket.numbers.get(entry.numero);
+      numInfo.count += 1;
+      if (!numInfo.last || entry.timestamp > numInfo.last.timestamp) {
+        numInfo.last = {
+          fecha: entry.fecha,
+          horario: entry.horario,
+          pais: entry.pais,
+          timestamp: entry.timestamp,
+        };
+      }
+      if (!bucket.lastEntry || entry.timestamp > bucket.lastEntry.timestamp) {
+        bucket.lastEntry = {
+          numero: entry.numero,
+          fecha: entry.fecha,
+          horario: entry.horario,
+          pais: entry.pais,
+          timestamp: entry.timestamp,
+        };
+      }
+      lineMap.set(entry.line, bucket);
+    });
+  });
+
+  const lineSummaries = LINE_BANDS.map((band) => {
+    const bucket = lineMap.get(band);
+    const seenNumbers = bucket
+      ? Array.from(bucket.numbers.values())
+          .map((info) => ({
+            numero: info.numero,
+            count: info.count,
+            lastFecha: info.last?.fecha || null,
+            lastHorario: info.last?.horario || null,
+            lastPais: info.last?.pais || null,
+            lastTimestamp: info.last?.timestamp ?? null,
+          }))
+          .sort((a, b) => a.numero - b.numero)
+      : [];
+    const missingNumbers = [];
+    for (let offset = 0; offset < LINE_STEP; offset += 1) {
+      const numero = Math.min(99, band + offset);
+      if (!bucket?.numbers?.has(numero)) {
+        missingNumbers.push(numero);
+      }
+    }
+    return {
+      band,
+      label: formatLineLabel(band),
+      totalEntries: bucket?.total ?? 0,
+      seenUnique: seenNumbers.length,
+      seenNumbers,
+      missingNumbers,
+      lastSeen: bucket?.lastEntry
+        ? {
+            numero: bucket.lastEntry.numero,
+            fecha: bucket.lastEntry.fecha,
+            horario: bucket.lastEntry.horario,
+            pais: bucket.lastEntry.pais,
+          }
+        : null,
+    };
+  });
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const monthBuckets = new Map();
+  filteredEntries.forEach((entry) => {
+    if (!entry?.fechaDate) return;
+    if (entry.fechaDate.getFullYear() !== currentYear) return;
+    const monthIdx = entry.fechaDate.getMonth();
+    if (!monthBuckets.has(monthIdx)) {
+      monthBuckets.set(monthIdx, []);
+    }
+    monthBuckets.get(monthIdx).push(entry);
+  });
+
+  const monthlyLineStatus = [];
+  for (let monthIdx = 0; monthIdx <= currentMonth; monthIdx += 1) {
+    const entries = monthBuckets.get(monthIdx) || [];
+    if (!entries.length) continue;
+    const lines = [];
+    LINE_BANDS.forEach((band) => {
+      const numbers = new Set();
+      entries.forEach((entry) => {
+        if (entry.line === band) numbers.add(entry.numero);
+      });
+      const missingNumbers = [];
+      for (let offset = 0; offset < LINE_STEP; offset += 1) {
+        const numero = Math.min(99, band + offset);
+        if (!numbers.has(numero)) missingNumbers.push(numero);
+      }
+      if (missingNumbers.length) {
+        lines.push({
+          band,
+          label: formatLineLabel(band),
+          missingNumbers,
+        });
+      }
+    });
+    if (!lines.length) continue;
+    monthlyLineStatus.push({
+      key: `${currentYear}-${String(monthIdx + 1).padStart(2, "0")}`,
+      label: formatMonthYearLabel(currentYear, monthIdx),
+      monthIndex: monthIdx,
+      year: currentYear,
+      totalDraws: entries.length,
+      lines,
+    });
+  }
+
   return {
     filtro: {
       pais: filterPais,
@@ -288,6 +440,9 @@ export function analizarRotacionLineas(draws = [], options = {}) {
     weeks: weekSummaries,
     sequence,
     cycle,
+    lineSummaries,
+    windowRange,
+    monthlyLineStatus,
   };
 }
 

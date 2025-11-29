@@ -593,6 +593,19 @@
           <p class="hint">Calcula la rotación de líneas para ver cuándo se repite un bloque específico.</p>
         </div>
       </article>
+      <article class="weekly-monthly-panel lines-missing-panel">
+        <div class="weekly-monthly-head">
+          <div>
+            <h3>Faltantes por línea</h3>
+            <p class="hint">Cuando una línea se activa, identifica qué números del bloque aún no han salido y acompáñalos
+              con su símbolo.</p>
+          </div>
+          <button id="lines-missing-refresh" class="btn-outline">Actualizar faltantes</button>
+        </div>
+        <div id="lines-missing-body" class="lines-missing-body">
+          <p class="hint">Calcula la rotación o toca actualizar para listar los pendientes por línea.</p>
+        </div>
+      </article>
       <article class="weekly-monthly-panel">
         <div class="weekly-monthly-head">
           <div>
@@ -2719,6 +2732,8 @@
     const weeklyRefreshBtn = document.getElementById("weekly-refresh");
     const linesRefreshBtn = document.getElementById("lines-refresh");
     const linesBodyEl = document.getElementById("lines-body");
+    const linesMissingRefreshBtn = document.getElementById("lines-missing-refresh");
+    const linesMissingBodyEl = document.getElementById("lines-missing-body");
     const abonoFechaInput = document.getElementById("abono-fecha");
     const abonoPaisSelect = document.getElementById("abono-pais");
     const abonoWindowInput = document.getElementById("abono-window");
@@ -2809,6 +2824,9 @@
       refreshWeeklyPanel({ force: true });
     });
     linesRefreshBtn?.addEventListener("click", () => {
+      refreshLinesPanel({ force: true });
+    });
+    linesMissingRefreshBtn?.addEventListener("click", () => {
       refreshLinesPanel({ force: true });
     });
     abonoGenerarBtn?.addEventListener("click", () => {
@@ -3584,6 +3602,7 @@
       if (!linesBodyEl) return;
       if (!analysis || !analysis.weeks?.length) {
         linesBodyEl.innerHTML = "<p class='hint'>Necesitas más semanas registradas para calcular la rotación.</p>";
+        renderLinesMissing(null);
         return;
       }
       const { cycle, weeks, filtro } = analysis;
@@ -3633,6 +3652,147 @@
 
       linesBodyEl.innerHTML = "";
       linesBodyEl.appendChild(fragment);
+      renderLinesMissing(analysis);
+    }
+
+    function renderLinesMissing(analysis = null) {
+      if (!linesMissingBodyEl) return;
+      if (!analysis) {
+        linesMissingBodyEl.innerHTML = "<p class='hint'>Calcula la rotación para conocer los pendientes por línea.</p>";
+        return;
+      }
+      const { lineSummaries = [], filtro, windowRange, weeks, monthlyLineStatus = [] } = analysis;
+      if (!lineSummaries.length && !monthlyLineStatus.length) {
+        linesMissingBodyEl.innerHTML = "<p class='hint'>Aún no hay registros suficientes este año para calcular faltantes.</p>";
+        return;
+      }
+      const stack = document.createElement("div");
+      stack.className = "lines-missing-stack";
+
+      const buildPill = (numero) => {
+        const pill = document.createElement("span");
+        pill.className = "lines-missing-pill";
+        const symbol = getSymbol(numero) || "—";
+        pill.innerHTML = `<strong>${formatNumber(numero)}</strong><small>${symbol}</small>`;
+        return pill;
+      };
+
+      if (lineSummaries.length) {
+        const summary = document.createElement("div");
+        summary.className = "lines-missing-summary";
+        const paisLabel = filtro?.pais || "todos los países";
+        const turnoLabel = filtro?.turno || "todos los turnos";
+        const weeksLabel = `${weeks?.length || 0} semana${weeks?.length === 1 ? "" : "s"}`;
+        const rangeLabel = windowRange?.start && windowRange?.end
+          ? `${formatFriendlyDate(windowRange.start)} → ${formatFriendlyDate(windowRange.end)}`
+          : null;
+        summary.textContent = `${weeksLabel} · ${paisLabel} · ${turnoLabel}${rangeLabel ? ` (${rangeLabel})` : ""}`;
+
+        const grid = document.createElement("div");
+        grid.className = "lines-missing-grid";
+        const activeLines = lineSummaries.filter((line) => (line?.totalEntries || 0) > 0);
+        const linesToRender = activeLines.length ? activeLines : lineSummaries;
+
+        linesToRender.forEach((line) => {
+          const card = document.createElement("div");
+          card.className = "lines-missing-card";
+          if (!line?.missingNumbers?.length) card.classList.add("lines-missing-card--complete");
+
+          const head = document.createElement("div");
+          head.className = "lines-missing-card__head";
+          const title = document.createElement("div");
+          title.className = "lines-missing-card__title";
+          const pendingLabel = line?.missingNumbers?.length
+            ? `${line.missingNumbers.length} faltante${line.missingNumbers.length === 1 ? "" : "s"}`
+            : "Sin pendientes";
+          title.innerHTML = `<strong>${line?.label || "Línea"}</strong><span>${pendingLabel}</span>`;
+          const meta = document.createElement("small");
+          const seenLabel = `${line?.seenUnique || 0}/10 vistos`;
+          let lastLabel = "";
+          if (line?.lastSeen?.numero !== undefined) {
+            const symbol = getSymbol(line.lastSeen.numero) || "—";
+            const lastNumber = `${formatNumber(line.lastSeen.numero)} ${symbol}`.trim();
+            const when = line.lastSeen.fecha ? formatFriendlyDate(line.lastSeen.fecha) : "";
+            const hora = line.lastSeen.horario ? ` · ${line.lastSeen.horario}` : "";
+            const pais = line.lastSeen.pais ? ` · ${line.lastSeen.pais}` : "";
+            lastLabel = ` · Último ${lastNumber}${when ? ` (${when}${hora}${pais})` : ""}`;
+          }
+          meta.textContent = `${seenLabel}${lastLabel}`;
+          head.append(title, meta);
+          card.appendChild(head);
+
+          const chips = document.createElement("div");
+          chips.className = "lines-missing-chips";
+          if (line?.missingNumbers?.length) {
+            line.missingNumbers.forEach((numero) => {
+              chips.appendChild(buildPill(numero));
+            });
+          } else {
+            const pill = document.createElement("span");
+            pill.className = "lines-missing-pill lines-missing-pill--complete";
+            pill.textContent = "Bloque completo";
+            chips.appendChild(pill);
+          }
+          card.appendChild(chips);
+          grid.appendChild(card);
+        });
+
+        stack.append(summary, grid);
+      }
+
+      const monthlyBlock = document.createElement("div");
+      monthlyBlock.className = "lines-missing-history";
+      const monthlyHead = document.createElement("div");
+      monthlyHead.className = "lines-missing-history__head";
+      monthlyHead.innerHTML = `<strong>Monitoreo anual</strong><span>Meses del año en curso con líneas incompletas.</span>`;
+      monthlyBlock.appendChild(monthlyHead);
+
+      const monthlyData = monthlyLineStatus.filter((month) => month?.lines?.length);
+      if (monthlyData.length) {
+        const monthGrid = document.createElement("div");
+        monthGrid.className = "lines-month-grid";
+        monthlyData.forEach((month) => {
+          const monthCard = document.createElement("div");
+          monthCard.className = "lines-month-card";
+          const head = document.createElement("div");
+          head.className = "lines-month-card__head";
+          const linesLabel = `${month.lines.length} bloque${month.lines.length === 1 ? "" : "s"} incompleto${month.lines.length === 1 ? "" : "s"}`;
+          head.innerHTML = `<strong>${month.label || month.key}</strong><span>${linesLabel}</span>`;
+          const drawsTag = document.createElement("small");
+          drawsTag.textContent = `${month.totalDraws || 0} sorteos registrados`;
+          head.appendChild(drawsTag);
+          monthCard.appendChild(head);
+
+          month.lines.forEach((line) => {
+            const lineRow = document.createElement("div");
+            lineRow.className = "lines-month-line";
+            const lineTitle = document.createElement("div");
+            lineTitle.className = "lines-month-line__title";
+            const pendingLabel = `${line.missingNumbers.length} faltante${line.missingNumbers.length === 1 ? "" : "s"}`;
+            lineTitle.innerHTML = `<span>${line.label}</span><small>${pendingLabel}</small>`;
+            const chips = document.createElement("div");
+            chips.className = "lines-missing-chips";
+            line.missingNumbers.forEach((numero) => {
+              chips.appendChild(buildPill(numero));
+            });
+            lineRow.append(lineTitle, chips);
+            monthCard.appendChild(lineRow);
+          });
+
+          monthGrid.appendChild(monthCard);
+        });
+        monthlyBlock.appendChild(monthGrid);
+      } else {
+        const ok = document.createElement("div");
+        ok.className = "lines-month-card lines-month-card--complete";
+        ok.innerHTML = "<p class='hint'>Todas las líneas se han completado en cada mes del año en curso.</p>";
+        monthlyBlock.appendChild(ok);
+      }
+
+      stack.appendChild(monthlyBlock);
+
+      linesMissingBodyEl.innerHTML = "";
+      linesMissingBodyEl.appendChild(stack);
     }
 
     async function runAbonoGenerator({ force = false } = {}) {
@@ -4090,6 +4250,9 @@
       if (linesLoading) return;
       linesLoading = true;
       linesBodyEl.innerHTML = "<p class='hint'>Calculando rotación de líneas…</p>";
+      if (linesMissingBodyEl) {
+        linesMissingBodyEl.innerHTML = "<p class='hint'>Buscando pendientes por línea…</p>";
+      }
       try {
         const paisValue = weeklyPaisSelect?.value || "ALL";
         const turnoValue = weeklyTurnoSelect?.value || "";
@@ -4107,6 +4270,9 @@
       } catch (err) {
         console.error("lines rotation error", err);
         linesBodyEl.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
+        if (linesMissingBodyEl) {
+          linesMissingBodyEl.innerHTML = `<p class='hint'>Sin faltantes: ${err.message}</p>`;
+        }
       } finally {
         linesLoading = false;
       }
