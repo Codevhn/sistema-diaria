@@ -318,7 +318,10 @@ body.sidebar-collapsed .top {
   flex: 1;
 }
 .day-date-field {
-  flex-direction: row;
+  gap: 4px;
+}
+.day-date-head {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
