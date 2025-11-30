@@ -958,6 +958,20 @@
         <div class="row">
           <button id="btn-list-all">Ver todos</button>
         </div>
+        <div class="row" style="flex-wrap:wrap;">
+          <label>
+            <span class="label-title">Fecha exacta</span>
+            <input type="date" id="all-filter-date" />
+          </label>
+          <label>
+            <span class="label-title">Filtro rápido</span>
+            <input id="all-filter-text" placeholder="Ej. 2024-02-14, HN, 3PM, 34" />
+          </label>
+          <button type="button" id="all-filter-clear" class="btn-ghost">Limpiar filtros</button>
+        </div>
+        <p class="hint small">
+          Filtra por fecha o escribe parte del país, horario, número o símbolo para ubicar sorteos más rápido.
+        </p>
         <div id="all-out" class="card-body"></div>
       </div>
       <div class="card" style="margin-top:15px;">
@@ -8981,14 +8995,55 @@ function buildVariantEntries(profile) {
     // === Mostrar/Ocultar y eliminar sorteos individualmente (versión robusta) ===
     const btnListAll = document.getElementById("btn-list-all");
     const allOut = document.getElementById("all-out");
+    const allFilterDate = document.getElementById("all-filter-date");
+    const allFilterText = document.getElementById("all-filter-text");
+    const allFilterClear = document.getElementById("all-filter-clear");
+    let allDrawsCache = null;
 
-    async function renderAllTable() {
+    const hasActiveAllFilters = () => {
+      const dateValue = (allFilterDate?.value || "").trim();
+      const textValue = (allFilterText?.value || "").trim();
+      return Boolean(dateValue || textValue);
+    };
+
+    function filterAllDraws(draws = []) {
+      const dateValue = (allFilterDate?.value || "").trim();
+      const textValue = (allFilterText?.value || "").trim().toLowerCase();
+      if (!dateValue && !textValue) return draws;
+      return draws.filter((draw) => {
+        if (dateValue && draw.fecha !== dateValue) return false;
+        if (textValue) {
+          const numero = String(draw.numero).padStart(2, "0");
+          const simbolo = GUIA[numero]?.simbolo || "";
+          const haystack = `${draw.fecha} ${draw.pais} ${draw.horario} ${numero} ${simbolo} ${
+            draw.isTest ? "prueba" : "real"
+          }`.toLowerCase();
+          if (!haystack.includes(textValue)) return false;
+        }
+        return true;
+      });
+    }
+
+    async function renderAllTable({ forceReload = false } = {}) {
       if (!allOut) return;
-      allOut.innerHTML = "<p class='hint'>Cargando todos los sorteos…</p>";
+      const shouldReload = forceReload || !Array.isArray(allDrawsCache);
+      if (shouldReload) {
+        allOut.innerHTML = "<p class='hint'>Cargando todos los sorteos…</p>";
+        allDrawsCache = await DB.listDraws({ excludeTest: false });
+      }
 
-      const draws = await DB.listDraws({ excludeTest: false });
-      if (!draws.length) {
+      const draws = Array.isArray(allDrawsCache) ? allDrawsCache : [];
+      if (!draws.length && !hasActiveAllFilters()) {
         allOut.innerHTML = "<p class='hint'>No hay sorteos registrados aún.</p>";
+        return;
+      }
+
+      const filtered = filterAllDraws(draws);
+      if (!filtered.length) {
+        const message = hasActiveAllFilters()
+          ? "No hay sorteos que coincidan con los filtros aplicados."
+          : "No hay sorteos registrados aún.";
+        allOut.innerHTML = `<p class='hint'>${message}</p>`;
         return;
       }
 
@@ -9005,31 +9060,46 @@ function buildVariantEntries(profile) {
   `;
       const tbody = table.querySelector("tbody");
 
-      draws.forEach((d, i) => {
+      filtered.forEach((draw, idx) => {
+        const numero = String(draw.numero).padStart(2, "0");
         const tr = document.createElement("tr");
         tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${d.fecha}</td>
-      <td>${d.pais}</td>
-      <td>${d.horario}</td>
-      <td class="num">${String(d.numero).padStart(2, "0")}</td>
-      <td class="sym">${GUIA[String(d.numero).padStart(2, "0")]?.simbolo || "—"}</td>
-      <td class="${d.isTest ? "test" : ""}">${d.isTest ? "prueba" : "real"}</td>
+      <td>${idx + 1}</td>
+      <td>${draw.fecha}</td>
+      <td>${draw.pais}</td>
+      <td>${draw.horario}</td>
+      <td class="num">${numero}</td>
+      <td class="sym">${GUIA[numero]?.simbolo || "—"}</td>
+      <td class="${draw.isTest ? "test" : ""}">${draw.isTest ? "prueba" : "real"}</td>
       <td>
-        <button type="button" class="btn-del" data-id="${d.id}">🗑</button>
+        <button type="button" class="btn-del" data-id="${draw.id}">🗑</button>
       </td>
     `;
         tbody.appendChild(tr);
       });
 
+      const meta = document.createElement("div");
+      meta.className = "panel-meta";
+      if (filtered.length === draws.length) {
+        meta.textContent = `Mostrando ${filtered.length} sorteos registrados.`;
+      } else {
+        meta.textContent = `Mostrando ${filtered.length} de ${draws.length} sorteos (aplicando filtros).`;
+      }
+
       allOut.innerHTML = "";
+      allOut.appendChild(meta);
       allOut.appendChild(table);
     }
+
+    const refreshAllTableIfVisible = (options) => {
+      if (allOut?.dataset.visible === "true") {
+        renderAllTable(options);
+      }
+    };
 
     btnListAll?.addEventListener("click", async () => {
       if (!allOut) return;
 
-      // Toggle: ocultar si está visible
       if (allOut.dataset.visible === "true") {
         allOut.innerHTML = "";
         allOut.dataset.visible = "false";
@@ -9037,10 +9107,17 @@ function buildVariantEntries(profile) {
         return;
       }
 
-      // Mostrar
-      await renderAllTable();
+      await renderAllTable({ forceReload: true });
       allOut.dataset.visible = "true";
       btnListAll.textContent = "Ocultar tabla";
+    });
+
+    allFilterDate?.addEventListener("input", () => refreshAllTableIfVisible());
+    allFilterText?.addEventListener("input", () => refreshAllTableIfVisible());
+    allFilterClear?.addEventListener("click", () => {
+      if (allFilterDate) allFilterDate.value = "";
+      if (allFilterText) allFilterText.value = "";
+      refreshAllTableIfVisible();
     });
 
     // 🔒 Delegación de eventos sobre el contenedor (funciona aunque se regenere la tabla)
@@ -9051,9 +9128,6 @@ function buildVariantEntries(profile) {
       const id = Number(delBtn.dataset.id);
       if (!Number.isFinite(id)) return;
 
-      // Guardar referencias ANTES del modal
-      const fila = delBtn.closest("tr");
-
       const confirmar = await mostrarModal(
         "Eliminar sorteo",
         "¿Seguro que deseas eliminar este sorteo permanentemente?",
@@ -9063,8 +9137,11 @@ function buildVariantEntries(profile) {
 
       try {
         await DB.deleteDrawById(id);
-        if (fila) fila.remove();
+        if (Array.isArray(allDrawsCache)) {
+          allDrawsCache = allDrawsCache.filter((draw) => draw.id !== id);
+        }
         await handleDrawsMutated();
+        await renderAllTable();
         // Si queda la tabla vacía, no forzamos recarga; el usuario puede pulsar "Ocultar" y "Ver todos".
         mostrarAviso("Sorteo eliminado correctamente.", { variant: "success" });
       } catch (err) {
