@@ -1299,7 +1299,8 @@
         return;
       }
       const dow = DOW_FULL_LABEL[parsed.getDay()] || "";
-      dayFechaDow.textContent = dow || "—";
+      const monthName = MONTH_NAMES[parsed.getMonth()] || "";
+      dayFechaDow.textContent = dow ? `${dow} · ${monthName}` : monthName || "—";
     }
 
     function autoAdvanceDayFecha() {
