@@ -1279,6 +1279,14 @@
     const memoryRefreshBtn = document.getElementById("memory-refresh");
     const memoryGapGrid = document.getElementById("memory-gap-grid");
     const memoryGapRefreshBtn = document.getElementById("memory-gap-refresh");
+
+    function autoAdvanceDayFecha() {
+      if (!dayFecha || !dayFecha.value) return;
+      const nextValue = incrementISODate(dayFecha.value, 1);
+      if (!nextValue || nextValue === dayFecha.value) return;
+      dayFecha.value = nextValue;
+      dayFecha.dispatchEvent(new Event("change", { bubbles: true }));
+    }
     function resetModeForm() {
       editingModeId = null;
       if (modeNameInput) modeNameInput.value = "";
@@ -2238,6 +2246,7 @@
           .map(({ config, numero }) => `${config.key} ${formatNumber(numero)}`)
           .join(" · ");
         showToast(`Se guardaron ${payloads.length} sorteo(s): ${detail}.`, { variant: "success" });
+        autoAdvanceDayFecha();
       } catch (err) {
         console.error("saveDay error", err);
         showToast(`No se pudieron guardar los sorteos: ${err.message}`, { variant: "danger" });

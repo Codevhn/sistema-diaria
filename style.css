@@ -45,9 +45,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: fixed;
-  top: 18px;
-  left: calc(18px + 280px);
+  position: relative;
+  top: 0;
+  left: 0;
   width: 48px;
   height: 48px;
   background: var(--color-surface);
@@ -58,7 +58,8 @@ body {
   border-radius: 16px;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
   z-index: 3200;
-  transition: left 0.3s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .menu-btn.sidebar-open {
@@ -66,10 +67,6 @@ body {
   color: #fff;
   border-color: transparent;
   box-shadow: 0 16px 36px rgba(37, 99, 235, 0.35);
-}
-
-body.sidebar-collapsed .menu-btn {
-  left: 16px;
 }
 
 body::before {
@@ -237,7 +234,8 @@ body::after {
   padding: 0 26px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 16px;
   background: rgba(255, 255, 255, 0.92);
   border-bottom: 1px solid var(--color-border);
   backdrop-filter: blur(12px);
@@ -2488,9 +2486,6 @@ button.ghost:hover {
     margin-left: 220px;
     padding: 15px;
   }
-  .menu-btn {
-    left: calc(16px + 220px);
-  }
   .triple {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 16px;
@@ -2555,9 +2550,6 @@ button.ghost:hover {
     left: 0;
   }
 
-  .menu-btn {
-    left: 16px;
-  }
 
   .content {
     margin-left: 0;
