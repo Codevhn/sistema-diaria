@@ -69,7 +69,11 @@
     <section id="view-day" class="view">
       <h2>Panel del día</h2>
       <div class="row">
-        <label>Fecha <input type="date" id="day-fecha" /></label>
+        <label class="day-date-field">
+          Fecha
+          <span id="day-fecha-dow" class="day-fecha-dow">—</span>
+          <input type="date" id="day-fecha" />
+        </label>
         <label>País
           <select id="day-pais">
             <option>HN</option>
@@ -1271,6 +1275,7 @@
     const notebookSaveBtn = document.getElementById("nb-save");
     const notebookList = document.getElementById("nb-list");
     const dayFecha = document.getElementById("day-fecha");
+    const dayFechaDow = document.getElementById("day-fecha-dow");
     const dayPais = document.getElementById("day-pais");
     const geometryDateInput = document.getElementById("g-fecha");
     const geometryPaisSelect = document.getElementById("g-pais");
@@ -1279,6 +1284,21 @@
     const memoryRefreshBtn = document.getElementById("memory-refresh");
     const memoryGapGrid = document.getElementById("memory-gap-grid");
     const memoryGapRefreshBtn = document.getElementById("memory-gap-refresh");
+
+    function updateDayFechaDow(value = dayFecha?.value) {
+      if (!dayFechaDow) return;
+      if (!value) {
+        dayFechaDow.textContent = "—";
+        return;
+      }
+      const parsed = parseISODate(value);
+      if (!parsed) {
+        dayFechaDow.textContent = "—";
+        return;
+      }
+      const dow = DOW_FULL_LABEL[parsed.getDay()] || "";
+      dayFechaDow.textContent = dow || "—";
+    }
 
     function autoAdvanceDayFecha() {
       if (!dayFecha || !dayFecha.value) return;
@@ -2314,6 +2334,7 @@
       });
     });
     dayFecha?.addEventListener("change", () => {
+      updateDayFechaDow();
       refreshSlots();
       updateCountdownDisplay();
     });
@@ -2321,6 +2342,7 @@
       refreshSlots();
       updateCountdownDisplay();
     });
+    updateDayFechaDow();
 
     const countdownTargetEl = document.querySelector("[data-countdown-target]");
     const countdownTimerEl = document.querySelector("[data-countdown-timer]");
@@ -2700,7 +2722,10 @@
 
     async function focusDayPanel(fecha, pais) {
       if (!fecha) return;
-      if (dayFecha) dayFecha.value = fecha;
+      if (dayFecha) {
+        dayFecha.value = fecha;
+        updateDayFechaDow(fecha);
+      }
       if (dayPais && pais) dayPais.value = pais;
       navigateToView("day");
       try {
@@ -7691,7 +7716,10 @@
 
     async function jumpToDayView(fecha, pais) {
       if (!fecha) return;
-      if (dayFecha) dayFecha.value = fecha;
+      if (dayFecha) {
+        dayFecha.value = fecha;
+        updateDayFechaDow(fecha);
+      }
       if (pais && dayPais) dayPais.value = pais;
       const dayBtn = Array.from(sidebarButtons || []).find((btn) => btn.dataset.view === "day");
       dayBtn?.click();

@@ -317,6 +317,22 @@ body.sidebar-collapsed .top {
   font-size: 14px;
   flex: 1;
 }
+.day-date-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.day-fecha-dow {
+  padding: 2px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  background: var(--color-surface-2);
+}
 label span.label-title {
   font-size: 12px;
   letter-spacing: 0.04em;
