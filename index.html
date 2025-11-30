@@ -139,8 +139,7 @@
       </div>
 
       <div class="day-actions">
-        <button id="save-day" class="btn-primary">Guardar sorteos del día</button>
-        <button id="btn-aprender-dia" class="btn-outline">Registrar resultados del día (aprendizaje)</button>
+        <button id="save-day" class="btn-primary">Guardar y registrar día</button>
       </div>
       <p class="hint day-hint">
         Confirma/Refuta hipótesis pendientes según los resultados válidos de la fecha seleccionada.
@@ -1310,6 +1309,65 @@
       dayFecha.value = nextValue;
       dayFecha.dispatchEvent(new Event("change", { bubbles: true }));
     }
+
+    async function procesarAprendizajeDia({
+      fecha,
+      pais,
+      silent = false,
+      skipKnowledgeSync = false,
+    } = {}) {
+      const normalizedPais = (pais || "").trim().toUpperCase();
+      if (!fecha || !normalizedPais) {
+        if (!silent) {
+          showToast("Selecciona fecha y país para procesar el aprendizaje.", { variant: "warning" });
+        }
+        return { status: "invalid" };
+      }
+      const draws = (await DB.listDraws({ excludeTest: true })).filter(
+        (d) => d.fecha === fecha && (d.pais || "").trim().toUpperCase() === normalizedPais
+      );
+      if (!draws.length) {
+        if (!silent) {
+          showToast("No hay sorteos reales registrados para esa fecha y país.", { variant: "warning" });
+        }
+        return { status: "no-data" };
+      }
+      const alreadyLogged = (await DB.getHypothesisLogs()).some(
+        (log) =>
+          log.fechaResultado === fecha &&
+          ((log.paisResultado || "").trim().toUpperCase() === normalizedPais)
+      );
+      if (alreadyLogged) {
+        if (!silent) {
+          showToast("Los resultados de ese día ya fueron procesados anteriormente.", {
+            variant: "info",
+            timeout: 3200,
+          });
+        }
+        return { status: "already" };
+      }
+      await runWithSavingModal(async () => {
+        for (const draw of draws) {
+          const simbolo = getSymbol(draw.numero);
+          await registrarResultado({
+            numero: draw.numero,
+            simbolo,
+            fecha: draw.fecha,
+            pais: draw.pais,
+            horario: draw.horario,
+          });
+        }
+        await DB.closePredictionBatch({ fecha, pais: normalizedPais });
+      });
+      if (!skipKnowledgeSync) {
+        await rebuildKnowledge();
+        await refreshHypotesis();
+      }
+      if (!silent) {
+        showToast("Hipótesis actualizadas con los resultados del día.", { variant: "success" });
+      }
+      return { status: "success" };
+    }
     function resetModeForm() {
       editingModeId = null;
       if (modeNameInput) modeNameInput.value = "";
@@ -2261,14 +2319,27 @@
         });
 
         await refreshSlots();
-        await rebuildKnowledge();
         autoFollowIfToday(fecha, pais);
         await handleDrawsMutated();
+        const aprendizajeResult = await procesarAprendizajeDia({
+          fecha,
+          pais,
+          silent: true,
+          skipKnowledgeSync: true,
+        });
+        await rebuildKnowledge();
+        await refreshHypotesis();
 
         const detail = payloads
           .map(({ config, numero }) => `${config.key} ${formatNumber(numero)}`)
           .join(" · ");
-        showToast(`Se guardaron ${payloads.length} sorteo(s): ${detail}.`, { variant: "success" });
+        let toastMessage = `Se guardaron ${payloads.length} sorteo(s): ${detail}.`;
+        if (aprendizajeResult.status === "success") {
+          toastMessage += " Se registraron los resultados para aprendizaje.";
+        } else if (aprendizajeResult.status === "already") {
+          toastMessage += " El aprendizaje ya estaba registrado previamente.";
+        }
+        showToast(toastMessage, { variant: "success" });
         autoAdvanceDayFecha();
       } catch (err) {
         console.error("saveDay error", err);
@@ -2426,60 +2497,6 @@
         console.error("countdown update error", err);
       }
     }
-
-    const btnAprender = document.getElementById("btn-aprender-dia");
-    btnAprender?.addEventListener("click", async () => {
-      const { fecha, pais } = getFilters();
-      if (!fecha || !pais) {
-        showToast("Selecciona fecha y país para procesar el aprendizaje.", { variant: "warning" });
-        return;
-      }
-      const draws = (await DB.listDraws({ excludeTest: true })).filter(
-        (d) => d.fecha === fecha && d.pais === pais
-      );
-      if (!draws.length) {
-        showToast("No hay sorteos reales registrados para esa fecha y país.", { variant: "warning" });
-        return;
-      }
-      const normalizedPais = (pais || "").trim().toUpperCase();
-      const alreadyLogged = (await DB.getHypothesisLogs()).some(
-        (log) =>
-          log.fechaResultado === fecha &&
-          ((log.paisResultado || "").trim().toUpperCase() === normalizedPais)
-      );
-      if (alreadyLogged) {
-        showToast("Los resultados de ese día ya fueron procesados anteriormente.", {
-          variant: "info",
-          timeout: 3200,
-        });
-        return;
-      }
-      const endBusy = withButtonBusy(btnAprender, "Procesando…");
-      try {
-        await runWithSavingModal(async () => {
-          for (const draw of draws) {
-            const simbolo = getSymbol(draw.numero);
-            await registrarResultado({
-              numero: draw.numero,
-              simbolo,
-              fecha: draw.fecha,
-              pais: draw.pais,
-              horario: draw.horario,
-            });
-          }
-          await DB.closePredictionBatch({ fecha, pais });
-        });
-        await rebuildKnowledge();
-        await refreshHypotesis();
-        showToast("Hipótesis actualizadas con los resultados del día.", { variant: "success" });
-      } catch (err) {
-        console.error("aprendizaje error", err);
-        showToast(`Error al registrar resultados: ${err.message}`, { variant: "danger" });
-        throw err;
-      } finally {
-        endBusy();
-      }
-    });
 
     // === Paneles extendidos: historial, seguimiento, patrones y ranking ===
     const historyDateInput = document.getElementById("history-date");
@@ -9081,113 +9098,6 @@ function buildVariantEntries(profile) {
       }
     });
 
-  </script>
-
-  <script type="module">
-    import { DB } from "./src/storage.js";
-
-    /* ──────────────────────────────
-       MODAL DE AVISO CON ANIMACIÓN
-    ──────────────────────────────── */
-    function modalAvisoAprendizaje(titulo, mensaje) {
-      document.querySelectorAll(".custom-modal-aviso, .modal-overlay-aviso").forEach(e => e.remove());
-      const overlay = document.createElement("div");
-      overlay.className = "modal-overlay-aviso";
-      const modal = document.createElement("div");
-      modal.className = "custom-modal-aviso";
-      modal.innerHTML = `
-    <h3>${titulo}</h3>
-    <p>${mensaje}</p>
-    <button id="okAviso" class="btn-ok-aviso">Aceptar</button>
-  `;
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-      requestAnimationFrame(() => {
-        overlay.style.opacity = "1";
-        modal.style.transform = "translateY(0)";
-      });
-      modal.querySelector("#okAviso").onclick = () => {
-        overlay.classList.add("fade-out");
-        setTimeout(() => overlay.remove(), 250);
-      };
-    }
-
-    /* ──────────────────────────────
-       VALIDACIÓN ANTES DE APRENDIZAJE
-    ──────────────────────────────── */
-    async function verificarAntesDeAprender(datosDia) {
-      if (!datosDia || !Array.isArray(datosDia) || !datosDia.length) return true;
-      const fechaHoy = datosDia[0]?.fecha;
-      const existentes = await DB.listDraws({ excludeTest: true });
-      const yaExisten = existentes.some(d => d.fecha === fechaHoy);
-      if (yaExisten) {
-        modalAvisoAprendizaje(
-          "Datos ya registrados",
-          `Los resultados del día ${fechaHoy} ya fueron ingresados anteriormente.`
-        );
-        return false;
-      }
-      return true;
-    }
-
-    /* ──────────────────────────────
-       ESTILOS DEL MODAL
-    ──────────────────────────────── */
-    if (!document.getElementById("estilo-aviso-aprendizaje")) {
-      const estiloAviso = document.createElement("style");
-      estiloAviso.id = "estilo-aviso-aprendizaje";
-      estiloAviso.textContent = `
-  .modal-overlay-aviso {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.45);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0;
-    transition: opacity .25s ease;
-    z-index: 5000;
-  }
-  .custom-modal-aviso {
-    background: #1b1b1b;
-    color: #f3f3f3;
-    border-radius: 12px;
-    padding: 22px 28px;
-    max-width: 380px;
-    text-align: center;
-    box-shadow: 0 0 15px rgba(0,0,0,0.5);
-    transform: translateY(-15px);
-    transition: transform .25s ease;
-  }
-  .custom-modal-aviso h3 {
-    color: #f5d36b;
-    margin-bottom: 10px;
-  }
-  .btn-ok-aviso {
-    background: #f5d36b;
-    color: #1b1b1b;
-    border: none;
-    padding: 8px 18px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background .2s;
-  }
-  .btn-ok-aviso:hover { background: #ffe27a; }
-  .fade-out { opacity: 0 !important; transition: opacity .25s ease; }
-  `;
-      document.head.appendChild(estiloAviso);
-    }
-
-    /* ──────────────────────────────
-       CONEXIÓN CON EL BOTÓN PRINCIPAL
-    ──────────────────────────────── */
-    const btnAprenderGuard = document.getElementById("btn-aprender-dia");
-    if (btnAprenderGuard) {
-      btnAprenderGuard.addEventListener("click", async (e) => {
-        if (window.datosDelDia) {
-          const continuar = await verificarAntesDeAprender(window.datosDelDia);
-          if (!continuar) e.preventDefault();
-        }
-      });
-    }
   </script>
 
   <!-- === MODAL MIGRACIÓN DEXIE → SUPABASE === -->
