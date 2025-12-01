@@ -2711,15 +2711,6 @@
     });
     renderStrategyFilters();
 
-    const DECEMBER_STATUS_LABELS = {
-      due: "Ventana activa",
-      tracking: "En escucha",
-      hit: "Confirmado",
-      completed: "Ciclo cerrado",
-      missed: "Ventana perdida",
-      origin: "Primer golpe",
-    };
-
     const describeDecemberTurns = (turnHints = []) => {
       if (!Array.isArray(turnHints) || !turnHints.length) return "";
       const [first] = turnHints;
@@ -2727,6 +2718,54 @@
       const label = first.pair.replace("->", " → ");
       const pct = first.weight ? `${Math.round(first.weight * 100)}%` : "";
       return `${label}${pct ? ` · ${pct}` : ""}`;
+    };
+
+    const describeWatcherStatus = (watcher) => {
+      if (!watcher) {
+        return {
+          label: "Seguimiento",
+          message: "Sin datos suficientes.",
+        };
+      }
+      const windowRange = watcher.activeWindow ? formatWindowRange(watcher.activeWindow.windowStart, watcher.activeWindow.windowEnd) : null;
+      const gapLabel = watcher.activeWindow?.gap ? `+${watcher.activeWindow.gap} días` : "";
+      const hitInfo = watcher.activeWindow?.hit;
+      switch (watcher.status) {
+        case "due":
+          return {
+            label: "Ventana activa",
+            message: `Esperando repetición entre ${windowRange || "la ventana estimada"} (${gapLabel}).`,
+            detail: hitInfo ? `Último impacto: ${formatFriendlyDate(hitInfo.fecha)} ${hitInfo.horario || ""}` : "",
+          };
+        case "tracking":
+          return {
+            label: "Escucha temprana",
+            message: `La ventana abre el ${windowRange || "próximamente"} (${gapLabel}).`,
+            detail: "Prepara tus jugadas antes de que se activen los turnos frecuentes.",
+          };
+        case "hit":
+        case "completed":
+          return {
+            label: watcher.status === "hit" ? "Confirmado" : "Ciclo cerrado",
+            message: hitInfo
+              ? `Reapareció el ${formatFriendlyDate(hitInfo.fecha)} en ${hitInfo.horario || "—"}.`
+              : "Repetición confirmada este año.",
+            detail: "Revisa si suele encadenar otra aparición después de este punto.",
+          };
+        case "missed":
+          return {
+            label: "Ventana perdida",
+            message: `No se presentó en la ventana ${windowRange || ""}.`,
+            detail: "Observa si abre un nuevo ciclo antes de cerrar el mes.",
+          };
+        case "origin":
+        default:
+          return {
+            label: "Nuevo en diciembre",
+            message: "Aún sin repetición. Sigue la línea para detectar el primer regreso.",
+            detail: "",
+          };
+      }
     };
 
     function syncDecemberYearOptions() {
@@ -2795,12 +2834,8 @@
         item.className = `december-watch ${statusClass} ${activeClass}`.trim();
         item.dataset.decemberNum = watcher.numero;
         const badgeClass = `december-badge december-badge--${watcher.status || "origin"}`;
-        const badgeLabel = DECEMBER_STATUS_LABELS[watcher.status] || "Seguimiento";
-        const windowLabel = watcher.activeWindow
-          ? `${formatWindowRange(watcher.activeWindow.windowStart, watcher.activeWindow.windowEnd)} · +${watcher.activeWindow.gap ?? "?"}d`
-          : watcher.totalHits > 1
-            ? "Repetición confirmada"
-            : "Esperando la siguiente ventana";
+        const statusInfo = describeWatcherStatus(watcher);
+        const badgeLabel = statusInfo.label;
         const turnHint = describeDecemberTurns(watcher.activeWindow?.turnHints);
         item.innerHTML = `
           <div class="december-watch__number">
@@ -2809,7 +2844,8 @@
           </div>
           <div class="december-watch__status">
             <span class="${badgeClass}">${badgeLabel}</span>
-            <span>${windowLabel}</span>
+            <span class="december-status-line">${statusInfo.message}</span>
+            ${statusInfo.detail ? `<small>${statusInfo.detail}</small>` : ""}
             ${turnHint ? `<small>${turnHint}</small>` : ""}
           </div>
         `;
@@ -2945,18 +2981,23 @@
             const timeline = document.createElement("div");
             timeline.className = "december-sequence__timeline";
             segment.hits.forEach((hit, index) => {
-              const hitEl = document.createElement("div");
-              hitEl.className = "december-hit";
-              hitEl.innerHTML = `<strong>${formatShortDate(hit.fecha)}</strong> ${hit.horario || ""} ${entry.symbol || ""}`;
-              timeline.appendChild(hitEl);
-              if (index < segment.hits.length - 1) {
-                const event = segment.events?.[index];
+              const row = document.createElement("div");
+              row.className = "december-timeline__row";
+              const title = document.createElement("div");
+              title.innerHTML = `<strong>${formatFriendlyDate(hit.fecha)}</strong> · ${hit.horario || ""} ${entry.symbol || ""}`;
+              const meta = document.createElement("div");
+              meta.className = "december-timeline__meta";
+              if (index === 0) {
+                meta.textContent = "Primer impacto del mes (origen).";
+              } else {
+                const event = segment.events?.[index - 1];
                 const gap = Number.isFinite(event?.gapFromPrev) ? event.gapFromPrev : null;
-                const gapEl = document.createElement("span");
-                gapEl.className = "december-gap";
-                gapEl.textContent = gap ? `+${gap}d` : "→";
-                timeline.appendChild(gapEl);
+                meta.textContent = gap
+                  ? `Reaparece ${gap === 1 ? "al día siguiente" : `tras ${gap} días`}.`
+                  : "Reaparece tras varios días.";
               }
+              row.append(title, meta);
+              timeline.appendChild(row);
             });
             sequence.append(yearLabel, timeline);
             sequences.appendChild(sequence);
@@ -2968,13 +3009,16 @@
         sequences.appendChild(empty);
       }
       decemberDetailEl.append(head, chips, windowsWrap, actions, sequences);
-      if (watcher?.activeWindow) {
+      if (watcher) {
+        const statusInfo = describeWatcherStatus(watcher);
         const status = document.createElement("p");
         status.className = "hint";
-        status.textContent = `${DECEMBER_STATUS_LABELS[watcher.status] || "Seguimiento"} · Ventana ${formatWindowRange(
-          watcher.activeWindow.windowStart,
-          watcher.activeWindow.windowEnd
-        )} (+${watcher.activeWindow.gap}d)`;
+        const windowText = watcher.activeWindow
+          ? `Ventana ${formatWindowRange(watcher.activeWindow.windowStart, watcher.activeWindow.windowEnd)} (+${watcher.activeWindow.gap || "?"}d)`
+          : "";
+        status.innerHTML = `<strong>${statusInfo.label}</strong> · ${statusInfo.message}${windowText ? ` · ${windowText}` : ""}${
+          statusInfo.detail ? ` <br />${statusInfo.detail}` : ""
+        }`;
         decemberDetailEl.appendChild(status);
       }
     }

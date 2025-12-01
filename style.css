@@ -816,11 +816,9 @@ button.ghost:hover {
 }
 
 .december-watchlist {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 420px;
-  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 .december-watch {
@@ -883,9 +881,19 @@ button.ghost:hover {
 .december-watch__status {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   font-size: 0.85rem;
   color: var(--color-text);
+}
+
+.december-status-line {
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.december-status-line small {
+  color: var(--color-muted);
+  display: block;
 }
 
 .december-badge {
@@ -1012,31 +1020,27 @@ button.ghost:hover {
 
 .december-sequence__timeline {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.december-hit {
-  border-radius: 999px;
-  border: 1px solid rgba(37, 99, 235, 0.2);
-  padding: 4px 10px;
-  background: var(--color-surface);
-  display: inline-flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
-  font-size: 0.85rem;
 }
 
-.december-hit strong {
-  font-size: 1rem;
+.december-timeline__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 0.88rem;
+}
+
+.december-timeline__row strong {
   color: var(--color-text);
 }
 
-.december-gap {
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.december-timeline__meta {
+  font-size: 0.8rem;
   color: var(--color-muted);
 }
 
@@ -1747,12 +1751,7 @@ button.ghost:hover {
     grid-template-columns: 1fr;
   }
   .december-watchlist {
-    max-height: none;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-  .december-watch {
-    flex: 1 1 220px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 }
 
