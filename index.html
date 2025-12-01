@@ -517,6 +517,47 @@
         Detecta cuándo La Diaria reutiliza sumas o restas entre turnos para lanzar el siguiente número.
         Observa qué horarios participan y en qué fechas se aplicó la misma lógica.
       </p>
+      <article class="card december-card" id="december-card">
+        <div class="december-card__head">
+          <div>
+            <h3>Estrategia especial de diciembre</h3>
+            <p class="hint">
+              Seguimiento número por número del mes más volátil. Identifica cuándo reaparecen y prepárate antes de que la línea se active.
+            </p>
+          </div>
+          <div class="december-card__actions">
+            <button type="button" id="december-refresh" class="btn-outline">Actualizar</button>
+          </div>
+        </div>
+        <div class="december-controls">
+          <label>
+            Año de referencia
+            <select id="december-year"></select>
+          </label>
+          <label>
+            Buscar número
+            <div class="december-search">
+              <input id="december-search" placeholder="00-99" maxlength="2" />
+              <button type="button" id="december-search-btn" class="btn-primary">Ir</button>
+            </div>
+          </label>
+          <button type="button" id="december-clear" class="btn-ghost">Limpiar búsqueda</button>
+        </div>
+        <div id="december-summary" class="december-summary panel-meta"></div>
+        <div class="december-panels">
+          <div>
+            <div class="december-panel-head">
+              <h4>Números en vigilancia</h4>
+              <p class="hint small">Incluye cada símbolo y estatus de ventana.</p>
+            </div>
+            <div id="december-watchlist" class="december-watchlist"></div>
+            <div id="december-reminders" class="december-reminders"></div>
+          </div>
+          <div class="december-detail" id="december-detail">
+            <p class="hint">Selecciona un número para ver su línea de repeticiones y recomendaciones.</p>
+          </div>
+        </div>
+      </article>
       <div class="strategy-toolbar">
         <button id="strategy-refresh" class="btn-outline">Actualizar estrategias</button>
       </div>
@@ -1109,6 +1150,7 @@
     import { analizarPatronesMensuales } from "./src/monthly-trends.js";
     import { evaluarMotorPega3 } from "./src/pega3-engine.js";
     import { loadUserPreferences, saveUserPreferences } from "./src/user-preferences.js";
+    import { computeDecemberStrategy } from "./src/december-strategy.js";
     import {
       createMode,
       updateMode,
@@ -1184,6 +1226,7 @@
       }
     });
     await initUserPreferences(currentUser);
+    decemberReminderStore = loadDecemberReminderStore();
     showBootLoader();
     try {
       await cargarGuia();
@@ -1839,6 +1882,7 @@
       "noviembre",
       "diciembre",
     ];
+    const MONTH_ABBR = MONTH_NAMES.map((name) => name.slice(0, 3));
     const DOW_FULL_LABEL = [
       "Domingo",
       "Lunes",
@@ -1867,6 +1911,7 @@
       "3PM": { hour: 15, minute: 0 },
       "9PM": { hour: 21, minute: 0 },
     };
+    const DECEMBER_REMINDER_KEY = "ld-v3-december-reminders";
     let biasLocalStorageWarned = false;
     let biasSessionStorageWarned = false;
 
@@ -1939,6 +1984,10 @@
       contexto: null,
       patrones: null,
     };
+    let decemberStrategyData = null;
+    let decemberSelectedYear = null;
+    let decemberSelectedNumero = null;
+    let decemberReminderStore = {};
     let pega3DrawCache = [];
     let pega3ActiveDrawId = null;
     let pega3AnalysisCache = null;
@@ -1959,6 +2008,54 @@
       const dow = DOW_FULL_LABEL[date.getDay()] || "";
       return `${dow ? `${dow} ` : ""}${day} de ${monthName} ${year}`;
     };
+    const formatShortDate = (iso) => {
+      if (!iso) return "";
+      const date = parseISODate(iso);
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return iso;
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = MONTH_ABBR[date.getMonth()] || "";
+      return `${day} ${month}`;
+    };
+    const formatWindowRange = (startIso, endIso) => {
+      const start = formatShortDate(startIso);
+      const end = formatShortDate(endIso);
+      if (start && end) {
+        if (start === end) return start;
+        return `${start} – ${end}`;
+      }
+      return start || end || "—";
+    };
+    function loadDecemberReminderStore() {
+      if (userPreferences?.decemberReminders && typeof userPreferences.decemberReminders === "object") {
+        return { ...userPreferences.decemberReminders };
+      }
+      if (typeof window === "undefined" || typeof window.localStorage === "undefined") return {};
+      try {
+        const raw = window.localStorage.getItem(DECEMBER_REMINDER_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch (err) {
+        logWarn("No se pudieron cargar recordatorios de diciembre", err);
+        return {};
+      }
+    }
+
+    function saveDecemberReminderStore(store) {
+      const isEmpty = !store || !Object.keys(store).length;
+      if (typeof window !== "undefined" && typeof window.localStorage !== "undefined") {
+        try {
+          if (isEmpty) {
+            window.localStorage.removeItem(DECEMBER_REMINDER_KEY);
+          } else {
+            window.localStorage.setItem(DECEMBER_REMINDER_KEY, JSON.stringify(store));
+          }
+        } catch (err) {
+          logWarn("No se pudieron guardar recordatorios de diciembre", err);
+        }
+      }
+      queueUserPreferencesSave({ decemberReminders: isEmpty ? {} : store });
+    }
 
     const getSymbol = (numero) => {
       const key = normalizeNumeroKey(numero);
@@ -2533,6 +2630,16 @@
     const patternsSummary = document.getElementById("patterns-summary");
     const patternsHallazgos = document.getElementById("patterns-hallazgos");
     const patternsHistory = document.getElementById("patterns-history");
+    const decemberCard = document.getElementById("december-card");
+    const decemberYearSelect = document.getElementById("december-year");
+    const decemberSearchInput = document.getElementById("december-search");
+    const decemberSearchBtn = document.getElementById("december-search-btn");
+    const decemberClearBtn = document.getElementById("december-clear");
+    const decemberRefreshBtn = document.getElementById("december-refresh");
+    const decemberSummaryEl = document.getElementById("december-summary");
+    const decemberWatchlistEl = document.getElementById("december-watchlist");
+    const decemberDetailEl = document.getElementById("december-detail");
+    const decemberRemindersEl = document.getElementById("december-reminders");
     const strategyRefreshBtn = document.getElementById("strategy-refresh");
     const strategiesList = document.getElementById("strategies-list");
     const strategiesSection = document.getElementById("view-strategies");
@@ -2603,6 +2710,418 @@
       renderStrategiesPanel();
     });
     renderStrategyFilters();
+
+    const DECEMBER_STATUS_LABELS = {
+      due: "Ventana activa",
+      tracking: "En escucha",
+      hit: "Confirmado",
+      completed: "Ciclo cerrado",
+      missed: "Ventana perdida",
+      origin: "Primer golpe",
+    };
+
+    const describeDecemberTurns = (turnHints = []) => {
+      if (!Array.isArray(turnHints) || !turnHints.length) return "";
+      const [first] = turnHints;
+      if (!first?.pair) return "";
+      const label = first.pair.replace("->", " → ");
+      const pct = first.weight ? `${Math.round(first.weight * 100)}%` : "";
+      return `${label}${pct ? ` · ${pct}` : ""}`;
+    };
+
+    function syncDecemberYearOptions() {
+      if (!decemberYearSelect) return;
+      const years = decemberStrategyData?.years || [];
+      decemberYearSelect.innerHTML = "";
+      if (!years.length) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "—";
+        decemberYearSelect.appendChild(option);
+        decemberYearSelect.disabled = true;
+        decemberSelectedYear = null;
+        return;
+      }
+      decemberYearSelect.disabled = false;
+      years.forEach((year) => {
+        const option = document.createElement("option");
+        option.value = String(year);
+        option.textContent = year;
+        if (year === decemberSelectedYear) option.selected = true;
+        decemberYearSelect.appendChild(option);
+      });
+      if (!decemberSelectedYear) {
+        decemberSelectedYear = years[0];
+        decemberYearSelect.value = years[0];
+      }
+    }
+
+    function renderDecemberSummary() {
+      if (!decemberSummaryEl) return;
+      if (!decemberStrategyData?.summary) {
+        decemberSummaryEl.innerHTML = "<span class='hint'>Registra sorteos de diciembre para iniciar el seguimiento.</span>";
+        return;
+      }
+      const { totalNumbers = 0, totalRepeats = 0, draws = 0, yearsTracked = 0 } = decemberStrategyData.summary;
+      decemberSummaryEl.innerHTML = `
+        <strong>${totalNumbers}</strong> números vigilados ·
+        <strong>${totalRepeats}</strong> repeticiones identificadas ·
+        ${yearsTracked} año(s) analizados (${draws} sorteos de diciembre)
+      `;
+    }
+
+    function renderDecemberWatchlist() {
+      if (!decemberWatchlistEl) return;
+      decemberWatchlistEl.innerHTML = "";
+      if (!decemberStrategyData || !decemberSelectedYear) {
+        decemberWatchlistEl.innerHTML = "<p class='december-empty'>Selecciona un año con datos para ver la vigilancia.</p>";
+        return;
+      }
+      const watchers =
+        decemberStrategyData.watchersByYear?.get(decemberSelectedYear) || [];
+      if (!watchers.length) {
+        decemberWatchlistEl.innerHTML = "<p class='december-empty'>Este año todavía no registra repeticiones en diciembre.</p>";
+        return;
+      }
+      const selectedExists = watchers.some((watcher) => watcher.numero === decemberSelectedNumero);
+      if (!selectedExists) {
+        decemberSelectedNumero = watchers[0]?.numero ?? null;
+      }
+      watchers.forEach((watcher) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        const statusClass = watcher.status ? `december-watch--${watcher.status}` : "";
+        const activeClass = watcher.numero === decemberSelectedNumero ? "december-watch--active" : "";
+        item.className = `december-watch ${statusClass} ${activeClass}`.trim();
+        item.dataset.decemberNum = watcher.numero;
+        const badgeClass = `december-badge december-badge--${watcher.status || "origin"}`;
+        const badgeLabel = DECEMBER_STATUS_LABELS[watcher.status] || "Seguimiento";
+        const windowLabel = watcher.activeWindow
+          ? `${formatWindowRange(watcher.activeWindow.windowStart, watcher.activeWindow.windowEnd)} · +${watcher.activeWindow.gap ?? "?"}d`
+          : watcher.totalHits > 1
+            ? "Repetición confirmada"
+            : "Esperando la siguiente ventana";
+        const turnHint = describeDecemberTurns(watcher.activeWindow?.turnHints);
+        item.innerHTML = `
+          <div class="december-watch__number">
+            <span>${formatNumber(watcher.numero)}</span>
+            <span class="december-watch__symbol">${watcher.symbol || ""}</span>
+          </div>
+          <div class="december-watch__status">
+            <span class="${badgeClass}">${badgeLabel}</span>
+            <span>${windowLabel}</span>
+            ${turnHint ? `<small>${turnHint}</small>` : ""}
+          </div>
+        `;
+        decemberWatchlistEl.appendChild(item);
+      });
+    }
+
+    function renderDecemberReminders() {
+      if (!decemberRemindersEl) return;
+      const entries = Object.values(decemberReminderStore || {}).sort(
+        (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
+      );
+      if (!entries.length) {
+        decemberRemindersEl.innerHTML =
+          "<p class='december-empty'>Sin recordatorios activos. Puedes guardar un número desde el panel de detalle.</p>";
+        return;
+      }
+      const head = document.createElement("div");
+      head.className = "december-panel-head";
+      head.innerHTML = `
+        <h4>Recordatorios activos</h4>
+        <p class="hint small">Se guardan localmente y en tus preferencias.</p>
+      `;
+      const list = document.createElement("div");
+      list.className = "december-reminders__list";
+      entries.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "december-reminder";
+        row.innerHTML = `
+          <div>
+            <strong>${formatNumber(item.numero)}</strong> <span>${item.symbol || ""}</span>
+            <div class="hint small">${item.note || ""}</div>
+          </div>
+        `;
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.textContent = "Quitar";
+        removeBtn.addEventListener("click", () => {
+          const key = formatNumber(item.numero);
+          if (decemberReminderStore[key]) {
+            delete decemberReminderStore[key];
+            saveDecemberReminderStore(decemberReminderStore);
+            renderDecemberReminders();
+            renderDecemberWatchlist();
+            if (decemberSelectedNumero === item.numero) renderDecemberDetail();
+          }
+        });
+        row.appendChild(removeBtn);
+        list.appendChild(row);
+      });
+      decemberRemindersEl.innerHTML = "";
+      decemberRemindersEl.append(head, list);
+    }
+
+    function renderDecemberDetail() {
+      if (!decemberDetailEl) return;
+      decemberDetailEl.innerHTML = "";
+      if (!decemberStrategyData || decemberSelectedNumero === null || decemberSelectedNumero === undefined) {
+        decemberDetailEl.innerHTML = "<p class='hint'>Selecciona un número para ver su seguimiento de diciembre.</p>";
+        return;
+      }
+      const entry = decemberStrategyData.perNumber?.get(decemberSelectedNumero);
+      if (!entry) {
+        decemberDetailEl.innerHTML = `<p class='hint'>El número ${formatNumber(decemberSelectedNumero)} no tiene historial de diciembre.</p>`;
+        return;
+      }
+      const watcher =
+        decemberStrategyData.watchersByYear?.get(decemberSelectedYear)?.find(
+          (item) => item.numero === entry.numero
+        ) || null;
+      const head = document.createElement("div");
+      head.className = "december-detail__head";
+      head.innerHTML = `
+        <div class="december-detail__number">
+          <span>${formatNumber(entry.numero)}</span>
+          <span>${entry.symbol || ""}</span>
+        </div>
+        <div class="hint">${entry.history?.length || 0} año(s) con actividad en diciembre.</div>
+      `;
+      const chips = document.createElement("div");
+      chips.className = "december-detail__chips";
+      const yearsChip = document.createElement("div");
+      yearsChip.className = "december-window-chip";
+      yearsChip.innerHTML = `<strong>${entry.history?.length || 0}</strong> años rastreados`;
+      const repeatsChip = document.createElement("div");
+      repeatsChip.className = "december-window-chip";
+      repeatsChip.innerHTML = `<strong>${entry.totalRepeats || 0}</strong> repeticiones históricas`;
+      chips.append(yearsChip, repeatsChip);
+      const windowsWrap = document.createElement("div");
+      windowsWrap.className = "december-detail__chips";
+      if (entry.windows?.length) {
+        entry.windows.slice(0, 3).forEach((window) => {
+          const chip = document.createElement("div");
+          chip.className = "december-window-chip";
+          const confidence = Math.round((window.confidence || 0) * 100);
+          chip.innerHTML = `
+            <strong>+${window.gap} días</strong>
+            ${confidence}% de acierto · tolerancia ±${window.tolerance}d
+            ${window.turnHints?.length ? `<br /><small>${describeDecemberTurns(window.turnHints)}</small>` : ""}
+          `;
+          windowsWrap.appendChild(chip);
+        });
+      } else {
+        const chip = document.createElement("div");
+        chip.className = "december-window-chip";
+        chip.textContent = "Sin ventanas suficientes. Espera más repeticiones.";
+        windowsWrap.appendChild(chip);
+      }
+      const actions = document.createElement("div");
+      actions.className = "december-detail__actions";
+      const reminderKey = formatNumber(entry.numero);
+      const reminderActive = Boolean(decemberReminderStore?.[reminderKey]);
+      const reminderBtn = document.createElement("button");
+      reminderBtn.type = "button";
+      reminderBtn.className = reminderActive ? "btn-outline" : "btn-primary";
+      reminderBtn.textContent = reminderActive ? "Quitar recordatorio" : "Guardar recordatorio";
+      reminderBtn.addEventListener("click", () => {
+        toggleDecemberReminder(entry, watcher);
+      });
+      actions.appendChild(reminderBtn);
+      const sequences = document.createElement("div");
+      sequences.className = "december-sequences";
+      if (Array.isArray(entry.history) && entry.history.length) {
+        entry.history
+          .slice()
+          .sort((a, b) => b.year - a.year)
+          .forEach((segment) => {
+            const sequence = document.createElement("div");
+            sequence.className = "december-sequence";
+            const yearLabel = document.createElement("div");
+            yearLabel.className = "december-sequence__year";
+            yearLabel.textContent = `${segment.year} · ${segment.hits.length} aparición(es)`;
+            const timeline = document.createElement("div");
+            timeline.className = "december-sequence__timeline";
+            segment.hits.forEach((hit, index) => {
+              const hitEl = document.createElement("div");
+              hitEl.className = "december-hit";
+              hitEl.innerHTML = `<strong>${formatShortDate(hit.fecha)}</strong> ${hit.horario || ""} ${entry.symbol || ""}`;
+              timeline.appendChild(hitEl);
+              if (index < segment.hits.length - 1) {
+                const event = segment.events?.[index];
+                const gap = Number.isFinite(event?.gapFromPrev) ? event.gapFromPrev : null;
+                const gapEl = document.createElement("span");
+                gapEl.className = "december-gap";
+                gapEl.textContent = gap ? `+${gap}d` : "→";
+                timeline.appendChild(gapEl);
+              }
+            });
+            sequence.append(yearLabel, timeline);
+            sequences.appendChild(sequence);
+          });
+      } else {
+        const empty = document.createElement("p");
+        empty.className = "december-empty";
+        empty.textContent = "Este número aún no registra diciembre suficientes para dibujar una secuencia.";
+        sequences.appendChild(empty);
+      }
+      decemberDetailEl.append(head, chips, windowsWrap, actions, sequences);
+      if (watcher?.activeWindow) {
+        const status = document.createElement("p");
+        status.className = "hint";
+        status.textContent = `${DECEMBER_STATUS_LABELS[watcher.status] || "Seguimiento"} · Ventana ${formatWindowRange(
+          watcher.activeWindow.windowStart,
+          watcher.activeWindow.windowEnd
+        )} (+${watcher.activeWindow.gap}d)`;
+        decemberDetailEl.appendChild(status);
+      }
+    }
+
+    function toggleDecemberReminder(entry, watcher) {
+      if (!entry) return;
+      const key = formatNumber(entry.numero);
+      if (decemberReminderStore[key]) {
+        delete decemberReminderStore[key];
+      } else {
+        const windowInfo = watcher?.activeWindow;
+        decemberReminderStore[key] = {
+          numero: entry.numero,
+          symbol: entry.symbol || "",
+          note: windowInfo
+            ? `Ventana ${formatWindowRange(windowInfo.windowStart, windowInfo.windowEnd)} (+${windowInfo.gap}d)`
+            : "Seguimiento manual",
+          createdAt: Date.now(),
+          year: decemberSelectedYear,
+          windowStart: windowInfo?.windowStart || null,
+          windowEnd: windowInfo?.windowEnd || null,
+        };
+      }
+      saveDecemberReminderStore(decemberReminderStore);
+      renderDecemberReminders();
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    }
+
+    function handleDecemberSearch() {
+      const raw = (decemberSearchInput?.value || "").trim();
+      if (!raw) {
+        showToast("Ingresa un número para buscar en diciembre.", { variant: "info" });
+        return;
+      }
+      const numero = parseInt(raw, 10);
+      if (!Number.isFinite(numero) || numero < 0 || numero > 99) {
+        showToast("Ingresa un número válido entre 00 y 99.", { variant: "warning" });
+        return;
+      }
+      if (!decemberStrategyData?.perNumber?.has(numero)) {
+        showToast(`El número ${formatNumber(numero)} aún no aparece en diciembre.`, { variant: "info" });
+        return;
+      }
+      const entry = decemberStrategyData.perNumber.get(numero);
+      if (entry?.history?.length) {
+        const latestYear = entry.history[entry.history.length - 1].year;
+        if (latestYear && latestYear !== decemberSelectedYear) {
+          decemberSelectedYear = latestYear;
+          syncDecemberYearOptions();
+        }
+      }
+      decemberSelectedNumero = numero;
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    }
+
+    async function refreshDecemberStrategyPanel({ force = false } = {}) {
+      if (!decemberCard) return;
+      try {
+        const draws = await getCachedDraws({ force });
+        if (!draws.length) {
+          decemberStrategyData = null;
+          decemberSelectedYear = null;
+          decemberSelectedNumero = null;
+          renderDecemberSummary();
+          if (decemberWatchlistEl) {
+            decemberWatchlistEl.innerHTML = "<p class='december-empty'>Aún no hay sorteos de diciembre cargados.</p>";
+          }
+          if (decemberDetailEl) {
+            decemberDetailEl.innerHTML = "<p class='hint'>Cuando se registren sorteos en diciembre verás aquí la estrategia.</p>";
+          }
+          renderDecemberReminders();
+          return;
+        }
+        decemberStrategyData = computeDecemberStrategy(draws, {
+          referenceDate: new Date(),
+          getSymbol,
+        });
+        const years = decemberStrategyData?.years || [];
+        if (!years.length) {
+          decemberSelectedYear = null;
+          decemberSelectedNumero = null;
+        } else if (!decemberSelectedYear || !years.includes(decemberSelectedYear)) {
+          decemberSelectedYear = years[0];
+        }
+        syncDecemberYearOptions();
+        const activeWatchers =
+          decemberStrategyData.watchersByYear?.get(decemberSelectedYear) || [];
+        if (activeWatchers.length) {
+          const hasSelected = activeWatchers.some((watcher) => watcher.numero === decemberSelectedNumero);
+          if (!hasSelected) {
+            decemberSelectedNumero = activeWatchers[0].numero;
+          }
+        } else {
+          decemberSelectedNumero = null;
+        }
+        renderDecemberSummary();
+        renderDecemberWatchlist();
+        renderDecemberDetail();
+        renderDecemberReminders();
+      } catch (err) {
+        console.error("december panel error", err);
+        if (decemberSummaryEl) {
+          decemberSummaryEl.innerHTML =
+            "<span class='text-danger'>No se pudo calcular la estrategia de diciembre. Reintenta más tarde.</span>";
+        }
+      }
+    }
+
+    decemberWatchlistEl?.addEventListener("click", (event) => {
+      const item = event.target.closest("[data-december-num]");
+      if (!item) return;
+      const numero = Number(item.dataset.decemberNum);
+      if (!Number.isFinite(numero)) return;
+      decemberSelectedNumero = numero;
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    });
+
+    decemberYearSelect?.addEventListener("change", () => {
+      const year = parseInt(decemberYearSelect.value, 10);
+      if (!Number.isFinite(year)) return;
+      decemberSelectedYear = year;
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    });
+
+    decemberRefreshBtn?.addEventListener("click", () => {
+      refreshDecemberStrategyPanel({ force: true });
+    });
+
+    decemberSearchBtn?.addEventListener("click", handleDecemberSearch);
+    decemberSearchInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleDecemberSearch();
+      }
+    });
+    decemberClearBtn?.addEventListener("click", () => {
+      if (decemberSearchInput) decemberSearchInput.value = "";
+      const watchers =
+        decemberStrategyData?.watchersByYear?.get(decemberSelectedYear) || [];
+      decemberSelectedNumero = watchers[0]?.numero ?? null;
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    });
 
     function setNotebookInputs(values = {}) {
       HORARIO_KEYS.forEach((turno) => {
@@ -5058,6 +5577,7 @@
         refreshNotebookList(),
         renderMemoryBoard({ forceReload: true }),
         renderGapPanel({ forceReload: true }),
+        refreshDecemberStrategyPanel({ force: true }),
       ]);
       await refreshPatternsPanel({ force: true });
       await renderStrategiesPanel({ force: true, skipEnsure: true });
@@ -5078,6 +5598,7 @@
     }
 
     await bootstrapExtendedPanels();
+    await refreshDecemberStrategyPanel();
 
     const hypoFechaInput = document.getElementById("h-fecha");
     const hypoTurnoSelect = document.getElementById("h-turno");

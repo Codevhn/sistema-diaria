@@ -729,6 +729,369 @@ button.ghost:hover {
   gap: 18px;
 }
 
+.december-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 18px);
+  padding: 20px;
+  margin-bottom: 28px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.december-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.december-card__head h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.december-card__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.december-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.december-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  min-width: 180px;
+}
+
+.december-controls select,
+.december-controls input {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  color: var(--color-text);
+  min-height: 34px;
+  font-family: inherit;
+}
+
+.december-search {
+  display: flex;
+  gap: 8px;
+}
+
+.december-summary {
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  line-height: 1.4;
+  box-shadow: var(--shadow-soft);
+}
+
+.december-panels {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(320px, 1fr);
+  gap: 20px;
+}
+
+.december-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.december-watchlist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.december-watch {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--color-surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.december-watch:hover {
+  border-color: rgba(37, 99, 235, 0.5);
+  transform: translateY(-1px);
+}
+
+.december-watch--active {
+  border-color: rgba(37, 99, 235, 0.75);
+  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.15);
+  background: var(--color-surface);
+}
+
+.december-watch--due {
+  border-color: rgba(236, 72, 153, 0.45);
+}
+
+.december-watch--tracking {
+  border-color: rgba(37, 99, 235, 0.45);
+}
+
+.december-watch--hit {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.december-watch--missed {
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.december-watch--completed {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.december-watch__number {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.december-watch__symbol {
+  font-size: 1rem;
+  color: var(--color-muted);
+}
+
+.december-watch__status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.december-badge {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 0.12rem 0.65rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.december-badge--due {
+  border-color: rgba(236, 72, 153, 0.4);
+  background: rgba(236, 72, 153, 0.16);
+  color: #be185d;
+}
+
+.december-badge--tracking {
+  border-color: rgba(37, 99, 235, 0.45);
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-accent);
+}
+
+.december-badge--hit {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.december-badge--completed {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.1);
+  color: #047857;
+}
+
+.december-badge--missed {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.december-badge--origin {
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(148, 163, 184, 0.12);
+  color: rgba(71, 85, 105, 1);
+}
+
+.december-detail {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.december-detail__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.december-detail__number {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.december-detail__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.december-window-chip {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  background: var(--color-surface-2);
+  font-size: 0.85rem;
+  min-width: 140px;
+}
+
+.december-window-chip strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.december-detail__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.december-sequences {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.december-sequence {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--color-surface-2);
+}
+
+.december-sequence__year {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+}
+
+.december-sequence__timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.december-hit {
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  padding: 4px 10px;
+  background: var(--color-surface);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.december-hit strong {
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.december-gap {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.december-reminders {
+  margin-top: 16px;
+  border: 1px dashed rgba(37, 99, 235, 0.3);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.december-reminders__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.december-reminder {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  background: var(--color-surface-2);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.december-reminder strong {
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.december-reminder button {
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: transparent;
+  color: #b91c1c;
+  border-radius: 999px;
+  padding: 0.2rem 0.75rem;
+  cursor: pointer;
+}
+
+.december-reminder button:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.december-empty {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  padding: 0.5rem 0;
+}
+
 .strategy-card {
   background: linear-gradient(145deg, #fff, var(--color-surface-2));
   border: 1px solid rgba(37, 99, 235, 0.25);
@@ -1377,6 +1740,20 @@ button.ghost:hover {
 
 .muted {
   color: var(--color-muted);
+}
+
+@media (max-width: 960px) {
+  .december-panels {
+    grid-template-columns: 1fr;
+  }
+  .december-watchlist {
+    max-height: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .december-watch {
+    flex: 1 1 220px;
+  }
 }
 
 @media (max-width: 800px) {
