@@ -1191,6 +1191,10 @@
     let guideLoadError = null;
     let userPreferences = {};
     let userPrefsSaveTimer = null;
+    let decemberStrategyData = null;
+    let decemberSelectedYear = null;
+    let decemberSelectedNumero = null;
+    let decemberReminderStore = {};
 
     async function initUserPreferences(user) {
       if (!user?.id) return;
@@ -1984,10 +1988,6 @@
       contexto: null,
       patrones: null,
     };
-    let decemberStrategyData = null;
-    let decemberSelectedYear = null;
-    let decemberSelectedNumero = null;
-    let decemberReminderStore = {};
     let pega3DrawCache = [];
     let pega3ActiveDrawId = null;
     let pega3AnalysisCache = null;
