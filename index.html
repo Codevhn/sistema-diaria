@@ -2711,13 +2711,36 @@
     });
     renderStrategyFilters();
 
-    const describeDecemberTurns = (turnHints = []) => {
+    const describeDecemberTurns = (turnHints = [], total = 0) => {
       if (!Array.isArray(turnHints) || !turnHints.length) return "";
-      const [first] = turnHints;
-      if (!first?.pair) return "";
-      const label = first.pair.replace("->", " → ");
-      const pct = first.weight ? `${Math.round(first.weight * 100)}%` : "";
-      return `${label}${pct ? ` · ${pct}` : ""}`;
+      return turnHints
+        .slice(0, 2)
+        .map((hint) => {
+          const label = hint.pair?.replace("->", " → ") || "";
+          const countLabel = hint.count
+            ? `(${hint.count}${total ? `/${total}` : ""} repeticiones)`
+            : "";
+          const pct = hint.weight ? `${Math.round(hint.weight * 100)}%` : "";
+          return [label, countLabel, pct].filter(Boolean).join(" · ");
+        })
+        .join(" · ");
+    };
+
+    const describeDecemberEvent = (event) => {
+      if (!event) return "Repetición sin detalles previos.";
+      const gap = Number.isFinite(event.gapFromPrev)
+        ? event.gapFromPrev
+        : Number.isFinite(event.gapFromStart)
+        ? event.gapFromStart
+        : null;
+      const gapLabel = gap
+        ? gap === 1
+          ? "al día siguiente"
+          : `tras ${gap} días`
+        : "tras varios días";
+      const turns = `${event.from?.horario || "—"} → ${event.to?.horario || "—"}`;
+      const yearLabel = event.year ? ` (${event.year})` : "";
+      return `${turns}${gap ? ` (+${gap}d)` : ""} · ${gapLabel}${yearLabel}.`;
     };
 
     const describeWatcherStatus = (watcher) => {
@@ -2937,14 +2960,21 @@
       const windowsWrap = document.createElement("div");
       windowsWrap.className = "december-detail__chips";
       if (entry.windows?.length) {
-        entry.windows.slice(0, 3).forEach((window) => {
+        entry.windows.slice(0, 3).forEach((window, index) => {
           const chip = document.createElement("div");
           chip.className = "december-window-chip";
           const confidence = Math.round((window.confidence || 0) * 100);
+          const turnSummary = describeDecemberTurns(window.turnHints, window.count);
           chip.innerHTML = `
-            <strong>+${window.gap} días</strong>
-            ${confidence}% de acierto · tolerancia ±${window.tolerance}d
-            ${window.turnHints?.length ? `<br /><small>${describeDecemberTurns(window.turnHints)}</small>` : ""}
+            <div class="december-window-chip__head">
+              <div>
+                <small>${index === 0 ? "Ventana principal" : "Alternativa"}</small>
+                <strong>+${window.gap} días</strong>
+              </div>
+              <span class="december-pill">${confidence}% (${window.count}/${entry.totalRepeats || window.count})</span>
+            </div>
+            <div class="december-window-chip__meta">Tolerancia ±${window.tolerance}d · ventana contada desde el primer impacto del mes.</div>
+            ${turnSummary ? `<div class="december-window-chip__turns">Horarios frecuentes: ${turnSummary}</div>` : ""}
           `;
           windowsWrap.appendChild(chip);
         });
@@ -2991,10 +3021,7 @@
                 meta.textContent = "Primer impacto del mes (origen).";
               } else {
                 const event = segment.events?.[index - 1];
-                const gap = Number.isFinite(event?.gapFromPrev) ? event.gapFromPrev : null;
-                meta.textContent = gap
-                  ? `Reaparece ${gap === 1 ? "al día siguiente" : `tras ${gap} días`}.`
-                  : "Reaparece tras varios días.";
+                meta.textContent = describeDecemberEvent(event);
               }
               row.append(title, meta);
               timeline.appendChild(row);
@@ -3008,7 +3035,49 @@
         empty.textContent = "Este número aún no registra diciembre suficientes para dibujar una secuencia.";
         sequences.appendChild(empty);
       }
-      decemberDetailEl.append(head, chips, windowsWrap, actions, sequences);
+      const repeats = document.createElement("div");
+      repeats.className = "december-detail__events";
+      const repeatsTitle = document.createElement("h4");
+      repeatsTitle.textContent = "Repeticiones observadas";
+      repeats.appendChild(repeatsTitle);
+
+      const events = entry.history
+        .flatMap((segment) =>
+          (segment.events || []).map((event) => ({
+            ...event,
+            year: segment.year,
+          }))
+        )
+        .sort((a, b) => (b.to?.fecha || "").localeCompare(a.to?.fecha || ""));
+
+      if (events.length) {
+        events.forEach((event) => {
+          const row = document.createElement("div");
+          row.className = "december-repeat-row";
+          const gap = Number.isFinite(event.gapFromPrev)
+            ? `+${event.gapFromPrev}d`
+            : Number.isFinite(event.gapFromStart)
+            ? `+${event.gapFromStart}d desde el origen`
+            : "Gap desconocido";
+          const fromDate = event.from?.fecha ? formatFriendlyDate(event.from.fecha) : "—";
+          const toDate = event.to?.fecha ? formatFriendlyDate(event.to.fecha) : "—";
+          const fromTurn = event.from?.horario ? ` · ${event.from.horario}` : "";
+          const toTurn = event.to?.horario ? ` · ${event.to.horario}` : "";
+          row.innerHTML = `
+            <div class="december-repeat-row__gap"><strong>${gap}</strong></div>
+            <div class="december-repeat-row__dates">${fromDate}${fromTurn} → ${toDate}${toTurn}</div>
+            <div class="december-repeat-row__meta">${describeDecemberEvent(event)}</div>
+          `;
+          repeats.appendChild(row);
+        });
+      } else {
+        const empty = document.createElement("p");
+        empty.className = "december-empty";
+        empty.textContent = "Aún no hay repeticiones para listar horarios exactos.";
+        repeats.appendChild(empty);
+      }
+
+      decemberDetailEl.append(head, chips, windowsWrap, actions, repeats, sequences);
       if (watcher) {
         const statusInfo = describeWatcherStatus(watcher);
         const status = document.createElement("p");
