@@ -2716,8 +2716,15 @@
       const [first] = turnHints;
       if (!first?.pair) return "";
       const label = first.pair.replace("->", " → ");
-      const pct = first.weight ? `${Math.round(first.weight * 100)}%` : "";
-      return `${label}${pct ? ` · ${pct}` : ""}`;
+      const parts = [];
+      if (first.count) {
+        parts.push(`${first.count} ${first.count === 1 ? "evento" : "eventos"}`);
+      }
+      if (first.weight) {
+        parts.push(`${Math.round(first.weight * 100)}%`);
+      }
+      if (!parts.length) return label;
+      return `${label} · ${parts.join(" · ")}`;
     };
 
     const describeWatcherStatus = (watcher) => {
@@ -2940,11 +2947,26 @@
         entry.windows.slice(0, 3).forEach((window) => {
           const chip = document.createElement("div");
           chip.className = "december-window-chip";
-          const confidence = Math.round((window.confidence || 0) * 100);
+          const repeatsLabel =
+            window.count === 1 ? "1 repetición registrada" : `${window.count || 0} repeticiones registradas`;
+          const example = window.examples?.[0];
+          const exampleText =
+            example && example.from?.fecha && example.to?.fecha
+              ? `${formatFriendlyDate(example.from.fecha)} · ${example.from.horario || "—"} → ${formatFriendlyDate(example.to.fecha)} · ${
+                  example.to.horario || "—"
+                }`
+              : "";
+          const turnHint = window.turnHints?.length ? describeDecemberTurns(window.turnHints) : "";
           chip.innerHTML = `
             <strong>+${window.gap} días</strong>
-            ${confidence}% de acierto · tolerancia ±${window.tolerance}d
-            ${window.turnHints?.length ? `<br /><small>${describeDecemberTurns(window.turnHints)}</small>` : ""}
+            <div class="hint small">${repeatsLabel}</div>
+            ${exampleText ? `<div class="hint">Ej: ${exampleText}</div>` : ""}
+            ${
+              turnHint
+                ? `<div class="hint small">Horarios frecuentes: ${turnHint}</div>`
+                : ""
+            }
+            <div class="hint small">Ventana estimada ±${window.tolerance || 0}d.</div>
           `;
           windowsWrap.appendChild(chip);
         });

@@ -6,6 +6,7 @@ const HORARIO_ORDER = {
   "3PM": 1,
   "9PM": 2,
 };
+const MAX_WINDOW_EXAMPLES = 3;
 
 const defaultSymbolGetter = () => "";
 
@@ -71,7 +72,7 @@ const buildWindowsFromEvents = (events = [], totalRepeats = 0) => {
     const gap = Math.max(1, Math.round(baseGap));
     let stat = statMap.get(gap);
     if (!stat) {
-      stat = { gap, count: 0, turnPairs: new Map() };
+      stat = { gap, count: 0, turnPairs: new Map(), examples: [] };
       statMap.set(gap, stat);
     }
     stat.count += 1;
@@ -79,6 +80,17 @@ const buildWindowsFromEvents = (events = [], totalRepeats = 0) => {
     const toTurn = event.to?.horario || "—";
     const pairKey = `${fromTurn}->${toTurn}`;
     stat.turnPairs.set(pairKey, (stat.turnPairs.get(pairKey) || 0) + 1);
+    if (
+      stat.examples.length < MAX_WINDOW_EXAMPLES &&
+      event.from?.fecha &&
+      event.to?.fecha
+    ) {
+      stat.examples.push({
+        year: event.year,
+        from: event.from,
+        to: event.to,
+      });
+    }
   });
   if (!statMap.size) return [];
   return Array.from(statMap.values())
@@ -103,6 +115,7 @@ const buildWindowsFromEvents = (events = [], totalRepeats = 0) => {
         confidence,
         tolerance,
         turnHints,
+        examples: stat.examples,
       };
     });
 };
