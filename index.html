@@ -468,9 +468,12 @@
       </p>
       <div id="transform-panel" class="card">
         <div class="card-head">🔄 Transformaciones Visuales</div>
-        <div class="row">
-          <input id="t-numero" placeholder="Ej. 25" />
-          <button id="t-ver">Ver transformaciones</button>
+        <div class="transform-controls">
+          <label>
+            Número base
+            <input id="t-numero" placeholder="Ej. 25" maxlength="2" inputmode="numeric" />
+          </label>
+          <button id="t-ver" class="btn-primary">Ver transformaciones</button>
         </div>
         <div id="t-output"></div>
       </div>
@@ -2775,6 +2778,91 @@
       }
     };
 
+    const WATCH_TURN_LABELS = {
+      "11AM": "11 AM",
+      "3PM": "3 PM",
+      "9PM": "9 PM",
+    };
+    const MAX_WATCH_SCHEDULE_DAYS = 7;
+    const formatWatchDayLabel = (date) => {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+      const dowLabel = DOW_FULL_LABEL[date.getDay()] || "";
+      const shortDow = dowLabel ? `${dowLabel.slice(0, 3)}.` : "";
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = MONTH_ABBR[date.getMonth()] || "";
+      return `${shortDow ? `${shortDow} ` : ""}${day} ${month}`.trim();
+    };
+    const getWatcherHighlightTurns = (watcher) => {
+      const highlights = new Set();
+      const turnHints = watcher?.activeWindow?.turnHints || [];
+      turnHints.forEach((hint) => {
+        if (!hint?.pair) return;
+        const [, toTurn] = hint.pair.split("->");
+        const normalized = (toTurn || "").trim();
+        if (normalized && HORARIO_KEYS.includes(normalized)) {
+          highlights.add(normalized);
+        }
+      });
+      const hitTurn = watcher?.activeWindow?.hit?.horario;
+      if (hitTurn && HORARIO_KEYS.includes(hitTurn)) {
+        highlights.add(hitTurn);
+      }
+      return highlights;
+    };
+    const buildWatcherSchedule = (watcher) => {
+      if (!watcher?.activeWindow) {
+        return "<div class='december-watch__schedule'><div class='december-watch__schedule-empty'>Aún sin ventana estimada para este número.</div></div>";
+      }
+      const startIso = watcher.activeWindow.windowStart || watcher.activeWindow.expectedDate;
+      const endIso = watcher.activeWindow.windowEnd || watcher.activeWindow.windowStart || watcher.activeWindow.expectedDate;
+      const startDate = parseISODate(startIso);
+      const endDate = parseISODate(endIso);
+      if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime()) || !(endDate instanceof Date) || Number.isNaN(endDate.getTime())) {
+        return "<div class='december-watch__schedule'><div class='december-watch__schedule-empty'>No se pudo dibujar el calendario de esta ventana.</div></div>";
+      }
+      const days = [];
+      let cursor = new Date(startDate);
+      let guard = 0;
+      while (cursor.getTime() <= endDate.getTime() && guard < MAX_WATCH_SCHEDULE_DAYS) {
+        days.push({
+          label: formatWatchDayLabel(cursor),
+        });
+        cursor = new Date(cursor.getTime() + DAY_MS);
+        guard += 1;
+      }
+      if (!days.length) {
+        days.push({ label: formatWatchDayLabel(startDate) });
+      }
+      const highlights = getWatcherHighlightTurns(watcher);
+      const dayBlocks = days
+        .map((day) => `
+          <div class="december-watch__day">
+            <div class="december-watch__day-label">${day.label}</div>
+            <div class="december-watch__turns">
+              ${HORARIO_KEYS.map((turno) => {
+                const activeClass = highlights.has(turno) ? "is-highlighted" : "";
+                return `<span class="december-watch__turn ${activeClass}">${WATCH_TURN_LABELS[turno] || turno}</span>`;
+              }).join("")}
+            </div>
+          </div>
+        `)
+        .join("");
+      const toleranceText =
+        Number.isFinite(watcher.activeWindow?.gap) && Number.isFinite(watcher.activeWindow?.tolerance)
+          ? `+${watcher.activeWindow.gap}d · ±${watcher.activeWindow.tolerance}d`
+          : "";
+      const rangeLabel = formatWindowRange(startIso, endIso);
+      return `
+        <div class="december-watch__schedule">
+          <div class="december-watch__schedule-head">
+            <span>${rangeLabel && rangeLabel !== "—" ? `Ventana ${rangeLabel}` : "Ventana estimada"}</span>
+            ${toleranceText ? `<span class="hint small">${toleranceText}</span>` : ""}
+          </div>
+          <div class="december-watch__calendar">${dayBlocks}</div>
+        </div>
+      `;
+    };
+
     function syncDecemberYearOptions() {
       if (!decemberYearSelect) return;
       const years = decemberStrategyData?.years || [];
@@ -2844,6 +2932,7 @@
         const statusInfo = describeWatcherStatus(watcher);
         const badgeLabel = statusInfo.label;
         const turnHint = describeDecemberTurns(watcher.activeWindow?.turnHints);
+        const scheduleMarkup = buildWatcherSchedule(watcher);
         item.innerHTML = `
           <div class="december-watch__number">
             <span>${formatNumber(watcher.numero)}</span>
@@ -2855,6 +2944,7 @@
             ${statusInfo.detail ? `<small>${statusInfo.detail}</small>` : ""}
             ${turnHint ? `<small>${turnHint}</small>` : ""}
           </div>
+          ${scheduleMarkup}
         `;
         decemberWatchlistEl.appendChild(item);
       });
@@ -6931,14 +7021,12 @@
           const item = document.createElement("div");
           item.className = "bias-ranking-item";
           const ratio = Math.max(0, Math.min(1, entry.turnRatio || 0));
-          const hue = 150 - ratio * 90;
-          const light = 45 + Math.min(index, 5) * 3;
-          const accent = `hsl(${hue}, 75%, ${light}%)`;
-          const meterColor = `hsl(${hue + 12}, 85%, ${Math.min(light + 18, 82)}%)`;
-          const glow = "rgba(8, 14, 32, 0.75)";
+          const accentStrength = 0.35 + ratio * 0.4;
+          const meterStrength = 0.55 + ratio * 0.3;
+          const accent = `rgba(37, 99, 235, ${accentStrength})`;
+          const meterColor = `rgba(37, 99, 235, ${meterStrength})`;
           item.style.setProperty("--rank-accent", accent);
           item.style.setProperty("--rank-meter", meterColor);
-          item.style.setProperty("--rank-glow", glow);
 
           const numberEl = document.createElement("div");
           numberEl.className = "bias-ranking-item__number";
