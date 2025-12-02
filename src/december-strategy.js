@@ -33,6 +33,18 @@ const diffDays = (later, earlier) => {
   return Math.round((later.getTime() - earlier.getTime()) / DAY_MS);
 };
 
+const clampDate = (date, minDate, maxDate) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  const minTime =
+    minDate instanceof Date && !Number.isNaN(minDate.getTime()) ? minDate.getTime() : null;
+  const maxTime =
+    maxDate instanceof Date && !Number.isNaN(maxDate.getTime()) ? maxDate.getTime() : null;
+  let time = date.getTime();
+  if (minTime !== null && time < minTime) time = minTime;
+  if (maxTime !== null && time > maxTime) time = maxTime;
+  return new Date(time);
+};
+
 const sanitizeDecemberDraws = (rawDraws = [], { includeTest = false } = {}) => {
   const draws = [];
   rawDraws.forEach((draw) => {
@@ -127,6 +139,9 @@ const buildWatcherForYear = (entry, yearData, { referenceDate }) => {
   const baseDate = parseDrawDate(yearData.hits[0]?.fecha);
   if (!baseDate) return null;
   const windows = entry.windows || [];
+  const decemberStart = new Date(`${yearData.year}-12-01T00:00:00`);
+  const decemberEnd = new Date(`${yearData.year}-12-31T23:59:59`);
+  const clampToDecember = (value) => clampDate(value, decemberStart, decemberEnd);
   const evaluationDate =
     yearData.year === referenceDate.getFullYear()
       ? referenceDate
@@ -136,6 +151,9 @@ const buildWatcherForYear = (entry, yearData, { referenceDate }) => {
     if (!targetDate) return null;
     const start = addDays(targetDate, -window.tolerance);
     const end = addDays(targetDate, window.tolerance);
+    const boundedTarget = clampToDecember(targetDate);
+    const boundedStart = clampToDecember(start);
+    const boundedEnd = clampToDecember(end);
     const match = yearData.hits.slice(1).find((hit) => {
       const hitDate = parseDrawDate(hit.fecha);
       if (!hitDate) return false;
@@ -149,9 +167,9 @@ const buildWatcherForYear = (entry, yearData, { referenceDate }) => {
     let status = "upcoming";
     if (match) {
       status = "hit";
-    } else if (evaluationDate && start && evaluationDate < start) {
+    } else if (evaluationDate && boundedStart && evaluationDate < boundedStart) {
       status = "tracking";
-    } else if (evaluationDate && end && evaluationDate > end) {
+    } else if (evaluationDate && boundedEnd && evaluationDate > boundedEnd) {
       status = "missed";
     } else {
       status = "due";
@@ -160,9 +178,9 @@ const buildWatcherForYear = (entry, yearData, { referenceDate }) => {
       gap: window.gap,
       tolerance: window.tolerance,
       confidence: window.confidence,
-      expectedDate: toISODate(targetDate),
-      windowStart: toISODate(start),
-      windowEnd: toISODate(end),
+      expectedDate: toISODate(boundedTarget),
+      windowStart: toISODate(boundedStart),
+      windowEnd: toISODate(boundedEnd),
       hit: match
         ? {
             fecha: match.fecha,
