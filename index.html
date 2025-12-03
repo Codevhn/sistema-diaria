@@ -3328,18 +3328,7 @@
         return;
       }
       notebookList.innerHTML = "";
-      const sortedEntries = entries
-        .slice()
-        .sort((a, b) => {
-          const hasFechaA = typeof a.fecha === "string" && a.fecha;
-          const hasFechaB = typeof b.fecha === "string" && b.fecha;
-          if (hasFechaA && hasFechaB) return a.fecha.localeCompare(b.fecha);
-          if (hasFechaA) return -1;
-          if (hasFechaB) return 1;
-          const createdA = Number.isFinite(a.createdAt) ? a.createdAt : 0;
-          const createdB = Number.isFinite(b.createdAt) ? b.createdAt : 0;
-          return createdA - createdB;
-        });
+      const sortedEntries = entries.slice().reverse();
       sortedEntries.forEach((entry) => {
         const card = document.createElement("article");
         card.className = "notebook-card";
