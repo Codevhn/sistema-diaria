@@ -3341,8 +3341,20 @@
         numbers.className = "notebook-card__numbers";
         HORARIO_KEYS.forEach((turno) => {
           const span = document.createElement("span");
-          const number = entry.numeros?.[turno] ?? "--";
-          span.innerHTML = `<small>${turno}</small><strong>${number || "--"}</strong>`;
+          const numberRaw = entry.numeros?.[turno];
+          const hasNumber = numberRaw !== undefined && numberRaw !== null && numberRaw !== "";
+          const numericValue = hasNumber ? parseInt(numberRaw, 10) : null;
+          const formatted = hasNumber && Number.isFinite(numericValue)
+            ? formatNumber(numericValue)
+            : hasNumber
+              ? String(numberRaw)
+              : "--";
+          const symbol = hasNumber && Number.isFinite(numericValue) ? getSymbol(numericValue) || "" : "";
+          span.innerHTML = `
+            <small>${turno}</small>
+            <strong>${formatted}</strong>
+            ${symbol ? `<span class="notebook-card__symbol">${symbol}</span>` : ""}
+          `;
           numbers.appendChild(span);
         });
         card.appendChild(numbers);

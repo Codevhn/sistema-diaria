@@ -680,6 +680,17 @@ button.ghost:hover {
   color: var(--color-muted);
 }
 
+.notebook-card__numbers strong {
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.12em;
+}
+
+.notebook-card__symbol {
+  font-size: 1rem;
+  color: var(--color-muted);
+}
+
 .notebook-card__actions {
   display: flex;
   gap: 10px;
