@@ -1899,6 +1899,7 @@
       "Viernes",
       "Sábado",
     ];
+    const NOTEBOOK_DOW_ORDER = [1, 2, 3, 4, 5, 6, 0];
     const BASELINE_DOW_RATIO = 1 / 7;
     const DEFAULT_RANKING_TURN = TURNOS[TURNOS.length - 1] || TURNOS[0];
     let biasPanelState = {
@@ -3320,6 +3321,15 @@
       }
     });
 
+    const getNotebookDowWeight = (fecha) => {
+      if (!fecha) return NOTEBOOK_DOW_ORDER.length;
+      const parsed = parseISODate(fecha);
+      if (!(parsed instanceof Date) || Number.isNaN(parsed.getTime())) return NOTEBOOK_DOW_ORDER.length;
+      const dow = parsed.getDay();
+      const index = NOTEBOOK_DOW_ORDER.indexOf(dow);
+      return index === -1 ? NOTEBOOK_DOW_ORDER.length : index;
+    };
+
     async function refreshNotebookList() {
       if (!notebookList) return;
       const entries = await DB.listNotebookEntries();
@@ -3328,7 +3338,16 @@
         return;
       }
       notebookList.innerHTML = "";
-      entries.forEach((entry) => {
+      const sortedEntries = entries
+        .slice()
+        .sort((a, b) => {
+          const weightA = getNotebookDowWeight(a.fecha);
+          const weightB = getNotebookDowWeight(b.fecha);
+          if (weightA !== weightB) return weightA - weightB;
+          if (a.fecha && b.fecha) return a.fecha.localeCompare(b.fecha);
+          return 0;
+        });
+      sortedEntries.forEach((entry) => {
         const card = document.createElement("article");
         card.className = "notebook-card";
         card.innerHTML = `
