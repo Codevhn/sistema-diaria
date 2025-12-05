@@ -350,6 +350,18 @@
                 </div>
               </div>
             </div>
+            <div class="pega3-generator" aria-live="polite">
+              <div class="pega3-generator__head">
+                <div>
+                  <h4>Trío aleatorio desde conversiones</h4>
+                  <p class="hint small">Usa tus tres pares como base y deja que el sistema combine conversiones simples, ajustes y compuestas para proponerte un trío diferente.</p>
+                </div>
+                <button type="button" id="pega3-btn-generar-trio" class="btn-outline small">Obtener trío</button>
+              </div>
+              <div id="pega3-generator-output" class="pega3-generator__output">
+                <p class="hint small">Ingresa los tres pares para desbloquear una propuesta.</p>
+              </div>
+            </div>
             <button id="pega3-btn-registrar" class="btn-primary">Guardar sorteo</button>
             <button id="pega3-btn-cargar" class="btn-outline">Actualizar historial</button>
             <p class="hint small">La tabla Pega3 se mantiene separada; puedes registrar históricos sin afectar La Diaria.</p>
@@ -1139,6 +1151,7 @@
       corregirFechasDesfasadas,
     } from "./src/maintenance.js";
     import { mostrarTransformaciones } from "./src/transform-visual.js";
+    import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
     import {
       rebuildKnowledge,
@@ -5186,31 +5199,65 @@
         .forEach((month) => {
           const row = document.createElement("article");
           row.className = "monthly-row";
+
+          const head = document.createElement("div");
+          head.className = "monthly-row__head";
           const meta = document.createElement("div");
           meta.className = "monthly-row__meta";
           const label = formatMonthLabel(month.year, month.month);
-          meta.innerHTML = `<strong>${label}</strong><span>${month.total} registros</span>`;
-          row.appendChild(meta);
-          row.appendChild(buildMonthlyBlock("Arranque", month.first));
-          row.appendChild(buildMonthlyBlock("Mitad del mes", month.mid, formatEntryList(month.midWindow)));
-          row.appendChild(buildMonthlyBlock("Cierre", month.last));
+          meta.innerHTML = `<strong>${label}</strong><span>${month.total} sorteos reales</span>`;
+          head.appendChild(meta);
+
+          if (month.first?.fecha || month.last?.fecha) {
+            const range = document.createElement("div");
+            range.className = "monthly-row__range";
+            const startLabel = month.first?.fecha ? formatFriendlyDate(month.first.fecha) : "Sin inicio";
+            const endLabel = month.last?.fecha ? formatFriendlyDate(month.last.fecha) : "Sin cierre";
+            range.innerHTML = `<span>${startLabel}</span><span>→</span><span>${endLabel}</span>`;
+            head.appendChild(range);
+          }
+          row.appendChild(head);
+
+          const grid = document.createElement("div");
+          grid.className = "monthly-row__grid";
+          grid.appendChild(buildMonthlyBlock("Arranque", month.first));
+          grid.appendChild(buildMonthlyBlock("Mitad del mes", month.mid, formatEntryList(month.midWindow)));
+          grid.appendChild(buildMonthlyBlock("Cierre", month.last));
+
           const tailBlock = document.createElement("div");
           tailBlock.className = "monthly-block";
           const tailLabel = document.createElement("label");
           tailLabel.textContent = "Últimas jugadas";
           tailBlock.appendChild(tailLabel);
-          const tailText = document.createElement("small");
-          const items = month.tail
-            .slice()
-            .map((entry) => {
-              const formatted = `${formatNumber(entry.numero)}${getSymbol(entry.numero) ? ` ${getSymbol(entry.numero)}` : ""}`;
-              const fechaFmt = entry.fecha ? formatFriendlyDate(entry.fecha) : "";
-              return `${formatted} (${fechaFmt})`;
-            })
-            .join(" · ");
-          tailText.textContent = items || "Sin datos";
-          tailBlock.appendChild(tailText);
-          row.appendChild(tailBlock);
+          if (month.tail?.length) {
+            const tailList = document.createElement("ul");
+            tailList.className = "monthly-tail";
+            month.tail
+              .slice()
+              .reverse()
+              .forEach((entry) => {
+                const item = document.createElement("li");
+                const value = document.createElement("strong");
+                const formatted = `${formatNumber(entry.numero)}${getSymbol(entry.numero) ? ` ${getSymbol(entry.numero)}` : ""}`;
+                value.textContent = formatted;
+                const metaDetail = document.createElement("span");
+                const detailBits = [];
+                if (entry.fecha) detailBits.push(formatFriendlyDate(entry.fecha));
+                if (entry.horario) detailBits.push(entry.horario);
+                if (entry.pais) detailBits.push(entry.pais);
+                metaDetail.textContent = detailBits.join(" · ") || "Sin fecha";
+                item.append(value, metaDetail);
+                tailList.appendChild(item);
+              });
+            tailBlock.appendChild(tailList);
+          } else {
+            const emptyTail = document.createElement("small");
+            emptyTail.textContent = "Sin datos recientes";
+            tailBlock.appendChild(emptyTail);
+          }
+          grid.appendChild(tailBlock);
+          row.appendChild(grid);
+
           const actions = document.createElement("div");
           actions.className = "monthly-row__actions";
           const viewStart = document.createElement("button");
@@ -6028,6 +6075,8 @@
       document.getElementById("pega3-par-2"),
       document.getElementById("pega3-par-3"),
     ];
+    const pega3GeneratorBtn = document.getElementById("pega3-btn-generar-trio");
+    const pega3GeneratorOutput = document.getElementById("pega3-generator-output");
     const pega3Historial = document.getElementById("pega3-historial");
     const pega3Resumen = document.getElementById("pega3-resumen");
     const pega3Sesgos = document.getElementById("pega3-sesgos");
@@ -7242,6 +7291,11 @@
       SV: "El Salvador",
     };
     const PEGA3_COLOR_BUCKETS = 6;
+    const PEGA3_CONVERSION_LABELS = {
+      simple: "Conversión simple",
+      ajuste: "Ajuste (100−n)",
+      composite: "Conversión compuesta",
+    };
 
     function detectPega3Turno(now = new Date()) {
       const hour = now.getHours();
@@ -7253,6 +7307,47 @@
     function updatePega3TurnPointer(value) {
       const idx = PEGA3_TURN_SEQUENCE.indexOf(value);
       pega3TurnPointer = idx >= 0 ? idx : 0;
+    }
+
+    function normalizeTwoDigit(numero) {
+      if (!Number.isFinite(numero)) return null;
+      const mod = numero % 100;
+      return mod < 0 ? mod + 100 : mod;
+    }
+
+    function computePega3Ajuste(numero) {
+      const normalized = normalizeTwoDigit(numero);
+      if (normalized === null) return null;
+      return (100 - normalized) % 100;
+    }
+
+    function buildPega3ConversionPool(numero) {
+      const normalized = normalizeTwoDigit(numero);
+      if (normalized === null) return [];
+      const entries = new Map();
+      const pushCandidate = (value, label) => {
+        const candidate = normalizeTwoDigit(value);
+        if (candidate === null) return;
+        if (!entries.has(candidate)) {
+          entries.set(candidate, { numero: candidate, label });
+        }
+      };
+      const simpleList = getSimpleConversions(normalized) || [];
+      simpleList.forEach((value) => pushCandidate(value, PEGA3_CONVERSION_LABELS.simple));
+      const ajuste = computePega3Ajuste(normalized);
+      if (ajuste !== null) pushCandidate(ajuste, PEGA3_CONVERSION_LABELS.ajuste);
+      const compositeList = getCompositeConversions(normalized) || [];
+      compositeList.forEach((value) => pushCandidate(value, PEGA3_CONVERSION_LABELS.composite));
+      if (!entries.size) {
+        pushCandidate(normalized, "Base");
+      }
+      return Array.from(entries.values());
+    }
+
+    function pickRandomEntry(list = []) {
+      if (!Array.isArray(list) || !list.length) return null;
+      const idx = Math.floor(Math.random() * list.length);
+      return list[idx] || null;
     }
 
     function advancePega3TurnPointer({ rollDate = false } = {}) {
@@ -7649,9 +7744,71 @@
       `;
     }
 
+    function resetPega3GeneratorOutput(message = "Ingresa los tres pares para desbloquear una propuesta.") {
+      if (!pega3GeneratorOutput) return;
+      pega3GeneratorOutput.innerHTML = `<p class='hint small'>${message}</p>`;
+    }
+
+    function renderPega3ConversionResult(result = []) {
+      if (!pega3GeneratorOutput) return;
+      if (!result.length) {
+        resetPega3GeneratorOutput("No hay conversiones suficientes. Revisa los pares ingresados.");
+        return;
+      }
+      const summary = document.createElement("div");
+      summary.className = "pega3-generator__summary";
+      summary.innerHTML = `
+        <strong>${result.map((entry) => formatNumber(entry.numero)).join(" – ")}</strong>
+        <span>Trío sugerido con conversiones aleatorias.</span>
+      `;
+      const grid = document.createElement("div");
+      grid.className = "pega3-generator__trio";
+      result.forEach((entry, idx) => {
+        const block = document.createElement("div");
+        block.className = "pega3-generator__item";
+        const badge = document.createElement("span");
+        badge.className = "pega3-generator__badge";
+        badge.textContent = `Par ${idx + 1}`;
+        const strong = document.createElement("strong");
+        strong.textContent = formatNumber(entry.numero);
+        const detail = document.createElement("small");
+        detail.textContent = entry.label || "Conversión";
+        const base = document.createElement("span");
+        base.className = "pega3-generator__base";
+        base.textContent = `Base ${formatNumber(entry.base)}`;
+        block.append(badge, strong, detail, base);
+        grid.appendChild(block);
+      });
+      pega3GeneratorOutput.innerHTML = "";
+      pega3GeneratorOutput.append(summary, grid);
+    }
+
+    function generatePega3ConversionTrio() {
+      if (!pega3GeneratorOutput) return;
+      const bases = pega3ParInputs
+        .map((input) => normalizePega3Value(input?.value))
+        .map((value) => (Number.isFinite(value) ? value : null));
+      if (bases.some((value) => value === null)) {
+        showToast("Completa los tres pares para generar el trío de conversiones.", { variant: "warning" });
+        resetPega3GeneratorOutput("Completa los tres pares para poder calcular el trío.");
+        return;
+      }
+      const trio = bases.map((numero) => {
+        const pool = buildPega3ConversionPool(numero);
+        const pick = pickRandomEntry(pool) || { numero, label: "Base" };
+        return { ...pick, base: numero };
+      });
+      renderPega3ConversionResult(trio);
+    }
+
+    resetPega3GeneratorOutput();
     pega3SaveBtn?.addEventListener("click", handlePega3Save);
     document.getElementById("pega3-btn-cargar")?.addEventListener("click", () => refreshPega3Historial());
     document.getElementById("pega3-btn-analizar")?.addEventListener("click", () => runPega3Analysis());
+    pega3GeneratorBtn?.addEventListener("click", () => generatePega3ConversionTrio());
+    pega3ParInputs.forEach((input) => {
+      input?.addEventListener("input", () => resetPega3GeneratorOutput("Vuelve a generar el trío para reflejar los cambios."));
+    });
 
     function aplicarBonusEstrategias(predicciones = [], estrategias = [], contexto = {}) {
       if (!Array.isArray(predicciones) || !predicciones.length) return predicciones;
