@@ -3508,6 +3508,7 @@
     const abonoWindowInput = document.getElementById("abono-window");
     const abonoGenerarBtn = document.getElementById("abono-generar");
     const abonoOutput = document.getElementById("abono-output");
+    const ABONO_DEFAULT_HINT = "Configura los filtros y genera tu abono.";
     const gatilloNumInput = document.getElementById("gatillo-num");
     const gatilloPaisSelect = document.getElementById("gatillo-pais");
     const gatilloWindowInput = document.getElementById("gatillo-window");
@@ -3602,8 +3603,11 @@
       runAbonoGenerator({ force: true });
     });
     [abonoFechaInput, abonoPaisSelect, abonoWindowInput].forEach((input) => {
-      input?.addEventListener("change", () => runAbonoGenerator());
+      input?.addEventListener("change", () => {
+        resetAbonoOutput("Parámetros actualizados. Presiona \"Generar abono\" para recalcular.");
+      });
     });
+    resetAbonoOutput();
     gatilloCalcularBtn?.addEventListener("click", () => {
       runGatillo({ force: true });
     });
@@ -4344,6 +4348,18 @@
     let monthlyTrendLastAnalysis = null;
     let gatilloCache = null;
 
+    function resetAbonoOutput(message = ABONO_DEFAULT_HINT) {
+      if (!abonoOutput) return;
+      abonoOutput.innerHTML = `<p class='hint'>${message}</p>`;
+    }
+
+    function formatAbonoNumber(numero) {
+      if (!Number.isFinite(numero)) return "--";
+      const formatted = formatNumber(numero);
+      const symbol = getSymbol(numero);
+      return symbol ? `${formatted} ${symbol}` : formatted;
+    }
+
     function formatPatternWithSymbols(pattern = []) {
       if (!Array.isArray(pattern) || !pattern.length) return "";
       return pattern
@@ -4704,8 +4720,7 @@
     function renderAbono(result) {
       if (!abonoOutput) return;
       if (!result?.candidatos?.length) {
-        abonoOutput.innerHTML =
-          "<p class='hint'>No hay suficientes sorteos para este día/país en la ventana seleccionada.</p>";
+        resetAbonoOutput("No hay suficientes sorteos para este día/país en la ventana seleccionada.");
         return;
       }
       const { candidatos, abono, fechaObjetivo, dow, weeks, totalMatches, pais } = result;
@@ -4715,7 +4730,7 @@
       roulette.className = "abono-roulette";
       const display = document.createElement("div");
       display.className = "abono-roulette__display";
-      display.textContent = abono ? formatNumber(abono.numero) : "--";
+      display.textContent = abono ? formatAbonoNumber(abono.numero) : "--";
       display.dataset.abonoDisplay = "true";
       const label = document.createElement("div");
       label.className = "abono-roulette__label";
@@ -4735,7 +4750,7 @@
       candidatos.forEach((item, idx) => {
         const chip = document.createElement("div");
         chip.className = "abono-chip";
-        chip.innerHTML = `<strong>${formatNumber(item.numero)}</strong> ${item.count} repeticiones`;
+        chip.innerHTML = `<strong>${formatAbonoNumber(item.numero)}</strong> ${item.count} repeticiones`;
         if (idx === 0) chip.dataset.top = "true";
         chips.appendChild(chip);
       });
@@ -4758,12 +4773,12 @@
       abonoSpinTimer = setInterval(() => {
         iterations += 1;
         const item = pool[iterations % pool.length] || winner;
-        displayEl.textContent = item ? formatNumber(item.numero) : "--";
+        displayEl.textContent = item ? formatAbonoNumber(item.numero) : "--";
       }, 90);
       setTimeout(() => {
         clearInterval(abonoSpinTimer);
         abonoSpinTimer = null;
-        displayEl.textContent = winner ? formatNumber(winner.numero) : "--";
+        displayEl.textContent = winner ? formatAbonoNumber(winner.numero) : "--";
       }, 1400);
     }
 
@@ -9463,9 +9478,6 @@ function buildVariantEntries(profile) {
           refreshWeeklyPanel({ force: true });
           refreshMonthlyPanel({ force: true });
           refreshMonthlyTrendsPanel({ force: true });
-        }
-        if (id === "view-abono") {
-          runAbonoGenerator({ force: true });
         }
         if (id === "view-gatillo") {
           runGatillo({ force: true });
