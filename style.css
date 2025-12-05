@@ -5385,6 +5385,12 @@ button.ghost:hover {
   color: var(--color-text);
 }
 
+.monthly-block__symbol {
+  font-size: 1rem;
+  margin-left: 6px;
+  color: var(--color-muted);
+}
+
 .monthly-block small {
   display: block;
   margin-top: 2px;

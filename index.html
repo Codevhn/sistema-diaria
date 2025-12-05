@@ -5187,7 +5187,7 @@
       const numero = entry?.numero;
       const formatted = Number.isFinite(numero) ? formatNumber(numero) : "--";
       const symbol = Number.isFinite(numero) ? getSymbol(numero) : "";
-      number.textContent = symbol ? `${formatted} ${symbol}` : formatted;
+      number.innerHTML = symbol ? `${formatted} <span class="monthly-block__symbol">${symbol}</span>` : formatted;
       container.appendChild(number);
       const meta = document.createElement("small");
       meta.textContent = formatEntryTag(entry);
