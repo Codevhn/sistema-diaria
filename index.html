@@ -139,7 +139,9 @@
       </div>
 
       <div class="day-actions">
-        <button id="save-day" class="btn-primary">Guardar y registrar día</button>
+        <button id="save-day" class="btn-primary">Agregar a pendientes</button>
+        <button id="sync-day" class="btn-outline">Sincronizar con Supabase</button>
+        <span id="day-pending-indicator" class="day-pending-indicator">Sin pendientes</span>
       </div>
       <p class="hint day-hint">
         Confirma/Refuta hipótesis pendientes según los resultados válidos de la fecha seleccionada.
@@ -2390,6 +2392,54 @@
     }
 
     const saveDayBtn = document.getElementById("save-day");
+    const syncDayBtn = document.getElementById("sync-day");
+    const dayPendingIndicator = document.getElementById("day-pending-indicator");
+    const DAY_PENDING_STORAGE_KEY = "ld_pending_draws_v1";
+    let pendingDayQueue = [];
+
+    function loadPendingDayQueue() {
+      if (typeof localStorage === "undefined") return [];
+      try {
+        const raw = localStorage.getItem(DAY_PENDING_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+          .filter((entry) => entry && typeof entry.fecha === "string" && typeof entry.pais === "string" && typeof entry.horario === "string" && Number.isFinite(entry.numero))
+          .map((entry) => ({ ...entry, isTest: !!entry.isTest }));
+      } catch (err) {
+        logWarn("No se pudieron leer sorteos pendientes locales", err);
+        return [];
+      }
+    }
+
+    function persistPendingDayQueue() {
+      if (typeof localStorage === "undefined") return;
+      try {
+        if (!pendingDayQueue.length) {
+          localStorage.removeItem(DAY_PENDING_STORAGE_KEY);
+        } else {
+          localStorage.setItem(DAY_PENDING_STORAGE_KEY, JSON.stringify(pendingDayQueue));
+        }
+      } catch (err) {
+        logWarn("No se pudieron guardar sorteos pendientes locales", err);
+      }
+    }
+
+    function updatePendingIndicator() {
+      if (!dayPendingIndicator) return;
+      const count = pendingDayQueue.length;
+      if (!count) {
+        dayPendingIndicator.textContent = "Sin pendientes";
+        dayPendingIndicator.dataset.state = "empty";
+        return;
+      }
+      dayPendingIndicator.textContent = `${count} pendiente${count === 1 ? "" : "s"}`;
+      dayPendingIndicator.dataset.state = "pending";
+    }
+
+    pendingDayQueue = loadPendingDayQueue();
+    updatePendingIndicator();
     saveDayBtn?.addEventListener("click", async () => {
       const { fecha, pais } = getFilters();
       if (!fecha || !pais) {
@@ -2397,6 +2447,7 @@
         return;
       }
 
+      const paisValue = (pais || "HN").toUpperCase();
       const payloads = [];
       for (const config of SLOT_CONFIG) {
         const input = document.getElementById(config.inputId);
@@ -2431,54 +2482,94 @@
         return;
       }
 
-      const endBusy = withButtonBusy(saveDayBtn, "Guardando…");
       try {
-        await runWithSavingModal(async () => {
-          for (const { config, numero, isTest } of payloads) {
-            const opts = isTest ? { source: "test" } : {};
-            await importarManual({ fecha, pais, horario: config.key, numero }, opts);
-          }
-        });
+        const queueEntries = payloads.map(({ config, numero, isTest }) => ({
+          fecha,
+          pais: paisValue,
+          horario: config.key,
+          numero,
+          isTest,
+        }));
+        pendingDayQueue = pendingDayQueue.concat(queueEntries);
+        persistPendingDayQueue();
+        updatePendingIndicator();
 
         payloads.forEach(({ input, testCheck }) => {
           if (input) input.value = "";
           if (testCheck) testCheck.checked = false;
         });
 
-        await refreshSlots();
-        autoFollowIfToday(fecha, pais);
-        await handleDrawsMutated();
-        const aprendizajeResult = await procesarAprendizajeDia({
-          fecha,
-          pais,
-          silent: true,
-          skipKnowledgeSync: true,
-        });
-        await rebuildKnowledge();
-        await refreshHypotesis();
-
-        const detail = payloads
-          .map(({ config, numero }) => `${config.key} ${formatNumber(numero)}`)
+        const detail = queueEntries
+          .map((entry) => `${entry.horario} ${formatNumber(entry.numero)}${entry.isTest ? " (test)" : ""}`)
           .join(" · ");
-        let toastMessage = `Se guardaron ${payloads.length} sorteo(s): ${detail}.`;
-        if (aprendizajeResult.status === "success") {
-          toastMessage += " Se registraron los resultados para aprendizaje.";
-        } else if (aprendizajeResult.status === "already") {
-          toastMessage += " El aprendizaje ya estaba registrado previamente.";
-        }
-        showToast(toastMessage, { variant: "success" });
+        showToast(
+          `Sorteos agregados a pendientes: ${detail}. Pendientes totales: ${pendingDayQueue.length}.`,
+          { variant: "success" },
+        );
         autoAdvanceDayFecha();
       } catch (err) {
-        console.error("saveDay error", err);
-        showToast(`No se pudieron guardar los sorteos: ${err.message}`, { variant: "danger" });
+        console.error("saveDay queue error", err);
+        showToast(`No se pudieron preparar los sorteos: ${err.message}`, { variant: "danger" });
         throw err;
-      } finally {
-        endBusy();
       }
     });
 
     saveDayBtn?.addEventListener("click", () => {
       updateCountdownDisplay();
+    });
+
+    syncDayBtn?.addEventListener("click", async () => {
+      if (!pendingDayQueue.length) {
+        showToast("No hay sorteos pendientes por sincronizar.", { variant: "info" });
+        return;
+      }
+      const queueSnapshot = pendingDayQueue.slice();
+      const endBusy = withButtonBusy(syncDayBtn, "Sincronizando…");
+      const { fecha: currentFecha, pais: currentPais } = getFilters();
+      try {
+        await runWithSavingModal(async () => {
+          for (const entry of queueSnapshot) {
+            const opts = entry.isTest ? { source: "test" } : {};
+            await importarManual({ fecha: entry.fecha, pais: entry.pais, horario: entry.horario, numero: entry.numero }, opts);
+          }
+        });
+        pendingDayQueue = [];
+        persistPendingDayQueue();
+        updatePendingIndicator();
+        await refreshSlots();
+        autoFollowIfToday(currentFecha, currentPais);
+        await handleDrawsMutated();
+        const comboMap = new Map();
+        queueSnapshot.forEach((entry) => {
+          const key = `${entry.fecha}|${entry.pais}`;
+          if (!comboMap.has(key)) {
+            comboMap.set(key, { fecha: entry.fecha, pais: entry.pais });
+          }
+        });
+        for (const combo of comboMap.values()) {
+          await procesarAprendizajeDia({
+            fecha: combo.fecha,
+            pais: combo.pais,
+            silent: true,
+            skipKnowledgeSync: true,
+          });
+        }
+        await rebuildKnowledge();
+        await refreshHypotesis();
+        const detail = queueSnapshot
+          .map((entry) => `${entry.horario} ${formatNumber(entry.numero)} (${entry.fecha}${entry.pais ? ` · ${entry.pais}` : ""})`)
+          .join(" · ");
+        showToast(
+          `Sincronizaste ${queueSnapshot.length} sorteo${queueSnapshot.length === 1 ? "" : "s"} pendientes. ${detail}`,
+          { variant: "success" },
+        );
+      } catch (err) {
+        console.error("sync pending draws error", err);
+        showToast(`No se pudieron sincronizar los sorteos: ${err.message}`, { variant: "danger" });
+        throw err;
+      } finally {
+        endBusy();
+      }
     });
 
     // === FUNCIONALIDAD: "Agregar hipótesis para (hora)" ===

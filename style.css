@@ -569,6 +569,19 @@ button.ghost:hover {
   margin-top: 18px;
 }
 
+.day-pending-indicator {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  align-self: center;
+  min-width: 140px;
+  text-align: center;
+}
+
+.day-pending-indicator[data-state="pending"] {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
 .day-hint {
   text-align: center;
   margin-top: 8px;
