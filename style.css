@@ -2075,6 +2075,11 @@ button.ghost:hover {
   background: radial-gradient(circle at 30% 30%, rgba(37, 99, 235, 0.2), rgba(255, 255, 255, 0.9));
   animation: pulse 3s infinite;
 }
+.ball[data-pending="true"] {
+  border-style: dashed;
+  animation: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
 .ball.small {
   width: 78px;
   height: 78px;

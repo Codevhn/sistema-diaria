@@ -2360,6 +2360,7 @@
       const ball = document.getElementById(config.ballId);
       const sym = document.getElementById(config.symId);
       if (!ball || !sym) return;
+      ball.removeAttribute("data-pending");
       if (!draw) {
         ball.innerHTML = formatBallContent("--", "");
         ball.classList.remove("small");
@@ -2389,6 +2390,7 @@
         const draw = pickDraw(draws, fecha, pais, config.key);
         applyDrawToSlot(config, draw);
       });
+      applyPendingSlots(fecha, pais);
     }
 
     const saveDayBtn = document.getElementById("save-day");
@@ -2396,6 +2398,10 @@
     const dayPendingIndicator = document.getElementById("day-pending-indicator");
     const DAY_PENDING_STORAGE_KEY = "ld_pending_draws_v1";
     let pendingDayQueue = [];
+    const buildPendingKey = (entry) =>
+      entry && entry.fecha && entry.pais && entry.horario
+        ? `${entry.fecha}|${entry.pais}|${entry.horario}`
+        : null;
 
     function loadPendingDayQueue() {
       if (typeof localStorage === "undefined") return [];
@@ -2404,9 +2410,30 @@
         if (!raw) return [];
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [];
-        return parsed
-          .filter((entry) => entry && typeof entry.fecha === "string" && typeof entry.pais === "string" && typeof entry.horario === "string" && Number.isFinite(entry.numero))
-          .map((entry) => ({ ...entry, isTest: !!entry.isTest }));
+        const unique = [];
+        const indexByKey = new Map();
+        parsed.forEach((entry) => {
+          if (!entry || typeof entry.fecha !== "string" || typeof entry.pais !== "string" || typeof entry.horario !== "string") {
+            return;
+          }
+          const numero = Number(entry.numero);
+          if (!Number.isFinite(numero)) return;
+          const normalized = {
+            fecha: entry.fecha,
+            pais: entry.pais.toUpperCase(),
+            horario: entry.horario,
+            numero,
+            isTest: !!entry.isTest,
+          };
+          const key = buildPendingKey(normalized);
+          if (key && indexByKey.has(key)) {
+            unique[indexByKey.get(key)] = normalized;
+          } else if (key) {
+            indexByKey.set(key, unique.length);
+            unique.push(normalized);
+          }
+        });
+        return unique;
       } catch (err) {
         logWarn("No se pudieron leer sorteos pendientes locales", err);
         return [];
@@ -2436,6 +2463,21 @@
       }
       dayPendingIndicator.textContent = `${count} pendiente${count === 1 ? "" : "s"}`;
       dayPendingIndicator.dataset.state = "pending";
+    }
+
+    function applyPendingSlots(targetFecha, targetPais) {
+      if (!pendingDayQueue.length) return;
+      const normalizedPais = (targetPais || "HN").toUpperCase();
+      pendingDayQueue.forEach((entry) => {
+        if (!entry) return;
+        if (entry.fecha !== targetFecha) return;
+        if ((entry.pais || "HN").toUpperCase() !== normalizedPais) return;
+        const config = SLOT_CONFIG.find((slot) => slot.key === entry.horario);
+        if (!config) return;
+        applyDrawToSlot(config, { numero: entry.numero, isTest: entry.isTest });
+        const ball = document.getElementById(config.ballId);
+        if (ball) ball.dataset.pending = "true";
+      });
     }
 
     pendingDayQueue = loadPendingDayQueue();
@@ -2490,7 +2532,10 @@
           numero,
           isTest,
         }));
-        pendingDayQueue = pendingDayQueue.concat(queueEntries);
+        const newKeys = new Set(queueEntries.map((entry) => buildPendingKey(entry)));
+        pendingDayQueue = pendingDayQueue
+          .filter((entry) => !newKeys.has(buildPendingKey(entry)))
+          .concat(queueEntries);
         persistPendingDayQueue();
         updatePendingIndicator();
 
@@ -2506,6 +2551,7 @@
           `Sorteos agregados a pendientes: ${detail}. Pendientes totales: ${pendingDayQueue.length}.`,
           { variant: "success" },
         );
+        applyPendingSlots(fecha, paisValue);
         autoAdvanceDayFecha();
       } catch (err) {
         console.error("saveDay queue error", err);
