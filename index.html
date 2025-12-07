@@ -2537,8 +2537,8 @@
           <td>${entry.pais}</td>
           <td>${entry.horario}</td>
           <td class="pending-table__number">${numero}</td>
-          <td>${symbol}</td>
-          <td>${entry.isTest ? "Prueba" : "Oficial"}</td>
+          <td class="pending-table__symbol">${symbol}</td>
+          <td class="pending-table__type ${entry.isTest ? "is-test" : "is-real"}">${entry.isTest ? "Prueba" : "Oficial"}</td>
           <td>
             <div class="pending-table-actions">
               <button type="button" class="btn-ghost btn-compact" data-edit-pending="${index}">Editar</button>
@@ -10360,7 +10360,7 @@ function buildVariantEntries(profile) {
           Corrige o elimina sorteos antes de sincronizarlos con Supabase. Los cambios solo afectan la cola local.
         </p>
         <div id="pending-empty-state" class="panel-meta">No hay sorteos pendientes por enviar.</div>
-        <div id="pending-table-wrap" class="pending-table-wrap hidden">
+        <div id="pending-table-wrap" class="pending-table-wrap table-wrap hidden">
           <table class="pending-table">
             <thead>
               <tr>

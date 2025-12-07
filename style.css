@@ -23,6 +23,7 @@
   --shadow-soft: 0 24px 60px rgba(15, 23, 42, 0.08);
   --shadow-hard: 0 40px 90px rgba(15, 23, 42, 0.15);
   --font-sans: "Inter", "Space Grotesk", "IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Space Grotesk", "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
 }
 
 * {
@@ -2883,53 +2884,101 @@ button.ghost:hover {
 }
 
 .pending-table-wrap {
+  margin-top: 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  max-height: 360px;
   overflow: hidden;
-  background: rgba(8, 17, 37, 0.75);
-  max-height: 320px;
   overflow-y: auto;
-  margin-top: 10px;
 }
 
 .pending-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  background: var(--color-surface);
 }
 
 .pending-table th,
 .pending-table td {
-  padding: 10px 12px;
+  padding: 12px 14px;
   text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .pending-table thead th {
   position: sticky;
   top: 0;
-  background: rgba(12, 18, 30, 0.95);
-  z-index: 1;
+  background: var(--color-surface-2);
+  z-index: 2;
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--color-muted);
 }
 
-.pending-table__number {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  font-weight: 600;
+.pending-table tbody tr:nth-child(even) {
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.pending-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .pending-table tbody tr:hover {
   background: rgba(37, 99, 235, 0.08);
 }
 
+.pending-table__number {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.pending-table__symbol {
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.pending-table__type {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+}
+
+.pending-table__type.is-test {
+  color: var(--color-warning);
+}
+
+.pending-table__type.is-real {
+  color: var(--color-success);
+}
+
 .pending-table-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.pending-table-actions .btn-ghost {
+  border-style: dashed;
+}
+
+.pending-table-actions .btn-danger {
+  min-width: 88px;
+}
+
+@media (max-width: 720px) {
+  .pending-table th,
+  .pending-table td {
+    padding: 10px 8px;
+    font-size: 0.82rem;
+  }
 }
 
 .pending-editor {
