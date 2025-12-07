@@ -1397,6 +1397,7 @@
       pais,
       silent = false,
       skipKnowledgeSync = false,
+      showProgressModal = true,
     } = {}) {
       const normalizedPais = (pais || "").trim().toUpperCase();
       if (!fecha || !normalizedPais) {
@@ -1428,7 +1429,7 @@
         }
         return { status: "already" };
       }
-      await runWithSavingModal(async () => {
+      const processResultados = async () => {
         for (const draw of draws) {
           const simbolo = getSymbol(draw.numero);
           await registrarResultado({
@@ -1440,7 +1441,12 @@
           });
         }
         await DB.closePredictionBatch({ fecha, pais: normalizedPais });
-      });
+      };
+      if (showProgressModal) {
+        await runWithSavingModal(processResultados);
+      } else {
+        await processResultados();
+      }
       if (!skipKnowledgeSync) {
         await rebuildKnowledge();
         await refreshHypotesis();
@@ -2775,6 +2781,7 @@
             pais: combo.pais,
             silent: true,
             skipKnowledgeSync: true,
+            showProgressModal: false,
           });
         }
         await rebuildKnowledge();
