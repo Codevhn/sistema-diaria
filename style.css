@@ -613,6 +613,110 @@ button.ghost:hover {
   margin-top: 8px;
 }
 
+.line-repeat-top {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.line-repeat-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.line-repeat-card__title {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-muted);
+}
+
+.line-repeat-card__metric {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.line-repeat-card__meta {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.line-repeat-card__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.line-repeat-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  color: var(--color-accent);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.line-repeat-matrix {
+  margin-top: 20px;
+}
+
+.line-repeat-matrix table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.line-repeat-matrix thead {
+  background: var(--color-surface-2);
+}
+
+.line-repeat-matrix th,
+.line-repeat-matrix td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.line-repeat-matrix tbody tr:nth-child(even) {
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.line-repeat-matrix tbody tr.is-selected {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.line-repeat-cell-main {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.line-repeat-cell-meta {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.line-repeat-cell-line {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--color-text);
+}
+
+.line-repeat-empty {
+  font-style: italic;
+  color: var(--color-muted);
+}
+
 .strategy-toolbar {
   display: flex;
   justify-content: flex-end;

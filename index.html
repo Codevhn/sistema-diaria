@@ -250,6 +250,49 @@
           <div id="patterns-history" class="pattern-history"></div>
         </article>
 
+        <article class="day-card" id="line-repeat-panel">
+          <div class="day-card__head">
+            <div>
+              <h3>Rachas por línea</h3>
+              <p>Detecta cuándo dos turnos consecutivos repiten la misma línea (decena) y cuáles son las más frecuentes.</p>
+            </div>
+            <div class="day-card__actions">
+              <button id="line-repeat-refresh" class="btn-outline">Actualizar</button>
+            </div>
+          </div>
+          <div class="day-card__controls line-repeat-controls">
+            <label>
+              País
+              <select id="line-repeat-country">
+                <option value="">Todos</option>
+                <option value="HN">HN</option>
+                <option value="NI">NI</option>
+                <option value="SV">SV</option>
+              </select>
+            </label>
+            <label>
+              Día
+              <select id="line-repeat-dow">
+                <option value="">Todos</option>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+                <option value="0">Domingo</option>
+              </select>
+            </label>
+          </div>
+          <div class="day-card__body">
+            <div id="line-repeat-summary" class="panel-meta">Selecciona filtros para ver las repeticiones de línea.</div>
+            <div id="line-repeat-top-lines" class="line-repeat-top"></div>
+            <div id="line-repeat-matrix" class="line-repeat-matrix">
+              <p class="hint">Sin datos suficientes para mostrar la matriz.</p>
+            </div>
+          </div>
+        </article>
+
         <article class="day-card day-card--wide" id="ranking-panel">
           <div class="day-card__head">
             <div>
@@ -1942,6 +1985,11 @@
       "3PM": { hour: 15, minute: 0 },
       "9PM": { hour: 21, minute: 0 },
     };
+    const LINE_REPEAT_TRANSITIONS = [
+      { key: "11-3", from: "11AM", to: "3PM", label: "11 AM → 3 PM" },
+      { key: "3-9", from: "3PM", to: "9PM", label: "3 PM → 9 PM" },
+    ];
+    const LINE_REPEAT_DOW_ORDER = [1, 2, 3, 4, 5, 6, 0];
     const DECEMBER_REMINDER_KEY = "ld-v3-december-reminders";
     let biasLocalStorageWarned = false;
     let biasSessionStorageWarned = false;
@@ -2416,6 +2464,13 @@
     const pendingEditorNumeroInput = document.getElementById("pending-editor-numero");
     const pendingEditorTestInput = document.getElementById("pending-editor-test");
     const pendingEditorCancelBtn = document.getElementById("pending-editor-cancel");
+    const lineRepeatPanel = document.getElementById("line-repeat-panel");
+    const lineRepeatSummary = document.getElementById("line-repeat-summary");
+    const lineRepeatTopLines = document.getElementById("line-repeat-top-lines");
+    const lineRepeatMatrix = document.getElementById("line-repeat-matrix");
+    const lineRepeatCountrySelect = document.getElementById("line-repeat-country");
+    const lineRepeatDowSelect = document.getElementById("line-repeat-dow");
+    const lineRepeatRefreshBtn = document.getElementById("line-repeat-refresh");
     const DAY_PENDING_STORAGE_KEY = "ld_pending_draws_v1";
     let pendingDayQueue = [];
     let pendingEditorIndex = null;
@@ -2665,6 +2720,302 @@
       );
       resetPendingEditor();
     });
+
+    // === PANEL: Rachas por línea ===
+    let lineRepeatCache = null;
+    let lineRepeatCacheKey = "";
+
+    function invalidateLineRepeatCache() {
+      lineRepeatCache = null;
+      lineRepeatCacheKey = "";
+    }
+
+    function lineFromNumber(value) {
+      const numero = Number(value);
+      if (!Number.isFinite(numero)) return null;
+      if (numero < 0 || numero > 99) return null;
+      return Math.floor(numero / 10);
+    }
+
+    function formatLineLabel(line) {
+      if (!Number.isFinite(line)) return "—";
+      const start = formatNumber(line * 10);
+      const end = formatNumber(line * 10 + 9);
+      return `Línea ${start}-${end}`;
+    }
+
+    function createLineRepeatBucket() {
+      const bucket = {};
+      LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+        bucket[transition.key] = {
+          total: 0,
+          repeats: 0,
+          lines: new Map(),
+        };
+      });
+      return bucket;
+    }
+
+    function cloneLineRepeatBucket(bucket = {}) {
+      const clone = {};
+      LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+        const entry = bucket[transition.key] || { total: 0, repeats: 0, lines: new Map() };
+        const lines = Array.from(entry.lines.entries())
+          .map(([line, count]) => ({ line: Number(line), count }))
+          .sort((a, b) => b.count - a.count);
+        clone[transition.key] = {
+          total: entry.total,
+          repeats: entry.repeats,
+          lines,
+        };
+      });
+      return clone;
+    }
+
+    function buildLineRepeatStatsFromDraws(draws = []) {
+      const groups = new Map();
+      const bucketsByDow = Array.from({ length: 7 }, () => createLineRepeatBucket());
+      const overallBucket = createLineRepeatBucket();
+      draws.forEach((draw) => {
+        if (!draw || !draw.fecha) return;
+        const key = `${draw.fecha}|${(draw.pais || "HN").toUpperCase()}`;
+        if (!groups.has(key)) {
+          const parsed = parseISODate(draw.fecha);
+          const dowValue = parsed instanceof Date ? parsed.getDay() : null;
+          groups.set(key, {
+            fecha: draw.fecha,
+            pais: (draw.pais || "HN").toUpperCase(),
+            dow: Number.isInteger(dowValue) ? dowValue : null,
+            turns: {},
+          });
+        }
+        const group = groups.get(key);
+        if (draw.horario) {
+          group.turns[draw.horario] = draw;
+        }
+      });
+
+      groups.forEach((group) => {
+        if (!Number.isInteger(group.dow)) return;
+        const dowBucket = bucketsByDow[group.dow] || createLineRepeatBucket();
+        LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+          const fromDraw = group.turns[transition.from];
+          const toDraw = group.turns[transition.to];
+          if (!fromDraw || !toDraw) return;
+          dowBucket[transition.key].total += 1;
+          overallBucket[transition.key].total += 1;
+          const fromLine = lineFromNumber(fromDraw.numero);
+          const toLine = lineFromNumber(toDraw.numero);
+          if (fromLine === null || toLine === null || fromLine !== toLine) return;
+          const lineKey = String(fromLine);
+          dowBucket[transition.key].repeats += 1;
+          overallBucket[transition.key].repeats += 1;
+          const dowMap = dowBucket[transition.key].lines;
+          dowMap.set(lineKey, (dowMap.get(lineKey) || 0) + 1);
+          const overallMap = overallBucket[transition.key].lines;
+          overallMap.set(lineKey, (overallMap.get(lineKey) || 0) + 1);
+        });
+      });
+
+      const byDow = {};
+      bucketsByDow.forEach((bucket, idx) => {
+        byDow[idx] = cloneLineRepeatBucket(bucket);
+      });
+
+      return {
+        updatedAt: Date.now(),
+        sampleSize: groups.size,
+        byDow,
+        overall: cloneLineRepeatBucket(overallBucket),
+      };
+    }
+
+    function hasLineRepeatData(bucket) {
+      if (!bucket) return false;
+      return LINE_REPEAT_TRANSITIONS.some((transition) => (bucket[transition.key]?.total || 0) > 0);
+    }
+
+    function buildLineTotalsFromBucket(bucket = {}) {
+      const totals = new Map();
+      LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+        const entry = bucket[transition.key];
+        if (!entry || !Array.isArray(entry.lines)) return;
+        entry.lines.forEach((lineEntry) => {
+          const key = lineEntry.line;
+          if (!Number.isFinite(key)) return;
+          totals.set(key, (totals.get(key) || 0) + lineEntry.count);
+        });
+      });
+      return Array.from(totals.entries())
+        .map(([line, count]) => ({ line, count }))
+        .sort((a, b) => b.count - a.count);
+    }
+
+    async function getLineRepeatStats({ country = "", force = false } = {}) {
+      const normalized = (country || "").trim().toUpperCase();
+      const cacheKey = normalized || "ALL";
+      if (!force && lineRepeatCache && lineRepeatCacheKey === cacheKey) {
+        return lineRepeatCache;
+      }
+      const draws = await DB.listDraws({ excludeTest: true });
+      const filtered = normalized
+        ? draws.filter((draw) => (draw.pais || "").toUpperCase() === normalized)
+        : draws;
+      const stats = buildLineRepeatStatsFromDraws(filtered);
+      lineRepeatCache = stats;
+      lineRepeatCacheKey = cacheKey;
+      return stats;
+    }
+
+    function getLineRepeatBucketForSelection(stats, dowValue) {
+      if (!stats) return null;
+      if (dowValue === "" || typeof dowValue === "undefined") return stats.overall;
+      const idx = Number(dowValue);
+      if (Number.isInteger(idx) && stats.byDow && stats.byDow[idx]) {
+        return stats.byDow[idx];
+      }
+      return stats.overall;
+    }
+
+    function renderLineRepeatSummary(bucket, { dowValue = "", countryValue = "", sampleSize = 0 } = {}) {
+      if (!lineRepeatSummary) return;
+      const dowLabel =
+        dowValue === "" ? "todos los días" : DOW_FULL_LABEL[Number(dowValue)] || "este día";
+      const countryLabel = countryValue ? `país ${countryValue}` : "todos los países";
+      if (!bucket || !hasLineRepeatData(bucket)) {
+        lineRepeatSummary.innerHTML = `<p class="hint">Aún no hay repeticiones registradas para ${dowLabel} en ${countryLabel}.</p>`;
+        return;
+      }
+      const pieces = LINE_REPEAT_TRANSITIONS.map((transition) => {
+        const entry = bucket[transition.key] || { total: 0, repeats: 0 };
+        if (!entry.total) return `${transition.label}: 0% (0/0)`;
+        const ratio = Math.round((entry.repeats / entry.total) * 100);
+        return `${transition.label}: ${ratio}% (${entry.repeats}/${entry.total})`;
+      });
+      const leaders = buildLineTotalsFromBucket(bucket)
+        .slice(0, 3)
+        .map((entry) => `${formatLineLabel(entry.line)} (${entry.count})`)
+        .join(" · ");
+      const leadersText = leaders || "Sin líneas dominantes.";
+      const sampleText = sampleSize ? ` · Muestreo ${sampleSize} días` : "";
+      lineRepeatSummary.innerHTML = `
+        <strong>${dowLabel}</strong> · ${countryLabel}. ${pieces.join(
+          " · ",
+        )}. Líneas líderes: ${leadersText}${sampleText}
+      `;
+    }
+
+    function renderLineRepeatTopLines(bucket) {
+      if (!lineRepeatTopLines) return;
+      lineRepeatTopLines.innerHTML = "";
+      if (!bucket) {
+        lineRepeatTopLines.innerHTML = `<p class="hint">Sin datos suficientes para mostrar repeticiones por línea.</p>`;
+        return;
+      }
+      LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+        const entry = bucket[transition.key] || { total: 0, repeats: 0, lines: [] };
+        const card = document.createElement("div");
+        card.className = "line-repeat-card";
+        const ratio = entry.total ? Math.round((entry.repeats / entry.total) * 100) : 0;
+        const meta = entry.total
+          ? `Repite ${entry.repeats}/${entry.total} veces`
+          : "Sin transiciones completas";
+        const lines =
+          entry.lines && entry.lines.length
+            ? entry.lines
+                .slice(0, 3)
+                .map(
+                  (lineEntry) =>
+                    `<span class="line-repeat-pill">${formatLineLabel(lineEntry.line)} · ${lineEntry.count}</span>`,
+                )
+                .join("")
+            : `<span class="line-repeat-empty">Sin líneas dominantes</span>`;
+        card.innerHTML = `
+          <div class="line-repeat-card__title">${transition.label}</div>
+          <div class="line-repeat-card__metric">${ratio}%</div>
+          <div class="line-repeat-card__meta">${meta}</div>
+          <div class="line-repeat-card__list">${lines}</div>
+        `;
+        lineRepeatTopLines.appendChild(card);
+      });
+    }
+
+    function renderLineRepeatMatrix(stats, selectedDow) {
+      if (!lineRepeatMatrix) return;
+      if (!stats || !stats.byDow) {
+        lineRepeatMatrix.innerHTML = `<p class="hint">No hay datos suficientes para construir la matriz.</p>`;
+        return;
+      }
+      const hasData = LINE_REPEAT_DOW_ORDER.some((dow) =>
+        LINE_REPEAT_TRANSITIONS.some((transition) => (stats.byDow?.[dow]?.[transition.key]?.total || 0) > 0),
+      );
+      if (!hasData) {
+        lineRepeatMatrix.innerHTML =
+          `<p class="hint">Aún no hay repeticiones registradas con los filtros actuales.</p>`;
+        return;
+      }
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      headRow.innerHTML = `<th>Día</th>${LINE_REPEAT_TRANSITIONS.map((t) => `<th>${t.label}</th>`).join("")}`;
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      const tbody = document.createElement("tbody");
+      const hasSelection = selectedDow !== "" && !Number.isNaN(Number(selectedDow));
+      const selectedValue = hasSelection ? Number(selectedDow) : null;
+      LINE_REPEAT_DOW_ORDER.forEach((dow) => {
+        const bucket = stats.byDow[dow];
+        const row = document.createElement("tr");
+        if (selectedValue !== null && selectedValue === dow) {
+          row.classList.add("is-selected");
+        }
+        const labelCell = document.createElement("td");
+        labelCell.textContent = DOW_FULL_LABEL[dow] || `Día ${dow}`;
+        row.appendChild(labelCell);
+        LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+          const entry = bucket?.[transition.key] || { total: 0, repeats: 0, lines: [] };
+          const cell = document.createElement("td");
+          if (!entry.total) {
+            cell.innerHTML = `<div class="line-repeat-empty">Sin datos</div>`;
+          } else {
+            const ratio = Math.round((entry.repeats / entry.total) * 100);
+            const topLine = entry.lines?.[0];
+            const lineLabel = topLine ? formatLineLabel(topLine.line) : "—";
+            cell.innerHTML = `
+              <div class="line-repeat-cell-main">${ratio}%</div>
+              <div class="line-repeat-cell-meta">${entry.repeats}/${entry.total} repeticiones</div>
+              <div class="line-repeat-cell-line">${lineLabel}${topLine ? ` · ${topLine.count}` : ""}</div>
+            `;
+          }
+          row.appendChild(cell);
+        });
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      lineRepeatMatrix.innerHTML = "";
+      lineRepeatMatrix.appendChild(table);
+    }
+
+    async function renderLineRepeatPanel({ force = false } = {}) {
+      if (!lineRepeatPanel) return;
+      const countryValueRaw = (lineRepeatCountrySelect?.value || "").trim();
+      const countryValue = countryValueRaw.toUpperCase();
+      const dowValue = lineRepeatDowSelect?.value || "";
+      const stats = await getLineRepeatStats({ country: countryValue, force });
+      const bucket = getLineRepeatBucketForSelection(stats, dowValue);
+      renderLineRepeatSummary(bucket, {
+        dowValue,
+        countryValue: countryValue,
+        sampleSize: stats?.sampleSize || 0,
+      });
+      renderLineRepeatTopLines(bucket);
+      renderLineRepeatMatrix(stats, dowValue);
+    }
+
+    lineRepeatCountrySelect?.addEventListener("change", () => renderLineRepeatPanel({ force: true }));
+    lineRepeatDowSelect?.addEventListener("change", () => renderLineRepeatPanel());
+    lineRepeatRefreshBtn?.addEventListener("click", () => renderLineRepeatPanel({ force: true }));
+
     saveDayBtn?.addEventListener("click", async () => {
       const { fecha, pais } = getFilters();
       if (!fecha || !pais) {
@@ -6122,6 +6473,7 @@
     async function handleDrawsMutated() {
       invalidateDrawCache();
       invalidateMemoryCache();
+      invalidateLineRepeatCache();
       await Promise.allSettled([
         refreshHistoryPanel({ forceReload: true }),
         renderTrackingPanel({ forceReload: true }),
@@ -6130,6 +6482,7 @@
         renderMemoryBoard({ forceReload: true }),
         renderGapPanel({ forceReload: true }),
         refreshDecemberStrategyPanel({ force: true }),
+        renderLineRepeatPanel({ force: true }),
       ]);
       await refreshPatternsPanel({ force: true });
       await renderStrategiesPanel({ force: true, skipEnsure: true });
@@ -6146,6 +6499,7 @@
         refreshPatternsPanel(),
         renderRankingPanel(),
         refreshNotebookList(),
+        renderLineRepeatPanel(),
       ]);
     }
 
