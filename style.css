@@ -418,6 +418,11 @@ button:disabled {
   box-shadow: none;
 }
 
+.btn-compact {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
 button.ghost {
   background: transparent;
   border: 1px dashed rgba(37, 99, 235, 0.4);
@@ -580,6 +585,26 @@ button.ghost:hover {
 .day-pending-indicator[data-state="pending"] {
   color: var(--color-accent);
   font-weight: 600;
+}
+
+.day-pending-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.day-pending-controls button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .day-pending-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+  .day-pending-controls button {
+    width: 100%;
+  }
 }
 
 .day-hint {
@@ -2849,6 +2874,122 @@ button.ghost:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.pending-modal__hint {
+  margin: 0 0 12px;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.pending-table-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: rgba(8, 17, 37, 0.75);
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.pending-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.pending-table th,
+.pending-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pending-table thead th {
+  position: sticky;
+  top: 0;
+  background: rgba(12, 18, 30, 0.95);
+  z-index: 1;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pending-table__number {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pending-table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.pending-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pending-editor {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pending-editor__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pending-editor__meta strong {
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.pending-editor__hint {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.pending-editor__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.pending-editor__fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.pending-editor__fields input[type="text"] {
+  width: 90px;
+}
+
+.pending-editor__checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.pending-editor__checkbox input {
+  width: auto;
+}
+
+.pending-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .migration-chip {

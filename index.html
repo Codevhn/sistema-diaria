@@ -141,7 +141,10 @@
       <div class="day-actions">
         <button id="save-day" class="btn-primary">Agregar a pendientes</button>
         <button id="sync-day" class="btn-outline">Sincronizar con Supabase</button>
-        <span id="day-pending-indicator" class="day-pending-indicator">Sin pendientes</span>
+        <div class="day-pending-controls">
+          <span id="day-pending-indicator" class="day-pending-indicator">Sin pendientes</span>
+          <button id="manage-pending" type="button" class="btn-ghost btn-compact">Gestionar pendientes</button>
+        </div>
       </div>
       <p class="hint day-hint">
         Confirma/Refuta hipótesis pendientes según los resultados válidos de la fecha seleccionada.
@@ -2396,8 +2399,20 @@
     const saveDayBtn = document.getElementById("save-day");
     const syncDayBtn = document.getElementById("sync-day");
     const dayPendingIndicator = document.getElementById("day-pending-indicator");
+    const managePendingBtn = document.getElementById("manage-pending");
+    const pendingModal = document.getElementById("pending-modal");
+    const pendingModalCloseBtn = document.getElementById("pending-modal-close");
+    const pendingTableBody = document.getElementById("pending-table-body");
+    const pendingTableWrap = document.getElementById("pending-table-wrap");
+    const pendingEmptyState = document.getElementById("pending-empty-state");
+    const pendingEditorForm = document.getElementById("pending-editor-form");
+    const pendingEditorMeta = document.getElementById("pending-editor-meta");
+    const pendingEditorNumeroInput = document.getElementById("pending-editor-numero");
+    const pendingEditorTestInput = document.getElementById("pending-editor-test");
+    const pendingEditorCancelBtn = document.getElementById("pending-editor-cancel");
     const DAY_PENDING_STORAGE_KEY = "ld_pending_draws_v1";
     let pendingDayQueue = [];
+    let pendingEditorIndex = null;
     const buildPendingKey = (entry) =>
       entry && entry.fecha && entry.pais && entry.horario
         ? `${entry.fecha}|${entry.pais}|${entry.horario}`
@@ -2480,8 +2495,170 @@
       });
     }
 
+    const PENDING_EDITOR_DEFAULT_META = "Selecciona un sorteo para editarlo";
+
+    function resetPendingEditor() {
+      pendingEditorIndex = null;
+      if (pendingEditorNumeroInput) pendingEditorNumeroInput.value = "";
+      if (pendingEditorTestInput) pendingEditorTestInput.checked = false;
+      if (pendingEditorMeta) pendingEditorMeta.textContent = PENDING_EDITOR_DEFAULT_META;
+      pendingEditorForm?.classList.add("hidden");
+    }
+
+    function refreshPendingSlotsView() {
+      if (typeof refreshSlots !== "function") return;
+      try {
+        const maybePromise = refreshSlots();
+        if (maybePromise?.catch) {
+          maybePromise.catch((err) => console.error("refreshSlots error", err));
+        }
+      } catch (err) {
+        console.error("refreshSlots error", err);
+      }
+    }
+
+    function renderPendingTable() {
+      if (!pendingTableBody || !pendingTableWrap || !pendingEmptyState) return;
+      pendingTableBody.innerHTML = "";
+      if (!pendingDayQueue.length) {
+        pendingEmptyState.classList.remove("hidden");
+        pendingTableWrap.classList.add("hidden");
+        resetPendingEditor();
+        return;
+      }
+      pendingEmptyState.classList.add("hidden");
+      pendingTableWrap.classList.remove("hidden");
+      pendingDayQueue.forEach((entry, index) => {
+        const tr = document.createElement("tr");
+        const numero = formatNumber(entry.numero);
+        const symbol = getSymbol(entry.numero) || "—";
+        tr.innerHTML = `
+          <td>${entry.fecha}</td>
+          <td>${entry.pais}</td>
+          <td>${entry.horario}</td>
+          <td class="pending-table__number">${numero}</td>
+          <td>${symbol}</td>
+          <td>${entry.isTest ? "Prueba" : "Oficial"}</td>
+          <td>
+            <div class="pending-table-actions">
+              <button type="button" class="btn-ghost btn-compact" data-edit-pending="${index}">Editar</button>
+              <button type="button" class="btn-danger btn-compact" data-delete-pending="${index}">Eliminar</button>
+            </div>
+          </td>
+        `;
+        pendingTableBody.appendChild(tr);
+      });
+    }
+
+    function openPendingModalUI() {
+      if (!pendingModal) return;
+      renderPendingTable();
+      pendingModal.classList.remove("hidden");
+    }
+
+    function closePendingModalUI() {
+      if (!pendingModal) return;
+      pendingModal.classList.add("hidden");
+      resetPendingEditor();
+    }
+
+    function startPendingEdit(index) {
+      if (!Number.isInteger(index) || index < 0) return;
+      const entry = pendingDayQueue[index];
+      if (!entry || !pendingEditorForm || !pendingEditorNumeroInput || !pendingEditorMeta) return;
+      pendingEditorIndex = index;
+      pendingEditorNumeroInput.value = formatNumber(entry.numero);
+      if (pendingEditorTestInput) pendingEditorTestInput.checked = !!entry.isTest;
+      pendingEditorMeta.textContent = `${entry.fecha} · ${entry.pais} · ${entry.horario}`;
+      pendingEditorForm.classList.remove("hidden");
+      pendingEditorNumeroInput.focus();
+    }
+
     pendingDayQueue = loadPendingDayQueue();
     updatePendingIndicator();
+    managePendingBtn?.addEventListener("click", openPendingModalUI);
+    pendingModalCloseBtn?.addEventListener("click", closePendingModalUI);
+    pendingModal?.addEventListener("click", (event) => {
+      if (event.target === pendingModal) {
+        closePendingModalUI();
+      }
+    });
+    pendingTableBody?.addEventListener("click", async (event) => {
+      const editBtn = event.target.closest?.("[data-edit-pending]");
+      if (editBtn) {
+        const index = Number(editBtn.dataset.editPending);
+        if (Number.isFinite(index)) {
+          startPendingEdit(index);
+        }
+        return;
+      }
+      const deleteBtn = event.target.closest?.("[data-delete-pending]");
+      if (deleteBtn) {
+        const index = Number(deleteBtn.dataset.deletePending);
+        if (!Number.isFinite(index) || index < 0) return;
+        const entry = pendingDayQueue[index];
+        if (!entry) return;
+        const confirm = await mostrarModal(
+          "Eliminar pendiente",
+          `¿Eliminar ${entry.horario} ${formatNumber(entry.numero)} del ${entry.fecha} (${entry.pais}) de la cola local?`,
+          { okText: "Eliminar", cancelText: "Cancelar", okVariant: "danger" },
+        );
+        if (!confirm) return;
+        pendingDayQueue.splice(index, 1);
+        persistPendingDayQueue();
+        updatePendingIndicator();
+        resetPendingEditor();
+        renderPendingTable();
+        refreshPendingSlotsView();
+        showToast("Sorteo eliminado de la cola local.", { variant: "success" });
+      }
+    });
+    pendingEditorCancelBtn?.addEventListener("click", resetPendingEditor);
+    pendingEditorForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!Number.isInteger(pendingEditorIndex) || pendingEditorIndex < 0) {
+        showToast("Selecciona un sorteo antes de editar.", { variant: "warning" });
+        return;
+      }
+      const entry = pendingDayQueue[pendingEditorIndex];
+      if (!entry) {
+        showToast("El elemento seleccionado ya no existe.", { variant: "warning" });
+        resetPendingEditor();
+        renderPendingTable();
+        return;
+      }
+      const rawValue = pendingEditorNumeroInput?.value.trim() ?? "";
+      if (!/^\d{1,2}$/.test(rawValue)) {
+        showToast("Ingresa un número válido (00–99).", { variant: "warning" });
+        pendingEditorNumeroInput?.focus();
+        return;
+      }
+      const numero = parseInt(rawValue, 10);
+      if (numero < 0 || numero > 99) {
+        showToast("El número debe estar entre 00 y 99.", { variant: "warning" });
+        pendingEditorNumeroInput?.focus();
+        return;
+      }
+      const symbol = getSymbol(numero);
+      if (!symbol) {
+        showToast(`El número ${formatNumber(numero)} no tiene símbolo registrado.`, { variant: "danger" });
+        return;
+      }
+      pendingDayQueue[pendingEditorIndex] = {
+        ...entry,
+        numero,
+        isTest: !!pendingEditorTestInput?.checked,
+      };
+      persistPendingDayQueue();
+      updatePendingIndicator();
+      renderPendingTable();
+      refreshPendingSlotsView();
+      showToast(
+        `Actualizaste ${entry.horario} a ${formatNumber(numero)}${pendingEditorTestInput?.checked ? " (modo prueba)" : ""}.`,
+        { variant: "success" },
+      );
+      resetPendingEditor();
+    });
     saveDayBtn?.addEventListener("click", async () => {
       const { fecha, pais } = getFilters();
       if (!fecha || !pais) {
@@ -10170,6 +10347,58 @@ function buildVariantEntries(profile) {
     });
 
   </script>
+
+  <!-- === MODAL PENDIENTES === -->
+  <div id="pending-modal" class="modal hidden">
+    <div class="modal-content modal-content--wide pending-modal">
+      <div class="modal-head modal-head--spread">
+        <h3>Sorteos pendientes</h3>
+        <button id="pending-modal-close" type="button" class="btn-ghost btn-compact">Cerrar</button>
+      </div>
+      <div class="modal-body">
+        <p class="pending-modal__hint">
+          Corrige o elimina sorteos antes de sincronizarlos con Supabase. Los cambios solo afectan la cola local.
+        </p>
+        <div id="pending-empty-state" class="panel-meta">No hay sorteos pendientes por enviar.</div>
+        <div id="pending-table-wrap" class="pending-table-wrap hidden">
+          <table class="pending-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>País</th>
+                <th>Horario</th>
+                <th>Número</th>
+                <th>Símbolo</th>
+                <th>Tipo</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="pending-table-body"></tbody>
+          </table>
+        </div>
+        <form id="pending-editor-form" class="pending-editor hidden">
+          <div class="pending-editor__meta">
+            <strong id="pending-editor-meta">Selecciona un sorteo para editarlo</strong>
+            <span class="pending-editor__hint">Solo puedes ajustar el número y el modo de prueba.</span>
+          </div>
+          <div class="pending-editor__fields">
+            <label>
+              Número
+              <input id="pending-editor-numero" type="text" inputmode="numeric" pattern="\d{1,2}" maxlength="2" placeholder="00-99" />
+            </label>
+            <label class="pending-editor__checkbox">
+              <input type="checkbox" id="pending-editor-test" />
+              Modo prueba
+            </label>
+          </div>
+          <div class="pending-editor__actions">
+            <button type="button" id="pending-editor-cancel" class="btn-ghost btn-compact">Cancelar</button>
+            <button type="submit" class="btn-primary btn-compact">Guardar cambios</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- === MODAL MIGRACIÓN DEXIE → SUPABASE === -->
   <div id="dexie-supabase-modal" class="modal hidden">
