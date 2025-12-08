@@ -784,6 +784,42 @@ button.ghost:hover {
   gap: 16px;
 }
 
+.notebook-week-divider {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.75rem;
+}
+
+.notebook-week-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+  display: block;
+}
+
+.notebook-week-divider__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.notebook-week-divider__title {
+  font-weight: 600;
+}
+
+.notebook-week-divider__range {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+
 @media (max-width: 720px) {
   .notebook-list {
     grid-template-columns: 1fr;

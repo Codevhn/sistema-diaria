@@ -2091,6 +2091,45 @@
       const month = MONTH_ABBR[date.getMonth()] || "";
       return `${day} ${month}`;
     };
+    const getWeekStartDate = (value) => {
+      const base =
+        value instanceof Date
+          ? new Date(value.getFullYear(), value.getMonth(), value.getDate())
+          : parseISODate(value);
+      if (!(base instanceof Date) || Number.isNaN(base.getTime())) return null;
+      const start = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+      const dow = start.getDay();
+      const offset = dow === 0 ? 6 : dow - 1;
+      start.setDate(start.getDate() - offset);
+      return start;
+    };
+    const getFirstMondayOfMonth = (year, month) => {
+      const cursor = new Date(year, month, 1);
+      while (cursor.getDay() !== 1) {
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return cursor;
+    };
+    const getNotebookWeekMeta = (isoDate) => {
+      const date = parseISODate(isoDate);
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+      const weekStart = getWeekStartDate(date);
+      if (!weekStart) return null;
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      const weekStartIso = formatDateISO(weekStart);
+      const weekEndIso = formatDateISO(weekEnd);
+      const firstMonday = getFirstMondayOfMonth(date.getFullYear(), date.getMonth());
+      const weekIndex =
+        weekStart < firstMonday
+          ? 0
+          : Math.floor((weekStart.getTime() - firstMonday.getTime()) / (7 * DAY_MS)) + 1;
+      return {
+        key: weekStartIso,
+        title: weekIndex > 0 ? `Semana ${weekIndex}` : "Semana previa",
+        range: `${formatShortDate(weekStartIso)} - ${formatShortDate(weekEndIso)}`,
+      };
+    };
     const formatWindowRange = (startIso, endIso) => {
       const start = formatShortDate(startIso);
       const end = formatShortDate(endIso);
@@ -4014,7 +4053,25 @@
       }
       notebookList.innerHTML = "";
       const sortedEntries = entries.slice().reverse();
+      let currentWeekKey = null;
       sortedEntries.forEach((entry) => {
+        const weekMeta = getNotebookWeekMeta(entry.fecha);
+        if (weekMeta && weekMeta.key !== currentWeekKey) {
+          currentWeekKey = weekMeta.key;
+          const divider = document.createElement("div");
+          divider.className = "notebook-week-divider";
+          divider.innerHTML = `
+            <span class="notebook-week-divider__line" aria-hidden="true"></span>
+            <div class="notebook-week-divider__text">
+              <span class="notebook-week-divider__title">${weekMeta.title}</span>
+              <span class="notebook-week-divider__range">${weekMeta.range}</span>
+            </div>
+            <span class="notebook-week-divider__line" aria-hidden="true"></span>
+          `;
+          notebookList.appendChild(divider);
+        } else if (!weekMeta) {
+          currentWeekKey = null;
+        }
         const card = document.createElement("article");
         card.className = "notebook-card";
         card.innerHTML = `
