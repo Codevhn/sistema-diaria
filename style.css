@@ -1516,6 +1516,35 @@ button.ghost:hover {
   grid-column: span 2;
 }
 
+.day-card--numbers {
+  grid-column: span 2;
+}
+
+.day-number-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 14px;
+}
+
+.day-number-grid__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.12), rgba(255, 255, 255, 0.85));
+  color: var(--color-text);
+  text-shadow: 0 8px 16px rgba(15, 23, 42, 0.25);
+}
+
+.day-number-grid__item:nth-child(odd) {
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
 .day-card__head {
   display: flex;
   align-items: flex-start;
