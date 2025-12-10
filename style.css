@@ -1518,6 +1518,7 @@ button.ghost:hover {
 
 .day-card--numbers {
   grid-column: span 2;
+  margin-top: 22px;
 }
 
 .day-number-grid {
