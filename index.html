@@ -2577,7 +2577,11 @@
         el.classList.toggle("hidden", !allowed.has(config.key));
       });
     }
-    updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY);
+    if (typeof queueMicrotask === "function") {
+      queueMicrotask(() => updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY));
+    } else {
+      setTimeout(() => updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY), 0);
+    }
 
     function pickDraw(draws, fecha, pais, horario) {
       if (!fecha || !pais) return null;
