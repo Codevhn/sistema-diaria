@@ -1954,7 +1954,6 @@
     if (notebookPaisSelect && dayPais?.value) notebookPaisSelect.value = dayPais.value;
     if (geometryPaisSelect && dayPais?.value) geometryPaisSelect.value = dayPais.value;
     if (geometryPaisSelect && !geometryPaisSelect.value) geometryPaisSelect.value = "HN";
-    updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY);
 
     const SLOT_CONFIG = [
       {
@@ -2578,6 +2577,7 @@
         el.classList.toggle("hidden", !allowed.has(config.key));
       });
     }
+    updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY);
 
     function pickDraw(draws, fecha, pais, horario) {
       if (!fecha || !pais) return null;
