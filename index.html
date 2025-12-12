@@ -148,7 +148,7 @@
           <button class="ghost" data-hypo="11AM">Agregar hipótesis para 11 AM</button>
         </div>
 
-        <div class="slot" id="slot-12" data-turn="12PM">
+        <div class="slot hidden" id="slot-12" data-turn="12PM">
           <div class="slot-header">
             <div class="slot-title">12 PM</div>
             <label class="slot-flag">
@@ -182,7 +182,7 @@
           <button class="ghost" data-hypo="3PM">Agregar hipótesis para 3 PM</button>
         </div>
 
-        <div class="slot" id="slot-6" data-turn="6PM">
+        <div class="slot hidden" id="slot-6" data-turn="6PM">
           <div class="slot-header">
             <div class="slot-title">6 PM</div>
             <label class="slot-flag">
@@ -2577,11 +2577,6 @@
         el.classList.toggle("hidden", !allowed.has(config.key));
       });
     }
-    if (typeof queueMicrotask === "function") {
-      queueMicrotask(() => updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY));
-    } else {
-      setTimeout(() => updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY), 0);
-    }
 
     function pickDraw(draws, fecha, pais, horario) {
       if (!fecha || !pais) return null;
@@ -3428,6 +3423,13 @@
       updateSlotVisibility(dayPais?.value);
       refreshSlots();
       updateCountdownDisplay();
+    });
+    window.addEventListener("load", () => {
+      try {
+        updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY);
+      } catch (err) {
+        console.error("init slot visibility failed", err);
+      }
     });
     updateDayFechaDow();
 
