@@ -130,8 +130,8 @@
         </label>
       </div>
 
-      <div class="triple">
-        <div class="slot">
+      <div class="triple" id="day-slot-grid">
+        <div class="slot" id="slot-11" data-turn="11AM">
           <div class="slot-header">
             <div class="slot-title">11 AM</div>
             <label class="slot-flag">
@@ -148,7 +148,24 @@
           <button class="ghost" data-hypo="11AM">Agregar hipótesis para 11 AM</button>
         </div>
 
-        <div class="slot">
+        <div class="slot" id="slot-12" data-turn="12PM">
+          <div class="slot-header">
+            <div class="slot-title">12 PM</div>
+            <label class="slot-flag">
+              <input type="checkbox" id="test-12" /> Modo prueba
+            </label>
+          </div>
+          <div class="ball-row">
+            <div class="ball" id="b-12">--</div>
+            <div class="sym" id="s-12"></div>
+          </div>
+          <div class="row slot-controls">
+            <input id="n-12" placeholder="00-99" />
+          </div>
+          <button class="ghost" data-hypo="12PM">Agregar hipótesis para 12 PM</button>
+        </div>
+
+        <div class="slot" id="slot-3" data-turn="3PM">
           <div class="slot-header">
             <div class="slot-title">3 PM</div>
             <label class="slot-flag">
@@ -165,7 +182,24 @@
           <button class="ghost" data-hypo="3PM">Agregar hipótesis para 3 PM</button>
         </div>
 
-        <div class="slot">
+        <div class="slot" id="slot-6" data-turn="6PM">
+          <div class="slot-header">
+            <div class="slot-title">6 PM</div>
+            <label class="slot-flag">
+              <input type="checkbox" id="test-6" /> Modo prueba
+            </label>
+          </div>
+          <div class="ball-row">
+            <div class="ball" id="b-6">--</div>
+            <div class="sym" id="s-6"></div>
+          </div>
+          <div class="row slot-controls">
+            <input id="n-6" placeholder="00-99" />
+          </div>
+          <button class="ghost" data-hypo="6PM">Agregar hipótesis para 6 PM</button>
+        </div>
+
+        <div class="slot" id="slot-9" data-turn="9PM">
           <div class="slot-header">
             <div class="slot-title">9 PM</div>
             <label class="slot-flag">
@@ -216,7 +250,9 @@
               <select id="history-hour">
                 <option value="">Todos</option>
                 <option value="11AM">11 AM</option>
+                <option value="12PM">12 PM</option>
                 <option value="3PM">3 PM</option>
+                <option value="6PM">6 PM</option>
                 <option value="9PM">9 PM</option>
               </select>
             </label>
@@ -1918,6 +1954,7 @@
     if (notebookPaisSelect && dayPais?.value) notebookPaisSelect.value = dayPais.value;
     if (geometryPaisSelect && dayPais?.value) geometryPaisSelect.value = dayPais.value;
     if (geometryPaisSelect && !geometryPaisSelect.value) geometryPaisSelect.value = "HN";
+    updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY);
 
     const SLOT_CONFIG = [
       {
@@ -1926,6 +1963,15 @@
         checkboxId: "test-11",
         ballId: "b-11",
         symId: "s-11",
+        containerId: "slot-11",
+      },
+      {
+        key: "12PM",
+        inputId: "n-12",
+        checkboxId: "test-12",
+        ballId: "b-12",
+        symId: "s-12",
+        containerId: "slot-12",
       },
       {
         key: "3PM",
@@ -1933,6 +1979,15 @@
         checkboxId: "test-3",
         ballId: "b-3",
         symId: "s-3",
+        containerId: "slot-3",
+      },
+      {
+        key: "6PM",
+        inputId: "n-6",
+        checkboxId: "test-6",
+        ballId: "b-6",
+        symId: "s-6",
+        containerId: "slot-6",
       },
       {
         key: "9PM",
@@ -1940,8 +1995,15 @@
         checkboxId: "test-9",
         ballId: "b-9",
         symId: "s-9",
+        containerId: "slot-9",
       },
     ];
+    const COUNTRY_TURNOS = {
+      HN: ["11AM", "3PM", "9PM"],
+      NI: ["12PM", "3PM", "6PM", "9PM"],
+      SV: ["11AM", "9PM"],
+    };
+    const DEFAULT_COUNTRY = "HN";
     const HORARIO_KEYS = SLOT_CONFIG.map((config) => config.key);
     const TURNOS = [...HORARIO_KEYS];
 
@@ -2020,19 +2082,32 @@
       rankingTurn: DEFAULT_RANKING_TURN,
       expiresAt: 0,
     };
-    const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
+    const HORARIO_ORDER = { "11AM": 0, "12PM": 1, "3PM": 2, "6PM": 3, "9PM": 4 };
+    const HORARIO_LABELS = {
+      "11AM": "11 AM",
+      "12PM": "12 PM",
+      "3PM": "3 PM",
+      "6PM": "6 PM",
+      "9PM": "9 PM",
+    };
     const TRACKING_STORAGE_KEY = "ld-v3-tracking-day";
     const DRAW_CACHE_TTL = 15 * 1000;
     const BIAS_NOTES_STORAGE_KEY = "ld-v3-bias-notes";
     const BIAS_LAST_DOW_KEY = "ld-v3-bias-last-dow";
     const BIAS_TURN_SCHEDULE = {
       "11AM": { hour: 11, minute: 0 },
+      "12PM": { hour: 12, minute: 0 },
       "3PM": { hour: 15, minute: 0 },
+      "6PM": { hour: 18, minute: 0 },
       "9PM": { hour: 21, minute: 0 },
     };
     const LINE_REPEAT_TRANSITIONS = [
-      { key: "11-3", from: "11AM", to: "3PM", label: "11 AM → 3 PM" },
-      { key: "3-9", from: "3PM", to: "9PM", label: "3 PM → 9 PM" },
+      { key: "11-3", from: "11AM", to: "3PM", label: "11 AM → 3 PM", countries: ["HN"] },
+      { key: "3-9", from: "3PM", to: "9PM", label: "3 PM → 9 PM", countries: ["HN"] },
+      { key: "12-3", from: "12PM", to: "3PM", label: "12 PM → 3 PM", countries: ["NI"] },
+      { key: "3-6", from: "3PM", to: "6PM", label: "3 PM → 6 PM", countries: ["NI"] },
+      { key: "6-9", from: "6PM", to: "9PM", label: "6 PM → 9 PM", countries: ["NI"] },
+      { key: "11-9", from: "11AM", to: "9PM", label: "11 AM → 9 PM", countries: ["SV"] },
     ];
     const LINE_REPEAT_DOW_ORDER = [1, 2, 3, 4, 5, 6, 0];
     const DECEMBER_REMINDER_KEY = "ld-v3-december-reminders";
@@ -2479,6 +2554,31 @@
       pais: document.getElementById("day-pais")?.value,
     });
 
+    const normalizeCountry = (value) => {
+      const raw = typeof value === "string" ? value : value ? String(value) : DEFAULT_COUNTRY;
+      const normalized = raw.trim().toUpperCase();
+      return normalized || DEFAULT_COUNTRY;
+    };
+
+    function getCountryTurnos(pais) {
+      const normalized = normalizeCountry(pais);
+      return COUNTRY_TURNOS[normalized] || COUNTRY_TURNOS[DEFAULT_COUNTRY];
+    }
+
+    function getActiveSlotConfigs(pais) {
+      const allowed = new Set(getCountryTurnos(pais));
+      return SLOT_CONFIG.filter((config) => allowed.has(config.key));
+    }
+
+    function updateSlotVisibility(pais) {
+      const allowed = new Set(getCountryTurnos(pais));
+      SLOT_CONFIG.forEach((config) => {
+        const el = config.containerId ? document.getElementById(config.containerId) : null;
+        if (!el) return;
+        el.classList.toggle("hidden", !allowed.has(config.key));
+      });
+    }
+
     function pickDraw(draws, fecha, pais, horario) {
       if (!fecha || !pais) return null;
       const matching = draws
@@ -2526,12 +2626,13 @@
 
     async function refreshSlots() {
       const { fecha, pais } = getFilters();
+      const normalizedPais = normalizeCountry(pais);
       const draws = await DB.listDraws({ excludeTest: false });
-      SLOT_CONFIG.forEach((config) => {
-        const draw = pickDraw(draws, fecha, pais, config.key);
+      getActiveSlotConfigs(normalizedPais).forEach((config) => {
+        const draw = pickDraw(draws, fecha, normalizedPais, config.key);
         applyDrawToSlot(config, draw);
       });
-      applyPendingSlots(fecha, pais);
+      applyPendingSlots(fecha, normalizedPais);
     }
 
     const saveDayBtn = document.getElementById("save-day");
@@ -2627,7 +2728,7 @@
 
     function applyPendingSlots(targetFecha, targetPais) {
       if (!pendingDayQueue.length) return;
-      const normalizedPais = (targetPais || "HN").toUpperCase();
+      const normalizedPais = normalizeCountry(targetPais);
       pendingDayQueue.forEach((entry) => {
         if (!entry) return;
         if (entry.fecha !== targetFecha) return;
@@ -2821,6 +2922,15 @@
       return Math.floor(numero / 10);
     }
 
+    function getLineRepeatTransitionsForCountry(country) {
+      if (!country) return LINE_REPEAT_TRANSITIONS;
+      const normalized = normalizeCountry(country);
+      return LINE_REPEAT_TRANSITIONS.filter((transition) => {
+        if (!Array.isArray(transition.countries) || !transition.countries.length) return true;
+        return transition.countries.includes(normalized);
+      });
+    }
+
     function formatLineLabel(line) {
       if (!Number.isFinite(line)) return "—";
       const start = formatNumber(line * 10);
@@ -2883,6 +2993,9 @@
         if (!Number.isInteger(group.dow)) return;
         const dowBucket = bucketsByDow[group.dow] || createLineRepeatBucket();
         LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+          if (Array.isArray(transition.countries) && transition.countries.length) {
+            if (!transition.countries.includes(group.pais)) return;
+          }
           const fromDraw = group.turns[transition.from];
           const toDraw = group.turns[transition.to];
           if (!fromDraw || !toDraw) return;
@@ -2914,14 +3027,14 @@
       };
     }
 
-    function hasLineRepeatData(bucket) {
+    function hasLineRepeatData(bucket, transitions = LINE_REPEAT_TRANSITIONS) {
       if (!bucket) return false;
-      return LINE_REPEAT_TRANSITIONS.some((transition) => (bucket[transition.key]?.total || 0) > 0);
+      return transitions.some((transition) => (bucket[transition.key]?.total || 0) > 0);
     }
 
-    function buildLineTotalsFromBucket(bucket = {}) {
+    function buildLineTotalsFromBucket(bucket = {}, transitions = LINE_REPEAT_TRANSITIONS) {
       const totals = new Map();
-      LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+      transitions.forEach((transition) => {
         const entry = bucket[transition.key];
         if (!entry || !Array.isArray(entry.lines)) return;
         entry.lines.forEach((lineEntry) => {
@@ -2961,22 +3074,26 @@
       return stats.overall;
     }
 
-    function renderLineRepeatSummary(bucket, { dowValue = "", countryValue = "", sampleSize = 0 } = {}) {
+    function renderLineRepeatSummary(
+      bucket,
+      { dowValue = "", countryValue = "", sampleSize = 0, transitions = LINE_REPEAT_TRANSITIONS } = {},
+    ) {
       if (!lineRepeatSummary) return;
+      const effectiveTransitions = transitions && transitions.length ? transitions : LINE_REPEAT_TRANSITIONS;
       const dowLabel =
         dowValue === "" ? "todos los días" : DOW_FULL_LABEL[Number(dowValue)] || "este día";
       const countryLabel = countryValue ? `país ${countryValue}` : "todos los países";
-      if (!bucket || !hasLineRepeatData(bucket)) {
+      if (!bucket || !hasLineRepeatData(bucket, effectiveTransitions)) {
         lineRepeatSummary.innerHTML = `<p class="hint">Aún no hay repeticiones registradas para ${dowLabel} en ${countryLabel}.</p>`;
         return;
       }
-      const pieces = LINE_REPEAT_TRANSITIONS.map((transition) => {
+      const pieces = effectiveTransitions.map((transition) => {
         const entry = bucket[transition.key] || { total: 0, repeats: 0 };
         if (!entry.total) return `${transition.label}: 0% (0/0)`;
         const ratio = Math.round((entry.repeats / entry.total) * 100);
         return `${transition.label}: ${ratio}% (${entry.repeats}/${entry.total})`;
       });
-      const leaders = buildLineTotalsFromBucket(bucket)
+      const leaders = buildLineTotalsFromBucket(bucket, effectiveTransitions)
         .slice(0, 3)
         .map((entry) => `${formatLineLabel(entry.line)} (${entry.count})`)
         .join(" · ");
@@ -2989,14 +3106,15 @@
       `;
     }
 
-    function renderLineRepeatTopLines(bucket) {
+    function renderLineRepeatTopLines(bucket, transitions = LINE_REPEAT_TRANSITIONS) {
       if (!lineRepeatTopLines) return;
       lineRepeatTopLines.innerHTML = "";
       if (!bucket) {
         lineRepeatTopLines.innerHTML = `<p class="hint">Sin datos suficientes para mostrar repeticiones por línea.</p>`;
         return;
       }
-      LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+      const effectiveTransitions = transitions && transitions.length ? transitions : LINE_REPEAT_TRANSITIONS;
+      effectiveTransitions.forEach((transition) => {
         const entry = bucket[transition.key] || { total: 0, repeats: 0, lines: [] };
         const card = document.createElement("div");
         card.className = "line-repeat-card";
@@ -3024,14 +3142,19 @@
       });
     }
 
-    function renderLineRepeatMatrix(stats, selectedDow) {
+    function renderLineRepeatMatrix(stats, selectedDow, transitions = LINE_REPEAT_TRANSITIONS) {
       if (!lineRepeatMatrix) return;
       if (!stats || !stats.byDow) {
         lineRepeatMatrix.innerHTML = `<p class="hint">No hay datos suficientes para construir la matriz.</p>`;
         return;
       }
+      const effectiveTransitions = transitions && transitions.length ? transitions : LINE_REPEAT_TRANSITIONS;
+      if (!effectiveTransitions.length) {
+        lineRepeatMatrix.innerHTML = `<p class="hint">No hay transiciones definidas para el país seleccionado.</p>`;
+        return;
+      }
       const hasData = LINE_REPEAT_DOW_ORDER.some((dow) =>
-        LINE_REPEAT_TRANSITIONS.some((transition) => (stats.byDow?.[dow]?.[transition.key]?.total || 0) > 0),
+        effectiveTransitions.some((transition) => (stats.byDow?.[dow]?.[transition.key]?.total || 0) > 0),
       );
       if (!hasData) {
         lineRepeatMatrix.innerHTML =
@@ -3041,7 +3164,7 @@
       const table = document.createElement("table");
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
-      headRow.innerHTML = `<th>Día</th>${LINE_REPEAT_TRANSITIONS.map((t) => `<th>${t.label}</th>`).join("")}`;
+      headRow.innerHTML = `<th>Día</th>${effectiveTransitions.map((t) => `<th>${t.label}</th>`).join("")}`;
       thead.appendChild(headRow);
       table.appendChild(thead);
       const tbody = document.createElement("tbody");
@@ -3056,7 +3179,7 @@
         const labelCell = document.createElement("td");
         labelCell.textContent = DOW_FULL_LABEL[dow] || `Día ${dow}`;
         row.appendChild(labelCell);
-        LINE_REPEAT_TRANSITIONS.forEach((transition) => {
+        effectiveTransitions.forEach((transition) => {
           const entry = bucket?.[transition.key] || { total: 0, repeats: 0, lines: [] };
           const cell = document.createElement("td");
           if (!entry.total) {
@@ -3087,13 +3210,15 @@
       const dowValue = lineRepeatDowSelect?.value || "";
       const stats = await getLineRepeatStats({ country: countryValue, force });
       const bucket = getLineRepeatBucketForSelection(stats, dowValue);
+      const transitions = getLineRepeatTransitionsForCountry(countryValue);
       renderLineRepeatSummary(bucket, {
         dowValue,
         countryValue: countryValue,
         sampleSize: stats?.sampleSize || 0,
+        transitions,
       });
-      renderLineRepeatTopLines(bucket);
-      renderLineRepeatMatrix(stats, dowValue);
+      renderLineRepeatTopLines(bucket, transitions);
+      renderLineRepeatMatrix(stats, dowValue, transitions);
     }
 
     lineRepeatCountrySelect?.addEventListener("change", () => renderLineRepeatPanel({ force: true }));
@@ -3107,9 +3232,9 @@
         return;
       }
 
-      const paisValue = (pais || "HN").toUpperCase();
+      const paisValue = normalizeCountry(pais);
       const payloads = [];
-      for (const config of SLOT_CONFIG) {
+      for (const config of getActiveSlotConfigs(paisValue)) {
         const input = document.getElementById(config.inputId);
         const raw = input?.value.trim() ?? "";
         if (!raw) continue;
@@ -3296,6 +3421,7 @@
       updateCountdownDisplay();
     });
     dayPais?.addEventListener("change", () => {
+      updateSlotVisibility(dayPais?.value);
       refreshSlots();
       updateCountdownDisplay();
     });
@@ -3306,43 +3432,75 @@
     const countdownLabelEl = document.querySelector("[data-countdown-label]");
     let countdownInterval = null;
 
-    const TURNO_SCHEDULE = [
-      { name: "11AM", hour: 11 },
-      { name: "3PM", hour: 15 },
-      { name: "9PM", hour: 21 },
-    ];
+    function getTurnoScheduleEntries(pais) {
+      const keys = getCountryTurnos(pais);
+      const entries = keys
+        .map((key) => {
+          const schedule = BIAS_TURN_SCHEDULE[key];
+          if (!schedule) return null;
+          const hour = Number(schedule.hour);
+          const minute = Number(schedule.minute) || 0;
+          if (!Number.isFinite(hour)) return null;
+          return {
+            name: key,
+            label: HORARIO_LABELS[key] || key,
+            hour,
+            minute,
+          };
+        })
+        .filter(Boolean);
+      if (!entries.length && pais !== DEFAULT_COUNTRY) {
+          return getTurnoScheduleEntries(DEFAULT_COUNTRY);
+      }
+      return entries.sort((a, b) => {
+        const aMinutes = a.hour * 60 + (a.minute || 0);
+        const bMinutes = b.hour * 60 + (b.minute || 0);
+        return aMinutes - bMinutes;
+      });
+    }
 
-    function getNextDraw() {
+    function getNextDraw(pais) {
+      const schedule = getTurnoScheduleEntries(pais);
+      if (!schedule.length) return null;
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      for (const draw of TURNO_SCHEDULE) {
+      for (const draw of schedule) {
         const drawTime = new Date(today);
-        drawTime.setHours(draw.hour, 0, 0, 0);
+        drawTime.setHours(draw.hour, draw.minute || 0, 0, 0);
         if (now < drawTime) {
-          return { name: draw.name, time: drawTime };
+          return { ...draw, time: drawTime };
         }
       }
 
       // If all draws for today are over, get the first draw of tomorrow
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const nextDraw = TURNO_SCHEDULE[0];
+      const nextDraw = schedule[0];
       const nextDrawTime = new Date(tomorrow);
-      nextDrawTime.setHours(nextDraw.hour, 0, 0, 0);
-      return { name: nextDraw.name, time: nextDrawTime };
+      nextDrawTime.setHours(nextDraw.hour, nextDraw.minute || 0, 0, 0);
+      return { ...nextDraw, time: nextDrawTime };
     }
 
-    function updateCountdown() {
-      const nextDraw = getNextDraw();
+    function updateCountdown(pais) {
+      const normalizedPais = normalizeCountry(pais);
+      const nextDraw = getNextDraw(normalizedPais);
+
+      if (!nextDraw) {
+        if (countdownLabelEl) countdownLabelEl.textContent = "Próximo sorteo no disponible";
+        if (countdownTargetEl) countdownTargetEl.textContent = "—";
+        if (countdownTimerEl) countdownTimerEl.textContent = "--:--:--";
+        if (countdownInterval) clearInterval(countdownInterval);
+        return;
+      }
 
       if (countdownLabelEl) {
-        countdownLabelEl.textContent = `Próximo Sorteo: ${nextDraw.name}`;
+        countdownLabelEl.textContent = `Próximo Sorteo: ${nextDraw.label}`;
       }
 
       if (countdownTargetEl) {
-        const options = { hour: '2-digit', minute: '2-digit' };
-        countdownTargetEl.textContent = nextDraw.time.toLocaleTimeString('es-ES', options);
+        const options = { hour: "2-digit", minute: "2-digit" };
+        countdownTargetEl.textContent = nextDraw.time.toLocaleTimeString("es-ES", options);
       }
 
       if (countdownInterval) {
@@ -3356,7 +3514,7 @@
         if (diff <= 0) {
           clearInterval(countdownInterval);
           // Update to the next draw when the countdown finishes
-          setTimeout(updateCountdown, 1000);
+          setTimeout(() => updateCountdown(normalizedPais), 1000);
           return;
         }
 
@@ -3371,11 +3529,12 @@
       }, 1000);
     }
 
-    updateCountdown();
+    updateCountdownDisplay();
 
     function updateCountdownDisplay() {
       try {
-        updateCountdown();
+        const pais = dayPais?.value || DEFAULT_COUNTRY;
+        updateCountdown(pais);
       } catch (err) {
         console.error("countdown update error", err);
       }
@@ -4235,7 +4394,10 @@
         dayFecha.value = fecha;
         updateDayFechaDow(fecha);
       }
-      if (dayPais && pais) dayPais.value = pais;
+      if (dayPais && pais) {
+        dayPais.value = pais;
+        updateSlotVisibility(pais);
+      }
       navigateToView("day");
       try {
         await refreshSlots();
@@ -9391,10 +9553,14 @@
         dayFecha.value = fecha;
         updateDayFechaDow(fecha);
       }
-      if (pais && dayPais) dayPais.value = pais;
+      if (pais && dayPais) {
+        dayPais.value = pais;
+        updateSlotVisibility(pais);
+      }
       const dayBtn = Array.from(sidebarButtons || []).find((btn) => btn.dataset.view === "day");
       dayBtn?.click();
       await refreshSlots();
+      updateCountdownDisplay?.();
       await refreshHistoryPanel({ forceReload: true });
       await renderTrackingPanel({ forceReload: true });
     }
