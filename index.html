@@ -2554,11 +2554,11 @@
       pais: document.getElementById("day-pais")?.value,
     });
 
-    const normalizeCountry = (value) => {
+    function normalizeCountry(value) {
       const raw = typeof value === "string" ? value : value ? String(value) : DEFAULT_COUNTRY;
       const normalized = raw.trim().toUpperCase();
       return normalized || DEFAULT_COUNTRY;
-    };
+    }
 
     function getCountryTurnos(pais) {
       const normalized = normalizeCountry(pais);
