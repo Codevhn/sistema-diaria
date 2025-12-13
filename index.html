@@ -3631,27 +3631,29 @@
 
         tEl.textContent = `Hipótesis para ${turno}`;
         mEl.innerHTML = `
-      <form class="modal-form" id="modal-hypo-form">
-        <div class="modal-field modal-field--meta">
-          <span class="modal-label">Fecha</span>
-          <span class="modal-value">${fecha}</span>
-        </div>
-        <div class="modal-field modal-field--meta">
-          <span class="modal-label">Turno</span>
-          <span class="modal-value">${turno}</span>
-        </div>
-        <div class="modal-field modal-field--accent">
-          <span class="modal-label">Número seleccionado</span>
-          <div class="modal-number-chip">
-            <strong>${numeroFmt}</strong>
-            ${simbolo ? `<small>${simbolo}</small>` : ""}
+      <div class="modal-form-panel">
+        <form class="modal-form" id="modal-hypo-form">
+          <div class="modal-field modal-field--meta">
+            <span class="modal-label">Fecha</span>
+            <span class="modal-value">${fecha}</span>
           </div>
-        </div>
-        <div class="modal-field">
-          <label class="modal-label" for="modal-text">Hipótesis</label>
-          <textarea id="modal-text" rows="4" placeholder="Explica la lógica de este número…" class="modal-textarea"></textarea>
-        </div>
-      </form>
+          <div class="modal-field modal-field--meta">
+            <span class="modal-label">Turno</span>
+            <span class="modal-value">${turno}</span>
+          </div>
+          <div class="modal-field modal-field--accent">
+            <span class="modal-label">Número seleccionado</span>
+            <div class="modal-number-chip">
+              <strong>${numeroFmt}</strong>
+              ${simbolo ? `<small>${simbolo}</small>` : ""}
+            </div>
+          </div>
+          <div class="modal-field">
+            <label class="modal-label" for="modal-text">Hipótesis</label>
+            <textarea id="modal-text" rows="4" placeholder="Explica la lógica de este número…" class="modal-textarea"></textarea>
+          </div>
+        </form>
+      </div>
     `;
         okBtn.textContent = "Guardar";
         cancelBtn.textContent = "Cancelar";
@@ -11350,7 +11352,7 @@ function buildVariantEntries(profile) {
         <h3 id="modal-title">Confirmar acción</h3>
       </div>
       <div class="modal-body">
-        <p id="modal-msg"></p>
+        <div id="modal-msg" class="modal-msg"></div>
       </div>
       <div class="modal-foot">
         <button id="modal-cancel">Cancelar</button>
