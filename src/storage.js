@@ -133,7 +133,7 @@ function applyNullableFilter(query, column, value) {
   return value === null ? query.is(column, null) : query.eq(column, value);
 }
 
-async function insertRecord(table, data, context) {
+async function insertRecord(table, data, context, attempt = 0) {
   try {
     const payload = encodeRecord(data);
     const { data: row, error } = await supabase.from(table).insert([payload]).select().maybeSingle();
@@ -146,6 +146,19 @@ async function insertRecord(table, data, context) {
     return decodeRecord(row);
   } catch (err) {
     reportSupabaseException(context, err);
+    const primaryKey = getPrimaryKey(table);
+    const hasCustomPrimary = Object.prototype.hasOwnProperty.call(data || {}, primaryKey);
+    if (
+      isDuplicatePrimaryError(err) &&
+      attempt === 0 &&
+      primaryKey === "id" &&
+      !hasCustomPrimary
+    ) {
+      const nextId = await getNextId(table);
+      if (Number.isFinite(nextId)) {
+        return insertRecord(table, { ...data, id: nextId }, `${context}:retry`, attempt + 1);
+      }
+    }
     throw err instanceof Error ? err : new Error(String(err));
   }
 }

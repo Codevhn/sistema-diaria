@@ -4606,14 +4606,14 @@
       }
       const numeros = {};
       let completos = true;
-      HORARIO_KEYS.forEach((turno) => {
-        const input = notebookInputs[turno];
-        const val = input?.value.trim() || "";
+      Object.entries(notebookInputs).forEach(([turno, input]) => {
+        if (!input) return;
+        const val = (input.value || "").trim();
         if (!/^\d{2}$/.test(val)) completos = false;
         numeros[turno] = val;
       });
       if (!completos) {
-        showToast("Completa los tres sorteos (formato 00-99) antes de guardar.", { variant: "warning" });
+        showToast("Completa los sorteos del cuaderno (formato 00-99) antes de guardar.", { variant: "warning" });
         return;
       }
       try {
