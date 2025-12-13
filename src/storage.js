@@ -320,8 +320,29 @@ export const DB = {
   },
 
   async _add(table, data) {
-    const inserted = await insertRecord(table, withTimestamp(data), `_add:${table}`);
-    return inserted?.id ?? inserted?.key ?? null;
+    const payload = withTimestamp(data);
+    try {
+      const inserted = await insertRecord(table, payload, `_add:${table}`);
+      return inserted?.id ?? inserted?.key ?? null;
+    } catch (err) {
+      const primaryKey = getPrimaryKey(table);
+      if (
+        isDuplicatePrimaryError(err) &&
+        primaryKey === "id" &&
+        typeof payload.id === "undefined"
+      ) {
+        const nextId = await getNextId(table);
+        if (Number.isFinite(nextId)) {
+          const inserted = await insertRecord(
+            table,
+            { ...payload, id: nextId },
+            `_add:${table}:retry`,
+          );
+          return inserted?.id ?? inserted?.key ?? null;
+        }
+      }
+      throw err;
+    }
   },
 
   async _getAll(table) {

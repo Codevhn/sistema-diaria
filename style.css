@@ -486,6 +486,102 @@ button.ghost:hover {
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
+
+.day-card--intel {
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent);
+}
+
+.day-intel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.day-intel-main {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 16px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.day-intel-number {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--color-accent);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.day-intel-context {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.day-intel-label {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.day-intel-reason {
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.day-intel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.day-intel-list li {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.day-intel-entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.day-intel-entry-number {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.day-intel-entry-confidence {
+  font-size: 13px;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.day-intel-entry-signals {
+  font-size: 14px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.day-intel-entry-signals span {
+  display: block;
+}
 .slot > * {
   position: relative;
   z-index: 1;

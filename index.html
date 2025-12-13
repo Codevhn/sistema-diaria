@@ -217,6 +217,27 @@
         </div>
       </div>
 
+      <article class="day-card day-card--intel" id="day-intel-card">
+        <div class="day-card__head">
+          <div>
+            <h3>Inteligencia del juego</h3>
+            <p>Calcula la jugada del día combinando señales de Nicaragua y El Salvador.</p>
+          </div>
+          <button id="day-intel-refresh" class="btn-ghost btn-compact">Actualizar</button>
+        </div>
+        <div class="day-card__body day-intel-body">
+          <div class="day-intel-main">
+            <div class="day-intel-number" id="day-intel-number">--</div>
+            <div class="day-intel-context">
+              <div class="day-intel-label">Candidato principal</div>
+              <div class="day-intel-reason" id="day-intel-reason">Selecciona fecha y país para generar señales.</div>
+            </div>
+          </div>
+          <div id="day-intel-empty" class="hint">Aún no hay señales cruzadas para esta fecha.</div>
+          <ul id="day-intel-list" class="day-intel-list"></ul>
+        </div>
+      </article>
+
       <div class="day-actions">
         <button id="save-day" class="btn-primary">Agregar a pendientes</button>
         <button id="sync-day" class="btn-outline">Sincronizar con Supabase</button>
@@ -2577,6 +2598,207 @@
         el.classList.toggle("hidden", !allowed.has(config.key));
       });
     }
+    function getDrawSortValue(draw) {
+      if (!draw) return 0;
+      const date = parseISODate(draw.fecha);
+      if (!date) return 0;
+      let value = date.getTime();
+      const schedule = BIAS_TURN_SCHEDULE[draw.horario];
+      if (schedule) {
+        value += ((schedule.hour || 0) * 60 + (schedule.minute || 0)) * 60 * 1000;
+      } else {
+        value += (HORARIO_ORDER[draw.horario] || 0) * 60 * 60 * 1000;
+      }
+      if (Number.isFinite(draw.createdAt)) value += draw.createdAt % (60 * 1000);
+      return value;
+    }
+
+    function pickLatestDrawForCountry(draws, pais, preferDate) {
+      const normalized = normalizeCountry(pais);
+      if (!Array.isArray(draws) || !draws.length) return null;
+      const filtered = draws.filter(
+        (draw) => draw && (draw.pais || "").toUpperCase() === normalized && !draw.isTest,
+      );
+      if (!filtered.length) return null;
+      const sameDate = filtered.filter((draw) => draw.fecha === preferDate);
+      const pool = sameDate.length ? sameDate : filtered;
+      return pool.slice().sort((a, b) => getDrawSortValue(a) - getDrawSortValue(b)).pop() || null;
+    }
+
+    function buildIntelTransformCandidates(draw) {
+      const numero = Number(draw?.numero);
+      if (!Number.isFinite(numero)) return [];
+      const candidates = [];
+      const normalized = ((numero % 100) + 100) % 100;
+      candidates.push({
+        value: normalized,
+        transform: "direct",
+        label: "Replica directa",
+        score: 1,
+      });
+      const complement = ((100 - normalized) + 100) % 100;
+      candidates.push({
+        value: complement,
+        transform: "complement",
+        label: "Ajuste (100−n)",
+        score: 3,
+      });
+      const inverse = getInverseNumero(normalized);
+      if (inverse) {
+        candidates.push({
+          value: inverse.numero,
+          transform: "mirror",
+          label: "Invertido",
+          score: 2,
+        });
+      }
+      return candidates;
+    }
+
+    function formatRelativeTime(ts) {
+      if (!Number.isFinite(ts)) return "";
+      const diff = Date.now() - ts;
+      const minutes = Math.max(0, Math.round(diff / 60000));
+      if (minutes < 60) return `hace ${minutes}m`;
+      const hours = Math.round(minutes / 60);
+      if (hours < 48) return `hace ${hours}h`;
+      const days = Math.round(hours / 24);
+      return `hace ${days}d`;
+    }
+
+    function buildCrossCountrySignals(draws, fecha, targetPais) {
+      const normalizedTarget = normalizeCountry(targetPais);
+      const countries = Object.keys(COUNTRY_TURNOS).filter((pais) => pais !== normalizedTarget);
+      const signals = [];
+      countries.forEach((pais) => {
+        const draw = pickLatestDrawForCountry(draws, pais, fecha);
+        if (!draw) return;
+        const ts = getDrawSortValue(draw);
+        const relative = formatRelativeTime(ts);
+        const transforms = buildIntelTransformCandidates(draw);
+        transforms.forEach((candidate) => {
+          signals.push({
+            candidate: candidate.value,
+            transform: candidate.transform,
+            label: candidate.label,
+            score: candidate.score,
+            sourcePais: pais,
+            sourceHorario: draw.horario || "—",
+            sourceNumero: formatNumber(draw.numero),
+            relative,
+          });
+        });
+      });
+      return signals;
+    }
+
+    function aggregateIntelCandidates(signals = []) {
+      const map = new Map();
+      signals.forEach((signal) => {
+        const numero = formatNumber(signal.candidate);
+        if (!map.has(numero)) {
+          map.set(numero, { numero, score: 0, signals: [] });
+        }
+        const entry = map.get(numero);
+        entry.score += signal.score;
+        entry.signals.push(signal);
+      });
+      return Array.from(map.values()).sort((a, b) => b.score - a.score);
+    }
+
+    function buildIntelSummaryText(entry) {
+      if (!entry || !Array.isArray(entry.signals)) return "";
+      const pieces = entry.signals
+        .slice(0, 2)
+        .map(
+          (signal) =>
+            `${signal.label} desde ${signal.sourcePais} ${signal.sourceHorario} (${signal.sourceNumero})`,
+        );
+      return pieces.join(" · ");
+    }
+
+    function renderDayIntel(fecha, pais, signals = [], { error } = {}) {
+      if (!dayIntelCard || !dayIntelNumberEl || !dayIntelReasonEl || !dayIntelListEl) return;
+      const normalizedPais = pais ? normalizeCountry(pais) : DEFAULT_COUNTRY;
+      if (error) {
+        dayIntelNumberEl.textContent = "--";
+        dayIntelReasonEl.textContent = `No se pudo calcular inteligencia: ${error.message || error}`;
+        dayIntelListEl.innerHTML = "";
+        if (dayIntelEmptyEl) {
+          dayIntelEmptyEl.classList.remove("hidden");
+          dayIntelEmptyEl.textContent = "Error al calcular señales regionales.";
+        }
+        return;
+      }
+      if (!fecha || !normalizedPais) {
+        dayIntelNumberEl.textContent = "--";
+        dayIntelReasonEl.textContent = "Selecciona fecha y país.";
+        dayIntelListEl.innerHTML = "";
+        if (dayIntelEmptyEl) {
+          dayIntelEmptyEl.classList.remove("hidden");
+          dayIntelEmptyEl.textContent = "Esperando filtros.";
+        }
+        return;
+      }
+      const summary = aggregateIntelCandidates(signals);
+      if (!summary.length) {
+        dayIntelNumberEl.textContent = "--";
+        dayIntelReasonEl.textContent = "Sin señales cruzadas para esta fecha.";
+        dayIntelListEl.innerHTML = "";
+        if (dayIntelEmptyEl) {
+          dayIntelEmptyEl.classList.remove("hidden");
+          dayIntelEmptyEl.textContent = "Registra sorteos en NI/SV para ver sugerencias.";
+        }
+        return;
+      }
+      const best = summary[0];
+      dayIntelNumberEl.textContent = best.numero;
+      dayIntelReasonEl.textContent = buildIntelSummaryText(best);
+      if (dayIntelEmptyEl) dayIntelEmptyEl.classList.add("hidden");
+      const maxScore = summary.reduce((acc, entry) => Math.max(acc, entry.score), 1);
+      dayIntelListEl.innerHTML = "";
+      summary.slice(0, 4).forEach((entry) => {
+        const li = document.createElement("li");
+        const confidence = Math.min(95, Math.round((entry.score / maxScore) * 100));
+        li.innerHTML = `
+          <div class="day-intel-entry-head">
+            <span class="day-intel-entry-number">${entry.numero}</span>
+            <span class="day-intel-entry-confidence">${confidence}% sinergia</span>
+          </div>
+          <div class="day-intel-entry-signals">
+            ${entry.signals
+              .map(
+                (signal) =>
+                  `<span><strong>${signal.sourcePais} ${signal.sourceHorario}</strong> · ${
+                    signal.sourceNumero
+                  } → ${signal.label}${signal.relative ? ` · ${signal.relative}` : ""}</span>`,
+              )
+              .join("")}
+          </div>
+        `;
+        dayIntelListEl.appendChild(li);
+      });
+    }
+
+    async function refreshDayIntel() {
+      if (!dayIntelCard) return;
+      const { fecha, pais } = getFilters();
+      const currentRequest = ++dayIntelRequestId;
+      if (!fecha || !pais) {
+        renderDayIntel(fecha, pais, []);
+        return;
+      }
+      try {
+        const draws = await DB.listDraws({ excludeTest: true });
+        if (currentRequest !== dayIntelRequestId) return;
+        const signals = buildCrossCountrySignals(draws, fecha, pais);
+        renderDayIntel(fecha, pais, signals);
+      } catch (err) {
+        if (currentRequest !== dayIntelRequestId) return;
+        console.error("day intel error", err);
+        renderDayIntel(fecha, pais, [], { error: err });
+      }
+    }
 
     function pickDraw(draws, fecha, pais, horario) {
       if (!fecha || !pais) return null;
@@ -2632,6 +2854,7 @@
         applyDrawToSlot(config, draw);
       });
       applyPendingSlots(fecha, normalizedPais);
+      refreshDayIntel();
     }
 
     const saveDayBtn = document.getElementById("save-day");
@@ -2652,12 +2875,19 @@
     const lineRepeatSummary = document.getElementById("line-repeat-summary");
     const lineRepeatTopLines = document.getElementById("line-repeat-top-lines");
     const lineRepeatMatrix = document.getElementById("line-repeat-matrix");
+    const dayIntelCard = document.getElementById("day-intel-card");
+    const dayIntelRefreshBtn = document.getElementById("day-intel-refresh");
+    const dayIntelNumberEl = document.getElementById("day-intel-number");
+    const dayIntelReasonEl = document.getElementById("day-intel-reason");
+    const dayIntelListEl = document.getElementById("day-intel-list");
+    const dayIntelEmptyEl = document.getElementById("day-intel-empty");
     const lineRepeatCountrySelect = document.getElementById("line-repeat-country");
     const lineRepeatDowSelect = document.getElementById("line-repeat-dow");
     const lineRepeatRefreshBtn = document.getElementById("line-repeat-refresh");
     const DAY_PENDING_STORAGE_KEY = "ld_pending_draws_v1";
     let pendingDayQueue = [];
     let pendingEditorIndex = null;
+    let dayIntelRequestId = 0;
     const buildPendingKey = (entry) =>
       entry && entry.fecha && entry.pais && entry.horario
         ? `${entry.fecha}|${entry.pais}|${entry.horario}`
@@ -3424,9 +3654,11 @@
       refreshSlots();
       updateCountdownDisplay();
     });
+    dayIntelRefreshBtn?.addEventListener("click", () => refreshDayIntel());
     window.addEventListener("load", () => {
       try {
         updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY);
+        refreshDayIntel();
       } catch (err) {
         console.error("init slot visibility failed", err);
       }
