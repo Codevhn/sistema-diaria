@@ -588,6 +588,13 @@
       </div>
 
       <h3>Historial</h3>
+      <div class="row hypo-search-row">
+        <label>
+          Buscar número
+          <input id="h-search" placeholder="00-99" maxlength="2" />
+        </label>
+        <button type="button" id="h-search-clear" class="btn-ghost">Limpiar búsqueda</button>
+      </div>
       <div id="h-list" class="cards hypo-list"></div>
     </section>
 
@@ -7012,6 +7019,8 @@
     const hypoTurnoSelect = document.getElementById("h-turno");
     const hypoNumeroInput = document.getElementById("h-numero");
     const hypoTextoInput = document.getElementById("h-texto");
+    const hypoSearchInput = document.getElementById("h-search");
+    const hypoSearchClearBtn = document.getElementById("h-search-clear");
     const btnHipotesis = document.getElementById("h-guardar");
     const reminderNumeroInput = document.getElementById("hr-numero");
     const reminderNotaInput = document.getElementById("hr-nota");
@@ -7116,6 +7125,13 @@
         handleReminderAdd();
       }
     });
+    hypoSearchInput?.addEventListener("input", () => {
+      refreshHypotesis();
+    });
+    hypoSearchClearBtn?.addEventListener("click", () => {
+      if (hypoSearchInput) hypoSearchInput.value = "";
+      refreshHypotesis();
+    });
 
     function resetHypothesisForm() {
       editingHypothesisId = null;
@@ -7124,19 +7140,32 @@
       if (hypoTextoInput) hypoTextoInput.value = "";
     }
 
+    function getHypothesisFilterNumero() {
+      const raw = (hypoSearchInput?.value || "").trim();
+      if (!raw) return "";
+      if (!/^\d{1,2}$/.test(raw)) return "";
+      return raw.padStart(2, "0");
+    }
+
     async function refreshHypotesis() {
       await refreshHypothesisReminders();
       const cont = document.getElementById("h-list");
       if (!cont) return;
       cont.classList.add("cards", "hypo-list");
       const hyps = await DB._getAll("hypotheses");
-      if (!hyps.length) {
-        cont.innerHTML = "<p class='hint'>Aún no hay hipótesis registradas.</p>";
+      const filterNumero = getHypothesisFilterNumero();
+      const filtered = filterNumero
+        ? hyps.filter((h) => formatNumber(h.numero) === filterNumero)
+        : hyps;
+      if (!filtered.length) {
+        cont.innerHTML = filterNumero
+          ? `<p class='hint'>No hay hipótesis registradas para ${filterNumero}.</p>`
+          : "<p class='hint'>Aún no hay hipótesis registradas.</p>";
         return;
       }
-      hyps.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       cont.innerHTML = "";
-      for (const h of hyps) {
+      for (const h of filtered) {
         const card = document.createElement("div");
         card.className = "card hypo-card";
 
