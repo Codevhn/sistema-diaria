@@ -3107,6 +3107,78 @@ button.ghost:hover {
   line-height: 1.4;
 }
 
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-field--meta {
+  font-size: 0.9rem;
+}
+
+.modal-field--accent {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(225, 181, 82, 0.08);
+  border: 1px solid rgba(225, 181, 82, 0.4);
+}
+
+.modal-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted, #c8c8c8);
+}
+
+.modal-value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-number-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.4rem;
+  color: var(--gold);
+}
+
+.modal-number-chip strong {
+  font-size: 1.8rem;
+  letter-spacing: 0.05em;
+}
+
+.modal-number-chip small {
+  font-size: 0.95rem;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.modal-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #3e3e3e);
+  background: var(--color-surface, #121212);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.modal-textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(225, 181, 82, 0.3);
+}
+
 .modal-foot {
   margin-top: 18px;
   display: flex;

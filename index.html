@@ -3608,7 +3608,21 @@
           return;
         }
 
-        // Crear pequeño modal inline
+        const slot = btn.closest(".slot");
+        const slotNumberInput = slot?.querySelector(".slot-controls input");
+        const numeroRaw = (slotNumberInput?.value || "").trim();
+        if (!/^\d{1,2}$/.test(numeroRaw)) {
+          mostrarAviso("Primero ingresa el número del sorteo en el slot antes de comentar la hipótesis.", {
+            variant: "warning",
+          });
+          slotNumberInput?.focus();
+          return;
+        }
+
+        const numero = parseInt(numeroRaw, 10);
+        const numeroFmt = numeroRaw.padStart(2, "0");
+        const simbolo = getSymbol(numero) || "";
+
         const modal = document.getElementById("sys-modal");
         const tEl = document.getElementById("modal-title");
         const mEl = document.getElementById("modal-msg");
@@ -3617,27 +3631,37 @@
 
         tEl.textContent = `Hipótesis para ${turno}`;
         mEl.innerHTML = `
-      <label>Fecha: ${fecha}</label><br/>
-      <label>Turno: ${turno}</label><br/>
-      <label>Número: <input id="modal-num" type="number" min="0" max="99" style="width:60px"/></label><br/>
-      <label>Razón: <textarea id="modal-text" rows="3" style="width:100%;margin-top:6px"></textarea></label>
+      <form class="modal-form" id="modal-hypo-form">
+        <div class="modal-field modal-field--meta">
+          <span class="modal-label">Fecha</span>
+          <span class="modal-value">${fecha}</span>
+        </div>
+        <div class="modal-field modal-field--meta">
+          <span class="modal-label">Turno</span>
+          <span class="modal-value">${turno}</span>
+        </div>
+        <div class="modal-field modal-field--accent">
+          <span class="modal-label">Número seleccionado</span>
+          <div class="modal-number-chip">
+            <strong>${numeroFmt}</strong>
+            ${simbolo ? `<small>${simbolo}</small>` : ""}
+          </div>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label" for="modal-text">Hipótesis</label>
+          <textarea id="modal-text" rows="4" placeholder="Explica la lógica de este número…" class="modal-textarea"></textarea>
+        </div>
+      </form>
     `;
         okBtn.textContent = "Guardar";
         cancelBtn.textContent = "Cancelar";
         modal.classList.remove("hidden");
 
         okBtn.onclick = async () => {
-          const numeroRaw = document.getElementById("modal-num")?.value.trim() ?? "";
           const texto = document.getElementById("modal-text")?.value.trim() ?? "";
-          if (!/^\d{1,2}$/.test(numeroRaw)) {
-            mostrarAviso("Ingresa un número válido (00–99).", { variant: "warning" });
-            return;
-          }
-          const numero = parseInt(numeroRaw, 10);
-          const simbolo = getSymbol(numero);
           try {
             await crearHipotesis(numero, simbolo, texto, { fecha, turno });
-            mostrarAviso(`Hipótesis ${numero} ${simbolo} registrada para ${turno}.`, { variant: "success" });
+            mostrarAviso(`Hipótesis ${numeroFmt} ${simbolo} registrada para ${turno}.`, { variant: "success" });
           } catch (err) {
             console.error("hipo error", err);
             mostrarAviso(`Error al guardar la hipótesis: ${err.message}`, { variant: "danger" });
