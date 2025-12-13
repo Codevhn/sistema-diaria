@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap");
 
 /* === LA DIARIA — Minimal daylight theme === */
 :root {
@@ -22,7 +22,7 @@
   --radius-lg: 28px;
   --shadow-soft: 0 24px 60px rgba(15, 23, 42, 0.08);
   --shadow-hard: 0 40px 90px rgba(15, 23, 42, 0.15);
-  --font-sans: "Inter", "Space Grotesk", "IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Roboto", "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "Space Grotesk", "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
 }
 
