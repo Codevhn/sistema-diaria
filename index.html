@@ -1058,6 +1058,23 @@
       <div id="nb-list" class="notebook-list">
         <p class="hint">Todavía no tienes elementos en el cuaderno.</p>
       </div>
+
+      <article class="followups-card card">
+        <div class="followups-card__head">
+          <div>
+            <h3>Apuntes de seguimiento 00–99</h3>
+            <p class="hint">
+              Anota qué números suelen seguir a cada resultado. Usa comas, espacios o saltos de línea para separar múltiples opciones.
+            </p>
+          </div>
+          <div class="followups-card__actions">
+            <button id="followups-refresh" class="btn-outline btn-compact">Actualizar</button>
+          </div>
+        </div>
+        <div id="followups-grid" class="followups-grid">
+          <p class="hint">Cargando apuntes…</p>
+        </div>
+      </article>
     </section>
 
     <!-- MEMORIA -->
@@ -1509,6 +1526,8 @@
     const notebookFillResultsBtn = document.getElementById("nb-fill-results");
     const notebookSaveBtn = document.getElementById("nb-save");
     const notebookList = document.getElementById("nb-list");
+    const followupsGrid = document.getElementById("followups-grid");
+    const followupsRefreshBtn = document.getElementById("followups-refresh");
     const dayFecha = document.getElementById("day-fecha");
     const dayFechaDow = document.getElementById("day-fecha-dow");
     const dayPais = document.getElementById("day-pais");
@@ -2036,6 +2055,15 @@
 
     const DAY_MS = 24 * 60 * 60 * 1000;
     const formatNumber = (n) => String(n).padStart(2, "0");
+    const hypothesisCache = {
+      map: new Map(),
+      dirty: true,
+    };
+    const FOLLOWUP_SCOPE = "followups";
+    const followupsStore = {
+      data: new Map(),
+      loaded: false,
+    };
     const normalizeNumeroKey = (value) => {
       const parsed = parseInt(value, 10);
       if (!Number.isNaN(parsed)) {
@@ -2048,6 +2076,112 @@
       if (!raw) return "";
       return formatNumber(parseInt(raw.slice(-2), 10));
     };
+
+    function seedHypothesisCache(list = []) {
+      const map = new Map();
+      list.forEach((hyp) => {
+        if (typeof hyp?.numero === "undefined") return;
+        const key = formatNumber(hyp.numero);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(hyp);
+      });
+      hypothesisCache.map = map;
+      hypothesisCache.dirty = false;
+    }
+
+    function invalidateHypothesisCache() {
+      hypothesisCache.map = new Map();
+      hypothesisCache.dirty = true;
+    }
+
+    async function ensureHypothesisCache({ force = false } = {}) {
+      if (!force && !hypothesisCache.dirty && hypothesisCache.map.size) {
+        return hypothesisCache.map;
+      }
+      try {
+        const hyps = await DB._getAll("hypotheses");
+        seedHypothesisCache(hyps);
+      } catch (err) {
+        console.error("hypothesis cache error", err);
+        invalidateHypothesisCache();
+      }
+      return hypothesisCache.map;
+    }
+
+    function getHypothesesForNumber(numero) {
+      if (numero === null || typeof numero === "undefined") return [];
+      const key = formatNumber(numero);
+      return hypothesisCache.map.get(key) || [];
+    }
+
+    function summarizeHypothesisStates(list = []) {
+      if (!list.length) return "";
+      const counts = list.reduce((acc, hyp) => {
+        const key = (hyp.estado || "pendiente").toLowerCase();
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      return Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([estado, count]) => `${count} ${estado}`)
+        .join(", ");
+    }
+
+    function normalizeFollowupKey(numero) {
+      return formatNumber(typeof numero === "number" ? numero : parseInt(numero, 10) || 0);
+    }
+
+    function parseFollowupsInput(value) {
+      if (!value) return [];
+      const entries = value
+        .split(/[^0-9]/)
+        .map((chunk) => chunk.trim())
+        .filter(Boolean)
+        .map((chunk) => {
+          const parsed = parseInt(chunk, 10);
+          if (Number.isNaN(parsed)) return null;
+          const bounded = ((parsed % 100) + 100) % 100;
+          return formatNumber(bounded);
+        })
+        .filter(Boolean);
+      return Array.from(new Set(entries));
+    }
+
+    function formatFollowupsValue(list = []) {
+      if (!Array.isArray(list) || !list.length) return "";
+      return list.map((value) => formatNumber(value)).join(", ");
+    }
+
+    function seedFollowupsStore(rows = []) {
+      const map = new Map();
+      rows.forEach((row) => {
+        const numeroRaw =
+          row?.data?.numero ??
+          (typeof row?.key === "string" && row.key.includes("_") ? row.key.split("_").pop() : null);
+        const key = numeroRaw !== null ? normalizeFollowupKey(numeroRaw) : null;
+        if (!key) return;
+        const followers = Array.isArray(row?.data?.seguidores)
+          ? row.data.seguidores.map((value) => formatNumber(value))
+          : [];
+        map.set(key, followers);
+      });
+      followupsStore.data = map;
+      followupsStore.loaded = true;
+    }
+
+    async function ensureFollowupsStore({ force = false } = {}) {
+      if (!force && followupsStore.loaded) {
+        return followupsStore.data;
+      }
+      const rows = await DB.getKnowledgeByScope(FOLLOWUP_SCOPE);
+      seedFollowupsStore(rows);
+      return followupsStore.data;
+    }
+
+    function getFollowupsValue(numero) {
+      const key = normalizeFollowupKey(numero);
+      return followupsStore.data.get(key) || [];
+    }
     let memoryCachedDraws = null;
     let memorySelectedNumero = null;
     let memorySummary = [];
@@ -3511,6 +3645,7 @@
           numero,
           isTest,
         }));
+        await notifyHypothesisMatches(queueEntries);
         const newKeys = new Set(queueEntries.map((entry) => buildPendingKey(entry)));
         pendingDayQueue = pendingDayQueue
           .filter((entry) => !newKeys.has(buildPendingKey(entry)))
@@ -3542,6 +3677,32 @@
     saveDayBtn?.addEventListener("click", () => {
       updateCountdownDisplay();
     });
+
+    async function notifyHypothesisMatches(entries = []) {
+      if (!entries.length) return;
+      await ensureHypothesisCache();
+      const matches = [];
+      entries.forEach((entry) => {
+        const hyps = getHypothesesForNumber(entry.numero);
+        if (!hyps.length) return;
+        matches.push({
+          numero: entry.numero,
+          simbolo: getSymbol(entry.numero) || "",
+          resumen: summarizeHypothesisStates(hyps),
+        });
+      });
+      if (!matches.length) return;
+      const detail = matches
+        .map((item) => {
+          const base = `${formatNumber(item.numero)}${item.simbolo ? ` ${item.simbolo}` : ""}`;
+          return item.resumen ? `${base} (${item.resumen})` : base;
+        })
+        .join(" · ");
+      showToast(`Hay hipótesis registradas para ${detail}. Revisa el panel de Hipótesis.`, {
+        variant: "info",
+        timeout: 6500,
+      });
+    }
 
     syncDayBtn?.addEventListener("click", async () => {
       if (!pendingDayQueue.length) {
@@ -3663,6 +3824,7 @@
           const texto = document.getElementById("modal-text")?.value.trim() ?? "";
           try {
             await crearHipotesis(numero, simbolo, texto, { fecha, turno });
+            invalidateHypothesisCache();
             mostrarAviso(`Hipótesis ${numeroFmt} ${simbolo} registrada para ${turno}.`, { variant: "success" });
           } catch (err) {
             console.error("hipo error", err);
@@ -4486,6 +4648,82 @@
       });
     }
 
+    async function renderFollowupsPanel({ force = false } = {}) {
+      if (!followupsGrid) return;
+      followupsGrid.innerHTML = "<p class='hint'>Cargando apuntes…</p>";
+      try {
+        const store = await ensureFollowupsStore({ force });
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < 100; i += 1) {
+          const numero = formatNumber(i);
+          const values = store.get(numero) || [];
+          const item = document.createElement("div");
+          item.className = "followup-item";
+
+          const label = document.createElement("div");
+          label.className = "followup-number";
+          label.textContent = numero;
+          item.appendChild(label);
+
+          const input = document.createElement("textarea");
+          input.className = "followup-input";
+          input.dataset.followupInput = numero;
+          input.placeholder = "Ej. 47,70,94";
+          input.value = formatFollowupsValue(values);
+          item.appendChild(input);
+
+          const actions = document.createElement("div");
+          actions.className = "followup-actions";
+          const clearBtn = document.createElement("button");
+          clearBtn.type = "button";
+          clearBtn.className = "btn-ghost btn-compact";
+          clearBtn.dataset.followupClear = numero;
+          clearBtn.textContent = "Limpiar";
+          actions.appendChild(clearBtn);
+
+          const saveBtn = document.createElement("button");
+          saveBtn.type = "button";
+          saveBtn.className = "btn-primary btn-compact";
+          saveBtn.dataset.followupSave = numero;
+          saveBtn.textContent = "Guardar";
+          actions.appendChild(saveBtn);
+
+          item.appendChild(actions);
+          fragment.appendChild(item);
+        }
+        followupsGrid.innerHTML = "";
+        followupsGrid.appendChild(fragment);
+      } catch (err) {
+        console.error("followups render error", err);
+        followupsGrid.innerHTML = `<p class='hint'>No se pudieron cargar los apuntes: ${err.message}</p>`;
+      }
+    }
+
+    async function persistFollowupValue(numero, rawValue) {
+      const followers = parseFollowupsInput(rawValue);
+      const entry = [
+        {
+          key: `followup_${numero}`,
+          scope: FOLLOWUP_SCOPE,
+          data: { numero, seguidores: followers },
+          updatedAt: Date.now(),
+        },
+      ];
+      const ok = await DB.saveKnowledge(entry);
+      if (!ok) {
+        throw new Error("Supabase no confirmó el guardado");
+      }
+      followupsStore.data.set(numero, followers);
+      followupsStore.loaded = true;
+      return followers;
+    }
+
+    async function clearFollowupValue(numero) {
+      await persistFollowupValue(numero, "");
+      const input = followupsGrid?.querySelector(`[data-followup-input="${numero}"]`);
+      if (input) input.value = "";
+    }
+
     notebookFillDayBtn?.addEventListener("click", () => {
       const values = {};
       SLOT_CONFIG.forEach((config) => {
@@ -4516,6 +4754,40 @@
       } catch (err) {
         console.error("nb fill results", err);
         showToast(`No se pudieron traer los resultados: ${err.message}`, { variant: "danger" });
+      }
+    });
+
+    followupsRefreshBtn?.addEventListener("click", () => renderFollowupsPanel({ force: true }));
+    followupsGrid?.addEventListener("click", async (event) => {
+      const saveBtn = event.target.closest?.("[data-followup-save]");
+      if (saveBtn) {
+        const numero = saveBtn.dataset.followupSave;
+        const input = followupsGrid?.querySelector(`[data-followup-input="${numero}"]`);
+        const endBusy = withButtonBusy(saveBtn, "Guardando…");
+        try {
+          await persistFollowupValue(numero, input?.value || "");
+          showToast(`Apunte del ${numero} guardado.`, { variant: "success", timeout: 2200 });
+        } catch (err) {
+          console.error("followup save error", err);
+          showToast(`No se pudo guardar el apunte: ${err.message}`, { variant: "danger" });
+        } finally {
+          endBusy();
+        }
+        return;
+      }
+      const clearBtn = event.target.closest?.("[data-followup-clear]");
+      if (clearBtn) {
+        const numero = clearBtn.dataset.followupClear;
+        const endBusy = withButtonBusy(clearBtn, "Limpiando…");
+        try {
+          await clearFollowupValue(numero);
+          showToast(`Apunte del ${numero} limpiado.`, { variant: "info", timeout: 1800 });
+        } catch (err) {
+          console.error("followup clear error", err);
+          showToast(`No se pudo limpiar el apunte: ${err.message}`, { variant: "danger" });
+        } finally {
+          endBusy();
+        }
       }
     });
 
@@ -7179,6 +7451,7 @@
       if (!cont) return;
       cont.classList.add("cards", "hypo-list");
       const hyps = await DB._getAll("hypotheses");
+      seedHypothesisCache(hyps);
       const filterNumero = getHypothesisFilterNumero();
       const filtered = filterNumero
         ? hyps.filter((h) => formatNumber(h.numero) === filterNumero)
@@ -10723,7 +10996,10 @@ function buildVariantEntries(profile) {
           refreshPega3Historial();
           renderPega3Panels();
         }
-        if (id === "view-notebook") refreshNotebookList();
+        if (id === "view-notebook") {
+          refreshNotebookList();
+          renderFollowupsPanel();
+        }
         if (id === "view-memory") {
           renderMemoryBoard();
           renderGapPanel();

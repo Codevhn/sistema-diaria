@@ -978,6 +978,75 @@ button.ghost:hover {
   flex-wrap: wrap;
 }
 
+.followups-card {
+  margin-top: 32px;
+}
+
+.followups-card__head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.followups-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.followups-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.followup-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-soft);
+}
+
+.followup-number {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+}
+
+.followup-input {
+  width: 100%;
+  min-height: 70px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  padding: 10px;
+  background: var(--bg1);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.followup-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(225, 181, 82, 0.3);
+}
+
+.followup-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .strategy-filter-group {
   display: flex;
   flex-direction: column;
