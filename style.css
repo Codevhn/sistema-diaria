@@ -1056,10 +1056,11 @@ button.ghost:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(47, 120, 255, 0.15));
-  border: 1px solid rgba(37, 99, 235, 0.35);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(37, 99, 235, 0.25);
   border-radius: 999px;
   padding: 6px 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
 .followup-chip input {
@@ -1067,11 +1068,10 @@ button.ghost:hover {
   text-align: center;
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--color-text);
   font-weight: 700;
   font-size: 1.3rem;
   letter-spacing: 0.05em;
-  text-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
 .followup-chip input:focus {
@@ -1095,8 +1095,8 @@ button.ghost:hover {
   font-size: 0.8rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.9);
-  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--color-accent);
+  border-left: 1px solid rgba(37, 99, 235, 0.25);
   padding-left: 8px;
 }
 
