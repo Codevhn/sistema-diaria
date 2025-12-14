@@ -1051,13 +1051,13 @@ button.ghost:hover {
 }
 
 .followup-chip input {
-  width: 48px;
+  width: 54px;
   text-align: center;
   background: transparent;
   border: none;
-  color: var(--text);
-  font-weight: 600;
-  font-size: 1.1rem;
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: 1.3rem;
   letter-spacing: 0.05em;
 }
 
