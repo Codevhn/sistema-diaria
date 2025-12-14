@@ -2131,25 +2131,16 @@
       return formatNumber(typeof numero === "number" ? numero : parseInt(numero, 10) || 0);
     }
 
-    function parseFollowupsInput(value) {
-      if (!value) return [];
-      const entries = value
-        .split(/[^0-9]/)
-        .map((chunk) => chunk.trim())
-        .filter(Boolean)
-        .map((chunk) => {
-          const parsed = parseInt(chunk, 10);
-          if (Number.isNaN(parsed)) return null;
-          const bounded = ((parsed % 100) + 100) % 100;
-          return formatNumber(bounded);
-        })
-        .filter(Boolean);
-      return Array.from(new Set(entries));
-    }
-
-    function formatFollowupsValue(list = []) {
-      if (!Array.isArray(list) || !list.length) return "";
-      return list.map((value) => formatNumber(value)).join(", ");
+    function normalizeFollowupList(values = []) {
+      const unique = new Set();
+      values.forEach((value) => {
+        const raw = (value || "").trim();
+        if (!/^\d{1,2}$/.test(raw)) return;
+        const parsed = parseInt(raw, 10);
+        if (Number.isNaN(parsed)) return;
+        unique.add(formatNumber(parsed));
+      });
+      return Array.from(unique);
     }
 
     function seedFollowupsStore(rows = []) {
@@ -4659,18 +4650,24 @@
           const values = store.get(numero) || [];
           const item = document.createElement("div");
           item.className = "followup-item";
+          item.dataset.followupRow = numero;
 
           const label = document.createElement("div");
           label.className = "followup-number";
           label.textContent = numero;
           item.appendChild(label);
 
-          const input = document.createElement("textarea");
-          input.className = "followup-input";
-          input.dataset.followupInput = numero;
-          input.placeholder = "Ej. 47,70,94";
-          input.value = formatFollowupsValue(values);
-          item.appendChild(input);
+          const inputsWrap = document.createElement("div");
+          inputsWrap.className = "followup-inputs";
+          inputsWrap.dataset.followupInputs = numero;
+          item.appendChild(inputsWrap);
+
+          const addBtn = document.createElement("button");
+          addBtn.type = "button";
+          addBtn.className = "followup-add";
+          addBtn.dataset.followupAdd = numero;
+          addBtn.textContent = "Agregar casilla";
+          item.appendChild(addBtn);
 
           const actions = document.createElement("div");
           actions.className = "followup-actions";
@@ -4689,6 +4686,7 @@
           actions.appendChild(saveBtn);
 
           item.appendChild(actions);
+          populateFollowupInputs(numero, values, inputsWrap);
           fragment.appendChild(item);
         }
         followupsGrid.innerHTML = "";
@@ -4699,8 +4697,49 @@
       }
     }
 
-    async function persistFollowupValue(numero, rawValue) {
-      const followers = parseFollowupsInput(rawValue);
+    function getFollowupInputsContainer(numero) {
+      return followupsGrid?.querySelector(`[data-followup-inputs="${numero}"]`);
+    }
+
+    function addFollowupInput(numero, value = "", containerOverride = null) {
+      const container = containerOverride || getFollowupInputsContainer(numero);
+      if (!container) return null;
+      const chip = document.createElement("div");
+      chip.className = "followup-chip";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.inputMode = "numeric";
+      input.pattern = "\\d{1,2}";
+      input.maxLength = 2;
+      input.placeholder = "--";
+      input.value = value;
+      input.dataset.followupEntry = numero;
+      chip.appendChild(input);
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.dataset.followupRemove = numero;
+      removeBtn.innerHTML = "&times;";
+      chip.appendChild(removeBtn);
+      container.appendChild(chip);
+      return input;
+    }
+
+    function populateFollowupInputs(numero, values = [], containerOverride = null) {
+      const container = containerOverride || getFollowupInputsContainer(numero);
+      if (!container) return;
+      container.innerHTML = "";
+      const list = values.length ? values : [""];
+      list.forEach((value) => addFollowupInput(numero, value, container));
+    }
+
+    function collectFollowupEntries(numero) {
+      const inputs = followupsGrid?.querySelectorAll(`[data-followup-entry="${numero}"]`) || [];
+      const rawValues = Array.from(inputs).map((input) => input.value.trim());
+      return normalizeFollowupList(rawValues);
+    }
+
+    async function persistFollowupEntries(numero, values = []) {
+      const followers = normalizeFollowupList(values);
       const entry = [
         {
           key: `followup_${numero}`,
@@ -4715,13 +4754,12 @@
       }
       followupsStore.data.set(numero, followers);
       followupsStore.loaded = true;
+      populateFollowupInputs(numero, followers);
       return followers;
     }
 
     async function clearFollowupValue(numero) {
-      await persistFollowupValue(numero, "");
-      const input = followupsGrid?.querySelector(`[data-followup-input="${numero}"]`);
-      if (input) input.value = "";
+      await persistFollowupEntries(numero, []);
     }
 
     notebookFillDayBtn?.addEventListener("click", () => {
@@ -4759,13 +4797,34 @@
 
     followupsRefreshBtn?.addEventListener("click", () => renderFollowupsPanel({ force: true }));
     followupsGrid?.addEventListener("click", async (event) => {
+      const addBtn = event.target.closest?.("[data-followup-add]");
+      if (addBtn) {
+        const numero = addBtn.dataset.followupAdd;
+        const input = addFollowupInput(numero, "");
+        input?.focus();
+        return;
+      }
+      const removeBtn = event.target.closest?.("[data-followup-remove]");
+      if (removeBtn) {
+        const numero = removeBtn.dataset.followupRemove;
+        const chip = removeBtn.closest(".followup-chip");
+        const container = getFollowupInputsContainer(numero);
+        if (!chip || !container) return;
+        if (container.querySelectorAll("[data-followup-entry]").length <= 1) {
+          const input = chip.querySelector("input");
+          if (input) input.value = "";
+        } else {
+          chip.remove();
+        }
+        return;
+      }
       const saveBtn = event.target.closest?.("[data-followup-save]");
       if (saveBtn) {
         const numero = saveBtn.dataset.followupSave;
-        const input = followupsGrid?.querySelector(`[data-followup-input="${numero}"]`);
+        const values = collectFollowupEntries(numero);
         const endBusy = withButtonBusy(saveBtn, "Guardando…");
         try {
-          await persistFollowupValue(numero, input?.value || "");
+          await persistFollowupEntries(numero, values);
           showToast(`Apunte del ${numero} guardado.`, { variant: "success", timeout: 2200 });
         } catch (err) {
           console.error("followup save error", err);
