@@ -1019,8 +1019,18 @@ button.ghost:hover {
   font-weight: 700;
   color: var(--gold);
   letter-spacing: 0.08em;
-  min-width: 70px;
+  min-width: 80px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.followup-number-symbol {
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  letter-spacing: 0.05em;
 }
 
 .followup-inputs {
@@ -1066,6 +1076,12 @@ button.ghost:hover {
 
 .followup-chip button:hover {
   color: var(--color-danger, #f87171);
+}
+
+.followup-chip-symbol {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  letter-spacing: 0.04em;
 }
 
 .followup-add {

@@ -4654,7 +4654,13 @@
 
           const label = document.createElement("div");
           label.className = "followup-number";
-          label.textContent = numero;
+          const labelNumber = document.createElement("span");
+          labelNumber.textContent = numero;
+          const labelSymbol = document.createElement("small");
+          labelSymbol.className = "followup-number-symbol";
+          labelSymbol.textContent = getSymbol(parseInt(numero, 10)) || "—";
+          label.appendChild(labelNumber);
+          label.appendChild(labelSymbol);
           item.appendChild(label);
 
           const inputsWrap = document.createElement("div");
@@ -4701,6 +4707,18 @@
       return followupsGrid?.querySelector(`[data-followup-inputs="${numero}"]`);
     }
 
+    function resolveFollowupSymbol(value) {
+      if (!/^\d{1,2}$/.test(value || "")) return "";
+      const parsed = parseInt(value, 10);
+      if (Number.isNaN(parsed)) return "";
+      return getSymbol(parsed) || "";
+    }
+
+    function updateFollowupChipSymbol(input, symbolEl) {
+      if (!symbolEl) return;
+      symbolEl.textContent = resolveFollowupSymbol(input.value.trim()) || "—";
+    }
+
     function addFollowupInput(numero, value = "", containerOverride = null) {
       const container = containerOverride || getFollowupInputsContainer(numero);
       if (!container) return null;
@@ -4715,12 +4733,17 @@
       input.value = value;
       input.dataset.followupEntry = numero;
       chip.appendChild(input);
+      const symbolEl = document.createElement("span");
+      symbolEl.className = "followup-chip-symbol";
+      symbolEl.textContent = resolveFollowupSymbol(value) || "—";
+      chip.appendChild(symbolEl);
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
       removeBtn.dataset.followupRemove = numero;
       removeBtn.innerHTML = "&times;";
       chip.appendChild(removeBtn);
       container.appendChild(chip);
+      input.addEventListener("input", () => updateFollowupChipSymbol(input, symbolEl));
       return input;
     }
 
