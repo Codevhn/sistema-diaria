@@ -367,6 +367,13 @@ export const DB = {
     return true;
   },
 
+  async _delete(table, ids = []) {
+    const list = Array.isArray(ids) ? ids.filter((value) => value !== null && typeof value !== "undefined") : [ids];
+    if (!list.length) return 0;
+    await deleteByPrimary(table, list, `_delete:${table}`);
+    return list.length;
+  },
+
   async fixFutureDatedDraws({ maxAheadDays = 1 } = {}) {
     const rows = await selectAll("draws");
     const corrected = [];

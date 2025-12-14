@@ -1308,7 +1308,7 @@
     import { mostrarGuia } from "./src/guide-grid.js";
     import { DB } from "./src/storage.js";
     import { importarManual } from "./src/importer.js";
-    import { crearHipotesis, actualizarHipotesis, registrarResultado } from "./src/narrative.js";
+    import { crearHipotesis, actualizarHipotesis, eliminarHipotesis, registrarResultado } from "./src/narrative.js";
     import { analizarYProponer } from "./src/reasoning.js";
     import {
       generarCruceta,
@@ -3802,7 +3802,7 @@
           </div>
           <div class="modal-field">
             <label class="modal-label" for="modal-text">Hipótesis</label>
-            <textarea id="modal-text" rows="4" placeholder="Explica la lógica de este número…" class="modal-textarea"></textarea>
+            <textarea id="modal-text" rows="8" placeholder="Explica la lógica de este número…" class="modal-textarea"></textarea>
           </div>
         </form>
       </div>
@@ -7602,6 +7602,28 @@
           showToast(`Editando hipótesis ${formatNumber(h.numero)}`, { variant: "info", timeout: 2000 });
         });
         actions.appendChild(editBtn);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn-danger";
+        deleteBtn.textContent = "Eliminar";
+        deleteBtn.addEventListener("click", async () => {
+          const confirmDelete = window.confirm(`¿Eliminar la hipótesis ${formatNumber(h.numero)}?`);
+          if (!confirmDelete) return;
+          try {
+            await eliminarHipotesis(h.id);
+            invalidateHypothesisCache();
+            if (editingHypothesisId === h.id) {
+              resetHypothesisForm();
+            }
+            await refreshHypotesis();
+            showToast("Hipótesis eliminada.", { variant: "success", timeout: 2000 });
+          } catch (err) {
+            console.error("eliminar hipotesis error", err);
+            showToast(`No se pudo eliminar la hipótesis: ${err.message}`, { variant: "danger" });
+          }
+        });
+        actions.appendChild(deleteBtn);
 
         const cancelBtn = document.createElement("button");
         cancelBtn.type = "button";

@@ -51,6 +51,12 @@ export async function actualizarHipotesis(
   return id;
 }
 
+export async function eliminarHipotesis(id) {
+  if (!id) throw new Error("eliminarHipotesis: id requerido");
+  await DB._delete("hypotheses", [id]);
+  return true;
+}
+
 export async function registrarResultado(result) {
   if (!result || typeof result.numero === "undefined") {
     throw new Error("registrarResultado: resultado inválido");

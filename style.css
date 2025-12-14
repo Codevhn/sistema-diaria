@@ -3216,7 +3216,8 @@ button.ghost:hover {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(3, 5, 16, 0.95);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3319,6 +3320,8 @@ button.ghost:hover {
   color: var(--text);
   font: inherit;
   resize: vertical;
+  min-height: 190px;
+  line-height: 1.55;
 }
 
 .modal-textarea:focus {
