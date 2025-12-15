@@ -2363,6 +2363,16 @@ button.ghost:hover {
   margin: 0;
 }
 
+.hypo-card {
+  background: var(--color-surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+}
+
+.hypo-card::before {
+  display: none;
+}
+
 .hypo-list .card-head {
   display: flex;
   align-items: center;
@@ -2371,6 +2381,7 @@ button.ghost:hover {
 }
 
 .hypo-title {
+  font-size: 1.05rem;
   letter-spacing: 0.08em;
 }
 
@@ -2469,11 +2480,13 @@ button.ghost:hover {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+  font-size: 0.95rem;
+  line-height: 1.55;
 }
 
 .hypo-body span {
-  font-size: 13px;
-  color: var(--color-muted);
+  font-size: 0.95rem;
+  color: var(--color-text);
 }
 
 .hypo-body strong {
