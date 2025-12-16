@@ -259,6 +259,7 @@
             <div class="day-card__actions">
               <button id="history-refresh" class="btn-outline">Actualizar</button>
               <button id="history-clear" class="btn-ghost">Limpiar filtros</button>
+              <button id="history-local-toggle" class="btn-ghost">Plan B</button>
             </div>
           </div>
           <div class="day-card__controls day-card__controls--scroll">
@@ -298,6 +299,7 @@
           </div>
           <div class="day-card__body">
             <div id="history-summary" class="panel-meta">Selecciona una fecha para revisar sus sorteos.</div>
+            <div id="history-local-status" class="local-mode-banner hidden"></div>
             <div id="history-table" class="table-wrap table-wrap--history"></div>
             <div id="history-coverage" class="history-coverage">
               <p class="hint">Ingresa sorteos históricos para ver la última fecha registrada por año.</p>
@@ -1354,6 +1356,12 @@
     import { formatDateISO, getTodayISODate, parseDrawDate } from "./src/date-utils.js";
     import { logInfo, logWarn } from "./src/logger.js";
     import { runDexieToSupabaseImport } from "./src/dexieToSupabaseImporter.js";
+    import {
+      loadLocalDrawSnapshot,
+      saveLocalDrawSnapshot,
+      isLocalDrawSnapshotModeEnabled,
+      setLocalDrawSnapshotMode,
+    } from "./src/local-draw-cache.js";
     import { supabase } from "./src/supabaseClient.js";
     import { logout as supabaseLogout, requireAuthOrRedirect } from "./src/auth.js";
     import { showBootLoader, hideBootLoader } from "./src/boot-loader.js";
@@ -2328,6 +2336,8 @@
     let trackingState = loadTrackingState();
     let drawsCache = null;
     let drawsCacheTs = 0;
+    let localSnapshotState = null;
+    let preferLocalSnapshot = isLocalDrawSnapshotModeEnabled();
     let biasDataInput = {
       perfilMap: null,
       predictions: [],
@@ -2670,17 +2680,81 @@
       persistBiasNotesForDow(dow, { selected, rankingTurn });
     }
 
+    function ensureLocalSnapshotState({ reload = false } = {}) {
+      if (!localSnapshotState || reload) {
+        localSnapshotState = loadLocalDrawSnapshot();
+      }
+      return localSnapshotState;
+    }
+
+    function formatSnapshotTimestamp(value) {
+      if (!value) return "";
+      try {
+        return new Intl.DateTimeFormat("es-ES", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(value));
+      } catch {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+      }
+    }
+
+    function updateLocalModeUI() {
+      if (!historyLocalToggle || !historyLocalStatus) return;
+      const snapshot = ensureLocalSnapshotState();
+      historyLocalToggle.textContent = preferLocalSnapshot ? "Plan B activo" : "Plan B";
+      historyLocalToggle.classList.toggle("btn-primary", preferLocalSnapshot);
+      historyLocalToggle.classList.toggle("btn-ghost", !preferLocalSnapshot);
+      const hasSnapshot = snapshot.draws.length > 0;
+      if (!hasSnapshot && !preferLocalSnapshot) {
+        historyLocalStatus.textContent = "";
+        historyLocalStatus.classList.add("hidden");
+        historyLocalStatus.classList.remove("local-mode-banner--active");
+        return;
+      }
+      const friendly = snapshot.updatedAt ? formatSnapshotTimestamp(snapshot.updatedAt) : "sin actualizar";
+      if (preferLocalSnapshot) {
+        historyLocalStatus.textContent = hasSnapshot
+          ? `Modo local activado (${snapshot.draws.length} sorteos · ${friendly}).`
+          : "Modo local activado, pero aún no has guardado sorteos.";
+      } else {
+        historyLocalStatus.textContent = hasSnapshot
+          ? `Plan B listo: ${snapshot.draws.length} sorteos guardados (última sync ${friendly}).`
+          : "Aún no hay datos guardados para el modo local.";
+      }
+      historyLocalStatus.classList.toggle("local-mode-banner--active", preferLocalSnapshot);
+      historyLocalStatus.classList.remove("hidden");
+    }
+
     async function getCachedDraws({ force = false } = {}) {
       const now = Date.now();
+      if (!force && preferLocalSnapshot) {
+        const snapshot = ensureLocalSnapshotState();
+        if (snapshot.draws.length) return snapshot.draws.slice();
+      }
       if (!drawsCache || force || now - drawsCacheTs > DRAW_CACHE_TTL) {
-        drawsCache = await DB.listDraws({ excludeTest: true });
+        const remoteDraws = await DB.listDraws({ excludeTest: true });
+        drawsCache = Array.isArray(remoteDraws) ? remoteDraws : [];
         drawsCacheTs = now;
+        if (drawsCache.length) {
+          const saved = saveLocalDrawSnapshot(drawsCache);
+          if (saved) {
+            localSnapshotState = saved;
+          }
+        }
+        updateLocalModeUI();
+      }
+      if (!drawsCache.length) {
+        const snapshot = ensureLocalSnapshotState({ reload: true });
+        if (snapshot.draws.length) return snapshot.draws.slice();
       }
       return drawsCache.slice();
     }
 
     function invalidateDrawCache() {
       drawsCache = null;
+      drawsCacheTs = 0;
     }
 
     const OPERACION_LABELS = {
@@ -3975,6 +4049,8 @@
     const historySearchBtn = document.getElementById("history-search");
     const historyClearBtn = document.getElementById("history-clear");
     const historyRefreshBtn = document.getElementById("history-refresh");
+    const historyLocalToggle = document.getElementById("history-local-toggle");
+    const historyLocalStatus = document.getElementById("history-local-status");
 
     const trackingDateInput = document.getElementById("tracking-date");
     const trackingPaisSelect = document.getElementById("tracking-country");
@@ -5103,6 +5179,7 @@
     if (abonoFechaInput && !abonoFechaInput.value) abonoFechaInput.value = todayISO;
     if (gatilloWindowInput && !gatilloWindowInput.value) gatilloWindowInput.value = "180";
     if (monthlyTrendMonthSelect) monthlyTrendMonthSelect.value = String(new Date().getMonth());
+    updateLocalModeUI();
 
     let patternsCache = null;
     let patternsLoading = false;
@@ -5127,6 +5204,31 @@
     historyHourSelect?.addEventListener("change", () => refreshHistoryPanel());
     historyCountrySelect?.addEventListener("change", () => refreshHistoryPanel());
     historyLimitSelect?.addEventListener("change", () => refreshHistoryPanel());
+    historyLocalToggle?.addEventListener("click", async () => {
+      const nextState = !preferLocalSnapshot;
+      if (nextState) {
+        const snapshot = ensureLocalSnapshotState();
+        if (!snapshot.draws.length) {
+          showToast(
+            "Aún no hay datos en el modo local. Pulsa “Actualizar” cuando tengas conexión para guardarlos.",
+            { variant: "warning" },
+          );
+          return;
+        }
+      }
+      preferLocalSnapshot = nextState;
+      setLocalDrawSnapshotMode(nextState);
+      updateLocalModeUI();
+      invalidateDrawCache();
+      await refreshHistoryPanel({ forceReload: !nextState });
+      await renderTrackingPanel({ forceReload: !nextState });
+      showToast(
+        nextState
+          ? "Modo local activado: se usarán los sorteos guardados en este navegador."
+          : "Modo local desactivado: se volverá a consultar Supabase.",
+        { variant: "info" },
+      );
+    });
 
     trackingViewBtn?.addEventListener("click", () => {
       renderTrackingPanel();

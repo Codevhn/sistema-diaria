@@ -1856,6 +1856,20 @@ button.ghost:hover {
   color: var(--color-text);
 }
 
+.local-mode-banner {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.local-mode-banner--active {
+  border: 1px dashed rgba(59, 130, 246, 0.5);
+  color: var(--color-text);
+}
+
 .table-wrap {
   width: 100%;
   border: 1px solid var(--color-border);
