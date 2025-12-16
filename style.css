@@ -6423,6 +6423,30 @@ button.ghost:hover {
   background: var(--rank-meter, var(--color-accent));
 }
 
+.bias-ranking-item__actions {
+  margin-top: 0.6rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bias-ranking-item__remove {
+  background: transparent;
+  border: 1px dashed rgba(37, 99, 235, 0.45);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.bias-ranking-item__remove:hover,
+.bias-ranking-item__remove:focus-visible {
+  border-color: rgba(37, 99, 235, 0.8);
+  color: var(--color-text);
+}
+
 .bias-list {
   display: flex;
   flex-direction: column;

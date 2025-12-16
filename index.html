@@ -8765,7 +8765,20 @@
           fill.style.width = `${Math.min(100, ratio * 100)}%`;
           meter.appendChild(fill);
 
-          item.append(numberEl, details, meter);
+          const actions = document.createElement("div");
+          actions.className = "bias-ranking-item__actions";
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "bias-ranking-item__remove";
+          removeBtn.textContent = "Eliminar";
+          removeBtn.addEventListener("click", () => {
+            biasPanelState.selected = (biasPanelState.selected || []).filter((saved) => saved.numero !== entry.numero);
+            syncBiasNotesPersistence(targetDow);
+            renderSesgosPorDia(map, { dow: targetDow, year });
+          });
+          actions.appendChild(removeBtn);
+
+          item.append(numberEl, details, meter, actions);
           rankingList.appendChild(item);
         });
         rankingBlock.appendChild(rankingList);
