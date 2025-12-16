@@ -196,11 +196,13 @@
       <div class="day-actions">
         <button id="save-day" class="btn-primary">Agregar a pendientes</button>
         <button id="sync-day" class="btn-outline">Sincronizar con Supabase</button>
+        <button id="draws-local-toggle" class="btn-ghost">Plan B</button>
         <div class="day-pending-controls">
           <span id="day-pending-indicator" class="day-pending-indicator">Sin pendientes</span>
           <button id="manage-pending" type="button" class="btn-ghost btn-compact">Gestionar pendientes</button>
         </div>
       </div>
+      <div id="draws-local-status" class="local-mode-banner hidden"></div>
       <p class="hint day-hint">
         Confirma/Refuta hipótesis pendientes según los resultados válidos de la fecha seleccionada.
       </p>
@@ -214,7 +216,6 @@
             <div class="day-card__actions">
               <button id="history-refresh" class="btn-outline">Actualizar</button>
               <button id="history-clear" class="btn-ghost">Limpiar filtros</button>
-              <button id="history-local-toggle" class="btn-ghost">Plan B</button>
             </div>
           </div>
           <div class="day-card__controls day-card__controls--scroll">
@@ -254,7 +255,6 @@
           </div>
           <div class="day-card__body">
             <div id="history-summary" class="panel-meta">Selecciona una fecha para revisar sus sorteos.</div>
-            <div id="history-local-status" class="local-mode-banner hidden"></div>
             <div id="history-table" class="table-wrap table-wrap--history"></div>
             <div id="history-coverage" class="history-coverage">
               <p class="hint">Ingresa sorteos históricos para ver la última fecha registrada por año.</p>
@@ -2701,55 +2701,63 @@
     }
 
     function updateLocalModeUI() {
-      if (!historyLocalToggle || !historyLocalStatus) return;
+      if (!drawsLocalToggle || !drawsLocalStatus) return;
       const snapshot = ensureLocalSnapshotState();
-      historyLocalToggle.textContent = preferLocalSnapshot ? "Plan B activo" : "Plan B";
-      historyLocalToggle.classList.toggle("btn-primary", preferLocalSnapshot);
-      historyLocalToggle.classList.toggle("btn-ghost", !preferLocalSnapshot);
+      drawsLocalToggle.textContent = preferLocalSnapshot ? "Plan B activo" : "Plan B";
+      drawsLocalToggle.classList.toggle("btn-primary", preferLocalSnapshot);
+      drawsLocalToggle.classList.toggle("btn-ghost", !preferLocalSnapshot);
       const hasSnapshot = snapshot.draws.length > 0;
       if (!hasSnapshot && !preferLocalSnapshot) {
-        historyLocalStatus.textContent = "";
-        historyLocalStatus.classList.add("hidden");
-        historyLocalStatus.classList.remove("local-mode-banner--active");
+        drawsLocalStatus.textContent = "";
+        drawsLocalStatus.classList.add("hidden");
+        drawsLocalStatus.classList.remove("local-mode-banner--active");
         return;
       }
       const friendly = snapshot.updatedAt ? formatSnapshotTimestamp(snapshot.updatedAt) : "sin actualizar";
       if (preferLocalSnapshot) {
-        historyLocalStatus.textContent = hasSnapshot
-          ? `Modo local activado (${snapshot.draws.length} sorteos · ${friendly}).`
+        drawsLocalStatus.textContent = hasSnapshot
+          ? `Modo local activado (${snapshot.draws.length} sorteos guardados · ${friendly}).`
           : "Modo local activado, pero aún no has guardado sorteos.";
       } else {
-        historyLocalStatus.textContent = hasSnapshot
+        drawsLocalStatus.textContent = hasSnapshot
           ? `Plan B listo: ${snapshot.draws.length} sorteos guardados (última sync ${friendly}).`
           : "Aún no hay datos guardados para el modo local.";
       }
-      historyLocalStatus.classList.toggle("local-mode-banner--active", preferLocalSnapshot);
-      historyLocalStatus.classList.remove("hidden");
+      drawsLocalStatus.classList.toggle("local-mode-banner--active", preferLocalSnapshot);
+      drawsLocalStatus.classList.remove("hidden");
     }
 
-    async function getCachedDraws({ force = false } = {}) {
+    async function getCachedDraws({ force = false, excludeTest = true } = {}) {
       const now = Date.now();
+      let source = null;
       if (!force && preferLocalSnapshot) {
         const snapshot = ensureLocalSnapshotState();
-        if (snapshot.draws.length) return snapshot.draws.slice();
+        if (snapshot.draws.length) source = snapshot.draws;
       }
-      if (!drawsCache || force || now - drawsCacheTs > DRAW_CACHE_TTL) {
-        const remoteDraws = await DB.listDraws({ excludeTest: true });
-        drawsCache = Array.isArray(remoteDraws) ? remoteDraws : [];
-        drawsCacheTs = now;
-        if (drawsCache.length) {
-          const saved = saveLocalDrawSnapshot(drawsCache);
-          if (saved) {
-            localSnapshotState = saved;
+      if (!source) {
+        if (!drawsCache || force || now - drawsCacheTs > DRAW_CACHE_TTL) {
+          const remoteDraws = await DB.listDraws({ excludeTest: false });
+          drawsCache = Array.isArray(remoteDraws) ? remoteDraws : [];
+          drawsCacheTs = now;
+          if (drawsCache.length) {
+            const saved = saveLocalDrawSnapshot(drawsCache);
+            if (saved) {
+              localSnapshotState = saved;
+            }
           }
+          updateLocalModeUI();
         }
-        updateLocalModeUI();
+        source = drawsCache;
       }
-      if (!drawsCache.length) {
+      if (!source || !source.length) {
         const snapshot = ensureLocalSnapshotState({ reload: true });
-        if (snapshot.draws.length) return snapshot.draws.slice();
+        if (snapshot.draws.length) {
+          source = snapshot.draws;
+        }
       }
-      return drawsCache.slice();
+      if (!source || !source.length) return [];
+      const list = source.slice();
+      return excludeTest ? list.filter((d) => !d.isTest) : list;
     }
 
     function invalidateDrawCache() {
@@ -3051,10 +3059,10 @@
       sym.title = draw.isTest ? "Modo prueba" : symbol || "";
     }
 
-    async function refreshSlots() {
+    async function refreshSlots({ forceReload = false } = {}) {
       const { fecha, pais } = getFilters();
       const normalizedPais = normalizeCountry(pais);
-      const draws = await DB.listDraws({ excludeTest: false });
+      const draws = await getCachedDraws({ force: forceReload, excludeTest: false });
       getActiveSlotConfigs(normalizedPais).forEach((config) => {
         const draw = pickDraw(draws, fecha, normalizedPais, config.key);
         applyDrawToSlot(config, draw);
@@ -4049,8 +4057,8 @@
     const historySearchBtn = document.getElementById("history-search");
     const historyClearBtn = document.getElementById("history-clear");
     const historyRefreshBtn = document.getElementById("history-refresh");
-    const historyLocalToggle = document.getElementById("history-local-toggle");
-    const historyLocalStatus = document.getElementById("history-local-status");
+    const drawsLocalToggle = document.getElementById("draws-local-toggle");
+    const drawsLocalStatus = document.getElementById("draws-local-status");
 
     const trackingDateInput = document.getElementById("tracking-date");
     const trackingPaisSelect = document.getElementById("tracking-country");
@@ -5204,7 +5212,7 @@
     historyHourSelect?.addEventListener("change", () => refreshHistoryPanel());
     historyCountrySelect?.addEventListener("change", () => refreshHistoryPanel());
     historyLimitSelect?.addEventListener("change", () => refreshHistoryPanel());
-    historyLocalToggle?.addEventListener("click", async () => {
+    drawsLocalToggle?.addEventListener("click", async () => {
       const nextState = !preferLocalSnapshot;
       if (nextState) {
         const snapshot = ensureLocalSnapshotState();
@@ -5220,12 +5228,13 @@
       setLocalDrawSnapshotMode(nextState);
       updateLocalModeUI();
       invalidateDrawCache();
+      await refreshSlots({ forceReload: !nextState });
       await refreshHistoryPanel({ forceReload: !nextState });
       await renderTrackingPanel({ forceReload: !nextState });
       showToast(
         nextState
-          ? "Modo local activado: se usarán los sorteos guardados en este navegador."
-          : "Modo local desactivado: se volverá a consultar Supabase.",
+          ? "Modo local activado: los slots del día usarán los sorteos guardados en este navegador."
+          : "Modo local desactivado: se volverá a consultar Supabase para los slots.",
         { variant: "info" },
       );
     });
