@@ -172,6 +172,15 @@
         </div>
       </div>
 
+      <div class="day-actions">
+        <button id="save-day" class="btn-primary">Agregar a pendientes</button>
+        <button id="sync-day" class="btn-outline">Sincronizar con Supabase</button>
+        <button id="draws-local-toggle" class="btn-ghost">Plan B</button>
+        <div class="day-pending-controls">
+          <span id="day-pending-indicator" class="day-pending-indicator">Sin pendientes</span>
+          <button id="manage-pending" type="button" class="btn-ghost btn-compact">Gestionar pendientes</button>
+        </div>
+      </div>
       <article class="day-card day-card--intel" id="day-intel-card">
         <div class="day-card__head">
           <div>
@@ -192,16 +201,6 @@
           <ul id="day-intel-list" class="day-intel-list"></ul>
         </div>
       </article>
-
-      <div class="day-actions">
-        <button id="save-day" class="btn-primary">Agregar a pendientes</button>
-        <button id="sync-day" class="btn-outline">Sincronizar con Supabase</button>
-        <button id="draws-local-toggle" class="btn-ghost">Plan B</button>
-        <div class="day-pending-controls">
-          <span id="day-pending-indicator" class="day-pending-indicator">Sin pendientes</span>
-          <button id="manage-pending" type="button" class="btn-ghost btn-compact">Gestionar pendientes</button>
-        </div>
-      </div>
       <div id="draws-local-status" class="local-mode-banner hidden"></div>
       <p class="hint day-hint">
         Confirma/Refuta hipótesis pendientes según los resultados válidos de la fecha seleccionada.
