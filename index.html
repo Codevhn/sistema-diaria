@@ -1069,6 +1069,16 @@
             </p>
           </div>
           <div class="followups-card__actions">
+            <div class="followups-filter">
+              <input
+                id="followups-filter"
+                maxlength="2"
+                inputmode="numeric"
+                placeholder="Número 00–99"
+                aria-label="Filtrar por número 00 al 99"
+              />
+              <button id="followups-filter-reset" type="button" class="btn-ghost btn-compact">Ver todos</button>
+            </div>
             <button id="followups-refresh" class="btn-outline btn-compact">Actualizar</button>
           </div>
         </div>
@@ -1535,6 +1545,8 @@
     const notebookList = document.getElementById("nb-list");
     const followupsGrid = document.getElementById("followups-grid");
     const followupsRefreshBtn = document.getElementById("followups-refresh");
+    const followupsFilterInput = document.getElementById("followups-filter");
+    const followupsFilterResetBtn = document.getElementById("followups-filter-reset");
     const dayFecha = document.getElementById("day-fecha");
     const dayFechaDow = document.getElementById("day-fecha-dow");
     const dayPais = document.getElementById("day-pais");
@@ -4781,9 +4793,38 @@
         }
         followupsGrid.innerHTML = "";
         followupsGrid.appendChild(fragment);
+        applyFollowupsFilter(followupsFilterInput?.value || "");
       } catch (err) {
         console.error("followups render error", err);
         followupsGrid.innerHTML = `<p class='hint'>No se pudieron cargar los apuntes: ${err.message}</p>`;
+      }
+    }
+
+    function applyFollowupsFilter(rawValue = "") {
+      if (!followupsGrid) return;
+      const query = (rawValue || "").trim();
+      const isValid = /^\d{1,2}$/.test(query);
+      const normalized = isValid ? normalizeFollowupKey(query) : "";
+      const rows = followupsGrid.querySelectorAll("[data-followup-row]");
+      rows.forEach((row) => {
+        if (!isValid) {
+          row.hidden = false;
+          row.classList.remove("followup-item--highlight");
+          return;
+        }
+        const matches = row.dataset.followupRow === normalized;
+        row.hidden = !matches;
+        if (!matches) {
+          row.classList.remove("followup-item--highlight");
+        }
+      });
+      if (isValid) {
+        const target = followupsGrid.querySelector(`[data-followup-row="${normalized}"]`);
+        if (target) {
+          target.hidden = false;
+          target.classList.add("followup-item--highlight");
+          window.setTimeout(() => target.classList.remove("followup-item--highlight"), 1200);
+        }
       }
     }
 
@@ -4903,6 +4944,14 @@
     });
 
     followupsRefreshBtn?.addEventListener("click", () => renderFollowupsPanel({ force: true }));
+    followupsFilterInput?.addEventListener("input", (event) => applyFollowupsFilter(event.target.value));
+    followupsFilterResetBtn?.addEventListener("click", () => {
+      if (followupsFilterInput) {
+        followupsFilterInput.value = "";
+        followupsFilterInput.focus();
+      }
+      applyFollowupsFilter("");
+    });
     followupsGrid?.addEventListener("click", async (event) => {
       const addBtn = event.target.closest?.("[data-followup-add]");
       if (addBtn) {
