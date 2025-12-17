@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { parseDrawDate, formatDateISO } from "./date-utils.js";
+import { processNewDraw as processTriggerEngineNewDraw } from "./triggers/triggerEngine.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PEGAS_TURNOS = ["11AM", "3PM", "9PM"];
@@ -287,9 +288,17 @@ export const DB = {
         return dup.id;
       }
     }
+    const handleTriggerEngine = async (id) => {
+      try {
+        await processTriggerEngineNewDraw({ ...rec, id });
+      } catch (engineErr) {
+        console.error("Trigger engine processNewDraw error:", engineErr);
+      }
+    };
     try {
       const inserted = await insertRecord("draws", rec, "insertDraw");
       if (!inserted?.id) throw new Error("insertDraw: Supabase no devolvió id");
+      await handleTriggerEngine(inserted.id);
       return inserted.id;
     } catch (err) {
       if (isDuplicatePrimaryError(err)) {
@@ -298,6 +307,7 @@ export const DB = {
         if (!nextId) throw err;
         const inserted = await insertRecord("draws", { ...rec, id: nextId }, "insertDrawRetry");
         if (!inserted?.id) throw new Error("insertDrawRetry: Supabase no devolvió id");
+        await handleTriggerEngine(inserted.id);
         return inserted.id;
       }
       throw err;
