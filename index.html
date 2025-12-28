@@ -1083,6 +1083,9 @@
             <button id="followups-refresh" class="btn-outline btn-compact">Actualizar</button>
           </div>
         </div>
+        <div id="followups-index" class="followups-index">
+          <p class="hint">Selecciona un número para saltar directo al registro.</p>
+        </div>
         <div id="followups-grid" class="followups-grid">
           <p class="hint">Cargando apuntes…</p>
         </div>
@@ -1714,6 +1717,7 @@
     const notebookSaveBtn = document.getElementById("nb-save");
     const notebookList = document.getElementById("nb-list");
     const followupsGrid = document.getElementById("followups-grid");
+    const followupsIndex = document.getElementById("followups-index");
     const followupsRefreshBtn = document.getElementById("followups-refresh");
     const followupsFilterInput = document.getElementById("followups-filter");
     const followupsFilterResetBtn = document.getElementById("followups-filter-reset");
@@ -4942,9 +4946,11 @@
       try {
         const store = await ensureFollowupsStore({ force });
         const fragment = document.createDocumentFragment();
+        const indexSummary = [];
         for (let i = 0; i < 100; i += 1) {
           const numero = formatNumber(i);
           const values = store.get(numero) || [];
+          indexSummary.push({ numero, hasValues: values.length > 0 });
           const item = document.createElement("div");
           item.className = "followup-item";
           item.dataset.followupRow = numero;
@@ -4995,10 +5001,14 @@
         }
         followupsGrid.innerHTML = "";
         followupsGrid.appendChild(fragment);
+        renderFollowupsIndex(indexSummary);
         applyFollowupsFilter(followupsFilterInput?.value || "");
       } catch (err) {
         console.error("followups render error", err);
         followupsGrid.innerHTML = `<p class='hint'>No se pudieron cargar los apuntes: ${err.message}</p>`;
+        if (followupsIndex) {
+          followupsIndex.innerHTML = `<p class='hint'>No se pudieron listar los accesos directos: ${err.message}</p>`;
+        }
       }
     }
 
@@ -5027,11 +5037,80 @@
           target.classList.add("followup-item--highlight");
           window.setTimeout(() => target.classList.remove("followup-item--highlight"), 1200);
         }
+        syncFollowupsIndexSelection(normalized);
+      } else {
+        syncFollowupsIndexSelection("");
       }
     }
 
     function getFollowupInputsContainer(numero) {
       return followupsGrid?.querySelector(`[data-followup-inputs="${numero}"]`);
+    }
+
+    function getActiveFollowupsFilterValue() {
+      const raw = followupsFilterInput?.value?.trim() || "";
+      if (!/^\d{1,2}$/.test(raw)) return "";
+      return normalizeFollowupKey(raw);
+    }
+
+    function renderFollowupsIndex(summary = []) {
+      if (!followupsIndex) return;
+      followupsIndex.innerHTML = "";
+      if (!summary.length) {
+        const hint = document.createElement("p");
+        hint.className = "hint";
+        hint.textContent = "Mantén guardados tus apuntes para ver accesos rápidos.";
+        followupsIndex.appendChild(hint);
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      const active = getActiveFollowupsFilterValue();
+      summary.forEach(({ numero, hasValues }) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.followupJump = numero;
+        button.className = "followups-index__item";
+        if (hasValues) {
+          button.classList.add("followups-index__item--filled");
+        }
+        if (active && active === numero) {
+          button.classList.add("followups-index__item--selected");
+        }
+        button.textContent = numero;
+        fragment.appendChild(button);
+      });
+      followupsIndex.appendChild(fragment);
+    }
+
+    function rebuildFollowupsIndexFromStore() {
+      if (!followupsIndex || !(followupsStore.data instanceof Map)) return;
+      const summary = [];
+      for (let i = 0; i < 100; i += 1) {
+        const numero = formatNumber(i);
+        const values = followupsStore.data.get(numero) || [];
+        summary.push({ numero, hasValues: values.length > 0 });
+      }
+      renderFollowupsIndex(summary);
+    }
+
+    function syncFollowupsIndexSelection(activeNumero = "") {
+      if (!followupsIndex) return;
+      const buttons = followupsIndex.querySelectorAll("[data-followup-jump]");
+      buttons.forEach((button) => {
+        const matches = activeNumero && button.dataset.followupJump === activeNumero;
+        button.classList.toggle("followups-index__item--selected", Boolean(matches));
+      });
+    }
+
+    function focusFollowupRow(numero) {
+      if (!followupsGrid) return;
+      const normalized = normalizeFollowupKey(numero);
+      const row = followupsGrid.querySelector(`[data-followup-row="${normalized}"]`);
+      if (!row) return;
+      row.hidden = false;
+      row.classList.add("followup-item--highlight");
+      row.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(() => row.classList.remove("followup-item--highlight"), 1200);
     }
 
     function resolveFollowupSymbol(value) {
@@ -5105,6 +5184,7 @@
       followupsStore.data.set(numero, followers);
       followupsStore.loaded = true;
       populateFollowupInputs(numero, followers);
+      rebuildFollowupsIndexFromStore();
       return followers;
     }
 
@@ -5153,6 +5233,20 @@
         followupsFilterInput.focus();
       }
       applyFollowupsFilter("");
+    });
+    followupsIndex?.addEventListener("click", (event) => {
+      const button = event.target.closest?.("[data-followup-jump]");
+      if (!button) return;
+      const numero = button.dataset.followupJump;
+      if (!numero) return;
+      const normalized = normalizeFollowupKey(numero);
+      const currentFilter = getActiveFollowupsFilterValue();
+      if (currentFilter && currentFilter !== normalized && followupsFilterInput) {
+        followupsFilterInput.value = "";
+        applyFollowupsFilter("");
+      }
+      focusFollowupRow(normalized);
+      syncFollowupsIndexSelection(normalized);
     });
     followupsGrid?.addEventListener("click", async (event) => {
       const addBtn = event.target.closest?.("[data-followup-add]");
