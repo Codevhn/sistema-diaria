@@ -8451,6 +8451,18 @@
       return raw.padStart(2, "0");
     }
 
+    const hypothesisWeekdayFormatter = new Intl.DateTimeFormat("es-ES", { weekday: "long" });
+
+    function formatHypothesisDateLabel(value) {
+      if (!value) return "(sin fecha)";
+      const parsed = parseDrawDate(value);
+      if (!parsed) return value;
+      const weekdayRaw = hypothesisWeekdayFormatter.format(parsed);
+      const weekday = `${weekdayRaw.charAt(0).toUpperCase()}${weekdayRaw.slice(1)}`;
+      const isoDate = formatDateISO(parsed);
+      return `${weekday} ${isoDate || value}`;
+    }
+
     async function refreshHypotesis() {
       await refreshHypothesisReminders();
       const cont = document.getElementById("h-list");
@@ -8476,7 +8488,7 @@
 
         const simbolo = h.simbolo || getSymbol(h.numero) || "";
         const estado = (h.estado || "pendiente").toLowerCase();
-        const fecha = h.fecha || "(sin fecha)";
+        const fecha = formatHypothesisDateLabel(h.fecha || "");
         const turno = h.turno || "";
         const razones = (h.razones || []).filter(Boolean).join(" · ") || "Sin notas";
 
