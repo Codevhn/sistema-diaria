@@ -2889,6 +2889,11 @@ button.ghost:hover {
   margin-right: 6px;
   color: rgba(37, 99, 235, 0.92);
 }
+
+.hypo-notes {
+  white-space: pre-line;
+  display: inline;
+}
 .hypo-actions {
   display: flex;
   gap: 8px;

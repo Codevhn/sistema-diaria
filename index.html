@@ -8490,7 +8490,7 @@
         const estado = (h.estado || "pendiente").toLowerCase();
         const fecha = formatHypothesisDateLabel(h.fecha || "");
         const turno = h.turno || "";
-        const razones = (h.razones || []).filter(Boolean).join(" · ") || "Sin notas";
+        const razonesTexto = (h.razones || []).filter(Boolean).join(" · ") || "Sin notas";
 
         const head = document.createElement("div");
         head.className = "card-head";
@@ -8515,7 +8515,14 @@
         body.appendChild(fechaSpan);
 
         const notaSpan = document.createElement("span");
-        notaSpan.innerHTML = `<strong>Notas:</strong> ${razones}`;
+        const notaLabel = document.createElement("strong");
+        notaLabel.textContent = "Notas:";
+        const notaTexto = document.createElement("span");
+        notaTexto.className = "hypo-notes";
+        notaTexto.textContent = razonesTexto;
+        notaSpan.appendChild(notaLabel);
+        notaSpan.appendChild(document.createTextNode(" "));
+        notaSpan.appendChild(notaTexto);
         body.appendChild(notaSpan);
 
         card.appendChild(body);
