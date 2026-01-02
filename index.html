@@ -8463,6 +8463,42 @@
       return `${weekday} ${isoDate || value}`;
     }
 
+    const uppercaseEmphasisRegex = /([A-ZÁÉÍÓÚÜÑ0-9]{2,})/g;
+
+    function buildHypoNotesLine(line = "") {
+      const frag = document.createDocumentFragment();
+      if (!line) return frag;
+      let lastIndex = 0;
+      let match;
+      while ((match = uppercaseEmphasisRegex.exec(line)) !== null) {
+        if (match.index > lastIndex) {
+          frag.appendChild(document.createTextNode(line.slice(lastIndex, match.index)));
+        }
+        const strongText = match[0];
+        const emphasis = document.createElement("span");
+        emphasis.className = "hypo-notes-emphasis";
+        emphasis.textContent = strongText;
+        frag.appendChild(emphasis);
+        lastIndex = match.index + strongText.length;
+      }
+      if (lastIndex < line.length) {
+        frag.appendChild(document.createTextNode(line.slice(lastIndex)));
+      }
+      return frag;
+    }
+
+    function createHypoNotesContent(text = "") {
+      const fragment = document.createDocumentFragment();
+      const lines = text.split(/\r?\n/);
+      lines.forEach((line, index) => {
+        fragment.appendChild(buildHypoNotesLine(line));
+        if (index < lines.length - 1) {
+          fragment.appendChild(document.createElement("br"));
+        }
+      });
+      return fragment;
+    }
+
     async function refreshHypotesis() {
       await refreshHypothesisReminders();
       const cont = document.getElementById("h-list");
@@ -8519,7 +8555,8 @@
         notaLabel.textContent = "Notas:";
         const notaTexto = document.createElement("span");
         notaTexto.className = "hypo-notes";
-        notaTexto.textContent = razonesTexto;
+        const notasFragment = createHypoNotesContent(razonesTexto);
+        notaTexto.appendChild(notasFragment);
         notaSpan.appendChild(notaLabel);
         notaSpan.appendChild(document.createTextNode(" "));
         notaSpan.appendChild(notaTexto);

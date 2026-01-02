@@ -2894,6 +2894,13 @@ button.ghost:hover {
   white-space: pre-line;
   display: inline;
 }
+
+.hypo-notes-emphasis {
+  color: #ff5f6d;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  display: inline-block;
+}
 .hypo-actions {
   display: flex;
   gap: 8px;
