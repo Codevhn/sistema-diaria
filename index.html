@@ -1069,25 +1069,33 @@
               Anota qué números suelen seguir a cada resultado. Usa comas, espacios o saltos de línea para separar múltiples opciones.
             </p>
           </div>
-          <div class="followups-card__actions">
-            <div class="followups-filter">
-              <input
-                id="followups-filter"
-                maxlength="2"
-                inputmode="numeric"
-                placeholder="Número 00–99"
-                aria-label="Filtrar por número 00 al 99"
-              />
-              <button id="followups-filter-reset" type="button" class="btn-ghost btn-compact">Ver todos</button>
+          <button id="followups-refresh" class="btn-outline btn-compact followups-head-action">Actualizar</button>
+        </div>
+        <div class="followups-card__layout">
+          <aside class="followups-sidebar">
+            <div class="followups-sidebar__controls">
+              <div class="followups-filter">
+                <label for="followups-filter">Ir directo al número</label>
+                <div class="followups-filter__control">
+                  <input
+                    id="followups-filter"
+                    maxlength="2"
+                    inputmode="numeric"
+                    placeholder="00–99"
+                    aria-label="Filtrar por número 00 al 99"
+                  />
+                  <button id="followups-filter-reset" type="button" class="btn-ghost btn-compact">Ver todos</button>
+                </div>
+              </div>
+              <p class="hint followups-filter-hint">También puedes usar el panel para saltar a un número con apuntes.</p>
             </div>
-            <button id="followups-refresh" class="btn-outline btn-compact">Actualizar</button>
+            <div id="followups-index" class="followups-index">
+              <p class="hint">Selecciona un número para saltar directo al registro.</p>
+            </div>
+          </aside>
+          <div id="followups-grid" class="followups-grid">
+            <p class="hint">Cargando apuntes…</p>
           </div>
-        </div>
-        <div id="followups-index" class="followups-index">
-          <p class="hint">Selecciona un número para saltar directo al registro.</p>
-        </div>
-        <div id="followups-grid" class="followups-grid">
-          <p class="hint">Cargando apuntes…</p>
         </div>
       </article>
     </section>
@@ -4967,17 +4975,21 @@
           label.appendChild(labelSymbol);
           item.appendChild(label);
 
+          const workspace = document.createElement("div");
+          workspace.className = "followup-workspace";
+          item.appendChild(workspace);
+
           const inputsWrap = document.createElement("div");
           inputsWrap.className = "followup-inputs";
           inputsWrap.dataset.followupInputs = numero;
-          item.appendChild(inputsWrap);
+          workspace.appendChild(inputsWrap);
 
           const addBtn = document.createElement("button");
           addBtn.type = "button";
           addBtn.className = "followup-add";
           addBtn.dataset.followupAdd = numero;
           addBtn.textContent = "Agregar casilla";
-          item.appendChild(addBtn);
+          workspace.appendChild(addBtn);
 
           const actions = document.createElement("div");
           actions.className = "followup-actions";
