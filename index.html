@@ -38,7 +38,6 @@
         class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
     <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
     <button data-view="strategies"><span class="sidebar-icon fa-solid fa-brain"></span><i>Estrategias</i></button>
-    <button data-view="weekly"><span class="sidebar-icon fa-solid fa-calendar-week"></span><i>Secuencias</i></button>
     <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
     <button data-view="notebook"><span class="sidebar-icon fa-solid fa-bookmark"></span><i>Cuaderno</i></button>
     <button data-view="geometry"><span
@@ -258,96 +257,6 @@
             <div id="history-table" class="table-wrap table-wrap--history"></div>
             <div id="history-coverage" class="history-coverage">
               <p class="hint">Ingresa sorteos históricos para ver la última fecha registrada por año.</p>
-            </div>
-          </div>
-        </article>
-
-        <article class="day-card" id="tracking-panel">
-          <div class="day-card__head">
-            <div>
-              <h3>Seguimiento</h3>
-              <p>Fija los tres sorteos de una fecha específica y mantenlos visibles.</p>
-            </div>
-            <div class="day-card__actions">
-              <button id="tracking-pin" class="btn-outline" disabled>Seguir este día</button>
-            </div>
-          </div>
-          <div class="day-card__controls">
-            <label>
-              Fecha
-              <input type="date" id="tracking-date" />
-            </label>
-            <label>
-              País
-              <select id="tracking-country">
-                <option value="HN">HN</option>
-                <option value="NI">NI</option>
-                <option value="SV">SV</option>
-              </select>
-            </label>
-            <button id="tracking-view" class="btn-primary">Ver sorteos</button>
-          </div>
-          <div id="tracking-grid" class="tracking-grid">
-            <p class="hint">Selecciona fecha y país para comenzar el seguimiento.</p>
-          </div>
-        </article>
-
-        <article class="day-card" id="patterns-panel">
-          <div class="day-card__head">
-            <div>
-              <h3>Patrones</h3>
-              <p>Resumen de repeticiones y comportamientos que se mantienen con los años.</p>
-            </div>
-            <div class="day-card__actions">
-              <button id="patterns-refresh" class="btn-outline">Actualizar patrones</button>
-            </div>
-          </div>
-          <div id="patterns-summary" class="pattern-summary panel-meta">
-            <p class="hint">Cargando patrones…</p>
-          </div>
-          <div id="patterns-hallazgos" class="pattern-hallazgos"></div>
-          <div id="patterns-history" class="pattern-history"></div>
-        </article>
-
-        <article class="day-card" id="line-repeat-panel">
-          <div class="day-card__head">
-            <div>
-              <h3>Rachas por línea</h3>
-              <p>Detecta cuándo dos turnos consecutivos repiten la misma línea (decena) y cuáles son las más frecuentes.</p>
-            </div>
-            <div class="day-card__actions">
-              <button id="line-repeat-refresh" class="btn-outline">Actualizar</button>
-            </div>
-          </div>
-          <div class="day-card__controls line-repeat-controls">
-            <label>
-              País
-              <select id="line-repeat-country">
-                <option value="">Todos</option>
-                <option value="HN">HN</option>
-                <option value="NI">NI</option>
-                <option value="SV">SV</option>
-              </select>
-            </label>
-            <label>
-              Día
-              <select id="line-repeat-dow">
-                <option value="">Todos</option>
-                <option value="1">Lunes</option>
-                <option value="2">Martes</option>
-                <option value="3">Miércoles</option>
-                <option value="4">Jueves</option>
-                <option value="5">Viernes</option>
-                <option value="6">Sábado</option>
-                <option value="0">Domingo</option>
-              </select>
-            </label>
-          </div>
-          <div class="day-card__body">
-            <div id="line-repeat-summary" class="panel-meta">Selecciona filtros para ver las repeticiones de línea.</div>
-            <div id="line-repeat-top-lines" class="line-repeat-top"></div>
-            <div id="line-repeat-matrix" class="line-repeat-matrix">
-              <p class="hint">Sin datos suficientes para mostrar la matriz.</p>
             </div>
           </div>
         </article>
@@ -754,208 +663,8 @@
         <button type="button" id="strategy-reset" class="btn-ghost">Restablecer filtros</button>
       </div>
       <div id="strategies-list" class="strategies-grid">
-        <p class="hint">Calcula patrones desde el panel “Patrones” o haz clic en actualizar.</p>
+        <p class="hint">Haz clic en actualizar para recalcular las estrategias con los datos más recientes.</p>
       </div>
-    </section>
-
-    <!-- SECUENCIAS SEMANALES -->
-    <section id="view-weekly" class="view hidden">
-      <h2>Secuencias semanales</h2>
-      <p class="hint">
-        Identifica los ciclos que La Diaria repite cada semana por día y turno. Úsalo para anticipar el número base del
-        próximo lunes, martes… sin volver a recorrer todo el historial.
-      </p>
-      <div class="weekly-controls">
-        <label>
-          País
-          <select id="weekly-pais">
-            <option value="ALL">Todos</option>
-            <option value="HN">HN</option>
-            <option value="NI">NI</option>
-            <option value="SV">SV</option>
-          </select>
-        </label>
-        <label>
-          Turno
-          <select id="weekly-turno">
-            <option value="">Todos</option>
-            <option value="11AM">11 AM</option>
-            <option value="3PM">3 PM</option>
-            <option value="9PM">9 PM</option>
-          </select>
-        </label>
-        <label>
-          Ventana (semanas)
-          <input id="weekly-window" type="number" min="4" max="40" value="12" />
-        </label>
-        <label>
-          Repeticiones mínimas
-          <input id="weekly-min-repeats" type="number" min="2" max="5" value="2" />
-        </label>
-        <button id="weekly-refresh" class="btn-outline">Recalcular</button>
-      </div>
-      <div id="weekly-summary" class="panel-meta">
-        <p class="hint">Procesa la ventana seleccionada para detectar ciclos estables.</p>
-      </div>
-      <div id="weekly-grid" class="weekly-grid">
-        <p class="hint">Aún no se han calculado las secuencias.</p>
-      </div>
-      <article class="weekly-monthly-panel weekly-lines-panel">
-        <div class="weekly-monthly-head">
-          <div>
-            <h3>Rotación de líneas</h3>
-            <p class="hint">Detecta si la lotería alterna bloques de dígitos (00-09, 10-19…) por semanas y anticipa el
-              próximo bloque probable.</p>
-          </div>
-          <button id="lines-refresh" class="btn-outline">Detectar rotación</button>
-        </div>
-        <div id="lines-body" class="lines-body">
-          <p class="hint">Calcula la rotación de líneas para ver cuándo se repite un bloque específico.</p>
-        </div>
-      </article>
-      <article class="weekly-monthly-panel lines-missing-panel">
-        <div class="weekly-monthly-head">
-          <div>
-            <h3>Faltantes por línea</h3>
-            <p class="hint">Cuando una línea se activa, identifica qué números del bloque aún no han salido y acompáñalos
-              con su símbolo.</p>
-          </div>
-          <button id="lines-missing-refresh" class="btn-outline">Actualizar faltantes</button>
-        </div>
-        <div id="lines-missing-body" class="lines-missing-body">
-          <p class="hint">Calcula la rotación o toca actualizar para listar los pendientes por línea.</p>
-        </div>
-      </article>
-      <article class="weekly-monthly-panel">
-        <div class="weekly-monthly-head">
-          <div>
-            <h3>Comparador mensual</h3>
-            <p class="hint">Contrasta el arranque y el cierre de cada mes para el día seleccionado y descubre patrones que
-              se repiten entre meses consecutivos.</p>
-          </div>
-          <button id="monthly-refresh" class="btn-outline">Recalcular meses</button>
-        </div>
-        <div class="monthly-controls">
-          <label>
-            País
-            <select id="monthly-pais">
-              <option value="ALL">Todos</option>
-              <option value="HN">HN</option>
-              <option value="NI">NI</option>
-              <option value="SV">SV</option>
-            </select>
-          </label>
-          <label>
-            Día de la semana
-            <select id="monthly-dow">
-              <option value="1" selected>Lunes</option>
-              <option value="0">Domingo</option>
-              <option value="2">Martes</option>
-              <option value="3">Miércoles</option>
-              <option value="4">Jueves</option>
-              <option value="5">Viernes</option>
-              <option value="6">Sábado</option>
-            </select>
-          </label>
-          <label>
-            Turno
-            <select id="monthly-turno">
-              <option value="">Todos</option>
-              <option value="11AM">11 AM</option>
-              <option value="3PM">3 PM</option>
-              <option value="9PM">9 PM</option>
-            </select>
-          </label>
-          <label>
-            Meses a revisar
-            <input id="monthly-months" type="number" min="3" max="24" value="8" />
-          </label>
-        </div>
-        <div id="monthly-summary" class="panel-meta">
-          <p class="hint">Selecciona un día para comparar cómo arrancan y cierran los meses.</p>
-        </div>
-        <div id="monthly-table" class="monthly-table">
-          <p class="hint">Aún no hay datos suficientes.</p>
-        </div>
-      </article>
-      <article class="weekly-monthly-panel monthly-trends-panel">
-        <div class="weekly-monthly-head">
-          <div>
-            <h3>Patrones por mes</h3>
-            <p class="hint">Explora cómo se comporta un mes a lo largo de los años: repeticiones, líneas dominantes,
-              tendencia y alertas accionables.</p>
-          </div>
-          <button id="monthly-trend-refresh" class="btn-outline">Analizar mes</button>
-        </div>
-        <div class="monthly-trend-controls">
-          <label>
-            Mes
-            <select id="monthly-trend-month">
-              <option value="0">Enero</option>
-              <option value="1">Febrero</option>
-              <option value="2">Marzo</option>
-              <option value="3">Abril</option>
-              <option value="4">Mayo</option>
-              <option value="5">Junio</option>
-              <option value="6">Julio</option>
-              <option value="7">Agosto</option>
-              <option value="8">Septiembre</option>
-              <option value="9">Octubre</option>
-              <option value="10">Noviembre</option>
-              <option value="11">Diciembre</option>
-            </select>
-          </label>
-          <label>
-            País
-            <select id="monthly-trend-pais">
-              <option value="ALL">Todos</option>
-              <option value="HN">HN</option>
-              <option value="NI">NI</option>
-              <option value="SV">SV</option>
-            </select>
-          </label>
-          <label>
-            Turno
-            <select id="monthly-trend-turno">
-              <option value="">Todos</option>
-              <option value="11AM">11 AM</option>
-              <option value="3PM">3 PM</option>
-              <option value="9PM">9 PM</option>
-            </select>
-          </label>
-          <label>
-            Años a comparar
-            <input id="monthly-trend-years" type="number" min="2" max="10" value="5" />
-          </label>
-        </div>
-        <div id="monthly-trend-summary" class="panel-meta">
-          <p class="hint">Selecciona un mes y recalcula para obtener el resumen histórico.</p>
-        </div>
-        <div id="monthly-trend-alerts" class="monthly-trend-alerts">
-          <p class="hint">Aún no hay alertas detectadas para este análisis.</p>
-        </div>
-        <div id="monthly-trend-chart" class="monthly-trend-chart">
-          <p class="hint">Calcula el mes para mostrar la tendencia de los números ganadores.</p>
-        </div>
-        <div class="monthly-trend-grid">
-          <div class="monthly-trend-card">
-            <div class="monthly-trend-card__head">
-              <h4>Números dominantes</h4>
-            </div>
-            <div id="monthly-trend-hotlist" class="monthly-trend-hotlist">
-              <p class="hint">Procesa el mes para ver los números con mayor reincidencia.</p>
-            </div>
-          </div>
-          <div class="monthly-trend-card">
-            <div class="monthly-trend-card__head">
-              <h4>Actividad por año</h4>
-            </div>
-            <div id="monthly-trend-years-grid" class="monthly-trend-years">
-              <p class="hint">Calcula el mes para revisar el comportamiento anual.</p>
-            </div>
-          </div>
-        </div>
-      </article>
     </section>
 
     <!-- ABONO DEL DÍA -->
@@ -1513,8 +1222,6 @@
       obtenerResumenPredicciones,
     } from "./src/learning.js";
     import { analizarSesgos } from "./src/bias-analyzer.js";
-    import { analizarSecuenciasSemanales, analizarComparacionMensual, analizarRotacionLineas } from "./src/weekly-patterns.js";
-    import { analizarPatronesMensuales } from "./src/monthly-trends.js";
     import { evaluarMotorPega3 } from "./src/pega3-engine.js";
     import { loadUserPreferences, saveUserPreferences } from "./src/user-preferences.js";
     import { computeDecemberStrategy } from "./src/december-strategy.js";
@@ -2479,7 +2186,6 @@
       "6PM": "6 PM",
       "9PM": "9 PM",
     };
-    const TRACKING_STORAGE_KEY = "ld-v3-tracking-day";
     const DRAW_CACHE_TTL = 15 * 1000;
     const BIAS_NOTES_STORAGE_KEY = "ld-v3-bias-notes";
     const BIAS_LAST_DOW_KEY = "ld-v3-bias-last-dow";
@@ -2490,15 +2196,6 @@
       "6PM": { hour: 18, minute: 0 },
       "9PM": { hour: 21, minute: 0 },
     };
-    const LINE_REPEAT_TRANSITIONS = [
-      { key: "11-3", from: "11AM", to: "3PM", label: "11 AM → 3 PM", countries: ["HN"] },
-      { key: "3-9", from: "3PM", to: "9PM", label: "3 PM → 9 PM", countries: ["HN"] },
-      { key: "12-3", from: "12PM", to: "3PM", label: "12 PM → 3 PM", countries: ["NI"] },
-      { key: "3-6", from: "3PM", to: "6PM", label: "3 PM → 6 PM", countries: ["NI"] },
-      { key: "6-9", from: "6PM", to: "9PM", label: "6 PM → 9 PM", countries: ["NI"] },
-      { key: "11-9", from: "11AM", to: "9PM", label: "11 AM → 9 PM", countries: ["SV"] },
-    ];
-    const LINE_REPEAT_DOW_ORDER = [1, 2, 3, 4, 5, 6, 0];
     const DECEMBER_REMINDER_KEY = "ld-v3-december-reminders";
     let biasLocalStorageWarned = false;
     let biasSessionStorageWarned = false;
@@ -2562,7 +2259,6 @@
       return null;
     }
 
-    let trackingState = loadTrackingState();
     let drawsCache = null;
     let drawsCacheTs = 0;
     let localSnapshotState = null;
@@ -2701,39 +2397,6 @@
       if (Number.isNaN(value)) return null;
       return { numero: value, symbol: getSymbol(value) || "" };
     };
-
-    function loadTrackingState() {
-      if (userPreferences?.trackingState?.fecha) return userPreferences.trackingState;
-      if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
-        return null;
-      }
-      try {
-        const raw = window.localStorage.getItem(TRACKING_STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed?.fecha) return null;
-        return parsed;
-      } catch (err) {
-        logWarn("load tracking state failed", err);
-        return null;
-      }
-    }
-
-    function saveTrackingState(state) {
-      queueUserPreferencesSave({ trackingState: state || null });
-      if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
-        return;
-      }
-      try {
-        if (!state) {
-          window.localStorage.removeItem(TRACKING_STORAGE_KEY);
-        } else {
-          window.localStorage.setItem(TRACKING_STORAGE_KEY, JSON.stringify(state));
-        }
-      } catch (err) {
-        logWarn("save tracking state failed", err);
-      }
-    }
 
     function getRecencyWarnTs() {
       if (userPreferences && Object.prototype.hasOwnProperty.call(userPreferences, "recencyWarnTs")) {
@@ -3314,19 +2977,12 @@
     const pendingEditorNumeroInput = document.getElementById("pending-editor-numero");
     const pendingEditorTestInput = document.getElementById("pending-editor-test");
     const pendingEditorCancelBtn = document.getElementById("pending-editor-cancel");
-    const lineRepeatPanel = document.getElementById("line-repeat-panel");
-    const lineRepeatSummary = document.getElementById("line-repeat-summary");
-    const lineRepeatTopLines = document.getElementById("line-repeat-top-lines");
-    const lineRepeatMatrix = document.getElementById("line-repeat-matrix");
     const dayIntelCard = document.getElementById("day-intel-card");
     const dayIntelRefreshBtn = document.getElementById("day-intel-refresh");
     const dayIntelNumberEl = document.getElementById("day-intel-number");
     const dayIntelReasonEl = document.getElementById("day-intel-reason");
     const dayIntelListEl = document.getElementById("day-intel-list");
     const dayIntelEmptyEl = document.getElementById("day-intel-empty");
-    const lineRepeatCountrySelect = document.getElementById("line-repeat-country");
-    const lineRepeatDowSelect = document.getElementById("line-repeat-dow");
-    const lineRepeatRefreshBtn = document.getElementById("line-repeat-refresh");
     const DAY_PENDING_STORAGE_KEY = "ld_pending_draws_v1";
     let pendingDayQueue = [];
     let pendingEditorIndex = null;
@@ -3579,324 +3235,6 @@
     });
 
     // === PANEL: Rachas por línea ===
-    let lineRepeatCache = null;
-    let lineRepeatCacheKey = "";
-
-    function invalidateLineRepeatCache() {
-      lineRepeatCache = null;
-      lineRepeatCacheKey = "";
-    }
-
-    function lineFromNumber(value) {
-      const numero = Number(value);
-      if (!Number.isFinite(numero)) return null;
-      if (numero < 0 || numero > 99) return null;
-      return Math.floor(numero / 10);
-    }
-
-    function getLineRepeatTransitionsForCountry(country) {
-      if (!country) return LINE_REPEAT_TRANSITIONS;
-      const normalized = normalizeCountry(country);
-      return LINE_REPEAT_TRANSITIONS.filter((transition) => {
-        if (!Array.isArray(transition.countries) || !transition.countries.length) return true;
-        return transition.countries.includes(normalized);
-      });
-    }
-
-    function formatLineLabel(line) {
-      if (!Number.isFinite(line)) return "—";
-      const start = formatNumber(line * 10);
-      const end = formatNumber(line * 10 + 9);
-      return `Línea ${start}-${end}`;
-    }
-
-    function createLineRepeatBucket() {
-      const bucket = {};
-      LINE_REPEAT_TRANSITIONS.forEach((transition) => {
-        bucket[transition.key] = {
-          total: 0,
-          repeats: 0,
-          lines: new Map(),
-        };
-      });
-      return bucket;
-    }
-
-    function cloneLineRepeatBucket(bucket = {}) {
-      const clone = {};
-      LINE_REPEAT_TRANSITIONS.forEach((transition) => {
-        const entry = bucket[transition.key] || { total: 0, repeats: 0, lines: new Map() };
-        const lines = Array.from(entry.lines.entries())
-          .map(([line, count]) => ({ line: Number(line), count }))
-          .sort((a, b) => b.count - a.count);
-        clone[transition.key] = {
-          total: entry.total,
-          repeats: entry.repeats,
-          lines,
-        };
-      });
-      return clone;
-    }
-
-    function buildLineRepeatStatsFromDraws(draws = []) {
-      const groups = new Map();
-      const bucketsByDow = Array.from({ length: 7 }, () => createLineRepeatBucket());
-      const overallBucket = createLineRepeatBucket();
-      draws.forEach((draw) => {
-        if (!draw || !draw.fecha) return;
-        const key = `${draw.fecha}|${(draw.pais || "HN").toUpperCase()}`;
-        if (!groups.has(key)) {
-          const parsed = parseISODate(draw.fecha);
-          const dowValue = parsed instanceof Date ? parsed.getDay() : null;
-          groups.set(key, {
-            fecha: draw.fecha,
-            pais: (draw.pais || "HN").toUpperCase(),
-            dow: Number.isInteger(dowValue) ? dowValue : null,
-            turns: {},
-          });
-        }
-        const group = groups.get(key);
-        if (draw.horario) {
-          group.turns[draw.horario] = draw;
-        }
-      });
-
-      groups.forEach((group) => {
-        if (!Number.isInteger(group.dow)) return;
-        const dowBucket = bucketsByDow[group.dow] || createLineRepeatBucket();
-        LINE_REPEAT_TRANSITIONS.forEach((transition) => {
-          if (Array.isArray(transition.countries) && transition.countries.length) {
-            if (!transition.countries.includes(group.pais)) return;
-          }
-          const fromDraw = group.turns[transition.from];
-          const toDraw = group.turns[transition.to];
-          if (!fromDraw || !toDraw) return;
-          dowBucket[transition.key].total += 1;
-          overallBucket[transition.key].total += 1;
-          const fromLine = lineFromNumber(fromDraw.numero);
-          const toLine = lineFromNumber(toDraw.numero);
-          if (fromLine === null || toLine === null || fromLine !== toLine) return;
-          const lineKey = String(fromLine);
-          dowBucket[transition.key].repeats += 1;
-          overallBucket[transition.key].repeats += 1;
-          const dowMap = dowBucket[transition.key].lines;
-          dowMap.set(lineKey, (dowMap.get(lineKey) || 0) + 1);
-          const overallMap = overallBucket[transition.key].lines;
-          overallMap.set(lineKey, (overallMap.get(lineKey) || 0) + 1);
-        });
-      });
-
-      const byDow = {};
-      bucketsByDow.forEach((bucket, idx) => {
-        byDow[idx] = cloneLineRepeatBucket(bucket);
-      });
-
-      return {
-        updatedAt: Date.now(),
-        sampleSize: groups.size,
-        byDow,
-        overall: cloneLineRepeatBucket(overallBucket),
-      };
-    }
-
-    function hasLineRepeatData(bucket, transitions = LINE_REPEAT_TRANSITIONS) {
-      if (!bucket) return false;
-      return transitions.some((transition) => (bucket[transition.key]?.total || 0) > 0);
-    }
-
-    function buildLineTotalsFromBucket(bucket = {}, transitions = LINE_REPEAT_TRANSITIONS) {
-      const totals = new Map();
-      transitions.forEach((transition) => {
-        const entry = bucket[transition.key];
-        if (!entry || !Array.isArray(entry.lines)) return;
-        entry.lines.forEach((lineEntry) => {
-          const key = lineEntry.line;
-          if (!Number.isFinite(key)) return;
-          totals.set(key, (totals.get(key) || 0) + lineEntry.count);
-        });
-      });
-      return Array.from(totals.entries())
-        .map(([line, count]) => ({ line, count }))
-        .sort((a, b) => b.count - a.count);
-    }
-
-    async function getLineRepeatStats({ country = "", force = false } = {}) {
-      const normalized = (country || "").trim().toUpperCase();
-      const cacheKey = normalized || "ALL";
-      if (!force && lineRepeatCache && lineRepeatCacheKey === cacheKey) {
-        return lineRepeatCache;
-      }
-      const draws = await DB.listDraws({ excludeTest: true });
-      const filtered = normalized
-        ? draws.filter((draw) => (draw.pais || "").toUpperCase() === normalized)
-        : draws;
-      const stats = buildLineRepeatStatsFromDraws(filtered);
-      lineRepeatCache = stats;
-      lineRepeatCacheKey = cacheKey;
-      return stats;
-    }
-
-    function getLineRepeatBucketForSelection(stats, dowValue) {
-      if (!stats) return null;
-      if (dowValue === "" || typeof dowValue === "undefined") return stats.overall;
-      const idx = Number(dowValue);
-      if (Number.isInteger(idx) && stats.byDow && stats.byDow[idx]) {
-        return stats.byDow[idx];
-      }
-      return stats.overall;
-    }
-
-    function renderLineRepeatSummary(
-      bucket,
-      { dowValue = "", countryValue = "", sampleSize = 0, transitions = LINE_REPEAT_TRANSITIONS } = {},
-    ) {
-      if (!lineRepeatSummary) return;
-      const effectiveTransitions = transitions && transitions.length ? transitions : LINE_REPEAT_TRANSITIONS;
-      const dowLabel =
-        dowValue === "" ? "todos los días" : DOW_FULL_LABEL[Number(dowValue)] || "este día";
-      const countryLabel = countryValue ? `país ${countryValue}` : "todos los países";
-      if (!bucket || !hasLineRepeatData(bucket, effectiveTransitions)) {
-        lineRepeatSummary.innerHTML = `<p class="hint">Aún no hay repeticiones registradas para ${dowLabel} en ${countryLabel}.</p>`;
-        return;
-      }
-      const pieces = effectiveTransitions.map((transition) => {
-        const entry = bucket[transition.key] || { total: 0, repeats: 0 };
-        if (!entry.total) return `${transition.label}: 0% (0/0)`;
-        const ratio = Math.round((entry.repeats / entry.total) * 100);
-        return `${transition.label}: ${ratio}% (${entry.repeats}/${entry.total})`;
-      });
-      const leaders = buildLineTotalsFromBucket(bucket, effectiveTransitions)
-        .slice(0, 3)
-        .map((entry) => `${formatLineLabel(entry.line)} (${entry.count})`)
-        .join(" · ");
-      const leadersText = leaders || "Sin líneas dominantes.";
-      const sampleText = sampleSize ? ` · Muestreo ${sampleSize} días` : "";
-      lineRepeatSummary.innerHTML = `
-        <strong>${dowLabel}</strong> · ${countryLabel}. ${pieces.join(
-          " · ",
-        )}. Líneas líderes: ${leadersText}${sampleText}
-      `;
-    }
-
-    function renderLineRepeatTopLines(bucket, transitions = LINE_REPEAT_TRANSITIONS) {
-      if (!lineRepeatTopLines) return;
-      lineRepeatTopLines.innerHTML = "";
-      if (!bucket) {
-        lineRepeatTopLines.innerHTML = `<p class="hint">Sin datos suficientes para mostrar repeticiones por línea.</p>`;
-        return;
-      }
-      const effectiveTransitions = transitions && transitions.length ? transitions : LINE_REPEAT_TRANSITIONS;
-      effectiveTransitions.forEach((transition) => {
-        const entry = bucket[transition.key] || { total: 0, repeats: 0, lines: [] };
-        const card = document.createElement("div");
-        card.className = "line-repeat-card";
-        const ratio = entry.total ? Math.round((entry.repeats / entry.total) * 100) : 0;
-        const meta = entry.total
-          ? `Repite ${entry.repeats}/${entry.total} veces`
-          : "Sin transiciones completas";
-        const lines =
-          entry.lines && entry.lines.length
-            ? entry.lines
-                .slice(0, 3)
-                .map(
-                  (lineEntry) =>
-                    `<span class="line-repeat-pill">${formatLineLabel(lineEntry.line)} · ${lineEntry.count}</span>`,
-                )
-                .join("")
-            : `<span class="line-repeat-empty">Sin líneas dominantes</span>`;
-        card.innerHTML = `
-          <div class="line-repeat-card__title">${transition.label}</div>
-          <div class="line-repeat-card__metric">${ratio}%</div>
-          <div class="line-repeat-card__meta">${meta}</div>
-          <div class="line-repeat-card__list">${lines}</div>
-        `;
-        lineRepeatTopLines.appendChild(card);
-      });
-    }
-
-    function renderLineRepeatMatrix(stats, selectedDow, transitions = LINE_REPEAT_TRANSITIONS) {
-      if (!lineRepeatMatrix) return;
-      if (!stats || !stats.byDow) {
-        lineRepeatMatrix.innerHTML = `<p class="hint">No hay datos suficientes para construir la matriz.</p>`;
-        return;
-      }
-      const effectiveTransitions = transitions && transitions.length ? transitions : LINE_REPEAT_TRANSITIONS;
-      if (!effectiveTransitions.length) {
-        lineRepeatMatrix.innerHTML = `<p class="hint">No hay transiciones definidas para el país seleccionado.</p>`;
-        return;
-      }
-      const hasData = LINE_REPEAT_DOW_ORDER.some((dow) =>
-        effectiveTransitions.some((transition) => (stats.byDow?.[dow]?.[transition.key]?.total || 0) > 0),
-      );
-      if (!hasData) {
-        lineRepeatMatrix.innerHTML =
-          `<p class="hint">Aún no hay repeticiones registradas con los filtros actuales.</p>`;
-        return;
-      }
-      const table = document.createElement("table");
-      const thead = document.createElement("thead");
-      const headRow = document.createElement("tr");
-      headRow.innerHTML = `<th>Día</th>${effectiveTransitions.map((t) => `<th>${t.label}</th>`).join("")}`;
-      thead.appendChild(headRow);
-      table.appendChild(thead);
-      const tbody = document.createElement("tbody");
-      const hasSelection = selectedDow !== "" && !Number.isNaN(Number(selectedDow));
-      const selectedValue = hasSelection ? Number(selectedDow) : null;
-      LINE_REPEAT_DOW_ORDER.forEach((dow) => {
-        const bucket = stats.byDow[dow];
-        const row = document.createElement("tr");
-        if (selectedValue !== null && selectedValue === dow) {
-          row.classList.add("is-selected");
-        }
-        const labelCell = document.createElement("td");
-        labelCell.textContent = DOW_FULL_LABEL[dow] || `Día ${dow}`;
-        row.appendChild(labelCell);
-        effectiveTransitions.forEach((transition) => {
-          const entry = bucket?.[transition.key] || { total: 0, repeats: 0, lines: [] };
-          const cell = document.createElement("td");
-          if (!entry.total) {
-            cell.innerHTML = `<div class="line-repeat-empty">Sin datos</div>`;
-          } else {
-            const ratio = Math.round((entry.repeats / entry.total) * 100);
-            const topLine = entry.lines?.[0];
-            const lineLabel = topLine ? formatLineLabel(topLine.line) : "—";
-            cell.innerHTML = `
-              <div class="line-repeat-cell-main">${ratio}%</div>
-              <div class="line-repeat-cell-meta">${entry.repeats}/${entry.total} repeticiones</div>
-              <div class="line-repeat-cell-line">${lineLabel}${topLine ? ` · ${topLine.count}` : ""}</div>
-            `;
-          }
-          row.appendChild(cell);
-        });
-        tbody.appendChild(row);
-      });
-      table.appendChild(tbody);
-      lineRepeatMatrix.innerHTML = "";
-      lineRepeatMatrix.appendChild(table);
-    }
-
-    async function renderLineRepeatPanel({ force = false } = {}) {
-      if (!lineRepeatPanel) return;
-      const countryValueRaw = (lineRepeatCountrySelect?.value || "").trim();
-      const countryValue = countryValueRaw.toUpperCase();
-      const dowValue = lineRepeatDowSelect?.value || "";
-      const stats = await getLineRepeatStats({ country: countryValue, force });
-      const bucket = getLineRepeatBucketForSelection(stats, dowValue);
-      const transitions = getLineRepeatTransitionsForCountry(countryValue);
-      renderLineRepeatSummary(bucket, {
-        dowValue,
-        countryValue: countryValue,
-        sampleSize: stats?.sampleSize || 0,
-        transitions,
-      });
-      renderLineRepeatTopLines(bucket, transitions);
-      renderLineRepeatMatrix(stats, dowValue, transitions);
-    }
-
-    lineRepeatCountrySelect?.addEventListener("change", () => renderLineRepeatPanel({ force: true }));
-    lineRepeatDowSelect?.addEventListener("change", () => renderLineRepeatPanel());
-    lineRepeatRefreshBtn?.addEventListener("click", () => renderLineRepeatPanel({ force: true }));
-
     saveDayBtn?.addEventListener("click", async () => {
       const { fecha, pais } = getFilters();
       if (!fecha || !pais) {
@@ -4025,7 +3363,6 @@
         persistPendingDayQueue();
         updatePendingIndicator();
         await refreshSlots();
-        autoFollowIfToday(currentFecha, currentPais);
         await handleDrawsMutated();
         const comboMap = new Map();
         queueSnapshot.forEach((entry) => {
@@ -4289,15 +3626,7 @@
     const drawsLocalToggle = document.getElementById("draws-local-toggle");
     const drawsLocalStatus = document.getElementById("draws-local-status");
 
-    const trackingDateInput = document.getElementById("tracking-date");
-    const trackingPaisSelect = document.getElementById("tracking-country");
-    const trackingGrid = document.getElementById("tracking-grid");
-    const trackingViewBtn = document.getElementById("tracking-view");
-    const trackingPinBtn = document.getElementById("tracking-pin");
 
-    const patternsSummary = document.getElementById("patterns-summary");
-    const patternsHallazgos = document.getElementById("patterns-hallazgos");
-    const patternsHistory = document.getElementById("patterns-history");
     const decemberCard = document.getElementById("december-card");
     const decemberYearSelect = document.getElementById("december-year");
     const decemberSearchInput = document.getElementById("december-search");
@@ -4378,6 +3707,271 @@
       renderStrategiesPanel();
     });
     renderStrategyFilters();
+
+    strategiesList?.addEventListener("click", async (event) => {
+      const viewBtn = event.target.closest("[data-strategy-view]");
+      if (viewBtn) {
+        await focusDayPanel(viewBtn.dataset.fecha || null, viewBtn.dataset.pais || null);
+        return;
+      }
+      const hypoBtn = event.target.closest("[data-strategy-hypo]");
+      if (hypoBtn) {
+        navigateToView("hypo");
+        if (hypoFechaInput && hypoBtn.dataset.fecha) hypoFechaInput.value = hypoBtn.dataset.fecha;
+        if (hypoTurnoSelect && hypoBtn.dataset.turno) hypoTurnoSelect.value = hypoBtn.dataset.turno;
+        if (hypoNumeroInput && hypoBtn.dataset.numero) hypoNumeroInput.value = hypoBtn.dataset.numero;
+        if (hypoTextoInput) {
+          const notaBase = hypoBtn.dataset.descripcion || "Estrategia aritmética detectada.";
+          hypoTextoInput.value = notaBase;
+        }
+        showToast("Hipótesis preparada desde la estrategia seleccionada.", { variant: "info" });
+      }
+    });
+
+    let patternsCache = null;
+    let patternsLoading = false;
+
+    async function ensurePatternsCache({ force = false } = {}) {
+      if (patternsLoading) return patternsCache;
+      if (force) patternsCache = null;
+      if (patternsCache) return patternsCache;
+      patternsLoading = true;
+      try {
+        patternsCache = await detectarPatrones({ cantidad: 12 });
+      } catch (err) {
+        console.error("patterns fetch error", err);
+        showToast(`No se pudieron calcular los patrones recientes: ${err.message}`, { variant: "danger" });
+        patternsCache = null;
+      } finally {
+        patternsLoading = false;
+      }
+      return patternsCache;
+    }
+
+    function getPatternStrategiesFromCache() {
+      return patternsCache?.estrategiasAritmeticas ?? [];
+    }
+
+    async function renderStrategiesPanel({ force = false, skipEnsure = false } = {}) {
+      if (!strategiesList) return;
+      if (force) patternsCache = null;
+      if (!skipEnsure) {
+        const prevFlag = allowStrategyAutoRender;
+        allowStrategyAutoRender = false;
+        await ensurePatternsCache({ force });
+        allowStrategyAutoRender = prevFlag;
+      } else if (!patternsCache) {
+        await ensurePatternsCache({ force: false });
+      }
+      const data = getPatternStrategiesFromCache();
+      if (!data.length) {
+        strategiesList.innerHTML =
+          "<p class='hint'>Sin estrategias disponibles en la ventana reciente. Calcula patrones para actualizar.</p>";
+        return;
+      }
+      const filtered = data.filter((entry) => {
+        const turnoMatch =
+          !entry.target?.horario || strategyFilters.turns.has(entry.target.horario);
+        const operatorMatch = strategyFilters.operators.has(entry.operador);
+        return turnoMatch && operatorMatch;
+      });
+      if (!filtered.length) {
+        strategiesList.innerHTML =
+          "<p class='hint'>Sin estrategias que coincidan con los filtros seleccionados.</p>";
+        return;
+      }
+      strategiesList.innerHTML = "";
+      const draws = await getCachedDraws({ force });
+      const dayCache = new Map();
+      const getDayDraws = (fecha, pais) => {
+        const key = `${fecha}|${pais || ""}`;
+        if (dayCache.has(key)) return dayCache.get(key);
+        const map = {};
+        HORARIO_KEYS.forEach((turno) => {
+          map[turno] = pickDraw(draws, fecha, pais || null, turno);
+        });
+        dayCache.set(key, map);
+        return map;
+      };
+
+      filtered
+        .slice()
+        .sort(
+          (a, b) =>
+            (new Date(b.target?.fecha || "1970-01-01") - new Date(a.target?.fecha || "1970-01-01")) ||
+            (HORARIO_ORDER[b.target?.horario] ?? 0) - (HORARIO_ORDER[a.target?.horario] ?? 0),
+        )
+        .forEach((entry) => {
+          const card = document.createElement("article");
+          card.className = "strategy-card";
+          const symbol = getSymbol(entry.target.numero);
+          const leftSymbol = getSymbol(entry.left.numero);
+          const rightSymbol = getSymbol(entry.right.numero);
+          const historyLine =
+            entry.historyCount > 0
+              ? `<div class="strategy-meta">Aplicada anteriormente: ${entry.historyCount} vez(es)</div>`
+              : "";
+          const dayDraws =
+            entry.target?.fecha ? getDayDraws(entry.target.fecha, entry.target.pais || null) : {};
+          card.innerHTML = `
+            <div class="strategy-head">
+              <span class="strategy-target">${formatNumber(entry.target.numero)} ${symbol || ""}</span>
+              <span class="strategy-badge">${entry.operador === "+" ? "Suma" : "Resta"}</span>
+            </div>
+            <div class="strategy-meta">${formatFriendlyDate(entry.target.fecha)} · ${entry.target.horario || "—"}${entry.target.pais ? ` · ${entry.target.pais}` : ""}</div>
+            <div class="strategy-operation">
+              <span>${formatNumber(entry.left.numero)} ${leftSymbol || ""}</span>
+              <span class="strategy-operator">${entry.operador}</span>
+              <span>${formatNumber(entry.right.numero)} ${rightSymbol || ""}</span>
+              <span class="strategy-operator">=</span>
+              <span>${formatNumber(entry.target.numero)}</span>
+            </div>
+            ${historyLine}
+          `;
+          const timeline = buildStrategyTimeline(entry, dayDraws);
+          card.appendChild(timeline);
+          const detail = document.createElement("ul");
+          detail.className = "strategy-detail";
+          detail.innerHTML = `
+            <li>${formatFriendlyDate(entry.left.fecha)} · ${entry.left.horario || "—"}${entry.left.pais ? ` · ${entry.left.pais}` : ""}</li>
+            <li>${formatFriendlyDate(entry.right.fecha)} · ${entry.right.horario || "—"}${entry.right.pais ? ` · ${entry.right.pais}` : ""}</li>
+          `;
+          card.appendChild(detail);
+          const actions = document.createElement("div");
+          actions.className = "strategy-actions";
+          if (entry.target?.fecha) {
+            const viewBtn = document.createElement("button");
+            viewBtn.type = "button";
+            viewBtn.className = "btn-outline";
+            viewBtn.textContent = "Ver día completo";
+            viewBtn.dataset.strategyView = "true";
+            viewBtn.dataset.fecha = entry.target.fecha;
+            viewBtn.dataset.pais = entry.target.pais || "";
+            actions.appendChild(viewBtn);
+          }
+          if (entry.target?.numero !== null) {
+            const hypoBtn = document.createElement("button");
+            hypoBtn.type = "button";
+            hypoBtn.className = "btn-secondary";
+            hypoBtn.textContent = "Guardar hipótesis";
+            hypoBtn.dataset.strategyHypo = "true";
+            hypoBtn.dataset.numero = formatNumber(entry.target.numero);
+            hypoBtn.dataset.fecha = entry.target.fecha || "";
+            hypoBtn.dataset.turno = entry.target.horario || "";
+            hypoBtn.dataset.descripcion = `${formatNumber(entry.left.numero)} ${entry.operador} ${formatNumber(
+              entry.right.numero,
+            )} = ${formatNumber(entry.target.numero)}`;
+            actions.appendChild(hypoBtn);
+          }
+          if (actions.childElementCount) card.appendChild(actions);
+          strategiesList.appendChild(card);
+        });
+
+      const stats = buildStrategyStats(filtered);
+      const years = Object.keys(stats.years).sort();
+      const rangeLabel =
+        years.length > 1 ? `${years[0]} – ${years[years.length - 1]}` : years[0] || "N/D";
+      const statsCard = document.createElement("article");
+      statsCard.className = "strategy-card strategy-card--stats";
+      statsCard.innerHTML = `
+        <div class="strategy-head">
+          <span class="strategy-target">Resumen histórico</span>
+          <span class="strategy-badge">${rangeLabel}</span>
+        </div>
+        <div class="strategy-stats">
+          <p><strong>Total estrategias detectadas:</strong> ${stats.total}</p>
+          <p><strong>Por operador:</strong> ${stats.operators["+"] || 0} sumas · ${stats.operators["−"] || 0} restas</p>
+        </div>
+      `;
+      if (years.length) {
+        const yearList = document.createElement("ul");
+        yearList.className = "strategy-year-stats";
+        years.forEach((year) => {
+          const info = stats.years[year];
+          const sumUse = info.suma || 0;
+          const restUse = info.resta || 0;
+          const li = document.createElement("li");
+          li.textContent = `${year}: ${info.total} estrategias (${sumUse} sumas / ${restUse} restas)`;
+          yearList.appendChild(li);
+        });
+        statsCard.appendChild(yearList);
+      }
+      strategiesList.appendChild(statsCard);
+    }
+
+    function buildStrategyStats(entries = []) {
+      const stats = {
+        total: entries.length,
+        operators: { "+": 0, "−": 0 },
+        years: {},
+      };
+      entries.forEach((entry) => {
+        if (stats.operators[entry.operador] !== undefined) {
+          stats.operators[entry.operador] += 1;
+        }
+        const year = entry.target?.fecha ? entry.target.fecha.slice(0, 4) : "N/D";
+        if (!stats.years[year]) {
+          stats.years[year] = { total: 0, suma: 0, resta: 0 };
+        }
+        stats.years[year].total += 1;
+        if (entry.operador === "+") stats.years[year].suma += 1;
+        else stats.years[year].resta += 1;
+      });
+      return stats;
+    }
+
+    function buildStrategyTimeline(entry, dayDraws = {}) {
+      const timeline = document.createElement("div");
+      timeline.className = "strategy-timeline";
+      HORARIO_KEYS.forEach((turno) => {
+        const slot = document.createElement("div");
+        slot.className = "strategy-slot";
+        const targetMatch = entry.target?.horario === turno;
+        if (targetMatch) slot.classList.add("strategy-slot--result");
+        const isLeftSource =
+          entry.left?.horario === turno &&
+          entry.left?.fecha === entry.target?.fecha &&
+          (entry.left?.pais || "") === (entry.target?.pais || "");
+        const isRightSource =
+          entry.right?.horario === turno &&
+          entry.right?.fecha === entry.target?.fecha &&
+          (entry.right?.pais || "") === (entry.target?.pais || "");
+        if (isLeftSource || isRightSource) slot.classList.add("strategy-slot--source");
+        let draw = dayDraws[turno] || null;
+        let value = draw ? formatNumber(draw.numero) : "--";
+        let symbol = draw ? getSymbol(draw.numero) : "";
+        let external = false;
+        if (!draw) {
+          const fallback =
+            entry.left?.horario === turno ? entry.left : entry.right?.horario === turno ? entry.right : null;
+          if (fallback && fallback.numero !== null) {
+            value = formatNumber(fallback.numero);
+            symbol = getSymbol(fallback.numero);
+            external =
+              fallback.fecha !== entry.target?.fecha ||
+              (fallback.pais || "") !== (entry.target?.pais || "");
+            if (fallback === entry.left || fallback === entry.right) {
+              slot.classList.add("strategy-slot--source");
+            }
+          }
+        }
+        if (external) slot.dataset.external = "true";
+        const label = document.createElement("span");
+        label.className = "strategy-slot__label";
+        label.textContent = turno;
+        const valueEl = document.createElement("span");
+        valueEl.className = "strategy-slot__value";
+        valueEl.textContent = value;
+        const symbolEl = document.createElement("span");
+        symbolEl.className = "strategy-slot__symbol";
+        symbolEl.textContent = symbol || "";
+        slot.appendChild(label);
+        slot.appendChild(valueEl);
+        slot.appendChild(symbolEl);
+        timeline.appendChild(slot);
+      });
+      return timeline;
+    }
 
     const describeDecemberTurns = (turnHints = []) => {
       if (!Array.isArray(turnHints) || !turnHints.length) return "";
@@ -5911,10 +5505,6 @@
         await focusDayPanel(viewBtn.dataset.fecha || null, viewBtn.dataset.pais || null);
         return;
       }
-      const followBtn = event.target.closest("[data-nb-follow]");
-      if (followBtn) {
-        await followStrategyDay(followBtn.dataset.fecha || null, followBtn.dataset.pais || null);
-      }
     });
 
     function navigateToView(key) {
@@ -5947,17 +5537,6 @@
       }
     }
 
-    async function followStrategyDay(fecha, pais) {
-      if (!fecha) return;
-      trackingState = { fecha, pais: pais || null };
-      saveTrackingState(trackingState);
-      await renderTrackingPanel({ forceReload: true });
-      showToast(`Seguimiento activo para ${formatFriendlyDate(fecha)} ${pais ? `(${pais})` : ""}.`, {
-        variant: "success",
-      });
-    }
-
-    const patternsRefreshBtn = document.getElementById("patterns-refresh");
 
     const rankingYearSelect = document.getElementById("ranking-year");
     const rankingSearchInput = document.getElementById("ranking-search");
@@ -5967,18 +5546,6 @@
     const rankingTableWrap = document.getElementById("ranking-table");
     const rankingInsightEl = document.getElementById("ranking-insight");
     const rankingTabButtons = document.querySelectorAll("[data-ranking-tab]");
-    const weeklySection = document.getElementById("view-weekly");
-    const weeklyPaisSelect = document.getElementById("weekly-pais");
-    const weeklyTurnoSelect = document.getElementById("weekly-turno");
-    const weeklyWindowInput = document.getElementById("weekly-window");
-    const weeklyRepeatsInput = document.getElementById("weekly-min-repeats");
-    const weeklySummaryEl = document.getElementById("weekly-summary");
-    const weeklyGridEl = document.getElementById("weekly-grid");
-    const weeklyRefreshBtn = document.getElementById("weekly-refresh");
-    const linesRefreshBtn = document.getElementById("lines-refresh");
-    const linesBodyEl = document.getElementById("lines-body");
-    const linesMissingRefreshBtn = document.getElementById("lines-missing-refresh");
-    const linesMissingBodyEl = document.getElementById("lines-missing-body");
     const abonoFechaInput = document.getElementById("abono-fecha");
     const abonoPaisSelect = document.getElementById("abono-pais");
     const abonoWindowInput = document.getElementById("abono-window");
@@ -5990,37 +5557,13 @@
     const gatilloWindowInput = document.getElementById("gatillo-window");
     const gatilloCalcularBtn = document.getElementById("gatillo-calcular");
     const gatilloOutput = document.getElementById("gatillo-output");
-    const monthlyPaisSelect = document.getElementById("monthly-pais");
-    const monthlyDowSelect = document.getElementById("monthly-dow");
-    const monthlyTurnoSelect = document.getElementById("monthly-turno");
-    const monthlyMonthsInput = document.getElementById("monthly-months");
-    const monthlySummaryEl = document.getElementById("monthly-summary");
-    const monthlyTableEl = document.getElementById("monthly-table");
-    const monthlyRefreshBtn = document.getElementById("monthly-refresh");
-    const monthlyTrendMonthSelect = document.getElementById("monthly-trend-month");
-    const monthlyTrendPaisSelect = document.getElementById("monthly-trend-pais");
-    const monthlyTrendTurnoSelect = document.getElementById("monthly-trend-turno");
-    const monthlyTrendYearsInput = document.getElementById("monthly-trend-years");
-    const monthlyTrendSummaryEl = document.getElementById("monthly-trend-summary");
-    const monthlyTrendAlertsEl = document.getElementById("monthly-trend-alerts");
-    const monthlyTrendChartEl = document.getElementById("monthly-trend-chart");
-    const monthlyTrendHotlistEl = document.getElementById("monthly-trend-hotlist");
-    const monthlyTrendYearsEl = document.getElementById("monthly-trend-years-grid");
-    const monthlyTrendRefreshBtn = document.getElementById("monthly-trend-refresh");
 
-    const defaultTrackingFecha = trackingState?.fecha || dayFecha?.value || todayISO;
-    const defaultTrackingPais = trackingState?.pais || dayPais?.value || trackingPaisSelect?.value || "HN";
     if (historyDateInput && dayFecha?.value && !historyDateInput.value) historyDateInput.value = dayFecha.value;
     if (historyLimitSelect && !historyLimitSelect.value) historyLimitSelect.value = "9";
-    if (trackingDateInput && defaultTrackingFecha) trackingDateInput.value = defaultTrackingFecha;
-    if (trackingPaisSelect && defaultTrackingPais) trackingPaisSelect.value = defaultTrackingPais;
     if (abonoFechaInput && !abonoFechaInput.value) abonoFechaInput.value = todayISO;
     if (gatilloWindowInput && !gatilloWindowInput.value) gatilloWindowInput.value = "180";
-    if (monthlyTrendMonthSelect) monthlyTrendMonthSelect.value = String(new Date().getMonth());
     updateLocalModeUI();
 
-    let patternsCache = null;
-    let patternsLoading = false;
     let rankingDataCache = null;
     let rankingActiveTab = "hot";
     let rankingSearchTarget = null;
@@ -6060,7 +5603,6 @@
       invalidateDrawCache();
       await refreshSlots({ forceReload: !nextState });
       await refreshHistoryPanel({ forceReload: !nextState });
-      await renderTrackingPanel({ forceReload: !nextState });
       showToast(
         nextState
           ? "Modo local activado: los slots del día usarán los sorteos guardados en este navegador."
@@ -6069,39 +5611,6 @@
       );
     });
 
-    trackingViewBtn?.addEventListener("click", () => {
-      renderTrackingPanel();
-    });
-    trackingDateInput?.addEventListener("change", () => renderTrackingPanel());
-    trackingPaisSelect?.addEventListener("change", () => renderTrackingPanel());
-    trackingPinBtn?.addEventListener("click", () => {
-      if (!trackingDateInput || !trackingPaisSelect) return;
-      const fecha = trackingDateInput.value;
-      const pais = trackingPaisSelect.value;
-      if (!fecha || !pais) return;
-      const isActive =
-        trackingState &&
-        trackingState.fecha === fecha &&
-        trackingState.pais === pais;
-      trackingState = isActive ? null : { fecha, pais };
-      saveTrackingState(trackingState);
-      renderTrackingPanel();
-      refreshHistoryPanel();
-    });
-
-    patternsRefreshBtn?.addEventListener("click", () => {
-      refreshPatternsPanel({ force: true });
-    });
-
-    weeklyRefreshBtn?.addEventListener("click", () => {
-      refreshWeeklyPanel({ force: true });
-    });
-    linesRefreshBtn?.addEventListener("click", () => {
-      refreshLinesPanel({ force: true });
-    });
-    linesMissingRefreshBtn?.addEventListener("click", () => {
-      refreshLinesPanel({ force: true });
-    });
     abonoGenerarBtn?.addEventListener("click", () => {
       runAbonoGenerator({ force: true });
     });
@@ -6117,64 +5626,6 @@
     [gatilloNumInput, gatilloPaisSelect, gatilloWindowInput].forEach((input) => {
       input?.addEventListener("change", () => runGatillo());
     });
-    [weeklyPaisSelect, weeklyTurnoSelect, weeklyWindowInput, weeklyRepeatsInput].forEach((input) => {
-      input?.addEventListener("change", () => refreshWeeklyPanel());
-    });
-    weeklyGridEl?.addEventListener("click", async (event) => {
-      const focusBtn = event.target.closest?.("[data-weekly-focus]");
-      if (focusBtn) {
-        await focusDayPanel(focusBtn.dataset.weeklyFocus || null, focusBtn.dataset.pais || null);
-        return;
-      }
-      const copyBtn = event.target.closest?.("[data-weekly-copy]");
-      if (copyBtn) {
-        const payload = copyBtn.dataset.weeklyCopy || "";
-        if (!payload) return;
-        try {
-          if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(payload);
-          } else {
-            const textarea = document.createElement("textarea");
-            textarea.value = payload;
-            textarea.setAttribute("readonly", "true");
-            textarea.style.position = "absolute";
-            textarea.style.left = "-9999px";
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand("copy");
-            textarea.remove();
-          }
-          showToast("Secuencia copiada al portapapeles.", { variant: "success" });
-        } catch (err) {
-          console.error("copy weekly sequence", err);
-          showToast("No se pudo copiar la secuencia.", { variant: "danger" });
-        }
-      }
-    });
-
-    monthlyRefreshBtn?.addEventListener("click", () => {
-      refreshMonthlyPanel({ force: true });
-    });
-    [monthlyPaisSelect, monthlyDowSelect, monthlyTurnoSelect, monthlyMonthsInput].forEach((input) => {
-      input?.addEventListener("change", () => refreshMonthlyPanel());
-    });
-    monthlyTableEl?.addEventListener("click", async (event) => {
-      const focusBtn = event.target.closest?.("[data-monthly-focus]");
-      if (!focusBtn) return;
-      await focusDayPanel(focusBtn.dataset.monthlyFocus || null, focusBtn.dataset.pais || null);
-    });
-    monthlyTrendRefreshBtn?.addEventListener("click", () => {
-      refreshMonthlyTrendsPanel({ force: true });
-    });
-    [monthlyTrendMonthSelect, monthlyTrendPaisSelect, monthlyTrendTurnoSelect, monthlyTrendYearsInput].forEach((input) => {
-      input?.addEventListener("change", () => refreshMonthlyTrendsPanel());
-    });
-    monthlyTrendHotlistEl?.addEventListener("click", async (event) => {
-      const focusBtn = event.target.closest?.("[data-trend-focus]");
-      if (!focusBtn) return;
-      await focusDayPanel(focusBtn.dataset.trendFocus || null, focusBtn.dataset.pais || null);
-    });
-
     rankingYearSelect?.addEventListener("change", () => {
       renderRankingPanel();
     });
@@ -6351,12 +5802,7 @@
       const tbody = table.querySelector("tbody");
       rows.forEach((draw, idx) => {
         const tr = document.createElement("tr");
-        const isTracked =
-          trackingState &&
-          draw.fecha === trackingState.fecha &&
-          (!trackingState.pais || trackingState.pais === draw.pais);
         const isToday = draw.fecha === todayISO;
-        if (isTracked) tr.classList.add("history-row--tracked");
         if (isToday || (latestDate && draw.fecha === latestDate)) {
           tr.classList.add("history-row--today");
         }
@@ -6383,472 +5829,7 @@
       }
     }
 
-    function updateTrackingPinAppearance({ isActive, disabled }) {
-      if (!trackingPinBtn) return;
-      trackingPinBtn.disabled = !!disabled;
-      trackingPinBtn.textContent = isActive ? "Seguimiento activo" : "Seguir este día";
-      trackingPinBtn.classList.toggle("btn-primary", isActive);
-      trackingPinBtn.classList.toggle("btn-outline", !isActive);
-    }
-
-    async function renderTrackingPanel({ forceReload = false } = {}) {
-      if (!trackingGrid) return;
-      const fecha = trackingDateInput?.value || "";
-      const pais = trackingPaisSelect?.value || "";
-      if (!fecha || !pais) {
-        trackingGrid.innerHTML = "<p class='hint'>Selecciona fecha y país para comenzar el seguimiento.</p>";
-        updateTrackingPinAppearance({ isActive: false, disabled: true });
-        return;
-      }
-      const draws = await getCachedDraws({ force: forceReload });
-      const cards = HORARIO_KEYS.map((turno) => {
-        const match = draws
-          .filter((d) => d.fecha === fecha && d.pais === pais && d.horario === turno)
-          .sort(compareDrawDesc)[0];
-        return { turno, draw: match || null };
-      });
-      trackingGrid.innerHTML = "";
-      const frag = document.createDocumentFragment();
-      cards.forEach(({ turno, draw }) => {
-        const card = document.createElement("div");
-        card.className = "tracking-card";
-        if (!draw) {
-          card.classList.add("tracking-card--empty");
-          card.innerHTML = `<div class="tracking-card__hour">${turno}</div><p class="hint">Sin registro</p>`;
-        } else {
-          const simbolo = getSymbol(draw.numero);
-          card.innerHTML = `
-            <div class="tracking-card__hour">${turno}</div>
-            <div class="tracking-number">${formatNumber(draw.numero)}</div>
-            <div class="tracking-symbol">${simbolo || ""}</div>
-            <div class="tracking-meta">${formatFriendlyDate(draw.fecha)} • ${draw.pais || ""}</div>
-          `;
-        }
-        const isTracked =
-          trackingState &&
-          trackingState.fecha === fecha &&
-          trackingState.pais === pais;
-        if (isTracked) card.classList.add("tracking-card--tracked");
-        if (fecha === todayISO && draw) card.classList.add("tracking-card--today");
-        frag.appendChild(card);
-      });
-      trackingGrid.appendChild(frag);
-      const isActive =
-        trackingState &&
-        trackingState.fecha === fecha &&
-        trackingState.pais === pais;
-      updateTrackingPinAppearance({ isActive, disabled: false });
-    }
-
-    function buildPatternSummaryChips(data) {
-      const chips = [
-        {
-          label: "Familia dominante",
-          value: data?.familiaDominante || "—",
-        },
-        {
-          label: "Energía",
-          value: data?.energia || "neutral",
-        },
-        {
-          label: "Ventana",
-          value: data?.resumenVentana || "Sin datos",
-        },
-        {
-          label: "Últimos",
-          value: `${data?.recientes?.length || 0} sorteos`,
-        },
-      ];
-      return `
-        <div class="pattern-summary__grid">
-          ${chips
-            .map(
-              (chip) => `
-                <div class="pattern-chip">
-                  <strong>${chip.label}</strong>
-                  <span>${chip.value}</span>
-                </div>
-              `,
-            )
-            .join("")}
-        </div>
-      `;
-    }
-
-    function renderPatternSummaryCard(data) {
-      if (!patternsSummary) return;
-      if (!data?.recientes?.length) {
-        patternsSummary.innerHTML = "<p class='hint'>Aún no hay suficientes sorteos reales para detectar patrones.</p>";
-        return;
-      }
-      patternsSummary.innerHTML = `
-        <p>${data.mensaje || "Sin resumen disponible."}</p>
-        ${buildPatternSummaryChips(data)}
-      `;
-    }
-
-    function renderPatternHallazgos(list = []) {
-      if (!patternsHallazgos) return;
-      if (!list.length) {
-        patternsHallazgos.innerHTML = "<p class='hint'>Sin patrones destacados en la ventana reciente.</p>";
-        return;
-      }
-      const top = list.slice(0, 4);
-      patternsHallazgos.innerHTML = "";
-      top.forEach((hallazgo) => {
-        const card = document.createElement("div");
-        card.className = "pattern-card";
-        card.innerHTML = `
-          <div class="pattern-card__title">${hallazgo.titulo || "Patrón detectado"}</div>
-          <div class="pattern-card__meta">${hallazgo.resumen || ""}</div>
-          ${
-            hallazgo.evidencia?.length
-              ? `<ul>${hallazgo.evidencia
-                  .slice(0, 4)
-                  .map((ev) => {
-                    const friendly = ev.fecha ? formatFriendlyDate(ev.fecha) : "";
-                    const fallback = friendly || ev.fecha || "";
-                    const label = ev.resumen || `${fallback}${ev.horario ? ` ${ev.horario}` : ""}`.trim();
-                    return `<li>${label}</li>`;
-                  })
-                  .join("")}</ul>`
-              : ""
-          }
-        `;
-        patternsHallazgos.appendChild(card);
-      });
-    }
-
-    strategiesList?.addEventListener("click", async (event) => {
-      const viewBtn = event.target.closest("[data-strategy-view]");
-      if (viewBtn) {
-        await focusDayPanel(viewBtn.dataset.fecha || null, viewBtn.dataset.pais || null);
-        return;
-      }
-      const trackBtn = event.target.closest("[data-strategy-track]");
-      if (trackBtn) {
-        await followStrategyDay(trackBtn.dataset.fecha || null, trackBtn.dataset.pais || null);
-        return;
-      }
-      const hypoBtn = event.target.closest("[data-strategy-hypo]");
-      if (hypoBtn) {
-        navigateToView("hypo");
-        if (hypoFechaInput && hypoBtn.dataset.fecha) hypoFechaInput.value = hypoBtn.dataset.fecha;
-        if (hypoTurnoSelect && hypoBtn.dataset.turno) hypoTurnoSelect.value = hypoBtn.dataset.turno;
-        if (hypoNumeroInput && hypoBtn.dataset.numero) hypoNumeroInput.value = hypoBtn.dataset.numero;
-        if (hypoTextoInput) {
-          const notaBase = hypoBtn.dataset.descripcion || "Estrategia aritmética detectada.";
-          hypoTextoInput.value = notaBase;
-        }
-        showToast("Hipótesis preparada desde la estrategia seleccionada.", { variant: "info" });
-      }
-    });
-
-    async function renderStrategiesPanel({ force = false, skipEnsure = false } = {}) {
-      if (!strategiesList) return;
-      if (force) patternsCache = null;
-      if (!skipEnsure && !patternsCache) {
-        const prevFlag = allowStrategyAutoRender;
-        allowStrategyAutoRender = false;
-        try {
-          await refreshPatternsPanel({ force });
-        } finally {
-          allowStrategyAutoRender = prevFlag;
-        }
-      }
-      if (!patternsCache) {
-        strategiesList.innerHTML = "<p class='hint'>Calcula los patrones para ver estrategias aritméticas.</p>";
-        return;
-      }
-      const data = patternsCache.estrategiasAritmeticas ?? [];
-      if (!data.length) {
-        strategiesList.innerHTML = "<p class='hint'>Sin estrategias detectadas en los registros recientes.</p>";
-        return;
-      }
-      const filtered = data.filter((entry) => {
-        const turnoOk =
-          !entry.target?.horario || strategyFilters.turns.has(entry.target.horario);
-        const opOk = strategyFilters.operators.has(entry.operador);
-        return turnoOk && opOk;
-      });
-      if (!filtered.length) {
-        strategiesList.innerHTML =
-          "<p class='hint'>Sin estrategias que coincidan con los filtros seleccionados.</p>";
-        return;
-      }
-      strategiesList.innerHTML = "";
-      const draws = await getCachedDraws({ force });
-      const dayCache = new Map();
-      const getDayDraws = (fecha, pais) => {
-        const key = `${fecha}|${pais || ""}`;
-        if (dayCache.has(key)) return dayCache.get(key);
-        const map = {};
-        HORARIO_KEYS.forEach((turno) => {
-          map[turno] = pickDraw(draws, fecha, pais || null, turno);
-        });
-        dayCache.set(key, map);
-        return map;
-      };
-
-      filtered
-        .slice()
-        .sort(
-          (a, b) =>
-            (new Date(b.target?.fecha || "1970-01-01") - new Date(a.target?.fecha || "1970-01-01")) ||
-            (HORARIO_ORDER[b.target?.horario] ?? 0) - (HORARIO_ORDER[a.target?.horario] ?? 0)
-        )
-        .forEach((entry) => {
-          const card = document.createElement("article");
-          card.className = "strategy-card";
-          const symbol = getSymbol(entry.target.numero);
-          const leftSymbol = getSymbol(entry.left.numero);
-          const rightSymbol = getSymbol(entry.right.numero);
-          const historyLine =
-            entry.historyCount > 0
-              ? `<div class="strategy-meta">Aplicada anteriormente: ${entry.historyCount} vez(es)</div>`
-              : "";
-          const dayDraws =
-            entry.target?.fecha ? getDayDraws(entry.target.fecha, entry.target.pais || null) : {};
-          card.innerHTML = `
-          <div class="strategy-head">
-            <span class="strategy-target">${formatNumber(entry.target.numero)} ${symbol || ""}</span>
-            <span class="strategy-badge">${entry.operador === "+" ? "Suma" : "Resta"}</span>
-          </div>
-          <div class="strategy-meta">${formatFriendlyDate(entry.target.fecha)} · ${entry.target.horario || "—"}${entry.target.pais ? ` · ${entry.target.pais}` : ""}</div>
-          <div class="strategy-operation">
-            <span>${formatNumber(entry.left.numero)} ${leftSymbol || ""}</span>
-            <span class="strategy-operator">${entry.operador}</span>
-            <span>${formatNumber(entry.right.numero)} ${rightSymbol || ""}</span>
-            <span class="strategy-operator">=</span>
-            <span>${formatNumber(entry.target.numero)}</span>
-          </div>
-          ${historyLine}
-        `;
-          const timeline = buildStrategyTimeline(entry, dayDraws);
-          card.appendChild(timeline);
-          const detail = document.createElement("ul");
-          detail.className = "strategy-detail";
-          detail.innerHTML = `
-          <li>${formatFriendlyDate(entry.left.fecha)} · ${entry.left.horario || "—"}${entry.left.pais ? ` · ${entry.left.pais}` : ""}</li>
-          <li>${formatFriendlyDate(entry.right.fecha)} · ${entry.right.horario || "—"}${entry.right.pais ? ` · ${entry.right.pais}` : ""}</li>
-        `;
-          card.appendChild(detail);
-          const actions = document.createElement("div");
-          actions.className = "strategy-actions";
-          if (entry.target?.fecha) {
-            const viewBtn = document.createElement("button");
-            viewBtn.type = "button";
-            viewBtn.className = "btn-outline";
-            viewBtn.textContent = "Ver día completo";
-            viewBtn.dataset.strategyView = "true";
-            viewBtn.dataset.fecha = entry.target.fecha;
-            viewBtn.dataset.pais = entry.target.pais || "";
-            actions.appendChild(viewBtn);
-          }
-          if (entry.target?.fecha) {
-            const trackBtn = document.createElement("button");
-            trackBtn.type = "button";
-            trackBtn.className = "btn-ghost";
-            trackBtn.textContent = "Seguir día";
-            trackBtn.dataset.strategyTrack = "true";
-            trackBtn.dataset.fecha = entry.target.fecha;
-            trackBtn.dataset.pais = entry.target.pais || "";
-            actions.appendChild(trackBtn);
-          }
-          if (entry.target?.numero !== null) {
-          const hypoBtn = document.createElement("button");
-          hypoBtn.type = "button";
-          hypoBtn.className = "btn-secondary";
-          hypoBtn.textContent = "Guardar hipótesis";
-          hypoBtn.dataset.strategyHypo = "true";
-            hypoBtn.dataset.numero = formatNumber(entry.target.numero);
-            hypoBtn.dataset.fecha = entry.target.fecha || "";
-            hypoBtn.dataset.turno = entry.target.horario || "";
-            hypoBtn.dataset.descripcion = `${formatNumber(entry.left.numero)} ${entry.operador} ${formatNumber(
-              entry.right.numero,
-            )} = ${formatNumber(entry.target.numero)}`;
-          actions.appendChild(hypoBtn);
-        }
-        if (actions.childElementCount) card.appendChild(actions);
-        strategiesList.appendChild(card);
-      });
-
-      const stats = buildStrategyStats(filtered);
-      const years = Object.keys(stats.years).sort();
-      const rangeLabel =
-        years.length > 1 ? `${years[0]} – ${years[years.length - 1]}` : years[0] || "N/D";
-      const statsCard = document.createElement("article");
-      statsCard.className = "strategy-card strategy-card--stats";
-      statsCard.innerHTML = `
-        <div class="strategy-head">
-          <span class="strategy-target">Resumen histórico</span>
-          <span class="strategy-badge">${rangeLabel}</span>
-        </div>
-        <div class="strategy-stats">
-          <p><strong>Total estrategias detectadas:</strong> ${stats.total}</p>
-          <p><strong>Por operador:</strong> ${stats.operators["+"] || 0} sumas · ${stats.operators["−"] || 0} restas</p>
-        </div>
-      `;
-      if (years.length) {
-        const yearList = document.createElement("ul");
-        yearList.className = "strategy-year-stats";
-        years.forEach((year) => {
-          const info = stats.years[year];
-          const sumUse = info.suma || 0;
-          const restUse = info.resta || 0;
-          const li = document.createElement("li");
-          li.textContent = `${year}: ${info.total} estrategias (${sumUse} sumas / ${restUse} restas)`;
-          yearList.appendChild(li);
-        });
-        statsCard.appendChild(yearList);
-      }
-      strategiesList.appendChild(statsCard);
-    }
-
-    function buildStrategyStats(entries = []) {
-      const stats = {
-        total: entries.length,
-        operators: { "+": 0, "−": 0 },
-        years: {},
-      };
-      entries.forEach((entry) => {
-        if (stats.operators[entry.operador] !== undefined) {
-          stats.operators[entry.operador] += 1;
-        }
-        const year = entry.target?.fecha ? entry.target.fecha.slice(0, 4) : "N/D";
-        if (!stats.years[year]) {
-          stats.years[year] = { total: 0, suma: 0, resta: 0 };
-        }
-        stats.years[year].total += 1;
-        if (entry.operador === "+") stats.years[year].suma += 1;
-        else stats.years[year].resta += 1;
-      });
-      return stats;
-    }
-
-    function buildStrategyTimeline(entry, dayDraws = {}) {
-      const timeline = document.createElement("div");
-      timeline.className = "strategy-timeline";
-      HORARIO_KEYS.forEach((turno) => {
-        const slot = document.createElement("div");
-        slot.className = "strategy-slot";
-        const targetMatch = entry.target?.horario === turno;
-        if (targetMatch) slot.classList.add("strategy-slot--result");
-        const isLeftSource =
-          entry.left?.horario === turno &&
-          entry.left?.fecha === entry.target?.fecha &&
-          (entry.left?.pais || "") === (entry.target?.pais || "");
-        const isRightSource =
-          entry.right?.horario === turno &&
-          entry.right?.fecha === entry.target?.fecha &&
-          (entry.right?.pais || "") === (entry.target?.pais || "");
-        if (isLeftSource || isRightSource) slot.classList.add("strategy-slot--source");
-        let draw = dayDraws[turno] || null;
-        let value = draw ? formatNumber(draw.numero) : "--";
-        let symbol = draw ? getSymbol(draw.numero) : "";
-        let external = false;
-        if (!draw) {
-          const fallback =
-            entry.left?.horario === turno ? entry.left : entry.right?.horario === turno ? entry.right : null;
-          if (fallback && fallback.numero !== null) {
-            value = formatNumber(fallback.numero);
-            symbol = getSymbol(fallback.numero);
-            external =
-              fallback.fecha !== entry.target?.fecha ||
-              (fallback.pais || "") !== (entry.target?.pais || "");
-            if (fallback === entry.left || fallback === entry.right) {
-              slot.classList.add("strategy-slot--source");
-            }
-          }
-        }
-        if (external) slot.dataset.external = "true";
-        const label = document.createElement("span");
-        label.className = "strategy-slot__label";
-        label.textContent = turno;
-        const valueEl = document.createElement("span");
-        valueEl.className = "strategy-slot__value";
-        valueEl.textContent = value;
-        const symbolEl = document.createElement("span");
-        symbolEl.className = "strategy-slot__symbol";
-        symbolEl.textContent = symbol || "";
-        slot.appendChild(label);
-        slot.appendChild(valueEl);
-        slot.appendChild(symbolEl);
-        timeline.appendChild(slot);
-      });
-      return timeline;
-    }
-
-    function renderPatternHistory(list = []) {
-      if (!patternsHistory) return;
-      if (!list.length) {
-        patternsHistory.innerHTML = "<p class='hint'>Aún no hay repeticiones históricas suficientes.</p>";
-        return;
-      }
-      const top = list.slice(0, 4);
-      const container = document.createElement("div");
-      container.className = "pattern-history-list";
-      top.forEach((item) => {
-        const years = item.years?.map((y) => `${y.year}: ${y.count}`).slice(0, 3).join(" · ") || "—";
-        const ultima = item.ultimaFecha ? formatFriendlyDate(item.ultimaFecha) : "—";
-        const block = document.createElement("div");
-        block.className = "pattern-history-item";
-        block.innerHTML = `
-          <strong>${formatNumber(item.numero)} ${item.simbolo || ""}</strong>
-          <div>${item.totalEventos} repeticiones (${Math.round((item.ratio || 0) * 100)}%)</div>
-          <div class="muted">Última vez: ${ultima}</div>
-          <div class="muted">Años: ${years}</div>
-        `;
-        container.appendChild(block);
-      });
-      patternsHistory.innerHTML = "";
-      patternsHistory.appendChild(container);
-    }
-
-    async function refreshPatternsPanel({ force = false } = {}) {
-      if (!patternsSummary) return;
-      if (patternsLoading) return;
-      if (force) patternsCache = null;
-      if (!patternsCache) {
-        patternsSummary.innerHTML = "<p class='hint'>Analizando patrones…</p>";
-        patternsHallazgos.innerHTML = "";
-        patternsHistory.innerHTML = "";
-      }
-      patternsLoading = true;
-      try {
-        if (!patternsCache) {
-          patternsCache = await detectarPatrones({ cantidad: 12 });
-        }
-        renderPatternSummaryCard(patternsCache);
-        renderPatternHallazgos(patternsCache.hallazgos || []);
-        renderPatternHistory(patternsCache.repeticionesHistoricas || []);
-        if (
-          allowStrategyAutoRender &&
-          strategiesSection &&
-          !strategiesSection.classList.contains("hidden")
-        ) {
-          await renderStrategiesPanel({ skipEnsure: true });
-        }
-      } catch (err) {
-        console.error("patterns error", err);
-        patternsSummary.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
-        patternsHallazgos.innerHTML = "";
-        patternsHistory.innerHTML = "";
-      } finally {
-        patternsLoading = false;
-      }
-    }
-
-    const WEEKLY_DEFAULT_WINDOW = 12;
-    let weeklyLoading = false;
-    let weeklyLastAnalysis = null;
-    let linesLoading = false;
-    let lastLinesAnalysis = null;
     let abonoSpinTimer = null;
-    let monthlyLoading = false;
-    let monthlyLastAnalysis = null;
-    let monthlyTrendLoading = false;
-    let monthlyTrendLastAnalysis = null;
     let gatilloCache = null;
 
     function resetAbonoOutput(message = ABONO_DEFAULT_HINT) {
@@ -6884,1211 +5865,6 @@
     function formatLinePattern(pattern = []) {
       if (!Array.isArray(pattern) || !pattern.length) return "";
       return pattern.map((band) => formatLineBand(band)).join(" → ");
-    }
-
-    function renderLinesRotation(analysis = null) {
-      if (!linesBodyEl) return;
-      if (!analysis || !analysis.weeks?.length) {
-        linesBodyEl.innerHTML = "<p class='hint'>Necesitas más semanas registradas para calcular la rotación.</p>";
-        renderLinesMissing(null);
-        return;
-      }
-      const { cycle, weeks, filtro, lineSummaries = [] } = analysis;
-      const fragment = document.createDocumentFragment();
-      const summary = document.createElement("div");
-      summary.className = "lines-highlight";
-      const coverage = cycle?.coverage ? `${Math.round((cycle.coverage || 0) * 100)}%` : null;
-      if (cycle) {
-        const pattern = formatLinePattern(cycle.pattern);
-        const next = formatLineBand(cycle.nextNumero);
-        summary.innerHTML = `Rotación detectada: <strong>${pattern}</strong> (${cycle.matchedCycles} ciclos). Próximo bloque probable: <strong>${next || "--"}</strong>${coverage ? ` · Cobertura ${coverage}` : ""}.`;
-      } else {
-        const paisLabel = filtro?.pais || "todos los países";
-        const turnoLabel = filtro?.turno || "todos los turnos";
-        summary.textContent = `Sin rotación clara en las últimas ${weeks.length} semanas (${paisLabel} · ${turnoLabel}).`;
-      }
-      fragment.appendChild(summary);
-
-      const grid = document.createElement("div");
-      grid.className = "lines-grid";
-      const recent = weeks.slice(-10).reverse();
-      recent.forEach((week) => {
-        const card = document.createElement("div");
-        card.className = "lines-card";
-        const title = document.createElement("strong");
-        title.textContent = week.key || "Semana";
-        card.appendChild(title);
-        const period = document.createElement("small");
-        period.textContent = week.start && week.end ? `${formatFriendlyDate(week.start)} • ${formatFriendlyDate(week.end)}` : "";
-        card.appendChild(period);
-        const top = document.createElement("div");
-        const topLabel = week.topLine?.label || "—";
-        const topShare = week.topLine?.share ? ` (${Math.round(week.topLine.share * 100)}%)` : "";
-        const topCount = week.topLine?.count ? ` · ${week.topLine.count}/${week.total}` : "";
-        top.textContent = `Bloque dominante: ${topLabel}${topShare}${topCount}`;
-        card.appendChild(top);
-        if (week.topLines?.length) {
-          const breakdown = document.createElement("small");
-          breakdown.textContent = week.topLines
-            .map((line) => `${line.label} (${line.count})`)
-            .join(" · ");
-          card.appendChild(breakdown);
-        }
-        grid.appendChild(card);
-      });
-      fragment.appendChild(grid);
-
-      const detailBlock = document.createElement("div");
-      detailBlock.className = "lines-overview";
-      const detailHead = document.createElement("div");
-      detailHead.className = "lines-overview__head";
-      detailHead.innerHTML = `<strong>Bloques detallados</strong><span>Visualiza qué números de cada línea ya salieron y cuáles siguen pendientes.</span>`;
-      detailBlock.appendChild(detailHead);
-      const overviewGrid = document.createElement("div");
-      overviewGrid.className = "lines-overview-grid";
-      const linesToShow = lineSummaries.filter((line) => (line?.totalEntries || 0) > 0);
-      if (linesToShow.length) {
-        linesToShow.forEach((line) => {
-          const card = document.createElement("div");
-          card.className = "lines-overview-card";
-          const header = document.createElement("div");
-          header.className = "lines-overview-card__head";
-          const title = document.createElement("div");
-          title.className = "lines-overview-card__title";
-          const coverage = Math.round(((line?.seenUnique || 0) / 10) * 100);
-          title.innerHTML = `<strong>${line?.label || "Línea"}</strong><span>${line?.seenUnique || 0}/10 (${coverage}%)</span>`;
-          const meta = document.createElement("div");
-          meta.className = "lines-overview-card__meta";
-          const last = line?.lastSeen;
-          const lastSymbol = last?.numero !== undefined ? getSymbol(last.numero) || "—" : null;
-          meta.textContent = last?.numero !== undefined
-            ? `Último: ${formatNumber(last.numero)} ${lastSymbol || ""}`.trim()
-            : "Sin actividad";
-          header.append(title, meta);
-          card.appendChild(header);
-
-          const numbersWrap = document.createElement("div");
-          numbersWrap.className = "lines-overview-numbers";
-          const missingSet = new Set(line?.missingNumbers || []);
-          for (let offset = 0; offset < 10; offset += 1) {
-            const numero = Math.min(99, (line?.band ?? 0) + offset);
-            const pill = document.createElement("span");
-            pill.className = "lines-overview-number";
-            const isMissing = missingSet.has(numero);
-            pill.dataset.state = isMissing ? "missing" : "played";
-            const symbol = getSymbol(numero) || "—";
-            pill.innerHTML = `<strong>${formatNumber(numero)}</strong><small>${symbol}</small>`;
-            numbersWrap.appendChild(pill);
-          }
-          card.appendChild(numbersWrap);
-          overviewGrid.appendChild(card);
-        });
-        detailBlock.appendChild(overviewGrid);
-      } else {
-        const empty = document.createElement("p");
-        empty.className = "hint";
-        empty.textContent = "Todavía no hay líneas con registros suficientes en esta ventana.";
-        detailBlock.appendChild(empty);
-      }
-      fragment.appendChild(detailBlock);
-
-      linesBodyEl.innerHTML = "";
-      linesBodyEl.appendChild(fragment);
-      renderLinesMissing(analysis);
-    }
-
-    function renderLinesMissing(analysis = null) {
-      if (!linesMissingBodyEl) return;
-      if (!analysis) {
-        linesMissingBodyEl.innerHTML = "<p class='hint'>Calcula la rotación para conocer los pendientes por línea.</p>";
-        return;
-      }
-      const { lineSummaries = [], filtro, windowRange, weeks, monthlyLineStatus = [] } = analysis;
-      if (!lineSummaries.length && !monthlyLineStatus.length) {
-        linesMissingBodyEl.innerHTML = "<p class='hint'>Aún no hay registros suficientes este año para calcular faltantes.</p>";
-        return;
-      }
-      const stack = document.createElement("div");
-      stack.className = "lines-missing-stack";
-
-      const buildPill = (numero) => {
-        const pill = document.createElement("span");
-        pill.className = "lines-missing-pill";
-        const symbol = getSymbol(numero) || "—";
-        pill.innerHTML = `<strong>${formatNumber(numero)}</strong><small>${symbol}</small>`;
-        return pill;
-      };
-
-      if (lineSummaries.length) {
-        const summary = document.createElement("div");
-        summary.className = "lines-missing-summary";
-        const paisLabel = filtro?.pais || "todos los países";
-        const turnoLabel = filtro?.turno || "todos los turnos";
-        const weeksLabel = `${weeks?.length || 0} semana${weeks?.length === 1 ? "" : "s"}`;
-        const rangeLabel = windowRange?.start && windowRange?.end
-          ? `${formatFriendlyDate(windowRange.start)} → ${formatFriendlyDate(windowRange.end)}`
-          : null;
-        summary.textContent = `${weeksLabel} · ${paisLabel} · ${turnoLabel}${rangeLabel ? ` (${rangeLabel})` : ""}`;
-
-        const grid = document.createElement("div");
-        grid.className = "lines-missing-grid";
-        const activeLines = lineSummaries.filter((line) => (line?.totalEntries || 0) > 0);
-        const linesToRender = activeLines.length ? activeLines : lineSummaries;
-
-        linesToRender.forEach((line) => {
-          const card = document.createElement("div");
-          card.className = "lines-missing-card";
-          if (!line?.missingNumbers?.length) card.classList.add("lines-missing-card--complete");
-
-          const head = document.createElement("div");
-          head.className = "lines-missing-card__head";
-          const title = document.createElement("div");
-          title.className = "lines-missing-card__title";
-          const pendingLabel = line?.missingNumbers?.length
-            ? `${line.missingNumbers.length} faltante${line.missingNumbers.length === 1 ? "" : "s"}`
-            : "Sin pendientes";
-          title.innerHTML = `<strong>${line?.label || "Línea"}</strong><span>${pendingLabel}</span>`;
-          const meta = document.createElement("small");
-          const seenLabel = `${line?.seenUnique || 0}/10 vistos`;
-          let lastLabel = "";
-          if (line?.lastSeen?.numero !== undefined) {
-            const symbol = getSymbol(line.lastSeen.numero) || "—";
-            const lastNumber = `${formatNumber(line.lastSeen.numero)} ${symbol}`.trim();
-            const when = line.lastSeen.fecha ? formatFriendlyDate(line.lastSeen.fecha) : "";
-            const hora = line.lastSeen.horario ? ` · ${line.lastSeen.horario}` : "";
-            const pais = line.lastSeen.pais ? ` · ${line.lastSeen.pais}` : "";
-            lastLabel = ` · Último ${lastNumber}${when ? ` (${when}${hora}${pais})` : ""}`;
-          }
-          meta.textContent = `${seenLabel}${lastLabel}`;
-          head.append(title, meta);
-          card.appendChild(head);
-
-          const chips = document.createElement("div");
-          chips.className = "lines-missing-chips";
-          if (line?.missingNumbers?.length) {
-            line.missingNumbers.forEach((numero) => {
-              chips.appendChild(buildPill(numero));
-            });
-          } else {
-            const pill = document.createElement("span");
-            pill.className = "lines-missing-pill lines-missing-pill--complete";
-            pill.textContent = "Bloque completo";
-            chips.appendChild(pill);
-          }
-          card.appendChild(chips);
-          grid.appendChild(card);
-        });
-
-        stack.append(summary, grid);
-      }
-
-      const monthlyBlock = document.createElement("div");
-      monthlyBlock.className = "lines-missing-history";
-      const monthlyHead = document.createElement("div");
-      monthlyHead.className = "lines-missing-history__head";
-      monthlyHead.innerHTML = `<strong>Monitoreo anual</strong><span>Meses del año en curso con líneas incompletas.</span>`;
-      monthlyBlock.appendChild(monthlyHead);
-
-      const monthlyData = monthlyLineStatus.filter((month) => month?.lines?.length);
-      if (monthlyData.length) {
-        const monthGrid = document.createElement("div");
-        monthGrid.className = "lines-month-grid";
-        monthlyData.forEach((month) => {
-          const monthCard = document.createElement("div");
-          monthCard.className = "lines-month-card";
-          const head = document.createElement("div");
-          head.className = "lines-month-card__head";
-          const linesLabel = `${month.lines.length} bloque${month.lines.length === 1 ? "" : "s"} incompleto${month.lines.length === 1 ? "" : "s"}`;
-          head.innerHTML = `<strong>${month.label || month.key}</strong><span>${linesLabel}</span>`;
-          const drawsTag = document.createElement("small");
-          drawsTag.textContent = `${month.totalDraws || 0} sorteos registrados`;
-          head.appendChild(drawsTag);
-          monthCard.appendChild(head);
-
-          month.lines.forEach((line) => {
-            const lineRow = document.createElement("div");
-            lineRow.className = "lines-month-line";
-            const lineTitle = document.createElement("div");
-            lineTitle.className = "lines-month-line__title";
-            const pendingLabel = `${line.missingNumbers.length} faltante${line.missingNumbers.length === 1 ? "" : "s"}`;
-            lineTitle.innerHTML = `<span>${line.label}</span><small>${pendingLabel}</small>`;
-            const chips = document.createElement("div");
-            chips.className = "lines-missing-chips";
-            line.missingNumbers.forEach((numero) => {
-              chips.appendChild(buildPill(numero));
-            });
-            lineRow.append(lineTitle, chips);
-            monthCard.appendChild(lineRow);
-          });
-
-          monthGrid.appendChild(monthCard);
-        });
-        monthlyBlock.appendChild(monthGrid);
-      } else {
-        const ok = document.createElement("div");
-        ok.className = "lines-month-card lines-month-card--complete";
-        ok.innerHTML = "<p class='hint'>Todas las líneas se han completado en cada mes del año en curso.</p>";
-        monthlyBlock.appendChild(ok);
-      }
-
-      stack.appendChild(monthlyBlock);
-
-      linesMissingBodyEl.innerHTML = "";
-      linesMissingBodyEl.appendChild(stack);
-    }
-
-    async function runAbonoGenerator({ force = false } = {}) {
-      if (!abonoOutput) return;
-      const fecha = abonoFechaInput?.value || getTodayISODate();
-      const pais = abonoPaisSelect?.value || "HN";
-      const weeksValue = parseInt(abonoWindowInput?.value, 10);
-      const windowWeeks = Number.isFinite(weeksValue) && weeksValue > 0 ? weeksValue : 16;
-      abonoOutput.innerHTML = "<p class='hint'>Armando candidatos…</p>";
-      try {
-        const draws = await getCachedDraws({ force });
-        const result = computeAbono(draws, { fecha, pais, weeks: windowWeeks });
-        renderAbono(result);
-      } catch (err) {
-        console.error("abono error", err);
-        abonoOutput.innerHTML = `<p class='hint'>No se pudo generar el abono: ${err.message}</p>`;
-      }
-    }
-
-    function computeAbono(draws = [], options = {}) {
-      const { fecha, pais = null, weeks = 16 } = options || {};
-      const targetDate = parseDrawDate(fecha) || new Date();
-      const targetDow = targetDate.getDay();
-      const cutoff = new Date(targetDate.getTime() - Math.max(1, weeks) * 7 * DAY_MS);
-      const freq = new Map();
-      let totalMatches = 0;
-      const candidates = [];
-
-      draws.forEach((raw) => {
-        if (raw?.isTest) return;
-        if (pais && raw.pais && raw.pais !== pais) return;
-        const parsedDate = parseDrawDate(raw.fecha);
-        if (!parsedDate) return;
-        if (parsedDate < cutoff) return;
-        if (parsedDate.getDay() !== targetDow) return;
-        const numero = parseInt(raw.numero, 10);
-        if (!Number.isFinite(numero)) return;
-        totalMatches += 1;
-        const key = numero;
-        const entry = freq.get(key) || { numero: key, count: 0, last: 0 };
-        entry.count += 1;
-        const ts = parsedDate.getTime();
-        if (ts > entry.last) entry.last = ts;
-        freq.set(key, entry);
-      });
-
-      const scored = Array.from(freq.values()).map((entry) => {
-        const recencyWeeks = entry.last ? (targetDate - entry.last) / DAY_MS / 7 : Infinity;
-        const recencyBoost = recencyWeeks === Infinity ? 0 : Math.max(0, 1.2 - recencyWeeks * 0.1);
-        const weight = entry.count + recencyBoost;
-        return {
-          numero: entry.numero,
-          count: entry.count,
-          last: entry.last || null,
-          weight,
-        };
-      });
-
-      scored.sort((a, b) => b.weight - a.weight || b.count - a.count || (b.last || 0) - (a.last || 0));
-      const topList = scored.slice(0, 14);
-      const weightSum = topList.reduce((sum, item) => sum + item.weight, 0);
-      let pick = null;
-      if (topList.length) {
-        let r = Math.random() * (weightSum || 1);
-        for (const item of topList) {
-          r -= item.weight;
-          if (r <= 0) {
-            pick = item;
-            break;
-          }
-        }
-        if (!pick) pick = topList[topList.length - 1];
-      }
-
-      return {
-        fechaObjetivo: formatDateISO(targetDate),
-        dow: targetDow,
-        pais,
-        weeks,
-        totalMatches,
-        candidatos: topList,
-        abono: pick,
-      };
-    }
-
-    function renderAbono(result) {
-      if (!abonoOutput) return;
-      if (!result?.candidatos?.length) {
-        resetAbonoOutput("No hay suficientes sorteos para este día/país en la ventana seleccionada.");
-        return;
-      }
-      const { candidatos, abono, fechaObjetivo, dow, weeks, totalMatches, pais } = result;
-      const fragment = document.createDocumentFragment();
-
-      const roulette = document.createElement("div");
-      roulette.className = "abono-roulette";
-      const display = document.createElement("div");
-      display.className = "abono-roulette__display";
-      display.textContent = abono ? formatAbonoNumber(abono.numero) : "--";
-      display.dataset.abonoDisplay = "true";
-      const label = document.createElement("div");
-      label.className = "abono-roulette__label";
-      label.textContent = `Ruleta entre ${candidatos.length} candidatos frecuentes`;
-      roulette.appendChild(display);
-      roulette.appendChild(label);
-      fragment.appendChild(roulette);
-
-      const meta = document.createElement("div");
-      meta.className = "abono-meta";
-      const dowLabel = DOW_FULL_LABEL[dow] || "día";
-      meta.textContent = `Día objetivo: ${dowLabel} (${fechaObjetivo}) · País ${pais || "—"} · Ventana ${weeks} semanas · ${totalMatches} sorteos analizados.`;
-      fragment.appendChild(meta);
-
-      const chips = document.createElement("div");
-      chips.className = "abono-candidates";
-      candidatos.forEach((item, idx) => {
-        const chip = document.createElement("div");
-        chip.className = "abono-chip";
-        chip.innerHTML = `<strong>${formatAbonoNumber(item.numero)}</strong> ${item.count} repeticiones`;
-        if (idx === 0) chip.dataset.top = "true";
-        chips.appendChild(chip);
-      });
-      fragment.appendChild(chips);
-
-      abonoOutput.innerHTML = "";
-      abonoOutput.appendChild(fragment);
-
-      const displayEl = abonoOutput.querySelector("[data-abono-display]");
-      if (displayEl && abono) {
-        startAbonoRoulette(displayEl, candidatos, abono);
-      }
-    }
-
-    function startAbonoRoulette(displayEl, candidates, winner) {
-      if (!displayEl) return;
-      const pool = Array.isArray(candidates) && candidates.length ? candidates : [winner];
-      if (abonoSpinTimer) clearInterval(abonoSpinTimer);
-      let iterations = 0;
-      abonoSpinTimer = setInterval(() => {
-        iterations += 1;
-        const item = pool[iterations % pool.length] || winner;
-        displayEl.textContent = item ? formatAbonoNumber(item.numero) : "--";
-      }, 90);
-      setTimeout(() => {
-        clearInterval(abonoSpinTimer);
-        abonoSpinTimer = null;
-        displayEl.textContent = winner ? formatAbonoNumber(winner.numero) : "--";
-      }, 1400);
-    }
-
-    function computeGatillo(draws = [], options = {}) {
-      const { gatillo, pais = null, window = 180 } = options || {};
-      const num = Number.parseInt(gatillo, 10);
-      if (!Number.isFinite(num) || num < 0 || num > 99) {
-        return { error: "Número gatillo inválido." };
-      }
-      const filtered = (Array.isArray(draws) ? draws : []).filter((d) => !d?.isTest && (!pais || d.pais === pais));
-      const parsed = filtered
-        .map((d) => {
-          const fechaDate = parseDrawDate(d.fecha);
-          if (!fechaDate) return null;
-          const turnoIdx = HORARIO_ORDER[d.horario] ?? 0;
-          return {
-            numero: Number.parseInt(d.numero, 10),
-            fechaDate,
-            horario: d.horario,
-            turnoIdx,
-            timestamp: fechaDate.getTime() + turnoIdx / 10,
-            raw: d,
-          };
-        })
-        .filter(Boolean)
-        .sort((a, b) => a.timestamp - b.timestamp);
-
-      const windowed = window > 0 ? parsed.slice(-window) : parsed;
-      const counts = new Map();
-      let occurrences = 0;
-
-      for (let i = 0; i < windowed.length - 1; i += 1) {
-        const current = windowed[i];
-        const next = windowed[i + 1];
-        if (!current || !next) continue;
-        if (current.numero !== num) continue;
-        occurrences += 1;
-        const entry = counts.get(next.numero) || { numero: next.numero, count: 0, last: next.fechaDate };
-        entry.count += 1;
-        if (next.fechaDate > entry.last) entry.last = next.fechaDate;
-        counts.set(next.numero, entry);
-      }
-
-      const result = Array.from(counts.values()).map((item) => ({
-        numero: item.numero,
-        count: item.count,
-        last: item.last,
-        ratio: occurrences ? item.count / occurrences : 0,
-      }));
-      result.sort((a, b) => b.ratio - a.ratio || b.count - a.count || (b.last || 0) - (a.last || 0));
-
-      return {
-        gatillo: num,
-        pais,
-        window: windowed.length,
-        occurrences,
-        siguientes: result,
-      };
-    }
-
-    async function runGatillo({ force = false } = {}) {
-      if (!gatilloOutput) return;
-      const gatilloValue = gatilloNumInput?.value?.trim();
-      const pais = gatilloPaisSelect?.value || "ALL";
-      const windowVal = parseInt(gatilloWindowInput?.value, 10);
-      const windowSize = Number.isFinite(windowVal) && windowVal > 0 ? windowVal : 180;
-      gatilloOutput.innerHTML = "<p class='hint'>Buscando secuencias posteriores…</p>";
-      try {
-        const draws = await getCachedDraws({ force });
-        const analysis = computeGatillo(draws, {
-          gatillo: gatilloValue,
-          pais: pais === "ALL" ? null : pais,
-          window: windowSize,
-        });
-        gatilloCache = analysis;
-        renderGatillo(analysis);
-      } catch (err) {
-        console.error("gatillo error", err);
-        gatilloOutput.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
-      }
-    }
-
-    function renderGatillo(analysis) {
-      if (!gatilloOutput) return;
-      if (!analysis || analysis.error) {
-        gatilloOutput.innerHTML = `<p class='hint'>${analysis?.error || "No se pudo calcular."}</p>`;
-        return;
-      }
-      const { gatillo, pais, window: win, occurrences, siguientes } = analysis;
-      if (!occurrences) {
-        gatilloOutput.innerHTML =
-          "<p class='hint'>Este número no aparece en la ventana seleccionada o no tiene números siguientes registrados.</p>";
-        return;
-      }
-      const fragment = document.createDocumentFragment();
-      const summary = document.createElement("div");
-      summary.className = "gatillo-summary";
-      const paisLabel = pais || "todos";
-      summary.innerHTML = `Gatillo <strong>${formatNumber(gatillo)}</strong> · País ${paisLabel} · Ventana ${win} sorteos · Ocurrencias ${occurrences}.`;
-      fragment.appendChild(summary);
-
-      if (siguientes?.length) {
-        const list = document.createElement("div");
-        list.className = "gatillo-list";
-        const top = siguientes.slice(0, 12);
-        top.forEach((item, idx) => {
-          const card = document.createElement("div");
-          card.className = "gatillo-card";
-          const head = document.createElement("div");
-          head.innerHTML = `<strong>${formatNumber(item.numero)}</strong> · ${
-            item.count
-          } veces (${Math.round((item.ratio || 0) * 100)}%)`;
-          card.appendChild(head);
-          const meta = document.createElement("small");
-          meta.textContent = item.last ? `Última vez: ${formatFriendlyDate(item.last)}` : "";
-          card.appendChild(meta);
-          if (idx === 0) {
-            const chip = document.createElement("small");
-            chip.textContent = "Más recurrente";
-            card.appendChild(chip);
-          }
-          list.appendChild(card);
-        });
-        fragment.appendChild(list);
-      }
-
-      gatilloOutput.innerHTML = "";
-      gatilloOutput.appendChild(fragment);
-    }
-
-    function renderWeeklySummary(analysis = null) {
-      if (!weeklySummaryEl) return;
-      if (!analysis || !analysis.stats?.totalCombos) {
-        weeklySummaryEl.innerHTML = "<p class='hint'>No hay suficientes registros para este filtro.</p>";
-        return;
-      }
-      const { stats, filtro } = analysis;
-      const paisLabel = filtro?.pais || "todos los países";
-      const turnoLabel = filtro?.turno || "todos los turnos";
-      const windowSize = filtro?.maxSamples || WEEKLY_DEFAULT_WINDOW;
-      const minRepeats = filtro?.minRepeats || 2;
-      const summary = document.createElement("div");
-      summary.className = "panel-meta";
-      summary.innerHTML = `Se revisaron <strong>${stats.totalCombos}</strong> combinaciones (${paisLabel} · ${turnoLabel}) usando las últimas ${windowSize} semanas. <strong>${stats.combosConCiclo}</strong> mantienen ciclos repetidos (≥ ${minRepeats}).`;
-      weeklySummaryEl.innerHTML = "";
-      weeklySummaryEl.appendChild(summary);
-      if (stats.destacados?.length) {
-        const highlight = document.createElement("div");
-        highlight.className = "panel-meta muted";
-        const snippets = stats.destacados
-          .map((combo) => {
-            const dowLabel = DOW_FULL_LABEL[combo.dow] || `Día ${combo.dow}`;
-            const pattern = formatPatternWithSymbols(combo.cycle?.pattern);
-            const ratio = combo.cycle?.coverage ? `${Math.round(combo.cycle.coverage * 100)}%` : "";
-            return `${dowLabel} ${combo.horario || ""}: ${pattern} ${ratio ? `(${ratio})` : ""}`.trim();
-          })
-          .join(" · ");
-        highlight.textContent = snippets;
-        weeklySummaryEl.appendChild(highlight);
-      }
-    }
-
-    function renderWeeklyGrid(analysis = null) {
-      if (!weeklyGridEl) return;
-      const combos = analysis?.combos || [];
-      if (!combos.length) {
-        weeklyGridEl.innerHTML = "<p class='hint'>Necesitas más semanas registradas para este filtro.</p>";
-        return;
-      }
-      const fragment = document.createDocumentFragment();
-      combos.forEach((combo) => {
-        const card = document.createElement("article");
-        card.className = "weekly-card";
-        if (combo.cycle) card.classList.add("weekly-card--active");
-
-        const head = document.createElement("div");
-        head.className = "weekly-card__head";
-        const titleWrap = document.createElement("div");
-        const title = document.createElement("div");
-        title.className = "weekly-card__title";
-        title.textContent = DOW_FULL_LABEL[combo.dow] || `Día ${combo.dow}`;
-        const turn = document.createElement("div");
-        turn.className = "weekly-card__turn";
-        turn.textContent = combo.horario || "—";
-        titleWrap.appendChild(title);
-        titleWrap.appendChild(turn);
-        head.appendChild(titleWrap);
-        if (combo.cycle) {
-          const badge = document.createElement("span");
-          badge.className = "weekly-card__badge";
-          badge.textContent = `${combo.cycle.matchedCycles} ciclos`;
-          head.appendChild(badge);
-        }
-        card.appendChild(head);
-
-        const sequence = document.createElement("div");
-        sequence.className = "weekly-card__sequence";
-        if (combo.cycle) {
-          const patternLine = formatPatternWithSymbols(combo.cycle.pattern);
-          sequence.innerHTML = `Secuencia detectada:<div class="weekly-sequence">${patternLine}</div><small>Cubre ${Math.round((combo.cycle.coverage || 0) * 100)}% del historial.</small>`;
-        } else {
-          const recent = combo.serie.slice(-4).map((n) => formatNumber(n)).join(" → ") || "—";
-          sequence.innerHTML = `Últimos turnos:<div class="weekly-sequence">${recent}</div><small>Aún no se confirma un ciclo.</small>`;
-        }
-        card.appendChild(sequence);
-
-        const prediction = document.createElement("div");
-        prediction.className = "weekly-card__prediction";
-        const nextInfo = document.createElement("div");
-        const nextDateLabel = combo.nextDate ? formatFriendlyDate(combo.nextDate) : "Próximo turno";
-        nextInfo.innerHTML = `Próximo ${combo.horario || "turno"}<br><small>${nextDateLabel}</small>`;
-        const nextNumber = document.createElement("strong");
-        const nextValue = combo.cycle?.nextNumero;
-        nextNumber.textContent = Number.isFinite(nextValue) ? formatNumber(nextValue) : "--";
-        prediction.appendChild(nextInfo);
-        prediction.appendChild(nextNumber);
-        card.appendChild(prediction);
-
-        const historyList = document.createElement("ul");
-        historyList.className = "weekly-card__history";
-        const samples = combo.muestra.slice().reverse().slice(0, 4);
-        if (!samples.length) {
-          const empty = document.createElement("li");
-          empty.textContent = "Sin historial";
-          historyList.appendChild(empty);
-        } else {
-          samples.forEach((sample) => {
-            const li = document.createElement("li");
-            const friendly = sample.fecha ? formatFriendlyDate(sample.fecha) : sample.fecha;
-            const symbol = getSymbol(sample.numero);
-            const paisTag = sample.pais ? ` · ${sample.pais}` : "";
-            li.textContent = `${friendly}${paisTag} → ${formatNumber(sample.numero)}${symbol ? ` ${symbol}` : ""}`;
-            historyList.appendChild(li);
-          });
-        }
-        card.appendChild(historyList);
-
-        const actions = document.createElement("div");
-        actions.className = "weekly-card__actions";
-        const focusBtn = document.createElement("button");
-        focusBtn.type = "button";
-        focusBtn.textContent = "Ver último";
-        if (combo.lastFecha) {
-          focusBtn.dataset.weeklyFocus = combo.lastFecha;
-          if (combo.lastPais) focusBtn.dataset.pais = combo.lastPais;
-        } else {
-          focusBtn.disabled = true;
-        }
-        actions.appendChild(focusBtn);
-        const copyBtn = document.createElement("button");
-        copyBtn.type = "button";
-        copyBtn.textContent = "Copiar secuencia";
-        if (combo.cycle?.pattern?.length) {
-          copyBtn.dataset.weeklyCopy = formatPatternWithSymbols(combo.cycle.pattern);
-        } else {
-          copyBtn.disabled = true;
-        }
-        actions.appendChild(copyBtn);
-        card.appendChild(actions);
-
-        fragment.appendChild(card);
-      });
-      weeklyGridEl.innerHTML = "";
-      weeklyGridEl.appendChild(fragment);
-    }
-
-    async function refreshWeeklyPanel({ force = false } = {}) {
-      if (!weeklyGridEl) return;
-      if (!force && weeklySection?.classList.contains("hidden")) return;
-      if (weeklyLoading) return;
-      weeklyLoading = true;
-      if (weeklySummaryEl) weeklySummaryEl.innerHTML = "<p class='hint'>Calculando secuencias…</p>";
-      if (weeklyGridEl) weeklyGridEl.innerHTML = "<p class='hint'>Procesando ventana semanal…</p>";
-      try {
-        const paisValue = weeklyPaisSelect?.value || "ALL";
-        const turnoValue = weeklyTurnoSelect?.value || "";
-        const windowValue = parseInt(weeklyWindowInput?.value, 10);
-        const repeatsValue = parseInt(weeklyRepeatsInput?.value, 10);
-        const draws = await getCachedDraws({ force });
-        const analysis = analizarSecuenciasSemanales(draws, {
-          pais: paisValue === "ALL" ? null : paisValue,
-          turno: turnoValue || null,
-          maxSamples: Number.isFinite(windowValue) && windowValue > 3 ? windowValue : WEEKLY_DEFAULT_WINDOW,
-          minRepeats: Number.isFinite(repeatsValue) ? Math.max(2, repeatsValue) : 2,
-        });
-        weeklyLastAnalysis = analysis;
-        renderWeeklySummary(analysis);
-        renderWeeklyGrid(analysis);
-        await refreshLinesPanel({
-          force: true,
-          draws,
-          weeksOverride: windowValue,
-          repeatsOverride: repeatsValue,
-        });
-      } catch (err) {
-        console.error("weekly panel error", err);
-        if (weeklySummaryEl) weeklySummaryEl.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
-        if (weeklyGridEl) weeklyGridEl.innerHTML = "";
-      } finally {
-        weeklyLoading = false;
-      }
-    }
-
-    async function refreshLinesPanel({ force = false, draws = null, weeksOverride = null, repeatsOverride = null } = {}) {
-      if (!linesBodyEl) return;
-      if (!force && weeklySection?.classList.contains("hidden")) return;
-      if (linesLoading) return;
-      linesLoading = true;
-      linesBodyEl.innerHTML = "<p class='hint'>Calculando rotación de líneas…</p>";
-      if (linesMissingBodyEl) {
-        linesMissingBodyEl.innerHTML = "<p class='hint'>Buscando pendientes por línea…</p>";
-      }
-      try {
-        const paisValue = weeklyPaisSelect?.value || "ALL";
-        const turnoValue = weeklyTurnoSelect?.value || "";
-        const weeksValue = Number.isFinite(weeksOverride) ? weeksOverride : parseInt(weeklyWindowInput?.value, 10);
-        const repeatsValue = Number.isFinite(repeatsOverride) ? repeatsOverride : parseInt(weeklyRepeatsInput?.value, 10);
-        const dataset = Array.isArray(draws) ? draws : await getCachedDraws({ force });
-        const analysis = analizarRotacionLineas(dataset, {
-          pais: paisValue === "ALL" ? null : paisValue,
-          turno: turnoValue || null,
-          weeks: Number.isFinite(weeksValue) && weeksValue > 0 ? weeksValue : WEEKLY_DEFAULT_WINDOW,
-          minRepeats: Number.isFinite(repeatsValue) ? Math.max(2, repeatsValue) : 2,
-        });
-        lastLinesAnalysis = analysis;
-        renderLinesRotation(analysis);
-      } catch (err) {
-        console.error("lines rotation error", err);
-        linesBodyEl.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
-        if (linesMissingBodyEl) {
-          linesMissingBodyEl.innerHTML = `<p class='hint'>Sin faltantes: ${err.message}</p>`;
-        }
-      } finally {
-        linesLoading = false;
-      }
-    }
-
-    function formatMonthLabel(year, monthIdx) {
-      if (!Number.isFinite(year) || !Number.isFinite(monthIdx)) return "Mes";
-      const monthName = MONTH_NAMES[monthIdx] || "Mes";
-      const capitalized = `${monthName.charAt(0).toUpperCase()}${monthName.slice(1)}`;
-      return `${capitalized} ${year}`;
-    }
-
-    function renderMonthlySummary(analysis = null) {
-      if (!monthlySummaryEl) return;
-      if (!analysis || !analysis.months?.length) {
-        monthlySummaryEl.innerHTML = "<p class='hint'>Aún no hay meses suficientes con ese filtro.</p>";
-        return;
-      }
-      const { stats, filtro } = analysis;
-      const dowLabel = Number.isFinite(filtro?.dow) ? DOW_FULL_LABEL[filtro.dow] || "día" : "día";
-      const turnoLabel = filtro?.turno || "todos los turnos";
-      const paisLabel = filtro?.pais || "todos los países";
-      const summary = document.createElement("div");
-      summary.className = "panel-meta";
-      summary.innerHTML = `Meses comparados: <strong>${stats.totalMonths}</strong> (${dowLabel} · ${turnoLabel} · ${paisLabel}).`;
-      monthlySummaryEl.innerHTML = "";
-      monthlySummaryEl.appendChild(summary);
-      const extras = document.createElement("div");
-      extras.className = "panel-meta muted";
-      const snippets = [];
-      if (stats.startCycle?.pattern?.length) {
-        snippets.push(
-          `Arranques repiten ${formatPatternWithSymbols(stats.startCycle.pattern)} (${Math.round(
-            (stats.startCycle.coverage || 0) * 100,
-          )}% cobertura).`,
-        );
-      }
-      if (stats.endCycle?.pattern?.length) {
-        snippets.push(
-          `Cierres repiten ${formatPatternWithSymbols(stats.endCycle.pattern)} (${Math.round(
-            (stats.endCycle.coverage || 0) * 100,
-          )}% cobertura).`,
-        );
-      }
-      extras.textContent = snippets.length ? snippets.join(" ") : "Sin patrones mensuales claros aún.";
-      monthlySummaryEl.appendChild(extras);
-    }
-
-    function formatEntryTag(entry) {
-      if (!entry) return "Sin registro";
-      const friendly = entry.fecha ? formatFriendlyDate(entry.fecha) : "Sin fecha";
-      const turn = entry.horario ? ` · ${entry.horario}` : "";
-      return `${friendly}${turn}`;
-    }
-
-    function formatEntryList(entries = []) {
-      if (!Array.isArray(entries) || !entries.length) return "";
-      return entries
-        .map((entry) => {
-          const formatted = `${formatNumber(entry.numero)}${getSymbol(entry.numero) ? ` ${getSymbol(entry.numero)}` : ""}`;
-          const friendly = entry.fecha ? formatFriendlyDate(entry.fecha) : "";
-          return friendly ? `${formatted} (${friendly})` : formatted;
-        })
-        .join(" · ");
-    }
-
-    function buildMonthlyBlock(label, entry, extraDetail = "") {
-      const container = document.createElement("div");
-      container.className = "monthly-block";
-      const lbl = document.createElement("label");
-      lbl.textContent = label;
-      container.appendChild(lbl);
-      const number = document.createElement("strong");
-      const numero = entry?.numero;
-      const formatted = Number.isFinite(numero) ? formatNumber(numero) : "--";
-      const symbol = Number.isFinite(numero) ? getSymbol(numero) : "";
-      number.innerHTML = symbol ? `${formatted} <span class="monthly-block__symbol">${symbol}</span>` : formatted;
-      container.appendChild(number);
-      const meta = document.createElement("small");
-      meta.textContent = formatEntryTag(entry);
-      container.appendChild(meta);
-      if (extraDetail) {
-        const extra = document.createElement("small");
-        extra.textContent = extraDetail;
-        container.appendChild(extra);
-      }
-      return container;
-    }
-
-    function renderMonthlyTable(analysis = null) {
-      if (!monthlyTableEl) return;
-      const months = analysis?.months || [];
-      if (!months.length) {
-        monthlyTableEl.innerHTML = "<p class='hint'>No hay meses con datos suficientes para este día.</p>";
-        return;
-      }
-      const fragment = document.createDocumentFragment();
-      months
-        .slice()
-        .reverse()
-        .forEach((month) => {
-          const row = document.createElement("article");
-          row.className = "monthly-row";
-
-          const head = document.createElement("div");
-          head.className = "monthly-row__head";
-          const meta = document.createElement("div");
-          meta.className = "monthly-row__meta";
-          const label = formatMonthLabel(month.year, month.month);
-          meta.innerHTML = `<strong>${label}</strong><span>${month.total} sorteos reales</span>`;
-          head.appendChild(meta);
-
-          if (month.first?.fecha || month.last?.fecha) {
-            const range = document.createElement("div");
-            range.className = "monthly-row__range";
-            const startLabel = month.first?.fecha ? formatFriendlyDate(month.first.fecha) : "Sin inicio";
-            const endLabel = month.last?.fecha ? formatFriendlyDate(month.last.fecha) : "Sin cierre";
-            range.innerHTML = `<span>${startLabel}</span><span>→</span><span>${endLabel}</span>`;
-            head.appendChild(range);
-          }
-          row.appendChild(head);
-
-          const grid = document.createElement("div");
-          grid.className = "monthly-row__grid";
-          grid.appendChild(buildMonthlyBlock("Arranque", month.first));
-          grid.appendChild(buildMonthlyBlock("Mitad del mes", month.mid, formatEntryList(month.midWindow)));
-          grid.appendChild(buildMonthlyBlock("Cierre", month.last));
-
-          const tailBlock = document.createElement("div");
-          tailBlock.className = "monthly-block";
-          const tailLabel = document.createElement("label");
-          tailLabel.textContent = "Últimas jugadas";
-          tailBlock.appendChild(tailLabel);
-          if (month.tail?.length) {
-            const tailList = document.createElement("ul");
-            tailList.className = "monthly-tail";
-            month.tail
-              .slice()
-              .reverse()
-              .forEach((entry) => {
-                const item = document.createElement("li");
-                const value = document.createElement("strong");
-                const formatted = `${formatNumber(entry.numero)}${getSymbol(entry.numero) ? ` ${getSymbol(entry.numero)}` : ""}`;
-                value.textContent = formatted;
-                const metaDetail = document.createElement("span");
-                const detailBits = [];
-                if (entry.fecha) detailBits.push(formatFriendlyDate(entry.fecha));
-                if (entry.horario) detailBits.push(entry.horario);
-                if (entry.pais) detailBits.push(entry.pais);
-                metaDetail.textContent = detailBits.join(" · ") || "Sin fecha";
-                item.append(value, metaDetail);
-                tailList.appendChild(item);
-              });
-            tailBlock.appendChild(tailList);
-          } else {
-            const emptyTail = document.createElement("small");
-            emptyTail.textContent = "Sin datos recientes";
-            tailBlock.appendChild(emptyTail);
-          }
-          grid.appendChild(tailBlock);
-          row.appendChild(grid);
-
-          const actions = document.createElement("div");
-          actions.className = "monthly-row__actions";
-          const viewStart = document.createElement("button");
-          viewStart.type = "button";
-          viewStart.textContent = "Ver arranque";
-          if (month.first?.fecha) {
-            viewStart.dataset.monthlyFocus = month.first.fecha;
-            if (month.first.pais) viewStart.dataset.pais = month.first.pais;
-          } else {
-            viewStart.disabled = true;
-          }
-          const viewEnd = document.createElement("button");
-          viewEnd.type = "button";
-          viewEnd.textContent = "Ver cierre";
-          if (month.last?.fecha) {
-            viewEnd.dataset.monthlyFocus = month.last.fecha;
-            if (month.last.pais) viewEnd.dataset.pais = month.last.pais;
-          } else {
-            viewEnd.disabled = true;
-          }
-          actions.appendChild(viewStart);
-          actions.appendChild(viewEnd);
-          row.appendChild(actions);
-          fragment.appendChild(row);
-        });
-      monthlyTableEl.innerHTML = "";
-      monthlyTableEl.appendChild(fragment);
-    }
-
-    async function refreshMonthlyPanel({ force = false } = {}) {
-      if (!monthlyTableEl) return;
-      if (monthlyLoading) return;
-      monthlyLoading = true;
-      if (monthlySummaryEl) monthlySummaryEl.innerHTML = "<p class='hint'>Calculando comparación mensual…</p>";
-      if (monthlyTableEl) monthlyTableEl.innerHTML = "<p class='hint'>Procesando meses…</p>";
-      try {
-        const paisValue = monthlyPaisSelect?.value || "ALL";
-        const dowValue = parseInt(monthlyDowSelect?.value, 10);
-        const turnoValue = monthlyTurnoSelect?.value || "";
-        const monthsValue = parseInt(monthlyMonthsInput?.value, 10);
-        const draws = await getCachedDraws({ force });
-        const analysis = analizarComparacionMensual(draws, {
-          pais: paisValue === "ALL" ? null : paisValue,
-          dow: Number.isFinite(dowValue) ? dowValue : null,
-          turno: turnoValue || null,
-          monthsBack: Number.isFinite(monthsValue) ? Math.min(Math.max(monthsValue, 3), 24) : 8,
-        });
-        monthlyLastAnalysis = analysis;
-        renderMonthlySummary(analysis);
-        renderMonthlyTable(analysis);
-      } catch (err) {
-        console.error("monthly panel error", err);
-        if (monthlySummaryEl) monthlySummaryEl.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
-        if (monthlyTableEl) monthlyTableEl.innerHTML = "";
-      } finally {
-        monthlyLoading = false;
-      }
-    }
-
-    function renderMonthlyTrendSummary(analysis = null) {
-      if (!monthlyTrendSummaryEl) return;
-      const total = analysis?.stats?.totalDraws || 0;
-      if (!total) {
-        monthlyTrendSummaryEl.innerHTML = "<p class='hint'>No hay suficientes sorteos reales para este mes.</p>";
-        return;
-      }
-      const monthLabel = analysis?.monthLabel || "El mes";
-      const paisLabel = analysis?.filtro?.pais || "todos los países";
-      const turnoLabel = analysis?.filtro?.turno || "todos los turnos";
-      const yearsCount = analysis?.stats?.yearsCount || 0;
-      const repeatPct = Math.round((analysis?.stats?.repeatShare || 0) * 100);
-      const consecutivePct = Math.round((analysis?.stats?.consecutiveShare || 0) * 100);
-      const summary = document.createElement("div");
-      summary.className = "panel-meta";
-      summary.innerHTML = `${monthLabel} (${paisLabel} · ${turnoLabel}): <strong>${total}</strong> sorteos reales en los últimos <strong>${yearsCount}</strong> años. ${repeatPct}% repite números ya vistos en ese mes.`;
-      const trendDelta = analysis?.stats?.trend?.delta;
-      const hasTrendShift = typeof trendDelta === "number" && Math.abs(trendDelta) >= 1;
-      const metrics = document.createElement("div");
-      metrics.className = "monthly-trend-metrics";
-      const metricData = [
-        { label: "Repeticiones", value: `${repeatPct}%` },
-        { label: "Duplicados seguidos", value: `${consecutivePct}%` },
-        { label: "Números únicos", value: analysis?.stats?.uniqueNumbers ?? "—" },
-        {
-          label: "Tendencia",
-          value: hasTrendShift ? `${trendDelta > 0 ? "+" : ""}${Math.round(trendDelta)}` : "Estable",
-        },
-      ];
-      metrics.innerHTML = metricData
-        .map(
-          (item) => `
-            <div class="monthly-metric">
-              <span>${item.label}</span>
-              <strong>${item.value}</strong>
-            </div>
-          `,
-        )
-        .join("");
-      monthlyTrendSummaryEl.innerHTML = "";
-      monthlyTrendSummaryEl.append(summary, metrics);
-    }
-
-    function renderMonthlyTrendAlerts(analysis = null) {
-      if (!monthlyTrendAlertsEl) return;
-      const alerts = analysis?.stats?.alerts || [];
-      if (!alerts.length) {
-        monthlyTrendAlertsEl.innerHTML = "<p class='hint'>Sin alertas críticas para este filtro.</p>";
-        return;
-      }
-      const fragment = document.createDocumentFragment();
-      alerts.forEach((alert) => {
-        const card = document.createElement("div");
-        card.className = "trend-alert";
-        card.dataset.type = alert.type || "generic";
-        const title = document.createElement("strong");
-        title.textContent = alert.title || "Alerta";
-        const detail = document.createElement("p");
-        detail.textContent = alert.detail || "";
-        card.append(title, detail);
-        fragment.appendChild(card);
-      });
-      monthlyTrendAlertsEl.innerHTML = "";
-      monthlyTrendAlertsEl.appendChild(fragment);
-    }
-
-    function buildTrendChart(analysis = null) {
-      if (!monthlyTrendChartEl) return;
-      const timeline = analysis?.timeline || [];
-      if (!timeline.length) {
-        monthlyTrendChartEl.innerHTML = "<p class='hint'>No hay datos suficientes para graficar.</p>";
-        return;
-      }
-      const MAX_POINTS = 160;
-      const series = timeline.slice(-MAX_POINTS);
-      const width = Math.max(320, series.length * 12);
-      const height = 220;
-      const padding = 28;
-      const chartWidth = width - padding * 2;
-      const chartHeight = height - padding * 2;
-      const svgNS = "http://www.w3.org/2000/svg";
-      const svg = document.createElementNS(svgNS, "svg");
-      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      svg.setAttribute("preserveAspectRatio", "none");
-      svg.classList.add("trend-chart__svg");
-
-      const gridValues = [0, 25, 50, 75, 99];
-      gridValues.forEach((value) => {
-        const y = padding + chartHeight - (value / 99) * chartHeight;
-        const line = document.createElementNS(svgNS, "line");
-        line.setAttribute("x1", padding);
-        line.setAttribute("x2", width - padding);
-        line.setAttribute("y1", y);
-        line.setAttribute("y2", y);
-        line.classList.add("trend-chart__grid");
-        svg.appendChild(line);
-        const label = document.createElementNS(svgNS, "text");
-        label.setAttribute("x", 6);
-        label.setAttribute("y", y + 4);
-        label.textContent = String(value).padStart(2, "0");
-        label.classList.add("trend-chart__grid-label");
-        svg.appendChild(label);
-      });
-
-      const coords = series.map((entry, idx) => {
-        const step = series.length > 1 ? idx / (series.length - 1) : 0.5;
-        const x = padding + chartWidth * step;
-        const y = padding + chartHeight - (entry.numero / 99) * chartHeight;
-        return { x, y, entry };
-      });
-
-      if (coords.length >= 2) {
-        const path = document.createElementNS(svgNS, "path");
-        path.setAttribute(
-          "d",
-          coords
-            .map((point, idx) => `${idx === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-            .join(" "),
-        );
-        path.classList.add("trend-chart__path");
-        svg.appendChild(path);
-      }
-
-      coords.forEach((point) => {
-        const circle = document.createElementNS(svgNS, "circle");
-        circle.setAttribute("cx", point.x);
-        circle.setAttribute("cy", point.y);
-        circle.setAttribute("r", point.entry.isRepeat ? 3.6 : 2.6);
-        circle.classList.add("trend-chart__point");
-        if (point.entry.isRepeat) circle.classList.add("trend-chart__point--repeat");
-        const tooltip = document.createElementNS(svgNS, "title");
-        const friendly = point.entry.fecha ? formatFriendlyDate(point.entry.fecha) : "";
-        tooltip.textContent = `${friendly} ${point.entry.horario || ""} · ${formatNumber(point.entry.numero)}${
-          point.entry.isRepeat ? " (repetido)" : ""
-        }`;
-        circle.appendChild(tooltip);
-        svg.appendChild(circle);
-      });
-
-      monthlyTrendChartEl.innerHTML = "";
-      monthlyTrendChartEl.appendChild(svg);
-      const legend = document.createElement("div");
-      legend.className = "trend-chart__legend";
-      legend.innerHTML = `
-        <span>${series.length} sorteos recientes</span>
-        <span>${Math.round((analysis?.stats?.repeatShare || 0) * 100)}% repeticiones · ${Math.round(
-        (analysis?.stats?.consecutiveShare || 0) * 100,
-      )}% consecutivas</span>
-      `;
-      monthlyTrendChartEl.appendChild(legend);
-    }
-
-    function renderMonthlyTrendHotlist(analysis = null) {
-      if (!monthlyTrendHotlistEl) return;
-      const topNumbers = analysis?.stats?.topNumbers || [];
-      if (!topNumbers.length) {
-        monthlyTrendHotlistEl.innerHTML = "<p class='hint'>Aún no hay dominantes claros para este mes.</p>";
-        return;
-      }
-      const list = document.createElement("ul");
-      list.className = "monthly-trend-hotlist__list";
-      topNumbers.forEach((item) => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-          <div class="hotlist-main">
-            <span class="hotlist-number">${formatNumber(item.numero)}</span>
-            <span class="hotlist-count">${item.count} repeticiones</span>
-          </div>
-          <div class="hotlist-meta">${item.years?.length || 0} años · Última vez ${item.lastFecha ? formatFriendlyDate(item.lastFecha) : "—"}</div>
-        `;
-        if (item.lastFecha) {
-          const focusBtn = document.createElement("button");
-          focusBtn.type = "button";
-          focusBtn.textContent = "Ver último";
-          focusBtn.dataset.trendFocus = item.lastFecha;
-          if (item.lastPais) focusBtn.dataset.pais = item.lastPais;
-          li.appendChild(focusBtn);
-        }
-        list.appendChild(li);
-      });
-      monthlyTrendHotlistEl.innerHTML = "";
-      monthlyTrendHotlistEl.appendChild(list);
-    }
-
-    function renderMonthlyTrendYears(analysis = null) {
-      if (!monthlyTrendYearsEl) return;
-      const rows = analysis?.yearBreakdown || [];
-      if (!rows.length) {
-        monthlyTrendYearsEl.innerHTML = "<p class='hint'>Registra más sorteos para comparar años.</p>";
-        return;
-      }
-      const table = document.createElement("table");
-      table.className = "monthly-trend-years__table";
-      table.innerHTML = `
-        <thead>
-          <tr>
-            <th>Año</th>
-            <th>Sorteos</th>
-            <th>% repetidos</th>
-            <th>Únicos</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      `;
-      const tbody = table.querySelector("tbody");
-      rows.forEach((row) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${row.year}</td>
-          <td>${row.total}</td>
-          <td>${Math.round((row.repeatShare || 0) * 100)}%</td>
-          <td>${row.unique}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-      monthlyTrendYearsEl.innerHTML = "";
-      monthlyTrendYearsEl.appendChild(table);
-    }
-
-    async function refreshMonthlyTrendsPanel({ force = false } = {}) {
-      if (!monthlyTrendSummaryEl) return;
-      if (monthlyTrendLoading) return;
-      monthlyTrendLoading = true;
-      if (monthlyTrendSummaryEl) monthlyTrendSummaryEl.innerHTML = "<p class='hint'>Calculando patrones del mes…</p>";
-      if (monthlyTrendAlertsEl) monthlyTrendAlertsEl.innerHTML = "<p class='hint'>Buscando alertas…</p>";
-      if (monthlyTrendChartEl) monthlyTrendChartEl.innerHTML = "<p class='hint'>Generando gráfica…</p>";
-      try {
-        const monthValue = parseInt(monthlyTrendMonthSelect?.value, 10);
-        const paisValue = monthlyTrendPaisSelect?.value || "ALL";
-        const turnoValue = monthlyTrendTurnoSelect?.value || "";
-        const yearsValue = parseInt(monthlyTrendYearsInput?.value, 10);
-        const draws = await getCachedDraws({ force });
-        const analysis = analizarPatronesMensuales(draws, {
-          month: Number.isFinite(monthValue) ? monthValue : new Date().getMonth(),
-          pais: paisValue === "ALL" ? null : paisValue,
-          turno: turnoValue || null,
-          yearsBack: Number.isFinite(yearsValue) ? Math.min(Math.max(yearsValue, 2), 10) : 5,
-        });
-        monthlyTrendLastAnalysis = analysis;
-        renderMonthlyTrendSummary(analysis);
-        renderMonthlyTrendAlerts(analysis);
-        buildTrendChart(analysis);
-        renderMonthlyTrendHotlist(analysis);
-        renderMonthlyTrendYears(analysis);
-      } catch (err) {
-        console.error("monthly trend panel error", err);
-        if (monthlyTrendSummaryEl) monthlyTrendSummaryEl.innerHTML = `<p class='hint'>No se pudo calcular: ${err.message}</p>`;
-        if (monthlyTrendAlertsEl) monthlyTrendAlertsEl.innerHTML = "";
-        if (monthlyTrendChartEl) monthlyTrendChartEl.innerHTML = "";
-        if (monthlyTrendHotlistEl) monthlyTrendHotlistEl.innerHTML = "<p class='hint'>No disponible.</p>";
-        if (monthlyTrendYearsEl) monthlyTrendYearsEl.innerHTML = "";
-      } finally {
-        monthlyTrendLoading = false;
-      }
     }
 
     function buildRankingData(draws = []) {
@@ -8293,32 +6069,20 @@
       renderRankingPanel();
     }
 
-    function autoFollowIfToday(fecha, pais) {
-      if (!fecha) return;
-      if (fecha === todayISO && (!trackingState || trackingState.fecha !== fecha || trackingState.pais !== pais)) {
-        trackingState = { fecha, pais };
-        saveTrackingState(trackingState);
-      }
-    }
-
     async function handleDrawsMutated() {
       invalidateDrawCache();
       invalidateMemoryCache();
-      invalidateLineRepeatCache();
       await Promise.allSettled([
         refreshHistoryPanel({ forceReload: true }),
-        renderTrackingPanel({ forceReload: true }),
         renderRankingPanel({ force: true }),
         refreshNotebookList(),
         renderMemoryBoard({ forceReload: true }),
         renderGapPanel({ forceReload: true }),
         refreshDecemberStrategyPanel({ force: true }),
-        renderLineRepeatPanel({ force: true }),
         refreshTriggerStatsPanel({ showSpinner: false }),
         refreshTriggerEventsPanel({ showSpinner: false }),
       ]);
-      await refreshPatternsPanel({ force: true });
-      await renderStrategiesPanel({ force: true, skipEnsure: true });
+      await renderStrategiesPanel({ force: true });
       await ejecutarAnalisis({ auto: true });
       if (Number.isFinite(memorySelectedNumero)) {
         await openMemoryDetail(memorySelectedNumero);
@@ -8328,11 +6092,8 @@
     async function bootstrapExtendedPanels() {
       await Promise.allSettled([
         refreshHistoryPanel(),
-        renderTrackingPanel(),
-        refreshPatternsPanel(),
         renderRankingPanel(),
         refreshNotebookList(),
-        renderLineRepeatPanel(),
       ]);
     }
 
@@ -11245,7 +9006,6 @@
       await refreshSlots();
       updateCountdownDisplay?.();
       await refreshHistoryPanel({ forceReload: true });
-      await renderTrackingPanel({ forceReload: true });
     }
 
     const MEMORY_RELATION_LABELS = {
@@ -12071,7 +9831,6 @@ function buildVariantEntries(profile) {
       analysis: "view-analysis",
       transform: "view-transform",
       strategies: "view-strategies",
-      weekly: "view-weekly",
       abono: "view-abono",
       gatillo: "view-gatillo",
       pega3: "view-pega3",
@@ -12101,11 +9860,6 @@ function buildVariantEntries(profile) {
         if (id === "view-maint") refreshDuplicados();
         if (id === "view-modes") refreshModesPanel();
         if (id === "view-strategies") renderStrategiesPanel();
-        if (id === "view-weekly") {
-          refreshWeeklyPanel({ force: true });
-          refreshMonthlyPanel({ force: true });
-          refreshMonthlyTrendsPanel({ force: true });
-        }
         if (id === "view-gatillo") {
           runGatillo({ force: true });
         }
