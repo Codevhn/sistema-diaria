@@ -1073,33 +1073,33 @@
             <button id="followups-refresh" class="btn-outline btn-compact">Actualizar</button>
           </div>
         </div>
-        <div class="followups-card__filter">
-          <label for="followups-filter">Ir directo al número</label>
-          <div class="followups-filter">
-            <input
-              id="followups-filter"
-              maxlength="2"
-              inputmode="numeric"
-              placeholder="00–99"
-              aria-label="Filtrar por número 00 al 99"
-            />
-            <button id="followups-filter-reset" type="button" class="btn-ghost btn-compact">Ver todos</button>
+        <div class="followups-meta">
+          <div class="followups-card__filter">
+            <label for="followups-filter">Ir directo al número</label>
+            <div class="followups-filter">
+              <input
+                id="followups-filter"
+                maxlength="2"
+                inputmode="numeric"
+                placeholder="00–99"
+                aria-label="Filtrar por número 00 al 99"
+              />
+              <button id="followups-filter-reset" type="button" class="btn-ghost btn-compact">Ver todos</button>
+            </div>
+            <p class="hint followups-filter-hint">También puedes usar el panel para saltar a un número con apuntes.</p>
           </div>
-          <p class="hint followups-filter-hint">También puedes usar el panel para saltar a un número con apuntes.</p>
-        </div>
-        <div class="followups-card__layout">
-          <aside class="followups-index-panel">
-            <div class="followups-index-panel__head">
+          <div class="followups-quick-index">
+            <div class="followups-quick-index__head">
               <h4>Accesos rápidos</h4>
               <p class="hint">Selecciona un número para saltar directo al registro.</p>
             </div>
             <div id="followups-index" class="followups-index">
               <p class="hint">Mantén guardados tus apuntes para ver accesos rápidos.</p>
             </div>
-          </aside>
-          <div id="followups-grid" class="followups-grid">
-            <p class="hint">Cargando apuntes…</p>
           </div>
+        </div>
+        <div id="followups-grid" class="followups-grid">
+          <p class="hint">Cargando apuntes…</p>
         </div>
       </article>
     </section>

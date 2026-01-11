@@ -1001,7 +1001,14 @@ button.ghost:hover {
   margin-left: auto;
 }
 
-.followups-card__filter {
+.followups-meta {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.followups-card__filter,
+.followups-quick-index {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-2);
@@ -1009,6 +1016,10 @@ button.ghost:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.followups-quick-index {
+  background: var(--color-surface);
 }
 
 .followups-card__filter label {
@@ -1030,26 +1041,7 @@ button.ghost:hover {
   font-size: 0.85rem;
 }
 
-.followups-card__layout {
-  display: grid;
-  gap: 24px;
-  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
-  align-items: start;
-}
-
-.followups-index-panel {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  position: sticky;
-  top: 20px;
-}
-
-.followups-index-panel__head h4 {
+.followups-quick-index__head h4 {
   margin: 0;
   font-size: 0.9rem;
   letter-spacing: 0.08em;
@@ -1058,14 +1050,14 @@ button.ghost:hover {
 }
 
 .followups-index {
-  padding: 12px 0 0;
+  padding-top: 12px;
   border-top: 1px solid var(--color-border);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
   gap: 10px;
 }
 
-.followups-index-panel__head p {
+.followups-quick-index__head p {
   margin: 4px 0 0;
 }
 
@@ -1160,6 +1152,7 @@ button.ghost:hover {
   gap: 6px;
   min-width: 80px;
   text-align: left;
+  flex: 1 1 160px;
 }
 
 .followup-number-value {
@@ -1184,12 +1177,15 @@ button.ghost:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
 }
 
 .followup-inputs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  width: 100%;
 }
 
 .followup-chip {
@@ -1263,17 +1259,10 @@ button.ghost:hover {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  flex: 0 0 auto;
 }
 
 @media (max-width: 900px) {
-  .followups-card__layout {
-    grid-template-columns: 1fr;
-  }
-
-  .followups-index-panel {
-    position: static;
-  }
-
   .followups-index {
     grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   }
