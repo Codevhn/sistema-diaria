@@ -1069,28 +1069,32 @@
               Anota qué números suelen seguir a cada resultado. Usa comas, espacios o saltos de línea para separar múltiples opciones.
             </p>
           </div>
-          <button id="followups-refresh" class="btn-outline btn-compact followups-head-action">Actualizar</button>
+          <div class="followups-head-actions">
+            <button id="followups-refresh" class="btn-outline btn-compact">Actualizar</button>
+          </div>
+        </div>
+        <div class="followups-card__filter">
+          <label for="followups-filter">Ir directo al número</label>
+          <div class="followups-filter">
+            <input
+              id="followups-filter"
+              maxlength="2"
+              inputmode="numeric"
+              placeholder="00–99"
+              aria-label="Filtrar por número 00 al 99"
+            />
+            <button id="followups-filter-reset" type="button" class="btn-ghost btn-compact">Ver todos</button>
+          </div>
+          <p class="hint followups-filter-hint">También puedes usar el panel para saltar a un número con apuntes.</p>
         </div>
         <div class="followups-card__layout">
-          <aside class="followups-sidebar">
-            <div class="followups-sidebar__controls">
-              <div class="followups-filter">
-                <label for="followups-filter">Ir directo al número</label>
-                <div class="followups-filter__control">
-                  <input
-                    id="followups-filter"
-                    maxlength="2"
-                    inputmode="numeric"
-                    placeholder="00–99"
-                    aria-label="Filtrar por número 00 al 99"
-                  />
-                  <button id="followups-filter-reset" type="button" class="btn-ghost btn-compact">Ver todos</button>
-                </div>
-              </div>
-              <p class="hint followups-filter-hint">También puedes usar el panel para saltar a un número con apuntes.</p>
+          <aside class="followups-index-panel">
+            <div class="followups-index-panel__head">
+              <h4>Accesos rápidos</h4>
+              <p class="hint">Selecciona un número para saltar directo al registro.</p>
             </div>
             <div id="followups-index" class="followups-index">
-              <p class="hint">Selecciona un número para saltar directo al registro.</p>
+              <p class="hint">Mantén guardados tus apuntes para ver accesos rápidos.</p>
             </div>
           </aside>
           <div id="followups-grid" class="followups-grid">
@@ -4963,6 +4967,10 @@
           item.className = "followup-item";
           item.dataset.followupRow = numero;
 
+          const head = document.createElement("div");
+          head.className = "followup-item__head";
+          item.appendChild(head);
+
           const label = document.createElement("div");
           label.className = "followup-number";
           const labelNumber = document.createElement("span");
@@ -4973,23 +4981,7 @@
           labelSymbol.textContent = getSymbol(parseInt(numero, 10)) || "—";
           label.appendChild(labelNumber);
           label.appendChild(labelSymbol);
-          item.appendChild(label);
-
-          const workspace = document.createElement("div");
-          workspace.className = "followup-workspace";
-          item.appendChild(workspace);
-
-          const inputsWrap = document.createElement("div");
-          inputsWrap.className = "followup-inputs";
-          inputsWrap.dataset.followupInputs = numero;
-          workspace.appendChild(inputsWrap);
-
-          const addBtn = document.createElement("button");
-          addBtn.type = "button";
-          addBtn.className = "followup-add";
-          addBtn.dataset.followupAdd = numero;
-          addBtn.textContent = "Agregar casilla";
-          workspace.appendChild(addBtn);
+          head.appendChild(label);
 
           const actions = document.createElement("div");
           actions.className = "followup-actions";
@@ -5006,8 +4998,24 @@
           saveBtn.dataset.followupSave = numero;
           saveBtn.textContent = "Guardar";
           actions.appendChild(saveBtn);
+          head.appendChild(actions);
 
-          item.appendChild(actions);
+          const body = document.createElement("div");
+          body.className = "followup-item__body";
+          item.appendChild(body);
+
+          const inputsWrap = document.createElement("div");
+          inputsWrap.className = "followup-inputs";
+          inputsWrap.dataset.followupInputs = numero;
+          body.appendChild(inputsWrap);
+
+          const addBtn = document.createElement("button");
+          addBtn.type = "button";
+          addBtn.className = "followup-add";
+          addBtn.dataset.followupAdd = numero;
+          addBtn.textContent = "Agregar seguimiento";
+          body.appendChild(addBtn);
+
           populateFollowupInputs(numero, values, inputsWrap);
           fragment.appendChild(item);
         }
