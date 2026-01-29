@@ -3428,6 +3428,7 @@
         const mEl = document.getElementById("modal-msg");
         const okBtn = document.getElementById("modal-ok");
         const cancelBtn = document.getElementById("modal-cancel");
+        let modalHypothesisId = null;
 
         tEl.textContent = `Hipótesis para ${turno}`;
         mEl.innerHTML = `
@@ -3459,12 +3460,27 @@
         cancelBtn.textContent = "Cancelar";
         modal.classList.remove("hidden");
 
+        await ensureHypothesisCache();
+        const match = findExistingHypothesis(getHypothesesForNumber(numero), { fecha, turno });
+        if (match) {
+          modalHypothesisId = match.id;
+          const modalText = document.getElementById("modal-text");
+          if (modalText) modalText.value = (match.razones && match.razones[0]) || "";
+          okBtn.textContent = "Actualizar";
+          showToast(`Hipótesis existente cargada para ${numeroFmt}.`, { variant: "info", timeout: 2000 });
+        }
+
         okBtn.onclick = async () => {
           const texto = document.getElementById("modal-text")?.value.trim() ?? "";
           try {
-            await crearHipotesis(numero, simbolo, texto, { fecha, turno });
+            if (modalHypothesisId) {
+              await actualizarHipotesis(modalHypothesisId, numero, simbolo, texto, { fecha, turno });
+              mostrarAviso(`Hipótesis ${numeroFmt} ${simbolo} actualizada para ${turno}.`, { variant: "success" });
+            } else {
+              await crearHipotesis(numero, simbolo, texto, { fecha, turno });
+              mostrarAviso(`Hipótesis ${numeroFmt} ${simbolo} registrada para ${turno}.`, { variant: "success" });
+            }
             invalidateHypothesisCache();
-            mostrarAviso(`Hipótesis ${numeroFmt} ${simbolo} registrada para ${turno}.`, { variant: "success" });
           } catch (err) {
             console.error("hipo error", err);
             mostrarAviso(`Error al guardar la hipótesis: ${err.message}`, { variant: "danger" });
