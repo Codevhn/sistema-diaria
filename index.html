@@ -3724,6 +3724,7 @@
           const notaBase = hypoBtn.dataset.descripcion || "Estrategia aritmética detectada.";
           hypoTextoInput.value = notaBase;
         }
+        autoFillHypothesisForm({ preserveText: true });
         showToast("Hipótesis preparada desde la estrategia seleccionada.", { variant: "info" });
       }
     });
@@ -6149,6 +6150,7 @@
           useBtn.addEventListener("click", () => {
             if (hypoNumeroInput) hypoNumeroInput.value = formatNumber(rem.numero);
             if (hypoTextoInput && rem.nota) hypoTextoInput.value = rem.nota;
+            autoFillHypothesisForm({ preserveText: true });
             showToast(`Recordatorio cargado para ${formatNumber(rem.numero)}.`, {
               variant: "info",
               timeout: 2400,
@@ -6210,6 +6212,22 @@
         handleReminderAdd();
       }
     });
+    hypoNumeroInput?.addEventListener("input", () => {
+      autoFillHypothesisForm();
+    });
+    hypoNumeroInput?.addEventListener("blur", () => {
+      const raw = (hypoNumeroInput?.value || "").trim();
+      if (/^\d{1,2}$/.test(raw)) {
+        hypoNumeroInput.value = raw.padStart(2, "0");
+      }
+      autoFillHypothesisForm();
+    });
+    hypoFechaInput?.addEventListener("change", () => {
+      autoFillHypothesisForm();
+    });
+    hypoTurnoSelect?.addEventListener("change", () => {
+      autoFillHypothesisForm();
+    });
     hypoSearchInput?.addEventListener("input", () => {
       refreshHypotesis();
     });
@@ -6218,11 +6236,92 @@
       refreshHypotesis();
     });
 
+    let lastHypoAutoKey = "";
+    let lastHypoAutoId = null;
+
     function resetHypothesisForm() {
       editingHypothesisId = null;
+      lastHypoAutoKey = "";
+      lastHypoAutoId = null;
       if (btnHipotesis) btnHipotesis.textContent = "Guardar hipótesis";
       if (hypoNumeroInput) hypoNumeroInput.value = "";
       if (hypoTextoInput) hypoTextoInput.value = "";
+    }
+
+    function setHypothesisFormMode(id) {
+      editingHypothesisId = id || null;
+      if (btnHipotesis) {
+        btnHipotesis.textContent = editingHypothesisId ? "Actualizar hipótesis" : "Guardar hipótesis";
+      }
+    }
+
+    function findExistingHypothesis(list = [], { fecha, turno }) {
+      if (!fecha || !list.length) return null;
+      const turnoValue = (turno || "").trim();
+      const exact = list.filter(
+        (h) => h?.fecha === fecha && (!turnoValue || (h.turno || "") === turnoValue)
+      );
+      if (exact.length) {
+        return exact
+          .slice()
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0) || (b.id || 0) - (a.id || 0))[0];
+      }
+      if (!turnoValue) return null;
+      const fallback = list.filter((h) => h?.fecha === fecha);
+      if (!fallback.length) return null;
+      return fallback
+        .slice()
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0) || (b.id || 0) - (a.id || 0))[0];
+    }
+
+    async function autoFillHypothesisForm({ preserveText = false } = {}) {
+      if (!hypoNumeroInput || !hypoFechaInput || !hypoTurnoSelect) return;
+      const rawNumero = (hypoNumeroInput.value || "").trim();
+      if (!/^\d{1,2}$/.test(rawNumero)) {
+        if (lastHypoAutoId && editingHypothesisId === lastHypoAutoId) {
+          setHypothesisFormMode(null);
+          lastHypoAutoKey = "";
+          lastHypoAutoId = null;
+        }
+        return;
+      }
+      const numero = parseInt(rawNumero, 10);
+      if (!Number.isFinite(numero)) return;
+      const fecha = hypoFechaInput.value || "";
+      const turno = hypoTurnoSelect.value || "";
+      if (!fecha) return;
+
+      await ensureHypothesisCache();
+      const list = getHypothesesForNumber(numero);
+      const match = findExistingHypothesis(list, { fecha, turno });
+      if (!match) {
+        if (lastHypoAutoId && editingHypothesisId === lastHypoAutoId) {
+          setHypothesisFormMode(null);
+        }
+        lastHypoAutoKey = "";
+        lastHypoAutoId = null;
+        return;
+      }
+
+      const key = `${formatNumber(match.numero)}|${match.fecha || ""}|${match.turno || ""}`;
+      if (key === lastHypoAutoKey && editingHypothesisId === match.id) return;
+
+      setHypothesisFormMode(match.id);
+      lastHypoAutoKey = key;
+      lastHypoAutoId = match.id;
+
+      const textoExistente = (match.razones && match.razones[0]) || "";
+      if (hypoTextoInput) {
+        if (!preserveText || !hypoTextoInput.value.trim()) {
+          if (hypoTextoInput.value !== textoExistente) {
+            hypoTextoInput.value = textoExistente;
+            showToast(`Hipótesis existente cargada para ${formatNumber(match.numero)}.`, {
+              variant: "info",
+              timeout: 2000,
+            });
+          }
+        }
+      }
     }
 
     function getHypothesisFilterNumero() {
