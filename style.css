@@ -243,6 +243,26 @@ body::after {
   transition: left 0.3s ease;
 }
 
+#btn-sync-remote {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  padding: 6px 14px;
+  color: var(--color-muted);
+  border-color: rgba(201, 168, 76, 0.2);
+  min-width: unset;
+  white-space: nowrap;
+}
+
+#btn-sync-remote:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+#btn-sync-remote:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 body.sidebar-collapsed .sticky-header {
   left: 60px;
 }

@@ -62,6 +62,7 @@
         <div class="countdown-target" data-countdown-target>—</div>
         <div class="countdown-timer" data-countdown-timer>--:--:--</div>
       </div>
+      <button id="btn-sync-remote" class="btn-outline" type="button" title="Actualizar datos desde Supabase">↻ Actualizar</button>
       <button id="btn-logout" class="btn-outline" type="button">Cerrar sesión</button>
     </div>
 
@@ -9870,6 +9871,26 @@ function buildVariantEntries(profile) {
     }
 
     logoutBtn?.addEventListener("click", cerrarSesion);
+
+    const syncRemoteBtn = document.getElementById("btn-sync-remote");
+    syncRemoteBtn?.addEventListener("click", async () => {
+      const btn = syncRemoteBtn;
+      const original = btn.textContent;
+      btn.textContent = "↻ Actualizando…";
+      btn.disabled = true;
+      try {
+        pendingDayQueue = await loadPendingDayQueue();
+        updatePendingIndicator();
+        await refreshSlots({ forceReload: true });
+        await handleDrawsMutated();
+        showToast("Datos actualizados desde Supabase.", { variant: "success" });
+      } catch (err) {
+        showToast("No se pudo actualizar: " + err.message, { variant: "danger" });
+      } finally {
+        btn.textContent = original;
+        btn.disabled = false;
+      }
+    });
 
     const closeSidebarMobile = () => {
       if (!sidebar) return;
