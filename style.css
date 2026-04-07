@@ -262,6 +262,8 @@ body::after {
   align-items: center;
   gap: 6px;
   margin-left: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .header-btn {
