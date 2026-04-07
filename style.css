@@ -103,6 +103,7 @@ body::after {
   bottom: 0;
   left: 0;
   z-index: 2;
+  overflow: visible;
   transition: transform 0.3s ease, box-shadow 0.2s ease;
 }
 
@@ -218,18 +219,22 @@ body::after {
 
 @media (min-width: 769px) {
   body.sidebar-collapsed .sidebar {
-    transform: translateX(-300px);
+    transform: translateX(-280px); /* sidebar.width=280 → botón queda en x=0 */
   }
   body.sidebar-collapsed .content {
-    margin-left: 60px;
+    margin-left: 0;
   }
 }
 
-/* El botón menú es un elemento FIJO independiente, siempre top-left */
+/* El botón menú vive dentro del sidebar y sobresale por su borde derecho.
+   Al colapsar el sidebar (translateX) el botón viaja con él y queda visible
+   en el extremo izquierdo de la pantalla. */
 .menu-btn {
-  position: fixed;
-  top: 8px;
-  left: 8px;
+  position: absolute;
+  top: 60px;        /* debajo del sticky-header (56px) */
+  right: -44px;     /* botón 44px: left-edge = sidebar.right */
+  width: 44px;
+  height: 44px;
   z-index: 3200;
 }
 
@@ -241,7 +246,7 @@ body::after {
   right: 0;
   height: 56px;
   z-index: 100;
-  padding: 0 12px 0 64px; /* 64px a la izquierda = espacio para el botón menú */
+  padding: 0 12px;
   display: flex;
   align-items: center;
   background: rgba(22, 22, 24, 0.96);
@@ -262,6 +267,8 @@ body::after {
   align-items: center;
   gap: 6px;
   margin-left: auto;
+  position: relative;
+  z-index: 2; /* encima del countdown (position:absolute, z-index:auto) */
 }
 
 .header-btn {
@@ -4326,7 +4333,7 @@ button.ghost:hover {
   .sidebar {
     position: fixed;
     top: 0;
-    left: -260px;
+    left: -220px;
     width: 220px;
     height: 100%;
     background: #161618;

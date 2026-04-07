@@ -30,6 +30,7 @@
 
 <body class="layout">
   <aside class="sidebar expanded" id="sidebar">
+    <button id="btn-toggle-sidebar" class="menu-btn" aria-label="Mostrar/ocultar menú">☰</button>
     <div class="brand">LD v3.2</div>
     <button data-view="login"><i>🔐 Acceso</i></button>
     <button data-view="day"><span class="sidebar-icon fa-solid fa-gauge"></span><i>Panel del día</i></button>
@@ -54,7 +55,6 @@
   </aside>
 
   <main class="content">
-    <button id="btn-toggle-sidebar" class="menu-btn" aria-label="Mostrar/ocultar menú">☰</button>
     <div class="sticky-header">
       <div id="countdown-banner" class="countdown-banner">
         <div class="countdown-label" data-countdown-label>Próximo sorteo</div>
@@ -64,11 +64,9 @@
       <div class="header-actions">
         <button id="btn-sync-remote" class="btn-outline header-btn" type="button" title="Actualizar datos desde Supabase">
           <span class="header-btn__icon">↻</span>
-          <span class="header-btn__label">Actualizar</span>
         </button>
         <button id="btn-logout" class="btn-outline header-btn" type="button" title="Cerrar sesión">
           <span class="header-btn__icon">⏏</span>
-          <span class="header-btn__label">Cerrar sesión</span>
         </button>
       </div>
     </div>
