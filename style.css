@@ -232,59 +232,45 @@ body::after {
   right: 0;
   height: 56px;
   z-index: 100;
-  padding: 0 16px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  padding: 0 12px;
+  display: flex;
   align-items: center;
-  gap: 12px;
   background: rgba(22, 22, 24, 0.96);
   border-bottom: 1px solid var(--color-border);
   backdrop-filter: blur(12px);
   transition: left 0.3s ease;
 }
 
+/* Countdown centrado con absolute para ignorar el tamaño de los otros elementos */
 .countdown-banner {
-  justify-self: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  justify-self: end;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .header-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 5px 12px;
   font-size: 0.78rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   min-width: unset;
   white-space: nowrap;
 }
 
 .header-btn__icon {
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1;
-}
-
-@media (max-width: 700px) {
-  .header-btn__label {
-    display: none;
-  }
-  .header-btn {
-    padding: 6px 10px;
-  }
-  .countdown-label,
-  .countdown-target {
-    display: none;
-  }
-  .sticky-header {
-    padding: 0 10px;
-    gap: 8px;
-  }
+  flex-shrink: 0;
 }
 
 #btn-sync-remote {
@@ -297,8 +283,32 @@ body::after {
   border-color: var(--color-accent);
 }
 
+/* Cuando el sidebar está colapsado el header ocupa toda la pantalla */
 body.sidebar-collapsed .sticky-header {
-  left: 60px;
+  left: 0;
+}
+
+/* En móvil/tablet pequeño el header siempre arranca desde el borde */
+@media (max-width: 768px) {
+  .sticky-header {
+    left: 0 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-btn__label {
+    display: none;
+  }
+  .header-btn {
+    padding: 5px 9px;
+  }
+  .countdown-label,
+  .countdown-target {
+    display: none;
+  }
+  .sticky-header {
+    padding: 0 8px;
+  }
 }
 
 .countdown-banner {
