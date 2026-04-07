@@ -256,8 +256,22 @@ async function findExistingDraw(rec) {
       (q) => q.eq("pais", rec.pais),
       (q) => q.eq("horario", rec.horario),
       (q) => q.eq("numero", rec.numero),
+      (q) => q.eq("is_pending", false),
     ],
     "findDraw",
+  );
+}
+
+async function findPendingDrawBySlot(fecha, pais, horario) {
+  return selectSingle(
+    "draws",
+    [
+      (q) => q.eq("fecha", fecha),
+      (q) => q.eq("pais", pais),
+      (q) => q.eq("horario", horario),
+      (q) => q.eq("is_pending", true),
+    ],
+    "findPendingSlot",
   );
 }
 
@@ -316,9 +330,64 @@ export const DB = {
 
   async listDraws({ excludeTest = true } = {}) {
     const rows = await selectAll("draws", {
+      filters: [(q) => q.eq("is_pending", false)],
       order: [{ column: "created_at", ascending: true }],
     });
     return excludeTest ? rows.filter((row) => !row.isTest) : rows;
+  },
+
+  async listPendingDraws() {
+    return selectAll("draws", {
+      filters: [(q) => q.eq("is_pending", true)],
+      order: [{ column: "created_at", ascending: true }],
+    });
+  },
+
+  async savePendingDraw({ fecha, pais, horario, numero, isTest = false }) {
+    fecha = (fecha || "").trim();
+    pais = (pais || "").trim().toUpperCase();
+    horario = (horario || "").trim();
+    numero = parseInt(numero, 10);
+    if (!fecha || !pais || !horario || Number.isNaN(numero)) {
+      throw new Error("savePendingDraw: datos incompletos");
+    }
+    const existing = await findPendingDrawBySlot(fecha, pais, horario);
+    if (existing) {
+      await updateByPrimary("draws", existing.id, { numero, isTest }, "updatePendingSlot");
+      return existing.id;
+    }
+    const rec = { fecha, pais, horario, numero, isTest, isPending: true, createdAt: Date.now() };
+    const inserted = await insertRecord("draws", rec, "insertPendingDraw");
+    return inserted?.id ?? null;
+  },
+
+  async updatePendingDrawEntry(id, changes = {}) {
+    const allowed = {};
+    if (typeof changes.numero !== "undefined") allowed.numero = parseInt(changes.numero, 10);
+    if (typeof changes.isTest !== "undefined") allowed.isTest = !!changes.isTest;
+    if (!Object.keys(allowed).length) return false;
+    await updateByPrimary("draws", id, allowed, "updatePendingDrawEntry");
+    return true;
+  },
+
+  async confirmAllPendingDraws() {
+    const pending = await this.listPendingDraws();
+    if (!pending.length) return { confirmed: [], count: 0 };
+    const confirmed = [];
+    for (const draw of pending) {
+      try {
+        await updateByPrimary("draws", draw.id, { isPending: false }, "confirmPendingDraw");
+        try {
+          await processTriggerEngineNewDraw({ ...draw, isPending: false });
+        } catch (triggerErr) {
+          console.error("Trigger engine error during confirm:", triggerErr);
+        }
+        confirmed.push(draw);
+      } catch (err) {
+        reportSupabaseException(`confirmPendingDraw:${draw.id}`, err);
+      }
+    }
+    return { confirmed, count: confirmed.length };
   },
 
   async deleteDraw(id) {
