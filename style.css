@@ -296,10 +296,17 @@ body.sidebar-collapsed .sticky-header {
   left: 0;
 }
 
-@media (max-width: 600px) {
+/* En pantallas medianas/tablet solo iconos — evita que el countdown tape los botones */
+@media (max-width: 900px) {
   .header-btn__label {
     display: none;
   }
+  .header-btn {
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 600px) {
   .header-btn {
     padding: 5px 9px;
   }
