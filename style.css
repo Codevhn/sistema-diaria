@@ -102,7 +102,7 @@ body::after {
   top: 0;
   bottom: 0;
   left: 0;
-  z-index: 2;
+  z-index: 200;
   transition: transform 0.3s ease, box-shadow 0.2s ease;
 }
 
@@ -203,7 +203,7 @@ body::after {
 }
 
 .content {
-  margin-left: 280px;
+  margin-left: 0;
   flex: 1;
   padding: 88px 56px 56px;
   overflow-y: auto;
@@ -213,22 +213,20 @@ body::after {
   position: relative;
   z-index: 1;
   background: transparent;
-  transition: margin-left 0.3s ease;
+  /* sin transition de margin: el sidebar es overlay y el content no se mueve */
 }
 
 @media (min-width: 769px) {
   body.sidebar-collapsed .sidebar {
     transform: translateX(-300px);
   }
-  body.sidebar-collapsed .content {
-    margin-left: 60px;
-  }
+  /* el content NO cambia: sidebar es un overlay que aparece/desaparece encima */
 }
 
 /* El botón menú es un elemento FIJO independiente, siempre top-left */
 .menu-btn {
   position: fixed;
-  top: 8px;
+  top: 4px;   /* centro: 4 + 48/2 = 28px = header 56px / 2 */
   left: 8px;
   z-index: 3200;
 }
