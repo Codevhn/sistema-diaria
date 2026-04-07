@@ -55,15 +55,22 @@
 
   <main class="content">
     <div class="sticky-header">
-
       <button id="btn-toggle-sidebar" class="menu-btn">☰</button>
       <div id="countdown-banner" class="countdown-banner">
-        <div class="countdown-label" data-countdown-label>Tiempo para el próximo sorteo</div>
+        <div class="countdown-label" data-countdown-label>Próximo sorteo</div>
         <div class="countdown-target" data-countdown-target>—</div>
         <div class="countdown-timer" data-countdown-timer>--:--:--</div>
       </div>
-      <button id="btn-sync-remote" class="btn-outline" type="button" title="Actualizar datos desde Supabase">↻ Actualizar</button>
-      <button id="btn-logout" class="btn-outline" type="button">Cerrar sesión</button>
+      <div class="header-actions">
+        <button id="btn-sync-remote" class="btn-outline header-btn" type="button" title="Actualizar datos desde Supabase">
+          <span class="header-btn__icon">↻</span>
+          <span class="header-btn__label">Actualizar</span>
+        </button>
+        <button id="btn-logout" class="btn-outline header-btn" type="button" title="Cerrar sesión">
+          <span class="header-btn__icon">⏻</span>
+          <span class="header-btn__label">Salir</span>
+        </button>
+      </div>
     </div>
 
     <!-- PANEL DEL DÍA -->
