@@ -225,23 +225,31 @@ body::after {
   }
 }
 
+/* El botón menú es un elemento FIJO independiente, siempre top-left */
+.menu-btn {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 3200;
+}
+
+/* Header siempre ocupa el ancho completo del viewport */
 .sticky-header {
   position: fixed;
   top: 0;
-  left: 280px;
+  left: 0;
   right: 0;
   height: 56px;
   z-index: 100;
-  padding: 0 12px;
+  padding: 0 12px 0 64px; /* 64px a la izquierda = espacio para el botón menú */
   display: flex;
   align-items: center;
   background: rgba(22, 22, 24, 0.96);
   border-bottom: 1px solid var(--color-border);
   backdrop-filter: blur(12px);
-  transition: left 0.3s ease;
 }
 
-/* Countdown centrado con absolute para ignorar el tamaño de los otros elementos */
+/* Countdown centrado respecto al viewport completo */
 .countdown-banner {
   position: absolute;
   left: 50%;
@@ -268,7 +276,7 @@ body::after {
 }
 
 .header-btn__icon {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -283,19 +291,12 @@ body::after {
   border-color: var(--color-accent);
 }
 
-/* Cuando el sidebar está colapsado el header ocupa toda la pantalla */
+/* sidebar-collapsed ya no afecta el header — es siempre full-width */
 body.sidebar-collapsed .sticky-header {
   left: 0;
 }
 
-/* En móvil/tablet pequeño el header siempre arranca desde el borde */
-@media (max-width: 768px) {
-  .sticky-header {
-    left: 0 !important;
-  }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   .header-btn__label {
     display: none;
   }
@@ -305,9 +306,6 @@ body.sidebar-collapsed .sticky-header {
   .countdown-label,
   .countdown-target {
     display: none;
-  }
-  .sticky-header {
-    padding: 0 8px;
   }
 }
 
