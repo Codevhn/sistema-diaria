@@ -5404,36 +5404,6 @@
       }
     }
 
-    function formatAbonoNumber(numero) {
-      if (!Number.isFinite(numero)) return "--";
-      const formatted = formatNumber(numero);
-      const symbol = getSymbol(numero);
-      return symbol ? `${formatted} ${symbol}` : formatted;
-    }
-
-    function formatPatternWithSymbols(pattern = []) {
-      if (!Array.isArray(pattern) || !pattern.length) return "";
-      return pattern
-        .map((numero) => {
-          const formatted = formatNumber(numero);
-          const symbol = getSymbol(numero);
-          return symbol ? `${formatted} ${symbol}` : formatted;
-        })
-        .join(" → ");
-    }
-
-    function formatLineBand(band) {
-      if (!Number.isFinite(band)) return "";
-      const start = Math.max(0, Math.min(90, band));
-      const end = Math.min(99, start + 9);
-      return `${String(start).padStart(2, "0")}-${String(end).padStart(2, "0")}`;
-    }
-
-    function formatLinePattern(pattern = []) {
-      if (!Array.isArray(pattern) || !pattern.length) return "";
-      return pattern.map((band) => formatLineBand(band)).join(" → ");
-    }
-
     async function handleDrawsMutated() {
       invalidateDrawCache();
       invalidateMemoryCache();
