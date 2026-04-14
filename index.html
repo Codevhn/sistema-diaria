@@ -479,8 +479,12 @@
     <!-- ESCENARIOS -->
     <section id="view-analysis" class="view hidden">
       <h2>Escenarios y recomendación</h2>
-      <div class="analysis-controls">
-        <button id="btn-analizar">Analizar</button>
+
+      <!-- Pulso: candidatos por conversión/equivalencia del último sorteo -->
+      <div id="result-pulso"></div>
+
+      <div class="analysis-controls" style="margin-top:20px">
+        <button id="btn-analizar">Sesgos por día</button>
         <label class="analysis-control">
           <span>Día de sesgo</span>
           <select id="analysis-dow">
@@ -888,6 +892,7 @@
     } from "./src/maintenance.js";
     import { mostrarTransformaciones } from "./src/transform-visual.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
+    import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
     import {
       rebuildKnowledge,
@@ -5810,6 +5815,112 @@
       }
     }
     const resultBias = document.getElementById("result-day-bias");
+    const resultPulso = document.getElementById("result-pulso");
+
+    // ── PULSO: análisis de candidatos por conversión/equivalencia ──────────────
+
+    async function renderPulso() {
+      if (!resultPulso) return;
+      resultPulso.innerHTML = "<p class='pulso-empty'>Cargando historial…</p>";
+      try {
+        const draws = await DB.listDraws({ excludeTest: true });
+        if (!draws.length) {
+          resultPulso.innerHTML = "<p class='pulso-empty'>Aún no hay sorteos registrados.</p>";
+          return;
+        }
+
+        // Ordenar para obtener el último sorteo
+        const sorted = [...draws].sort((a, b) => {
+          const d = (a.fecha || "").localeCompare(b.fecha || "");
+          if (d !== 0) return d;
+          const ord = ["11AM", "3PM", "9PM"];
+          return ord.indexOf(a.horario) - ord.indexOf(b.horario);
+        });
+        const last = sorted[sorted.length - 1];
+        const lastNum = parseInt(last.numero, 10);
+        const lastPad = String(lastNum).padStart(2, "0");
+        const lastInfo = GUIA?.[lastPad] || {};
+
+        // Turno siguiente estimado
+        const TURNOS = ["11AM", "3PM", "9PM"];
+        const nextHorarioIdx = (TURNOS.indexOf(last.horario) + 1) % 3;
+        const nextHorario = TURNOS[nextHorarioIdx];
+
+        // Estadísticas de relaciones
+        const stats = buildRelationStats(draws);
+        const groups = getCandidates(lastNum, stats, { horario: nextHorario });
+        const signal = getContextSignal(stats, { horario: nextHorario });
+
+        // ── render ────────────────────────────────────────────────────────────
+        const frag = document.createDocumentFragment();
+
+        // Tarjeta del último sorteo
+        const lastCard = document.createElement("div");
+        lastCard.className = "pulso-last";
+        const dow = new Date(`${last.fecha}T12:00:00`).getDay();
+        const DOW = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+        lastCard.innerHTML = `
+          <div class="pulso-last__num">${lastPad}</div>
+          <div class="pulso-last__meta">
+            <span class="pulso-last__simbolo">${lastInfo.simbolo || "—"}${lastInfo.familia ? ` · ${lastInfo.familia}` : ""}</span>
+            <span class="pulso-last__sub">${last.horario} · ${DOW[dow]} ${last.fecha || ""} · ${(last.pais || "").toUpperCase()}</span>
+            <span class="pulso-last__sub" style="opacity:0.6">Siguiente estimado: turno ${nextHorario}</span>
+          </div>
+        `;
+        frag.appendChild(lastCard);
+
+        // Grupos de candidatos
+        if (groups.length) {
+          const groupsWrap = document.createElement("div");
+          groupsWrap.className = "pulso-groups";
+
+          for (const group of groups) {
+            const groupEl = document.createElement("div");
+            groupEl.className = "pulso-group";
+
+            const freqClass = group.pct >= 20 ? "" : "pulso-group__freq--low";
+            groupEl.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">${group.label}</span>
+                <span class="pulso-group__freq ${freqClass}">${group.pct}% histórico</span>
+              </div>
+            `;
+
+            const chips = document.createElement("div");
+            chips.className = "pulso-chips";
+            for (const item of group.items) {
+              const chip = document.createElement("div");
+              chip.className = "pulso-chip";
+              const numPad = String(item.numero).padStart(2, "0");
+              chip.innerHTML = `
+                <span class="pulso-chip__num">${numPad}</span>
+                ${item.simbolo ? `<span class="pulso-chip__sym">${item.simbolo}</span>` : ""}
+                ${item.apariciones ? `<span class="pulso-chip__count">${item.apariciones}×</span>` : ""}
+              `;
+              chips.appendChild(chip);
+            }
+            groupEl.appendChild(chips);
+            groupsWrap.appendChild(groupEl);
+          }
+          frag.appendChild(groupsWrap);
+        }
+
+        // Señal contextual
+        if (signal) {
+          const sigEl = document.createElement("div");
+          sigEl.className = "pulso-signal";
+          sigEl.textContent = signal;
+          frag.appendChild(sigEl);
+        }
+
+        resultPulso.innerHTML = "";
+        resultPulso.appendChild(frag);
+      } catch (err) {
+        console.error("renderPulso error", err);
+        resultPulso.innerHTML = `<p class='pulso-empty'>No se pudo calcular: ${err.message}</p>`;
+      }
+    }
+
     const pega3FechaInput = document.getElementById("pega3-fecha");
     const pega3TurnoSelect = document.getElementById("pega3-turno");
     const pega3PaisSelect = document.getElementById("pega3-pais");
@@ -7733,6 +7844,7 @@ function buildVariantEntries(profile) {
         el.classList.remove("hidden");
         if (id === "view-guide") mostrarGuia();
         if (id === "view-hypo") refreshHypotesis();
+        if (id === "view-analysis") renderPulso();
         if (id === "view-maint") refreshDuplicados();
         if (id === "view-modes") refreshModesPanel();
         if (id === "view-pega3") {
