@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La Diaria — Acceso</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-card">
+      <div class="login-card__head">
+        <p class="login-tag">LD v3.2</p>
+        <h1>Acceso seguro</h1>
+        <p class="login-lead">Inicia sesión con tu cuenta Supabase para continuar.</p>
+      </div>
+      <form id="login-form" class="login-form">
+        <label>
+          Email
+          <input type="email" id="login-email" placeholder="tucorreo@example.com" required />
+        </label>
+        <label>
+          Contraseña
+          <input type="password" id="login-password" placeholder="********" required />
+        </label>
+        <div id="login-error" class="hint hidden" role="alert"></div>
+        <button type="submit" class="btn-primary">Entrar</button>
+      </form>
+      <div id="login-session" class="login-session hidden">
+        <p class="hint">Ya tienes una sesión activa. ¿Deseas continuar o cambiar de cuenta?</p>
+        <div class="login-session__actions">
+          <button type="button" id="login-continue" class="btn-primary">Ir al panel</button>
+          <button type="button" id="login-switch" class="btn-outline">Cambiar de usuario</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { login, getCurrentUser, logout } from "./src/auth.js";
+
+    const form = document.getElementById("login-form");
+    const emailInput = document.getElementById("login-email");
+    const passwordInput = document.getElementById("login-password");
+    const errorBox = document.getElementById("login-error");
+    const sessionBox = document.getElementById("login-session");
+    const sessionContinue = document.getElementById("login-continue");
+    const sessionSwitch = document.getElementById("login-switch");
+    const searchParams = new URLSearchParams(window.location.search);
+    const forceSwitchMode = searchParams.get("mode") === "switch";
+    const sessionContinueLabel = sessionContinue?.textContent?.trim() || "Ir al panel";
+    let sessionContinueBusy = false;
+    let currentViewMode = "form";
+    let sessionViewToken = 0;
+
+    function showError(message) {
+      if (!errorBox) return;
+      errorBox.textContent = message;
+      errorBox.classList.remove("hidden");
+    }
+
+    function clearError() {
+      if (!errorBox) return;
+      errorBox.textContent = "";
+      errorBox.classList.add("hidden");
+    }
+
+    emailInput?.addEventListener("input", clearError);
+    passwordInput?.addEventListener("input", clearError);
+
+    function setViewMode(mode, { bumpToken = true } = {}) {
+      if (!form || !sessionBox) return;
+      if (currentViewMode === mode && bumpToken !== true) return;
+      if (bumpToken) {
+        sessionViewToken += 1;
+      }
+      currentViewMode = mode === "prompt" ? "prompt" : "form";
+      if (currentViewMode === "prompt") {
+        form.classList.add("hidden");
+        sessionBox.classList.remove("hidden");
+      } else {
+        form.classList.remove("hidden");
+        sessionBox.classList.add("hidden");
+      }
+    }
+
+    function setSessionContinueState(isBusy) {
+      if (!sessionContinue) return;
+      sessionContinueBusy = isBusy;
+      if (isBusy) {
+        sessionContinue.setAttribute("disabled", "true");
+        sessionContinue.classList.add("loading");
+        sessionContinue.textContent = "Entrando...";
+      } else {
+        sessionContinue.removeAttribute("disabled");
+        sessionContinue.classList.remove("loading");
+        sessionContinue.textContent = sessionContinueLabel;
+      }
+    }
+
+    async function refreshSessionPrompt() {
+      const token = sessionViewToken;
+      let user = null;
+      try {
+        user = await getCurrentUser();
+      } catch (err) {
+        console.warn("No se pudo validar sesión existente", err);
+      }
+      if (sessionViewToken !== token) {
+        return !!user && !forceSwitchMode;
+      }
+      if (user && !forceSwitchMode) {
+        setViewMode("prompt", { bumpToken: false });
+        return true;
+      }
+      setViewMode("form", { bumpToken: false });
+      return false;
+    }
+
+    refreshSessionPrompt();
+
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearError();
+      const email = (emailInput?.value || "").trim();
+      const password = passwordInput?.value || "";
+      const button = form.querySelector("button[type='submit']");
+      button?.setAttribute("disabled", "true");
+      button?.classList.add("loading");
+      try {
+        await login(email, password);
+        const verifiedUser = await getCurrentUser({ attempts: 8, delayMs: 250 });
+        if (!verifiedUser) {
+          throw new Error("No se pudo establecer la sesión. Intenta nuevamente.");
+        }
+        window.location.replace("./index.html");
+      } catch (err) {
+        showError(err?.message || "No se pudo iniciar sesión.");
+      } finally {
+        button?.removeAttribute("disabled");
+        button?.classList.remove("loading");
+      }
+    });
+
+    sessionContinue?.addEventListener("click", async () => {
+      if (sessionContinueBusy) return;
+      clearError();
+      setSessionContinueState(true);
+      try {
+        const user = await getCurrentUser({ attempts: 8, delayMs: 250 });
+        if (user) {
+          window.location.replace("./index.html");
+          return;
+        }
+        setViewMode("form");
+        showError("La sesión anterior ya no es válida. Por favor, inicia sesión nuevamente.");
+      } catch (err) {
+        setViewMode("form");
+        showError("No se pudo validar la sesión. Intenta iniciar sesión de nuevo.");
+        try {
+          await logout();
+        } catch (_) {
+          // ignore logout failures en este flujo
+        }
+      } finally {
+        setSessionContinueState(false);
+      }
+    });
+
+    sessionSwitch?.addEventListener("click", async () => {
+      try {
+        await logout();
+      } catch (err) {
+        console.warn("No se pudo cerrar sesión previa", err);
+      } finally {
+        if (sessionBox && form) {
+          sessionBox.classList.add("hidden");
+          form.classList.remove("hidden");
+        }
+        window.location.replace("./login.html");
+      }
+    });
+  </script>
+</body>
+
+</html>

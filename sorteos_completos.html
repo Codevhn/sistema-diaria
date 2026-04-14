@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Exportar DB La Diaria — Todos los años</title>
+  <link rel="icon" href="data:,">
+  <script>
+    (function enforceSession() {
+      if (localStorage.getItem("auth") !== "true") {
+        window.location.href = "./login.html";
+      }
+    })();
+  </script>
+  <script type="module">
+    import { DB } from "./src/storage.js";
+
+    function downloadJson(filename, data) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    (async () => {
+      try {
+        const data = await DB.listDraws({ excludeTest: false });
+        if (!Array.isArray(data) || !data.length) {
+          alert("⚠️ No se encontraron sorteos registrados.");
+          return;
+        }
+        downloadJson("sorteos_completos.json", data);
+        alert(`✅ Exportados ${data.length} registros desde Supabase.`);
+      } catch (err) {
+        console.error(err);
+        alert("❌ Error al intentar exportar la base. Revise la consola.");
+      }
+    })();
+  </script>
+</head>
+
+<body>
+  <h1>Exportando base completa de La Diaria...</h1>
+  <p>Espere unos segundos, se descargará el archivo automáticamente.</p>
+</body>
+
+</html>
