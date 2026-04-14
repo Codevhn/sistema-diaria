@@ -38,20 +38,16 @@
     <button data-view="analysis"><span
         class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
     <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
-    <button data-view="strategies"><span class="sidebar-icon fa-solid fa-brain"></span><i>Estrategias</i></button>
     <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
     <button data-view="notebook"><span class="sidebar-icon fa-solid fa-bookmark"></span><i>Cuaderno</i></button>
     <button data-view="geometry"><span
         class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
     <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
-    <button data-view="triggers"><span class="sidebar-icon fa-solid fa-bullseye"></span><i>Disparadores</i></button>
     <button data-view="guide"><span class="sidebar-icon fa-solid fa-book"></span><i>Guía de los Sueños</i></button>
     <button data-view="config"><span class="sidebar-icon fa-solid fa-gear"></span><i>Configuración</i></button>
     <button data-view="maint"><span
         class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
     <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
-    <button data-view="abono"><span class="sidebar-icon fa-solid fa-clover"></span><i>Abono del día</i></button>
-    <button data-view="gatillo"><span class="sidebar-icon fa-solid fa-link"></span><i>Secuencia gatillo</i></button>
   </aside>
 
   <main class="content">
@@ -562,139 +558,6 @@
       </div>
     </section>
 
-    <!-- ESTRATEGIAS -->
-    <section id="view-strategies" class="view hidden">
-      <h2>Estrategias aritméticas</h2>
-      <p class="hint">
-        Detecta cuándo La Diaria reutiliza sumas o restas entre turnos para lanzar el siguiente número.
-        Observa qué horarios participan y en qué fechas se aplicó la misma lógica.
-      </p>
-      <article class="card december-card" id="december-card">
-        <div class="december-card__head">
-          <div>
-            <h3>Estrategia especial de diciembre</h3>
-            <p class="hint">
-              Seguimiento número por número del mes más volátil. Identifica cuándo reaparecen y prepárate antes de que la línea se active.
-            </p>
-          </div>
-          <div class="december-card__actions">
-            <button type="button" id="december-refresh" class="btn-outline">Actualizar</button>
-          </div>
-        </div>
-        <div class="december-controls">
-          <label>
-            Año de referencia
-            <select id="december-year"></select>
-          </label>
-          <label>
-            Buscar número
-            <div class="december-search">
-              <input id="december-search" placeholder="00-99" maxlength="2" />
-              <button type="button" id="december-search-btn" class="btn-primary">Ir</button>
-            </div>
-          </label>
-          <button type="button" id="december-clear" class="btn-ghost">Limpiar búsqueda</button>
-        </div>
-        <div id="december-summary" class="december-summary panel-meta"></div>
-        <div class="december-panels">
-          <div>
-            <div class="december-panel-head">
-              <h4>Números en vigilancia</h4>
-              <p class="hint small">Incluye cada símbolo y estatus de ventana.</p>
-            </div>
-            <div id="december-watchlist" class="december-watchlist"></div>
-            <div id="december-reminders" class="december-reminders"></div>
-          </div>
-          <div class="december-detail" id="december-detail">
-            <p class="hint">Selecciona un número para ver su línea de repeticiones y recomendaciones.</p>
-          </div>
-        </div>
-      </article>
-      <div class="strategy-toolbar">
-        <button id="strategy-refresh" class="btn-outline">Actualizar estrategias</button>
-      </div>
-      <div class="strategy-filters">
-        <div class="strategy-filter-group">
-          <span>Turno objetivo</span>
-          <div class="strategy-chip-row">
-            <button type="button" class="strategy-chip active" data-strategy-turn="11AM">11 AM</button>
-            <button type="button" class="strategy-chip active" data-strategy-turn="3PM">3 PM</button>
-            <button type="button" class="strategy-chip active" data-strategy-turn="9PM">9 PM</button>
-          </div>
-        </div>
-        <div class="strategy-filter-group">
-          <span>Operador</span>
-          <div class="strategy-chip-row">
-            <button type="button" class="strategy-chip active" data-strategy-operator="+">Suma</button>
-            <button type="button" class="strategy-chip active" data-strategy-operator="−">Resta</button>
-          </div>
-        </div>
-        <button type="button" id="strategy-reset" class="btn-ghost">Restablecer filtros</button>
-      </div>
-      <div id="strategies-list" class="strategies-grid">
-        <p class="hint">Haz clic en actualizar para recalcular las estrategias con los datos más recientes.</p>
-      </div>
-    </section>
-
-    <!-- ABONO DEL DÍA -->
-    <section id="view-abono" class="view hidden">
-      <h2>Abono del día</h2>
-      <p class="hint">Genera un abono único basado en los números que más se repiten en este día de la semana. Usa el
-        historial real y una ruleta rápida para elegir el candidato.</p>
-      <div class="abono-controls">
-        <label>
-          Fecha objetivo
-          <input id="abono-fecha" type="date" />
-        </label>
-        <label>
-          País
-          <select id="abono-pais">
-            <option value="HN">HN</option>
-            <option value="NI">NI</option>
-            <option value="SV">SV</option>
-          </select>
-        </label>
-        <label>
-          Ventana (semanas)
-          <input id="abono-window" type="number" min="6" max="40" value="16" />
-        </label>
-        <button id="abono-generar" class="btn-primary">Generar abono</button>
-      </div>
-      <div id="abono-output" class="abono-output">
-        <p class="hint">Configura los filtros y genera tu abono.</p>
-      </div>
-    </section>
-
-    <!-- SECUENCIA GATILLO -->
-    <section id="view-gatillo" class="view hidden">
-      <h2>Secuencia gatillo</h2>
-      <p class="hint">Descubre qué números suelen salir inmediatamente después de un número gatillo. Usa el historial
-        reciente ordenado por fecha y turno.</p>
-      <div class="gatillo-controls">
-        <label>
-          Número gatillo
-          <input id="gatillo-num" type="number" min="0" max="99" placeholder="00-99" />
-        </label>
-        <label>
-          País
-          <select id="gatillo-pais">
-            <option value="ALL">Todos</option>
-            <option value="HN">HN</option>
-            <option value="NI">NI</option>
-            <option value="SV">SV</option>
-          </select>
-        </label>
-        <label>
-          Ventana (últimos sorteos)
-          <input id="gatillo-window" type="number" min="30" max="400" value="180" />
-        </label>
-        <button id="gatillo-calcular" class="btn-primary">Calcular secuencia</button>
-      </div>
-      <div id="gatillo-output" class="gatillo-output">
-        <p class="hint">Ingresa un número gatillo y calcula para ver sus seguidores habituales.</p>
-      </div>
-    </section>
-
     <!-- CUADERNO -->
     <section id="view-notebook" class="view hidden">
       <h2>Cuaderno de seguimiento</h2>
@@ -818,156 +681,6 @@
       <div class="memory-tech">
         <button id="toggle-tech" class="btn-ghost">Mostrar/Ocultar modo técnico</button>
         <pre id="mem-out" class="hidden"></pre>
-      </div>
-    </section>
-
-    <!-- DISPARADORES -->
-    <section id="view-triggers" class="view hidden">
-      <h2>Disparadores y disparados</h2>
-      <p class="hint">
-        Automatiza relaciones dirigidas (A→B) para anticipar qué números suelen seguir a cada origin. Registra hits, misses y late hits para medir el desempeño real.
-      </p>
-      <div class="trigger-grid">
-        <article class="card trigger-card">
-          <div class="trigger-card__head">
-            <div>
-              <h3>Relaciones activas</h3>
-              <p class="hint">Define ventanas de seguimiento entre origin y disparado. Cada sorteo del origin abre un evento.</p>
-            </div>
-            <div class="trigger-card__actions">
-              <button id="trigger-seed-examples" type="button" class="btn-ghost btn-compact">Cargar ejemplos</button>
-              <button id="trigger-refresh-relations" type="button" class="btn-outline btn-compact">Recargar</button>
-            </div>
-          </div>
-          <form id="trigger-relation-form" class="trigger-form">
-            <div class="trigger-form__legend" id="trigger-form-legend">Nueva relación</div>
-            <div class="trigger-form__grid">
-              <label>
-                Origen (A)
-                <input id="trigger-origin" maxlength="2" inputmode="numeric" placeholder="00" required />
-              </label>
-              <label>
-                Disparado (B)
-                <input id="trigger-target" maxlength="2" inputmode="numeric" placeholder="00" required />
-              </label>
-              <label>
-                Tipo
-                <select id="trigger-type">
-                  <option value="DISPARA">Dispara</option>
-                  <option value="AVISA">Avisa</option>
-                  <option value="REFUERZA">Refuerza</option>
-                </select>
-              </label>
-              <label>
-                Ventana mínima (días)
-                <input type="number" id="trigger-window-min" min="0" value="0" />
-              </label>
-              <label>
-                Ventana máxima (días)
-                <input type="number" id="trigger-window-max" min="0" value="5" />
-              </label>
-              <label class="trigger-notes-field">
-                Notas
-                <textarea id="trigger-notes" rows="2" placeholder="Ej. Sigue cuando hay premio impar"></textarea>
-              </label>
-              <label class="trigger-active-flag">
-                <input type="checkbox" id="trigger-is-active" checked />
-                <span>Relación activa</span>
-              </label>
-            </div>
-            <div class="trigger-form__actions">
-              <button type="submit" class="btn-primary">Guardar relación</button>
-              <button type="button" id="trigger-form-reset" class="btn-ghost">Cancelar</button>
-            </div>
-          </form>
-          <div class="trigger-filter">
-            <label>
-              Origen
-              <input id="trigger-filter-origin" maxlength="2" inputmode="numeric" placeholder="00" />
-            </label>
-            <label>
-              Disparado
-              <input id="trigger-filter-target" maxlength="2" inputmode="numeric" placeholder="00" />
-            </label>
-            <label>
-              Tipo
-              <select id="trigger-filter-type">
-                <option value="">Todos</option>
-                <option value="DISPARA">Dispara</option>
-                <option value="AVISA">Avisa</option>
-                <option value="REFUERZA">Refuerza</option>
-              </select>
-            </label>
-            <label>
-              Estado
-              <select id="trigger-filter-active">
-                <option value="">Todos</option>
-                <option value="true">Solo activas</option>
-                <option value="false">Inactivas</option>
-              </select>
-            </label>
-            <button id="trigger-apply-filters" type="button" class="btn-outline btn-compact">Aplicar filtros</button>
-          </div>
-          <div id="trigger-relations-list" class="trigger-relations-list">
-            <p class="hint">Aún no registras relaciones. Usa el formulario para crear una.</p>
-          </div>
-        </article>
-
-        <article class="card trigger-card">
-          <div class="trigger-card__head">
-            <div>
-              <h3>Análisis y métricas</h3>
-              <p class="hint">Calcula tasas e intervalos para entender qué relaciones funcionan mejor.</p>
-            </div>
-            <div class="trigger-card__actions">
-              <button id="trigger-refresh-stats" type="button" class="btn-outline btn-compact">Actualizar métricas</button>
-            </div>
-          </div>
-          <div id="trigger-stats-list" class="trigger-stats-list">
-            <p class="hint">No hay métricas disponibles aún.</p>
-          </div>
-        </article>
-
-        <article class="card trigger-card">
-          <div class="trigger-card__head">
-            <div>
-              <h3>Eventos generados</h3>
-              <p class="hint">Audita cada origin→target abierto, cerrado por HIT/MISS o marcado como LATE HIT.</p>
-            </div>
-            <div class="trigger-card__actions">
-              <button id="trigger-close-expired" type="button" class="btn-outline btn-compact">Cerrar vencidos</button>
-              <button id="trigger-refresh-events" type="button" class="btn-outline btn-compact">Recargar</button>
-            </div>
-          </div>
-          <div class="trigger-filter">
-            <label>
-              Estado
-              <select id="trigger-events-status">
-                <option value="">Todos</option>
-                <option value="OPEN">Abiertos</option>
-                <option value="HIT">Hit</option>
-                <option value="LATE_HIT">Late Hit</option>
-                <option value="MISS">Miss</option>
-              </select>
-            </label>
-            <label>
-              Origen
-              <input id="trigger-events-origin" maxlength="2" inputmode="numeric" placeholder="00" />
-            </label>
-            <label>
-              Disparado
-              <input id="trigger-events-target" maxlength="2" inputmode="numeric" placeholder="00" />
-            </label>
-            <label>
-              Límite
-              <input type="number" id="trigger-events-limit" min="10" max="500" value="60" />
-            </label>
-            <button id="trigger-apply-event-filters" type="button" class="btn-outline btn-compact">Filtrar</button>
-          </div>
-          <div id="trigger-events-list" class="trigger-events-list">
-            <p class="hint">Sin eventos registrados.</p>
-          </div>
-        </article>
       </div>
     </section>
 
@@ -5474,22 +5187,8 @@
     }
 
 
-    const abonoFechaInput = document.getElementById("abono-fecha");
-    const abonoPaisSelect = document.getElementById("abono-pais");
-    const abonoWindowInput = document.getElementById("abono-window");
-    const abonoGenerarBtn = document.getElementById("abono-generar");
-    const abonoOutput = document.getElementById("abono-output");
-    const ABONO_DEFAULT_HINT = "Configura los filtros y genera tu abono.";
-    const gatilloNumInput = document.getElementById("gatillo-num");
-    const gatilloPaisSelect = document.getElementById("gatillo-pais");
-    const gatilloWindowInput = document.getElementById("gatillo-window");
-    const gatilloCalcularBtn = document.getElementById("gatillo-calcular");
-    const gatilloOutput = document.getElementById("gatillo-output");
-
     if (historyDateInput && dayFecha?.value && !historyDateInput.value) historyDateInput.value = dayFecha.value;
     if (historyLimitSelect && !historyLimitSelect.value) historyLimitSelect.value = "9";
-    if (abonoFechaInput && !abonoFechaInput.value) abonoFechaInput.value = todayISO;
-    if (gatilloWindowInput && !gatilloWindowInput.value) gatilloWindowInput.value = "180";
     updateLocalModeUI();
 
     historySearchBtn?.addEventListener("click", () => {
@@ -5535,21 +5234,6 @@
       );
     });
 
-    abonoGenerarBtn?.addEventListener("click", () => {
-      runAbonoGenerator({ force: true });
-    });
-    [abonoFechaInput, abonoPaisSelect, abonoWindowInput].forEach((input) => {
-      input?.addEventListener("change", () => {
-        resetAbonoOutput("Parámetros actualizados. Presiona \"Generar abono\" para recalcular.");
-      });
-    });
-    resetAbonoOutput();
-    gatilloCalcularBtn?.addEventListener("click", () => {
-      runGatillo({ force: true });
-    });
-    [gatilloNumInput, gatilloPaisSelect, gatilloWindowInput].forEach((input) => {
-      input?.addEventListener("change", () => runGatillo());
-    });
     function compareDrawDesc(a, b) {
       if (a.fecha && b.fecha && a.fecha !== b.fecha) {
         return b.fecha.localeCompare(a.fecha);
@@ -5726,14 +5410,6 @@
       }
     }
 
-    let abonoSpinTimer = null;
-    let gatilloCache = null;
-
-    function resetAbonoOutput(message = ABONO_DEFAULT_HINT) {
-      if (!abonoOutput) return;
-      abonoOutput.innerHTML = `<p class='hint'>${message}</p>`;
-    }
-
     function formatAbonoNumber(numero) {
       if (!Number.isFinite(numero)) return "--";
       const formatted = formatNumber(numero);
@@ -5772,11 +5448,7 @@
         refreshNotebookList(),
         renderMemoryBoard({ forceReload: true }),
         renderGapPanel({ forceReload: true }),
-        refreshDecemberStrategyPanel({ force: true }),
-        refreshTriggerStatsPanel({ showSpinner: false }),
-        refreshTriggerEventsPanel({ showSpinner: false }),
       ]);
-      await renderStrategiesPanel({ force: true });
       await ejecutarAnalisis({ auto: true });
       if (Number.isFinite(memorySelectedNumero)) {
         await openMemoryDetail(memorySelectedNumero);
@@ -5791,7 +5463,6 @@
     }
 
     await bootstrapExtendedPanels();
-    await refreshDecemberStrategyPanel();
 
     const hypoFechaInput = document.getElementById("h-fecha");
     const hypoTurnoSelect = document.getElementById("h-turno");
@@ -9579,14 +9250,10 @@ function buildVariantEntries(profile) {
       hypo: "view-hypo",
       analysis: "view-analysis",
       transform: "view-transform",
-      strategies: "view-strategies",
-      abono: "view-abono",
-      gatillo: "view-gatillo",
       pega3: "view-pega3",
       notebook: "view-notebook",
       geometry: "view-geometry",
       memory: "view-memory",
-      triggers: "view-triggers",
       guide: "view-guide",
       config: "view-config",
       maint: "view-maint",
@@ -9608,13 +9275,6 @@ function buildVariantEntries(profile) {
         if (id === "view-hypo") refreshHypotesis();
         if (id === "view-maint") refreshDuplicados();
         if (id === "view-modes") refreshModesPanel();
-        if (id === "view-strategies") renderStrategiesPanel();
-        if (id === "view-gatillo") {
-          runGatillo({ force: true });
-        }
-        if (id === "view-triggers") {
-          refreshTriggerModule({ force: true });
-        }
         if (id === "view-pega3") {
           syncPega3Context();
           refreshPega3Historial();

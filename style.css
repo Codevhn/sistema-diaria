@@ -8,7 +8,7 @@
   --color-surface-3: #28282e;
   --color-border: rgba(201, 168, 76, 0.13);
   --color-border-strong: rgba(201, 168, 76, 0.32);
-  --color-text: #e2d9c4;
+  --color-text: #f5efe0;
   --color-muted: #7a7260;
   --color-accent: #c9a84c;
   --color-accent-soft: rgba(201, 168, 76, 0.1);
@@ -28,7 +28,7 @@
   --gold: #c9a84c;
   --gold-light: #e2c97a;
   --bg2: #1a1a1e;
-  --text: #e2d9c4;
+  --text: #f5efe0;
   --border: rgba(201, 168, 76, 0.2);
 }
 
