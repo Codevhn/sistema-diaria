@@ -3604,6 +3604,13 @@ button.ghost:hover {
   justify-content: center;
   background: rgba(201, 168, 76, 0.08);
   transition: 0.25s;
+  overflow: hidden;
+}
+
+.guide-img:has(.guide-img-photo[src]) {
+  border-style: solid;
+  border-color: transparent;
+  background: transparent;
 }
 
 .guide-card:hover .guide-img {
@@ -3615,6 +3622,18 @@ button.ghost:hover {
   font-size: 12px;
   opacity: 0.4;
   color: var(--text);
+}
+
+.guide-img-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  display: block;
+}
+
+.guide-card--compact .guide-img-photo {
+  border-radius: calc(var(--radius-md) - 2px);
 }
 
 .guide-card:hover .guide-num {

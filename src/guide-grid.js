@@ -2,6 +2,8 @@
 import { GUIA, getColorPolaridad } from "./loader.js";
 import { DB } from "./storage.js";
 
+const IMG_BASE = "data/img/";
+
 function createGuideCard(num, info, { compact = false } = {}) {
   const color = getColorPolaridad(num);
   const nStr = String(num).padStart(2, "0");
@@ -13,9 +15,31 @@ function createGuideCard(num, info, { compact = false } = {}) {
     <div class="guide-num" style="color:${color}">${nStr}</div>
     <div class="guide-sym">${info.simbolo || "—"}</div>
     <div class="guide-fam">${info.familia || "—"}</div>
-    <div class="guide-img"><div class="img-placeholder">IMG</div></div>
+    <div class="guide-img">
+      <img
+        src="${IMG_BASE}${nStr}.png"
+        alt="${info.simbolo || nStr}"
+        class="guide-img-photo"
+        data-num="${nStr}"
+        data-fallback-jpg="${IMG_BASE}${nStr}.jpg"
+      />
+    </div>
   `;
+  const img = card.querySelector("img.guide-img-photo");
+  img.addEventListener("error", handleImgError, { once: true });
   return card;
+}
+
+function handleImgError(e) {
+  const img = e.currentTarget;
+  const fallback = img.dataset.fallbackJpg;
+  if (fallback && img.src !== new URL(fallback, location.href).href) {
+    img.removeEventListener("error", handleImgError);
+    img.addEventListener("error", () => { img.style.display = "none"; }, { once: true });
+    img.src = fallback;
+  } else {
+    img.style.display = "none";
+  }
 }
 
 export async function mostrarGuia() {
