@@ -430,7 +430,7 @@ button {
 input,
 select,
 textarea {
-  border-color: rgba(201, 168, 76, 0.38);
+  border-color: rgba(201, 168, 76, 0.75);
   background: var(--color-surface-2);
 }
 
