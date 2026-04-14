@@ -465,24 +465,16 @@
       <!-- 🔹 FIN NUEVO BLOQUE -->
       <button id="h-guardar">Guardar hipótesis</button>
 
-      <div class="card reminder-card">
-        <div class="card-head">Recordatorios de hipótesis</div>
-        <div class="reminder-form">
-          <input id="hr-numero" placeholder="00-99" maxlength="2" />
-          <input id="hr-nota" placeholder="Nota opcional" />
-          <button id="hr-guardar" class="btn-outline">Guardar recordatorio</button>
-        </div>
-        <div id="hr-list" class="reminder-list"></div>
-      </div>
-
       <h3>Historial</h3>
       <div class="row hypo-search-row">
         <label>
-          Buscar número
-          <input id="h-search" placeholder="00-99" maxlength="2" />
+          Número
+          <input id="h-search" placeholder="00-99" maxlength="2" inputmode="numeric" />
         </label>
-        <button type="button" id="h-search-clear" class="btn-ghost">Limpiar búsqueda</button>
+        <button type="button" id="h-search-btn" class="btn-primary">Ver hipótesis</button>
+        <button type="button" id="h-search-clear" class="btn-ghost">Limpiar</button>
       </div>
+      <div id="h-numero-display" class="hypo-numero-display"></div>
       <div id="h-list" class="cards hypo-list"></div>
     </section>
 
@@ -5806,112 +5798,11 @@
     const hypoNumeroInput = document.getElementById("h-numero");
     const hypoTextoInput = document.getElementById("h-texto");
     const hypoSearchInput = document.getElementById("h-search");
+    const hypoSearchBtn = document.getElementById("h-search-btn");
     const hypoSearchClearBtn = document.getElementById("h-search-clear");
     const btnHipotesis = document.getElementById("h-guardar");
-    const reminderNumeroInput = document.getElementById("hr-numero");
-    const reminderNotaInput = document.getElementById("hr-nota");
-    const reminderAddBtn = document.getElementById("hr-guardar");
     let editingHypothesisId = null;
 
-    async function refreshHypothesisReminders() {
-      const list = document.getElementById("hr-list");
-      if (!list) return;
-      const reminders = await DB.listHypothesisReminders();
-      if (!reminders.length) {
-        list.innerHTML = "<p class='hint'>Sin recordatorios pendientes.</p>";
-        return;
-      }
-      list.innerHTML = "";
-      reminders
-        .slice()
-        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-        .forEach((rem) => {
-          const item = document.createElement("div");
-          item.className = "reminder-item";
-
-          const info = document.createElement("div");
-          info.className = "reminder-info";
-          const simbolo = rem.simbolo || getSymbol(rem.numero) || "";
-          info.textContent = `${formatNumber(rem.numero)} ${simbolo}`.trim();
-          if (rem.nota) {
-            const note = document.createElement("span");
-            note.textContent = rem.nota;
-            info.appendChild(note);
-          }
-          item.appendChild(info);
-
-          const actions = document.createElement("div");
-          actions.className = "reminder-actions";
-
-          const useBtn = document.createElement("button");
-          useBtn.type = "button";
-          useBtn.className = "btn-secondary";
-          useBtn.textContent = "Usar";
-          useBtn.addEventListener("click", () => {
-            if (hypoNumeroInput) hypoNumeroInput.value = formatNumber(rem.numero);
-            if (hypoTextoInput && rem.nota) hypoTextoInput.value = rem.nota;
-            autoFillHypothesisForm({ preserveText: true });
-            showToast(`Recordatorio cargado para ${formatNumber(rem.numero)}.`, {
-              variant: "info",
-              timeout: 2400,
-            });
-          });
-          actions.appendChild(useBtn);
-
-          const removeBtn = document.createElement("button");
-          removeBtn.type = "button";
-          removeBtn.className = "btn-ghost";
-          removeBtn.textContent = "Quitar";
-          removeBtn.addEventListener("click", async () => {
-            await DB.removeHypothesisReminder(rem.id);
-            await refreshHypothesisReminders();
-            showToast("Recordatorio eliminado.", { variant: "success", timeout: 2000 });
-          });
-          actions.appendChild(removeBtn);
-
-          item.appendChild(actions);
-          list.appendChild(item);
-        });
-    }
-
-    async function handleReminderAdd() {
-      const rawNumero = (reminderNumeroInput?.value || "").trim();
-      if (!rawNumero) {
-        showToast("Ingresa el número del recordatorio.", { variant: "warning" });
-        return;
-      }
-      const numero = parseInt(rawNumero, 10);
-      if (!Number.isFinite(numero) || numero < 0 || numero > 99) {
-        showToast("Número inválido para el recordatorio.", { variant: "danger" });
-        return;
-      }
-      const nota = (reminderNotaInput?.value || "").trim();
-      try {
-        const simbolo = getSymbol(numero) || "";
-        await DB.addHypothesisReminder({ numero, nota, simbolo });
-        if (reminderNumeroInput) reminderNumeroInput.value = "";
-        if (reminderNotaInput) reminderNotaInput.value = "";
-        await refreshHypothesisReminders();
-        showToast("Recordatorio guardado.", { variant: "success", timeout: 2000 });
-      } catch (err) {
-        console.error("recordatorio error", err);
-        showToast(`No se pudo guardar el recordatorio: ${err.message}`, { variant: "danger" });
-      }
-    }
-
-    reminderAddBtn?.addEventListener("click", handleReminderAdd);
-    reminderNumeroInput?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        handleReminderAdd();
-      }
-    });
-    reminderNotaInput?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && event.ctrlKey) {
-        event.preventDefault();
-        handleReminderAdd();
-      }
-    });
     hypoNumeroInput?.addEventListener("input", () => {
       autoFillHypothesisForm();
     });
@@ -5928,8 +5819,14 @@
     hypoTurnoSelect?.addEventListener("change", () => {
       autoFillHypothesisForm();
     });
-    hypoSearchInput?.addEventListener("input", () => {
+    hypoSearchBtn?.addEventListener("click", () => {
       refreshHypotesis();
+    });
+    hypoSearchInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        refreshHypotesis();
+      }
     });
     hypoSearchClearBtn?.addEventListener("click", () => {
       if (hypoSearchInput) hypoSearchInput.value = "";
@@ -6080,20 +5977,33 @@
     }
 
     async function refreshHypotesis() {
-      await refreshHypothesisReminders();
       const cont = document.getElementById("h-list");
+      const numeroDisplay = document.getElementById("h-numero-display");
       if (!cont) return;
       cont.classList.add("cards", "hypo-list");
+
+      const filterNumero = getHypothesisFilterNumero();
+
+      if (!filterNumero) {
+        if (numeroDisplay) numeroDisplay.innerHTML = "";
+        cont.innerHTML = "<p class='hint'>Ingresa un número (00–99) y presiona «Ver hipótesis».</p>";
+        return;
+      }
+
       const hyps = await DB._getAll("hypotheses");
       seedHypothesisCache(hyps);
-      const filterNumero = getHypothesisFilterNumero();
-      const filtered = filterNumero
-        ? hyps.filter((h) => formatNumber(h.numero) === filterNumero)
-        : hyps;
+      const filtered = hyps.filter((h) => formatNumber(h.numero) === filterNumero);
+
+      const simbolo = getSymbol(parseInt(filterNumero, 10)) || "";
+      if (numeroDisplay) {
+        numeroDisplay.innerHTML = `
+          <span class="hypo-num-big">${filterNumero}</span>
+          ${simbolo ? `<span class="hypo-sym-big">${simbolo}</span>` : ""}
+        `;
+      }
+
       if (!filtered.length) {
-        cont.innerHTML = filterNumero
-          ? `<p class='hint'>No hay hipótesis registradas para ${filterNumero}.</p>`
-          : "<p class='hint'>Aún no hay hipótesis registradas.</p>";
+        cont.innerHTML = `<p class='hint'>Aún no hay hipótesis registradas para el ${filterNumero}.</p>`;
         return;
       }
       filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
