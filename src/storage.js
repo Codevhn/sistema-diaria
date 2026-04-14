@@ -539,6 +539,18 @@ export const DB = {
     return selectSingle("knowledge", [(q) => q.eq("key", key)], "getKnowledge");
   },
 
+  async deleteKnowledgeByKey(key) {
+    if (!key) return false;
+    try {
+      const { error } = await supabase.from("knowledge").delete().eq("key", key);
+      if (reportSupabaseError("deleteKnowledgeByKey", error)) return false;
+      return true;
+    } catch (err) {
+      reportSupabaseException("deleteKnowledgeByKey", err);
+      return false;
+    }
+  },
+
   async clearKnowledge(scope) {
     if (!scope) {
       await clearTable("knowledge");
