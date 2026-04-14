@@ -427,6 +427,13 @@ button {
   transition: border 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease, background 0.2s ease;
 }
 
+input,
+select,
+textarea {
+  border-color: rgba(201, 168, 76, 0.38);
+  background: var(--color-surface-2);
+}
+
 textarea {
   resize: vertical;
 }
@@ -2849,6 +2856,21 @@ button.ghost:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.hypo-card-img {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+}
+
+.hypo-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
 }
 
 .hypo-title {

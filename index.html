@@ -6018,13 +6018,33 @@
         const turno = h.turno || "";
         const razonesTexto = (h.razones || []).filter(Boolean).join(" · ") || "Sin notas";
 
+        const nStr = String(h.numero).padStart(2, "0");
+
         const head = document.createElement("div");
         head.className = "card-head";
 
+        const topWrap = document.createElement("div");
+        topWrap.className = "hypo-card-top";
+
+        const img = document.createElement("img");
+        img.src = `data/img/${nStr}.png`;
+        img.alt = simbolo || nStr;
+        img.className = "hypo-card-img";
+        img.addEventListener("error", function onErr() {
+          img.removeEventListener("error", onErr);
+          img.src = `data/img/${nStr}.jpg`;
+          img.addEventListener("error", () => { img.style.display = "none"; }, { once: true });
+        }, { once: true });
+        topWrap.appendChild(img);
+
+        const titleWrap = document.createElement("div");
         const title = document.createElement("span");
         title.className = "hypo-title";
         title.textContent = `${formatNumber(h.numero)} ${simbolo}`.trim();
-        head.appendChild(title);
+        titleWrap.appendChild(title);
+        topWrap.appendChild(titleWrap);
+
+        head.appendChild(topWrap);
 
         const badge = document.createElement("span");
         badge.className = `badge-state badge-${estado}`;
