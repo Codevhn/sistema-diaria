@@ -267,35 +267,6 @@
           </div>
         </article>
 
-        <article class="day-card day-card--wide" id="ranking-panel">
-          <div class="day-card__head">
-            <div>
-              <h3>Ranking de números</h3>
-              <p>Explora qué números se repiten por año y cuáles casi no han salido.</p>
-            </div>
-          </div>
-          <div class="day-card__controls day-card__controls--scroll ranking-controls">
-            <label>
-              Año
-              <select id="ranking-year"></select>
-            </label>
-            <label>
-              Buscar número
-              <input id="ranking-search" placeholder="00-99" maxlength="2" />
-            </label>
-            <button id="ranking-search-btn" class="btn-primary">Buscar</button>
-            <button id="ranking-clear-btn" class="btn-ghost">Limpiar filtros</button>
-          </div>
-          <div class="ranking-tabs" role="tablist">
-            <button type="button" data-ranking-tab="hot" class="active">Calientes</button>
-            <button type="button" data-ranking-tab="frequent">Frecuentes</button>
-            <button type="button" data-ranking-tab="cold">Menos frecuentes</button>
-            <button type="button" data-ranking-tab="rare">Los que menos salen</button>
-          </div>
-          <div id="ranking-summary" class="panel-meta">Selecciona un año para ver su ranking.</div>
-          <div id="ranking-table" class="table-wrap table-wrap--ranking"></div>
-          <div id="ranking-insight" class="panel-meta ranking-insight muted"></div>
-        </article>
         <article class="day-card day-card--numbers">
           <div class="day-card__head">
             <div>
@@ -5511,14 +5482,6 @@
     }
 
 
-    const rankingYearSelect = document.getElementById("ranking-year");
-    const rankingSearchInput = document.getElementById("ranking-search");
-    const rankingSearchBtn = document.getElementById("ranking-search-btn");
-    const rankingClearBtn = document.getElementById("ranking-clear-btn");
-    const rankingSummaryEl = document.getElementById("ranking-summary");
-    const rankingTableWrap = document.getElementById("ranking-table");
-    const rankingInsightEl = document.getElementById("ranking-insight");
-    const rankingTabButtons = document.querySelectorAll("[data-ranking-tab]");
     const abonoFechaInput = document.getElementById("abono-fecha");
     const abonoPaisSelect = document.getElementById("abono-pais");
     const abonoWindowInput = document.getElementById("abono-window");
@@ -5536,10 +5499,6 @@
     if (abonoFechaInput && !abonoFechaInput.value) abonoFechaInput.value = todayISO;
     if (gatilloWindowInput && !gatilloWindowInput.value) gatilloWindowInput.value = "180";
     updateLocalModeUI();
-
-    let rankingDataCache = null;
-    let rankingActiveTab = "hot";
-    let rankingSearchTarget = null;
 
     historySearchBtn?.addEventListener("click", () => {
       refreshHistoryPanel();
@@ -5599,33 +5558,6 @@
     [gatilloNumInput, gatilloPaisSelect, gatilloWindowInput].forEach((input) => {
       input?.addEventListener("change", () => runGatillo());
     });
-    rankingYearSelect?.addEventListener("change", () => {
-      renderRankingPanel();
-    });
-    rankingSearchBtn?.addEventListener("click", () => {
-      handleRankingSearch();
-    });
-    rankingSearchInput?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        handleRankingSearch();
-      }
-    });
-    rankingClearBtn?.addEventListener("click", () => {
-      if (rankingSearchInput) rankingSearchInput.value = "";
-      rankingSearchTarget = null;
-      renderRankingPanel();
-      if (rankingInsightEl) rankingInsightEl.textContent = "Busca un número para ver su historial.";
-    });
-    rankingTabButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const tab = btn.dataset.rankingTab || "hot";
-        rankingActiveTab = tab;
-        rankingTabButtons.forEach((b) => b.classList.toggle("active", b === btn));
-        renderRankingPanel();
-      });
-    });
-
     function compareDrawDesc(a, b) {
       if (a.fecha && b.fecha && a.fecha !== b.fecha) {
         return b.fecha.localeCompare(a.fecha);
@@ -5840,214 +5772,11 @@
       return pattern.map((band) => formatLineBand(band)).join(" → ");
     }
 
-    function buildRankingData(draws = []) {
-      const byYear = new Map();
-      const totals = new Map();
-      const lastSeen = new Map();
-      const totalByYear = new Map();
-      draws.forEach((draw) => {
-        const numero = Number(draw.numero);
-        if (!Number.isFinite(numero)) return;
-        const fecha = draw.fecha;
-        if (!fecha || fecha.length < 4) return;
-        const year = parseInt(fecha.slice(0, 4), 10);
-        if (!Number.isFinite(year)) return;
-        if (!byYear.has(year)) byYear.set(year, new Map());
-        const yearMap = byYear.get(year);
-        yearMap.set(numero, (yearMap.get(numero) || 0) + 1);
-        totals.set(numero, (totals.get(numero) || 0) + 1);
-        totalByYear.set(year, (totalByYear.get(year) || 0) + 1);
-        const timestamp = Date.parse(`${fecha}T00:00:00Z`);
-        const prev = lastSeen.get(numero);
-        if (!prev || (!Number.isNaN(timestamp) && timestamp > (prev.timestamp || 0))) {
-          lastSeen.set(numero, {
-            fecha,
-            horario: draw.horario,
-            pais: draw.pais,
-            timestamp: Number.isNaN(timestamp) ? null : timestamp,
-          });
-        }
-      });
-      const years = Array.from(byYear.keys()).sort((a, b) => b - a);
-      return { years, byYear, totals, lastSeen, totalByYear };
-    }
-
-    async function ensureRankingData({ force = false } = {}) {
-      if (!rankingDataCache || force) {
-        const draws = await getCachedDraws({ force });
-        rankingDataCache = buildRankingData(draws);
-      }
-      return rankingDataCache;
-    }
-
-    function buildRankingArray(map = new Map(), lastSeen = new Map()) {
-      return Array.from(map.entries())
-        .map(([numero, count]) => ({
-          numero: Number(numero),
-          count,
-          symbol: getSymbol(numero),
-          lastSeen: lastSeen.get(Number(numero)) || null,
-        }))
-        .sort((a, b) => {
-          if (b.count !== a.count) return b.count - a.count;
-          return a.numero - b.numero;
-        });
-    }
-
-    function applyRankingTabFilter(list = [], tab = "hot") {
-      if (!list.length) return [];
-      if (tab === "hot") return list.slice(0, Math.min(10, list.length));
-      if (tab === "frequent") return list.slice(10, Math.min(25, list.length));
-      if (tab === "cold") {
-        const safeLength = Math.max(0, list.length - 5);
-        const start = Math.max(0, safeLength - 15);
-        return list.slice(start, safeLength);
-      }
-      if (tab === "rare") return list.filter((row) => row.count <= 2).slice(0, 20);
-      return list;
-    }
-
-    function formatLastSeen(info) {
-      if (!info || !info.fecha) return "—";
-      const friendly = formatFriendlyDate(info.fecha);
-      const horario = info.horario ? ` ${info.horario}` : "";
-      const pais = info.pais ? ` · ${info.pais}` : "";
-      return `${friendly}${horario}${pais}`.trim();
-    }
-
-    function updateRankingSummary({ total, yearLabel, visible }) {
-      if (!rankingSummaryEl) return;
-      if (!visible) {
-        rankingSummaryEl.textContent = "Sin datos para este periodo.";
-        return;
-      }
-      const label = yearLabel === "all" ? "todos los años" : yearLabel;
-      rankingSummaryEl.textContent = `Ranking ${label} · ${total} apariciones · vista ${rankingActiveTab}`;
-    }
-
-    function renderRankingInsight(entry, yearLabel) {
-      if (!rankingInsightEl) return;
-      if (!entry) {
-        rankingInsightEl.textContent = "Busca un número para ver su historial.";
-        return;
-      }
-      const label = yearLabel === "all" ? "el histórico completo" : `el año ${yearLabel}`;
-      rankingInsightEl.textContent = `${formatNumber(entry.numero)} aparece ${entry.count} ${
-        entry.count === 1 ? "vez" : "veces"
-      } en ${label}. Última vez: ${formatLastSeen(entry.lastSeen)}.`;
-    }
-
-    async function renderRankingPanel({ force = false } = {}) {
-      if (!rankingTableWrap) return;
-      const data = await ensureRankingData({ force });
-      if (!data.years.length && !data.totals.size) {
-        rankingTableWrap.innerHTML = "<p class='hint'>Registra sorteos para ver el ranking.</p>";
-        updateRankingSummary({ total: 0, yearLabel: "all", visible: false });
-        renderRankingInsight(null, "all");
-        return;
-      }
-      if (rankingYearSelect && !rankingYearSelect.options.length) {
-        const frag = document.createDocumentFragment();
-        const opt = document.createElement("option");
-        opt.value = "all";
-        opt.textContent = "Todos los años";
-        frag.appendChild(opt);
-        data.years.forEach((year) => {
-          const option = document.createElement("option");
-          option.value = String(year);
-          option.textContent = String(year);
-          frag.appendChild(option);
-        });
-        rankingYearSelect.appendChild(frag);
-        rankingYearSelect.value = data.years[0] ? String(data.years[0]) : "all";
-      }
-      const yearValue = rankingYearSelect?.value || "all";
-      const map =
-        yearValue === "all"
-          ? data.totals
-          : data.byYear.get(Number(yearValue)) || new Map();
-      const dataset = buildRankingArray(map, data.lastSeen);
-      if (!dataset.length) {
-        rankingTableWrap.innerHTML = "<p class='hint'>Sin registros para este año.</p>";
-        updateRankingSummary({ total: 0, yearLabel: yearValue, visible: false });
-        renderRankingInsight(null, yearValue);
-        return;
-      }
-      const total =
-        yearValue === "all"
-          ? Array.from(data.totals.values()).reduce((acc, val) => acc + val, 0)
-          : data.totalByYear.get(Number(yearValue)) || dataset.reduce((acc, row) => acc + row.count, 0);
-      const filtered = applyRankingTabFilter(dataset, rankingActiveTab);
-      if (!filtered.length) {
-        rankingTableWrap.innerHTML = "<p class='hint'>No hay números para esta vista.</p>";
-      } else {
-        const table = document.createElement("table");
-        table.innerHTML = `
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Número</th>
-              <th>Símbolo</th>
-              <th>Veces</th>
-              <th>Última vez</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        `;
-        const tbody = table.querySelector("tbody");
-        filtered.forEach((row, idx) => {
-          const tr = document.createElement("tr");
-          if (rankingSearchTarget !== null && row.numero === rankingSearchTarget) {
-            tr.classList.add("history-row--tracked");
-          }
-          tr.innerHTML = `
-            <td>${idx + 1}</td>
-            <td class="history-number">${formatNumber(row.numero)}</td>
-            <td>${row.symbol || "—"}</td>
-            <td>${row.count}</td>
-            <td>${formatLastSeen(row.lastSeen)}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-        rankingTableWrap.innerHTML = "";
-        rankingTableWrap.appendChild(table);
-      }
-      const highlightEntry =
-        rankingSearchTarget === null
-          ? null
-          : dataset.find((row) => row.numero === rankingSearchTarget) || null;
-      updateRankingSummary({
-        total,
-        yearLabel: yearValue,
-        visible: true,
-      });
-      renderRankingInsight(highlightEntry, yearValue);
-    }
-
-    function handleRankingSearch() {
-      const raw = (rankingSearchInput?.value || "").trim();
-      if (!raw) {
-        rankingSearchTarget = null;
-        renderRankingPanel();
-        renderRankingInsight(null, rankingYearSelect?.value || "all");
-        return;
-      }
-      const numero = parseInt(raw, 10);
-      if (!Number.isFinite(numero) || numero < 0 || numero > 99) {
-        showToast("Ingresa un número válido entre 00 y 99 para buscar en el ranking.", { variant: "warning" });
-        return;
-      }
-      rankingSearchTarget = numero;
-      if (rankingSearchInput) rankingSearchInput.value = formatNumber(numero);
-      renderRankingPanel();
-    }
-
     async function handleDrawsMutated() {
       invalidateDrawCache();
       invalidateMemoryCache();
       await Promise.allSettled([
         refreshHistoryPanel({ forceReload: true }),
-        renderRankingPanel({ force: true }),
         refreshNotebookList(),
         renderMemoryBoard({ forceReload: true }),
         renderGapPanel({ forceReload: true }),
@@ -6065,7 +5794,6 @@
     async function bootstrapExtendedPanels() {
       await Promise.allSettled([
         refreshHistoryPanel(),
-        renderRankingPanel(),
         refreshNotebookList(),
       ]);
     }

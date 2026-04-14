@@ -2383,8 +2383,7 @@ button.ghost:hover {
   background: var(--color-surface);
 }
 
-.table-wrap--history,
-.table-wrap--ranking {
+.table-wrap--history {
   overflow-x: auto;
 }
 
@@ -2415,18 +2414,6 @@ button.ghost:hover {
 
 .table-wrap tbody tr:last-child td {
   border-bottom: none;
-}
-
-.table-wrap--ranking tbody tr:nth-child(odd) {
-  background: var(--color-surface);
-}
-
-.table-wrap--ranking tbody tr:nth-child(even) {
-  background: var(--color-surface-2);
-}
-
-.table-wrap--ranking tbody tr:hover {
-  background: rgba(201, 168, 76, 0.08);
 }
 
 .history-number {
@@ -2757,44 +2744,6 @@ button.ghost:hover {
   margin-bottom: 6px;
 }
 
-.ranking-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.ranking-tabs button {
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  border-radius: var(--radius-sm);
-  padding: 6px 16px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  font-size: 0.72rem;
-  box-shadow: var(--shadow-soft);
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
-}
-
-.ranking-tabs button.active {
-  border-color: rgba(201, 168, 76, 0.6);
-  background: rgba(201, 168, 76, 0.15);
-  color: var(--color-accent);
-  transform: translateY(-1px);
-}
-
-.ranking-controls button {
-  flex: 0 0 auto;
-}
-
-.ranking-insight {
-  border: 1px solid rgba(201, 168, 76, 0.2);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  background: var(--color-surface-2);
-  box-shadow: var(--shadow-soft);
-}
 
 .muted {
   color: var(--color-muted);
