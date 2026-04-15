@@ -48,6 +48,7 @@
     <button data-view="maint"><span
         class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
     <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
+    <button data-view="wiki"><span class="sidebar-icon fa-solid fa-circle-question"></span><i>Guía del sistema</i></button>
   </aside>
 
   <main class="content">
@@ -891,6 +892,21 @@
       <div class="processing-text">Guardando datos…<br />Por favor espere</div>
     </div>
   </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       WIKI / GUÍA DEL SISTEMA
+       ═══════════════════════════════════════════════════════════ -->
+  <section id="view-wiki" class="view hidden">
+    <div class="wiki-layout">
+      <nav class="wiki-nav">
+        <input id="wiki-search" type="text" placeholder="Buscar tema…" class="wiki-search" />
+        <ul class="wiki-toc" id="wiki-toc"></ul>
+      </nav>
+      <article class="wiki-content" id="wiki-content">
+        <p class="wiki-placeholder">Selecciona un tema del menú.</p>
+      </article>
+    </div>
+  </section>
 
   <script type="module">
     import { mostrarGuia } from "./src/guide-grid.js";
@@ -8216,6 +8232,7 @@ function buildVariantEntries(profile) {
       config: "view-config",
       maint: "view-maint",
       modes: "view-modes",
+      wiki:  "view-wiki",
     };
     const sidebarButtons = document.querySelectorAll(".sidebar button");
     sidebarButtons.forEach((b) => {
@@ -8230,6 +8247,7 @@ function buildVariantEntries(profile) {
         if (!el) return logWarn("Vista no encontrada:", id);
         el.classList.remove("hidden");
         if (id === "view-guide") mostrarGuia();
+        if (id === "view-wiki")  initWiki();
         if (id === "view-hypo") { renderPairList(); }
         if (id === "view-analysis") renderPulso();
         if (id === "view-maint") refreshDuplicados();
@@ -8786,6 +8804,345 @@ function buildVariantEntries(profile) {
         showToast(`Error al intentar limpiar la base: ${err.message}`, { variant: "danger" });
       }
     });
+
+    // ═══════════════════════════════════════════════════════════
+    // WIKI — Guía del sistema
+    // ═══════════════════════════════════════════════════════════
+
+    const WIKI_ARTICLES = [
+      {
+        id: "markov1",
+        categoria: "Motor de señales",
+        titulo: "Markov Orden 1 — ¿Qué suele seguir a un número?",
+        contenido: `
+          <h2>Markov Orden 1</h2>
+          <p class="wiki-lead">Responde a la pregunta: <em>"Históricamente, después de que cayó el 37, ¿qué número apareció con más frecuencia en el siguiente sorteo?"</em></p>
+
+          <h3>Cómo funciona</h3>
+          <p>El sistema recorre todo el historial de sorteos y registra, para cada número, cuál fue el siguiente en caer. Con eso construye una tabla de probabilidades real:</p>
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> El 37 cayó 80 veces en el historial.<br>
+            De esas 80 veces, el siguiente sorteo fue:<br>
+            &nbsp;· 96 en 12 ocasiones → <strong>15%</strong><br>
+            &nbsp;· 14 en 8 ocasiones → <strong>10%</strong><br>
+            &nbsp;· 55 en 5 ocasiones → <strong>6%</strong>
+          </div>
+          <p>Esos porcentajes no son inventados — son frecuencias reales del historial de La Diaria.</p>
+
+          <h3>Cómo leerlo en el panel</h3>
+          <p>En <strong>Escenarios → "Markov — tras XX"</strong> verás chips con barra de color azul. La barra más larga = mayor probabilidad histórica. El número al pie muestra el porcentaje y cuántas veces ocurrió.</p>
+
+          <h3>Lo que NO significa</h3>
+          <p>No predice el próximo número con certeza. Te dice cuál ha salido más veces después del número anterior. Es una tendencia estadística, no una garantía.</p>
+
+          <h3>Cuándo confiar más en él</h3>
+          <p>Cuando el porcentaje es alto (>20%) y la cantidad de veces (×) es mayor a 10. Con pocos datos el porcentaje puede ser engañoso.</p>
+        `,
+      },
+      {
+        id: "markov2",
+        categoria: "Motor de señales",
+        titulo: "Markov Orden 2 — Secuencias de dos números",
+        contenido: `
+          <h2>Markov Orden 2</h2>
+          <p class="wiki-lead">Igual que Markov O1 pero considera los <em>dos últimos números</em> para predecir el siguiente. Es más preciso cuando hay suficiente historial.</p>
+
+          <h3>Diferencia con Orden 1</h3>
+          <p>Markov O1 pregunta: <em>"¿Qué sigue al 37?"</em><br>
+          Markov O2 pregunta: <em>"¿Qué sigue a la secuencia 14 → 37?"</em></p>
+          <p>El contexto de dos números reduce las coincidencias aleatorias y detecta patrones más específicos del comportamiento del sorteo.</p>
+
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> La secuencia 14 → 37 ocurrió 15 veces.<br>
+            De esas 15, el siguiente fue:<br>
+            &nbsp;· 96 en 6 ocasiones → <strong>40%</strong><br>
+            Eso ya es una señal fuerte.
+          </div>
+
+          <h3>Limitación</h3>
+          <p>Necesita más datos que O1. Si la secuencia específica A→B no ocurrió muchas veces en el historial, el porcentaje no es confiable. El sistema solo muestra O2 cuando hay al menos 2 ocurrencias de esa secuencia.</p>
+        `,
+      },
+      {
+        id: "rezago",
+        categoria: "Motor de señales",
+        titulo: "Rezago y ciclo histórico — ¿Cuándo le toca a un número?",
+        contenido: `
+          <h2>Análisis de Rezago</h2>
+          <p class="wiki-lead">Calcula cuántos días lleva cada número sin caer y lo compara contra su ciclo promedio real de los <strong>últimos 180 días</strong>.</p>
+
+          <h3>Por qué 180 días y no todo el historial</h3>
+          <p>Usar todo el historial mezcla períodos donde el sistema de La Diaria podía comportarse diferente. Los últimos 180 días reflejan el comportamiento actual y son inmunes a huecos en el historial antiguo.</p>
+
+          <h3>Qué es el ciclo promedio</h3>
+          <p>Si el 22 Ataúd apareció 18 veces en los últimos 180 días, su ciclo promedio es 180/18 = <strong>10 días entre aparición y aparición</strong>.</p>
+
+          <h3>Estados de un número</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok">
+              <strong>En ventana</strong>
+              <span>Lleva más días sin caer de lo normal pero todavía dentro del rango esperado. Es candidato natural.</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>Vencido</strong>
+              <span>Lleva muchísimo más de su ciclo sin caer (más de 2 desviaciones estándar). El jugador lo espera — y si el sistema tiene control, lo evita.</span>
+            </div>
+            <div class="wiki-state wiki-state--muted">
+              <strong>Reciente</strong>
+              <span>Cayó hace 3 días o menos. Baja probabilidad de repetición inmediata.</span>
+            </div>
+            <div class="wiki-state wiki-state--muted">
+              <strong>Ausente</strong>
+              <span>No apareció en los últimos 180 días. El sistema lo ignora — sin datos recientes no hay ciclo calculable.</span>
+            </div>
+          </div>
+        `,
+      },
+      {
+        id: "eliminacion",
+        categoria: "Motor de señales",
+        titulo: "Enfoque de eliminación — qué quitar antes de elegir",
+        contenido: `
+          <h2>Enfoque de eliminación</h2>
+          <p class="wiki-lead">En lugar de buscar <em>"el número ganador"</em>, el motor primero descarta los que <strong>no pueden o no deben salir</strong> según el historial. Lo que queda es el universo de candidatos.</p>
+
+          <h3>Por qué eliminar primero</h3>
+          <p>De 100 números posibles, el historial permite descartar con argumentos sólidos entre 20 y 40. El jugador elige dentro de un universo reducido con lógica, no de 100 opciones ciegas.</p>
+
+          <h3>Reglas de eliminación actuales</h3>
+          <div class="wiki-example">
+            <strong>1. Recientes</strong> — cayeron hace 3 días o menos. Repetición inmediata es estadísticamente rara (excepto en diciembre, donde el sistema relaja esta regla).<br><br>
+            <strong>2. Sobrecalentados</strong> — llevan más de 3 desviaciones estándar sobre su ciclo sin caer. Tanta gente los espera que si el sistema tiene control, los evita deliberadamente.<br><br>
+            <strong>3. Penalización por familia</strong> — si la familia simbólica del último número ya cayó en los últimos 2 turnos, los demás de esa familia reciben un peso reducido (no eliminados, pero bajan en el ranking).
+          </div>
+
+          <h3>Lo que aparece en el panel</h3>
+          <p>En Escenarios verás <em>"Excluidos"</em> y <em>"Sobrecalentados"</em> con sus cards. Esos números el motor no los considera candidatos.</p>
+        `,
+      },
+      {
+        id: "motor-unificado",
+        categoria: "Motor de señales",
+        titulo: "Motor unificado — cómo se combina todo",
+        contenido: `
+          <h2>Motor unificado de señales</h2>
+          <p class="wiki-lead">Es el cerebro central del sistema. Toma las señales de todos los motores, les asigna un peso, y produce un ranking de candidatos con un score del 0 al 100%.</p>
+
+          <h3>Fuentes que combina</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Fuente</th><th>Peso</th><th>Qué aporta</th></tr></thead>
+            <tbody>
+              <tr><td>Markov O1</td><td>28%</td><td>Sucesor directo del último número</td></tr>
+              <tr><td>Markov O2</td><td>18%</td><td>Sucesor de la última secuencia de dos</td></tr>
+              <tr><td>Modos de juego</td><td>18%</td><td>Transformaciones configuradas por el usuario</td></tr>
+              <tr><td>Patrones heurísticos</td><td>12%</td><td>Gaps, repeticiones, transiciones detectadas</td></tr>
+              <tr><td>Rezago</td><td>14%</td><td>Números en su ventana de ciclo</td></tr>
+              <tr><td>Patrones semanales</td><td>6%</td><td>Ciclos por día de semana y turno</td></tr>
+              <tr><td>Patrones mensuales</td><td>4%</td><td>Tendencias del mes actual</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Cómo interpretar el score</h3>
+          <p>Un score de 75% no significa que el número vaya a salir con 75% de probabilidad. Significa que <strong>ese número concentra el 75% de las señales históricas favorables</strong> en este momento. Es un ranking relativo, no una probabilidad absoluta.</p>
+
+          <h3>El tooltip</h3>
+          <p>Si pasas el cursor sobre un chip del motor, verás qué señales específicas lo pusieron ahí y por qué.</p>
+        `,
+      },
+      {
+        id: "pares-vinculados",
+        categoria: "Herramientas",
+        titulo: "Pares vinculados — números que se siguen entre sí",
+        contenido: `
+          <h2>Pares vinculados</h2>
+          <p class="wiki-lead">Te permite registrar relaciones simbólicas o históricas entre dos números, con ventanas de tiempo para cada dirección.</p>
+
+          <h3>La idea base</h3>
+          <p>En La Diaria, los jugadores conocen relaciones entre números por tradición o por observación propia. Por ejemplo: <em>"Cuando cae 37 Suerte, suele seguirle 96 Dinero en pocos días"</em>. El sistema formaliza esa observación con datos.</p>
+
+          <h3>Cómo registrar un par</h3>
+          <p>Hay dos formas:</p>
+          <ol>
+            <li>Desde <strong>Hipótesis</strong> → formulario de pares: ingresas ambos números y configuras las ventanas</li>
+            <li>Desde el <strong>Panel del día</strong> → botón "Vincular par" bajo cada slot: el número A se pre-rellena con el que acaba de caer, solo ingresas el B</li>
+          </ol>
+
+          <h3>Ventanas de tiempo</h3>
+          <div class="wiki-example">
+            <strong>A cae → esperar B en X–Y días:</strong> si cayó A, el sistema vigilará si B aparece dentro de esa ventana.<br><br>
+            <strong>B cae → esperar A en X–Y días:</strong> la relación funciona en ambas direcciones, porque cualquiera puede caer primero.
+          </div>
+
+          <h3>Dónde lo verás activo</h3>
+          <p>En <strong>Escenarios → "Pares vinculados activos"</strong> aparecerán los pares cuyo número A o B cayó recientemente y cuyo compañero todavía está dentro de la ventana de espera.</p>
+        `,
+      },
+      {
+        id: "panel-pulso",
+        categoria: "Paneles",
+        titulo: "Panel Escenarios — qué muestra y en qué orden",
+        contenido: `
+          <h2>Panel Escenarios</h2>
+          <p class="wiki-lead">Es el panel principal de recomendaciones. Muestra todo lo que el sistema sabe sobre el momento actual, organizado de arriba hacia abajo por tipo de señal.</p>
+
+          <h3>Secciones en orden</h3>
+          <ol>
+            <li><strong>Último sorteo</strong> — el número que cayó más recientemente, su símbolo, turno y fecha</li>
+            <li><strong>Candidatos por conversión</strong> — números que se derivan del último por transformaciones matemáticas (espejo, suma de dígitos, etc.)</li>
+            <li><strong>Markov — tras XX</strong> — qué suele seguir históricamente al último número (chips azules)</li>
+            <li><strong>Motor unificado</strong> — ranking combinado de todas las señales (chips verdes)</li>
+            <li><strong>Excluidos y sobrecalentados</strong> — números que el motor descartó y por qué</li>
+            <li><strong>Vencidos</strong> — llevan demasiados días sin caer, el sistema los evita</li>
+            <li><strong>En ventana</strong> — están dentro de su ciclo histórico reciente, candidatos naturales</li>
+            <li><strong>Pares vinculados activos</strong> — pares registrados cuyo contador de días está activo</li>
+          </ol>
+
+          <h3>Cuándo se actualiza</h3>
+          <p>El panel se calcula una sola vez y queda en caché. Solo se recalcula cuando ingresas nuevos sorteos o modificas pares. Navegar fuera y volver no lo recalcula innecesariamente.</p>
+        `,
+      },
+      {
+        id: "modos-juego",
+        categoria: "Herramientas",
+        titulo: "Modos de juego — transformaciones personalizadas",
+        contenido: `
+          <h2>Modos de juego</h2>
+          <p class="wiki-lead">Te permiten definir reglas matemáticas propias basadas en tu conocimiento del juego. El sistema las evalúa contra el historial para saber si funcionan.</p>
+
+          <h3>Operaciones disponibles</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Operación</th><th>Ejemplo</th></tr></thead>
+            <tbody>
+              <tr><td>Espejo</td><td>37 → 73</td></tr>
+              <tr><td>Suma de dígitos</td><td>37 → 3+7 = 10 → 0</td></tr>
+              <tr><td>Sumar constante</td><td>37 + 10 = 47</td></tr>
+              <tr><td>Restar constante</td><td>37 − 5 = 32</td></tr>
+              <tr><td>Vecino</td><td>37 → 36 y 38</td></tr>
+              <tr><td>Mapa de dígitos</td><td>Sustituye cada dígito según tu tabla</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Cómo el sistema los califica</h3>
+          <p>Por cada modo, el sistema revisa el historial: cada vez que cayó el número base, ¿apareció el número resultado en los siguientes 2 sorteos? La tasa de acierto determina la confianza del modo.</p>
+
+          <h3>Ejemplos propios</h3>
+          <p>También puedes agregar ejemplos manuales: <em>"Cuando cayó 14, yo esperaba 69 y cayó"</em>. El sistema los incorpora como evidencia adicional.</p>
+        `,
+      },
+      {
+        id: "panel-dia",
+        categoria: "Paneles",
+        titulo: "Panel del día — registrar sorteos diarios",
+        contenido: `
+          <h2>Panel del día</h2>
+          <p class="wiki-lead">Aquí registras los resultados de cada sorteo del día. Es la fuente principal de datos de todo el sistema.</p>
+
+          <h3>Flujo de trabajo</h3>
+          <ol>
+            <li>Selecciona la <strong>fecha</strong> y el <strong>país</strong></li>
+            <li>Ingresa el número en el slot del turno correspondiente (11AM, 3PM, 9PM)</li>
+            <li>Clic en <strong>"Agregar a pendientes"</strong> — el sorteo queda en cola local</li>
+            <li>Clic en <strong>"Sincronizar con Supabase"</strong> — confirma y guarda en la base de datos</li>
+          </ol>
+
+          <h3>Botón "Vincular par"</h3>
+          <p>Aparece bajo cada slot. Al hacer clic con un número ya ingresado, abre un formulario para registrar el número compañero esperado (par vinculado), con ambas ventanas de tiempo configurables.</p>
+
+          <h3>Modo prueba</h3>
+          <p>El checkbox "Modo prueba" en cada slot marca el sorteo como test. No se incluye en los análisis reales del motor. Útil para probar el sistema sin contaminar el historial.</p>
+        `,
+      },
+      {
+        id: "diciembre",
+        categoria: "Comportamiento estacional",
+        titulo: "Factor Diciembre — el sistema juega diferente",
+        contenido: `
+          <h2>Factor Diciembre</h2>
+          <p class="wiki-lead">En diciembre, el comportamiento observado de La Diaria cambia: el sistema tiende a <strong>repetir números</strong> en lugar de buscar los que llevan más tiempo sin caer.</p>
+
+          <h3>Por qué es contraintuitivo</h3>
+          <p>En condiciones normales, el motor penaliza los números recientes (cayeron hace poco). En diciembre hace lo contrario: prioriza los que salieron recientemente porque el patrón histórico muestra mayor repetición en ese mes.</p>
+
+          <h3>Cómo lo aplica el sistema</h3>
+          <p>El motor detecta automáticamente si la fecha actual es diciembre. Si es así, relaja el filtro de eliminación de números recientes — no los descarta aunque hayan caído hace 1-2 días.</p>
+
+          <h3>Hipótesis detrás del patrón</h3>
+          <p>En quincenas y fechas especiales (Navidad, fin de año), el volumen de apuestas sube. Si el sistema tiene algún control, puede preferir repetir números para distribuir los premios en lugar de concentrarlos.</p>
+        `,
+      },
+      {
+        id: "guia-suenos",
+        categoria: "Referencia",
+        titulo: "Guía de los sueños — símbolos y familias",
+        contenido: `
+          <h2>Guía de los sueños</h2>
+          <p class="wiki-lead">El diccionario de los 100 números de La Diaria. Cada número tiene un símbolo, una familia y una polaridad.</p>
+
+          <h3>Qué es la familia</h3>
+          <p>Agrupa números por categoría simbólica: Naturaleza, Personas, Animales, Objetos, etc. El motor usa las familias para penalizar números cuando su familia ya apareció recientemente.</p>
+
+          <h3>Qué es la polaridad</h3>
+          <p>Indica si el número se asocia a energía positiva, negativa o neutra según la tradición del juego. El motor la usa como señal de contexto para el análisis de Escenarios.</p>
+
+          <h3>Las imágenes</h3>
+          <p>Cada número tiene una imagen ilustrativa guardada en <code>data/img/</code>. Aparecen en las cards del panel Escenarios, en el historial y en la guía visual. Si un número no tiene imagen todavía, simplemente no se muestra.</p>
+        `,
+      },
+    ];
+
+    let _wikiIniciada = false;
+
+    function initWiki() {
+      if (_wikiIniciada) return; // solo construir el índice una vez
+      _wikiIniciada = true;
+
+      const toc     = document.getElementById("wiki-toc");
+      const content = document.getElementById("wiki-content");
+      const search  = document.getElementById("wiki-search");
+
+      // Agrupar por categoría
+      const categorias = [...new Set(WIKI_ARTICLES.map((a) => a.categoria))];
+
+      function buildToc(filter = "") {
+        toc.innerHTML = "";
+        const q = filter.toLowerCase();
+        categorias.forEach((cat) => {
+          const arts = WIKI_ARTICLES.filter(
+            (a) => a.categoria === cat && (!q || a.titulo.toLowerCase().includes(q) || a.contenido.toLowerCase().includes(q))
+          );
+          if (!arts.length) return;
+
+          const li = document.createElement("li");
+          li.className = "wiki-toc__cat";
+          li.textContent = cat;
+          toc.appendChild(li);
+
+          arts.forEach((art) => {
+            const item = document.createElement("li");
+            item.className = "wiki-toc__item";
+            item.textContent = art.titulo;
+            item.dataset.id = art.id;
+            item.addEventListener("click", () => {
+              document.querySelectorAll(".wiki-toc__item").forEach((i) => i.classList.remove("active"));
+              item.classList.add("active");
+              content.innerHTML = `<div class="wiki-body">${art.contenido}</div>`;
+            });
+            toc.appendChild(item);
+          });
+        });
+      }
+
+      buildToc();
+      search.addEventListener("input", (e) => buildToc(e.target.value));
+
+      // Abrir el primer artículo por defecto
+      const first = WIKI_ARTICLES[0];
+      content.innerHTML = `<div class="wiki-body">${first.contenido}</div>`;
+      setTimeout(() => {
+        const firstItem = toc.querySelector(".wiki-toc__item");
+        if (firstItem) firstItem.classList.add("active");
+      }, 0);
+    }
 
   </script>
 
