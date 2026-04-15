@@ -7419,10 +7419,10 @@ button.ghost:hover {
 .p3hr-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0.5rem 0.75rem;
+  gap: 16px;
+  padding: 0.3rem 0.65rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.04);
   background: var(--color-surface);
   transition: background 0.15s, border-color 0.15s;
 }
@@ -7433,9 +7433,9 @@ button.ghost:hover {
 .p3hr-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex: 0 0 auto;
-  min-width: 200px;
+  min-width: 150px;
 }
 .p3hr-fecha {
   font-size: 0.78rem;
@@ -7468,13 +7468,13 @@ button.ghost:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: radial-gradient(ellipse at 35% 30%, #252535 0%, #14141c 100%);
   border: 1px solid rgba(242,196,74,0.35);
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   color: var(--color-accent);
   text-shadow: 0 0 8px rgba(242,196,74,0.5);
   box-shadow: 0 0 6px rgba(242,196,74,0.12);
