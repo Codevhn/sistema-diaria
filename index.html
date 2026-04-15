@@ -5967,6 +5967,83 @@
 
     // ── PULSO: análisis de candidatos por conversión/equivalencia ──────────────
 
+    // ── Helpers de UI para el motor de señales ────────────────────────────────
+
+    /** Crea un <img> del número con fallback silencioso */
+    function numImg(pad, alt = "") {
+      const img = document.createElement("img");
+      img.src = `data/img/${pad}.png`;
+      img.alt = alt;
+      img.className = "rezago-card__img";
+      img.addEventListener("error", function onErr() {
+        img.removeEventListener("error", onErr);
+        img.src = `data/img/${pad}.jpg`;
+        img.addEventListener("error", () => { img.style.display = "none"; }, { once: true });
+      }, { once: true });
+      return img;
+    }
+
+    /**
+     * Construye una sección de cards para vencidos / en ventana / eliminados.
+     * @param {Array}  items   — array de {pad, simbolo, diasDesdeUltima, cicloPromedio, zScore, razon}
+     * @param {string} variant — "warn" | "ok" | "elim"
+     * @param {string} titulo
+     */
+    function buildRezagoSection(items, variant, titulo) {
+      const wrap = document.createElement("div");
+      wrap.className = `rezago-section rezago-section--${variant}`;
+
+      const head = document.createElement("div");
+      head.className = "rezago-section__head";
+      head.textContent = titulo;
+      wrap.appendChild(head);
+
+      const grid = document.createElement("div");
+      grid.className = "rezago-grid";
+
+      items.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = `rezago-card rezago-card--${variant}`;
+
+        card.appendChild(numImg(item.pad, item.simbolo));
+
+        const num = document.createElement("span");
+        num.className = "rezago-card__num";
+        num.textContent = item.pad;
+        card.appendChild(num);
+
+        const sim = document.createElement("span");
+        sim.className = "rezago-card__sim";
+        sim.textContent = item.simbolo || item.pad;
+        card.appendChild(sim);
+
+        if (item.diasDesdeUltima != null) {
+          const dias = document.createElement("span");
+          dias.className = "rezago-card__dias";
+          dias.textContent = `${item.diasDesdeUltima}d sin caer`;
+          card.appendChild(dias);
+        } else if (item.razon) {
+          const razon = document.createElement("span");
+          razon.className = "rezago-card__dias";
+          razon.textContent = item.razon;
+          card.appendChild(razon);
+        }
+
+        if (item.cicloPromedio) {
+          const ciclo = document.createElement("span");
+          ciclo.className = "rezago-card__ciclo";
+          ciclo.textContent = `ciclo: ${item.cicloPromedio}d`;
+          card.appendChild(ciclo);
+        }
+
+        wrap.title = item.razon || "";
+        grid.appendChild(card);
+      });
+
+      wrap.appendChild(grid);
+      return wrap;
+    }
+
     async function renderPulso() {
       if (!resultPulso) return;
       resultPulso.innerHTML = "<p class='pulso-empty'>Cargando historial…</p>";
@@ -6085,11 +6162,12 @@
             suc.forEach(({ pad, simbolo, prob, count }) => {
               const chip = document.createElement("div");
               chip.className = "pulso-chip pulso-chip--markov";
-              chip.innerHTML = `
+              chip.appendChild(numImg(pad, simbolo));
+              chip.insertAdjacentHTML("beforeend", `
                 <span class="pulso-chip__num">${pad}</span>
                 <span class="pulso-chip__sym">${simbolo}</span>
                 <div class="pulso-chip__bar" style="--pct:${prob}%"></div>
-                <span class="pulso-chip__count">${prob}% · ${count}×</span>`;
+                <span class="pulso-chip__count">${prob}% · ${count}×</span>`);
               markovChips.appendChild(chip);
             });
             markovSec.appendChild(markovChips);
@@ -6111,13 +6189,14 @@
             motor.candidatos.forEach((c) => {
               const chip = document.createElement("div");
               chip.className = `pulso-chip pulso-chip--motor${c.penalizado ? " pulso-chip--penalizado" : ""}`;
+              chip.appendChild(numImg(c.pad, c.simbolo));
               const topSignal = c.signals[0];
-              chip.innerHTML = `
+              chip.insertAdjacentHTML("beforeend", `
                 <span class="pulso-chip__num">${c.pad}</span>
                 <span class="pulso-chip__sym">${c.simbolo}</span>
                 <div class="pulso-chip__bar" style="--pct:${Math.round(c.score * 100)}%"></div>
                 <span class="pulso-chip__count">${Math.round(c.score * 100)}%</span>
-                ${topSignal ? `<span class="pulso-chip__hint" title="${topSignal.label}">${topSignal.source}</span>` : ""}`;
+                ${topSignal ? `<span class="pulso-chip__hint" title="${topSignal.label}">${topSignal.source}</span>` : ""}`);
               chip.title = c.signals.map((s) => s.label).join("\n");
               motorChips.appendChild(chip);
             });
@@ -6126,34 +6205,17 @@
 
             // ── Números eliminados (resumen) ──
             if (motor.eliminados?.length) {
-              const elimSec = document.createElement("div");
-              elimSec.className = "pulso-signal pulso-signal--elim";
-              const recientes = motor.eliminados.filter((e) => e.regla === "reciente").map((e) => `${e.pad} ${e.simbolo}`).slice(0, 5);
-              const sobrec   = motor.eliminados.filter((e) => e.regla === "sobrecalentado").map((e) => `${e.pad}`).slice(0, 4);
-              let txt = "";
-              if (recientes.length) txt += `Excluidos (cayeron reciente): ${recientes.join(" · ")}`;
-              if (sobrec.length) txt += `${txt ? "  |  " : ""}Sobrecalentados (sistema los evita): ${sobrec.join(" · ")}`;
-              if (txt) elimSec.textContent = txt;
-              if (txt) frag.appendChild(elimSec);
+              const recElim = motor.eliminados.filter((e) => e.regla === "reciente").slice(0, 6);
+              const sobElim = motor.eliminados.filter((e) => e.regla === "sobrecalentado").slice(0, 4);
+              if (recElim.length) frag.appendChild(buildRezagoSection(recElim, "elim", "✕ Excluidos — cayeron hace poco (baja probabilidad de repetición inmediata)"));
+              if (sobElim.length) frag.appendChild(buildRezagoSection(sobElim, "warn", "⚠ Sobrecalentados — el sistema los evita porque el jugador los espera"));
             }
           }
 
-          // ── Números vencidos (rezago) ──
+          // ── Números vencidos y en ventana (rezago) ──
           const rez = rezagoResult.status === "fulfilled" ? rezagoResult.value : null;
-          if (rez?.vencidos?.length) {
-            const vencSec = document.createElement("div");
-            vencSec.className = "pulso-signal pulso-signal--warn";
-            const lista = rez.vencidos.slice(0, 5).map((v) => `${v.pad} ${v.simbolo} (${v.gapActual})`).join(" · ");
-            vencSec.innerHTML = `<strong>Vencidos</strong> — muchos días sin caer, el sistema los evita: ${lista}`;
-            frag.appendChild(vencSec);
-          }
-          if (rez?.enVentana?.length) {
-            const ventSec = document.createElement("div");
-            ventSec.className = "pulso-signal pulso-signal--ok";
-            const lista = rez.enVentana.slice(0, 6).map((v) => `${v.pad} ${v.simbolo}`).join(" · ");
-            ventSec.innerHTML = `<strong>En ventana</strong> — dentro de su ciclo histórico normal: ${lista}`;
-            frag.appendChild(ventSec);
-          }
+          if (rez?.vencidos?.length)  frag.appendChild(buildRezagoSection(rez.vencidos.slice(0, 6),  "warn", "Vencidos — llevan mucho más de su ciclo normal sin caer"));
+          if (rez?.enVentana?.length) frag.appendChild(buildRezagoSection(rez.enVentana.slice(0, 8), "ok",   "En ventana — están dentro de su ciclo histórico reciente (últimos 180 días)"));
         } catch (motorErr) {
           console.warn("signal-engine error (no bloquea)", motorErr);
         }

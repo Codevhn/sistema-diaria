@@ -8205,6 +8205,105 @@ body.login-page {
 .pulso-signal--ok::before { content: "✓ "; color: #64c878; }
 
 /* ═══════════════════════════════════════════════════
+   REZAGO CARDS — vencidos / en ventana / eliminados
+   ═══════════════════════════════════════════════════ */
+
+.rezago-section {
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+}
+.rezago-section--warn {
+  border-color: rgba(220, 100, 60, 0.25);
+  background: rgba(220, 100, 60, 0.05);
+}
+.rezago-section--ok {
+  border-color: rgba(100, 200, 120, 0.25);
+  background: rgba(100, 200, 120, 0.05);
+}
+.rezago-section--elim {
+  border-color: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.02);
+}
+.rezago-section__head {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c8bfa8;
+  margin-bottom: 10px;
+  letter-spacing: 0.02em;
+}
+.rezago-section--warn .rezago-section__head { color: #e07850; }
+.rezago-section--ok  .rezago-section__head { color: #64c878; }
+.rezago-section--elim .rezago-section__head { color: #9a9282; }
+
+.rezago-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rezago-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  min-width: 62px;
+  max-width: 80px;
+}
+.rezago-card--warn { border-color: rgba(220, 100, 60, 0.3); }
+.rezago-card--ok   { border-color: rgba(100, 200, 120, 0.3); }
+.rezago-card--elim { border-color: rgba(255,255,255,0.1); opacity: 0.6; }
+
+.rezago-card__img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+.rezago-card__num {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  line-height: 1;
+}
+.rezago-card__sim {
+  font-size: 0.64rem;
+  color: #c8bfa8;
+  text-align: center;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rezago-card__dias {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #e07850;
+  text-align: center;
+}
+.rezago-card--ok  .rezago-card__dias { color: #64c878; }
+.rezago-card--elim .rezago-card__dias { color: #9a9282; }
+.rezago-card__ciclo {
+  font-size: 0.56rem;
+  color: #9a9282;
+  text-align: center;
+}
+
+/* Imagen dentro de chips Markov/Motor */
+.pulso-chip .rezago-card__img {
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+}
+
+/* ═══════════════════════════════════════════════════
    PARES VINCULADOS — view-hypo
    ═══════════════════════════════════════════════════ */
 

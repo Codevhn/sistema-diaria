@@ -170,71 +170,102 @@ function normalizeMarkov2(matrix) {
   return result;
 }
 
-// ─── Rezago / Análisis de Ciclo (base Poisson) ────────────────────────────────
+// ─── Rezago / Análisis de Ciclo en días reales (ventana 180 días) ─────────────
+
+const REZAGO_VENTANA_DIAS = 180; // solo miramos los últimos 180 días para el ciclo
 
 /**
- * Para cada número calcula:
- * - apariciones totales
- * - gaps entre apariciones (en sorteos, no días)
- * - gap promedio y desviación estándar
- * - gap actual (sorteos desde última aparición)
- * - zScore: cuántas σ está por encima del promedio (>0 = sobredue)
- * - estado: "vencido" | "en_ventana" | "reciente" | "insuficiente"
+ * Calcula el rezago de cada número usando días reales y una ventana reciente.
+ *
+ * Para cada número:
+ *   - Toma todas sus apariciones dentro de los últimos REZAGO_VENTANA_DIAS días
+ *   - Calcula los gaps en días entre apariciones consecutivas (ciclo real)
+ *   - Compara cuántos días lleva sin caer vs su ciclo promedio reciente
+ *   - zScore = (díasDesdeÚltima - promedioGap) / desviación
+ *
+ * Estados:
+ *   "reciente"     — cayó hace ≤3 días
+ *   "normal"       — dentro del rango esperado (zScore < 0.5)
+ *   "en_ventana"   — comenzando a entrar en su zona de aparición (0.5 ≤ z < 2.0)
+ *   "vencido"      — lleva mucho más de lo normal sin caer (z ≥ 2.0)
+ *   "ausente"      — no apareció en la ventana de análisis (ignorar para señales)
+ *   "insuficiente" — apareció pero muy pocas veces para calcular ciclo confiable
  */
 function calcularRezago(draws) {
-  // Índice de aparición por número
-  const indices = new Map(); // numero → [idx, idx, ...]
-  draws.forEach((d, idx) => {
-    if (!indices.has(d.numero)) indices.set(d.numero, []);
-    indices.get(d.numero).push(idx);
+  const ahora     = Date.now();
+  const ventanaMs = REZAGO_VENTANA_DIAS * DAY_MS;
+  const corte     = ahora - ventanaMs;
+
+  // Separar apariciones dentro y fuera de ventana por número
+  const porNumero = new Map(); // numero → {enVentana: [fechaMs], todas: [fechaMs]}
+  draws.forEach((d) => {
+    const ts = d.fechaDate ? d.fechaDate.getTime() : 0;
+    if (!ts) return;
+    if (!porNumero.has(d.numero)) porNumero.set(d.numero, { enVentana: [], ultima: 0 });
+    const entry = porNumero.get(d.numero);
+    if (ts > entry.ultima) entry.ultima = ts;
+    if (ts >= corte) entry.enVentana.push(ts);
   });
 
-  const totalDraws = draws.length;
-  const resultado  = new Map(); // numero → rezagoInfo
+  const resultado = new Map();
 
-  indices.forEach((apariciones, numero) => {
-    if (apariciones.length < REZAGO_MIN_APARICIONES) {
-      resultado.set(numero, { estado: "insuficiente", apariciones: apariciones.length });
-      return;
+  for (let n = 0; n <= 99; n++) {
+    const entry = porNumero.get(n);
+
+    if (!entry) {
+      resultado.set(n, { estado: "ausente", diasDesdeUltima: null, cicloPromedio: null, zScore: null });
+      continue;
     }
 
-    // Calcular gaps entre apariciones consecutivas
+    const diasDesdeUltima = entry.ultima
+      ? Math.round((ahora - entry.ultima) / DAY_MS)
+      : null;
+
+    // Reciente: cayó hace 3 días o menos
+    if (diasDesdeUltima !== null && diasDesdeUltima <= 3) {
+      resultado.set(n, { estado: "reciente", diasDesdeUltima, cicloPromedio: null, zScore: null, ultimaFecha: entry.ultima });
+      continue;
+    }
+
+    const apariciones = entry.enVentana.sort((a, b) => a - b);
+
+    if (apariciones.length < REZAGO_MIN_APARICIONES) {
+      // Pocas apariciones en la ventana — no podemos calcular ciclo confiable
+      resultado.set(n, {
+        estado: diasDesdeUltima !== null && diasDesdeUltima <= REZAGO_VENTANA_DIAS ? "insuficiente" : "ausente",
+        diasDesdeUltima,
+        cicloPromedio: null,
+        zScore: null,
+        ultimaFecha: entry.ultima,
+      });
+      continue;
+    }
+
+    // Calcular gaps en días entre apariciones consecutivas
     const gaps = [];
     for (let i = 1; i < apariciones.length; i++) {
-      gaps.push(apariciones[i] - apariciones[i - 1]);
+      gaps.push((apariciones[i] - apariciones[i - 1]) / DAY_MS);
     }
 
-    const mean = gaps.reduce((s, g) => s + g, 0) / gaps.length;
+    const mean     = gaps.reduce((s, g) => s + g, 0) / gaps.length;
     const variance = gaps.reduce((s, g) => s + Math.pow(g - mean, 2), 0) / gaps.length;
-    const std = Math.sqrt(variance) || 1;
+    const std      = Math.sqrt(variance) || 1;
+    const zScore   = diasDesdeUltima !== null ? (diasDesdeUltima - mean) / std : 0;
 
-    const ultimaAparicion = apariciones[apariciones.length - 1];
-    const gapActual = totalDraws - 1 - ultimaAparicion;
-    const zScore = (gapActual - mean) / std;
-
-    // Estado basado en zScore
     let estado;
-    if (gapActual <= 3)          estado = "reciente";
-    else if (zScore >= 2.0)      estado = "vencido";      // >2σ sobre el promedio
-    else if (zScore >= 0.5)      estado = "en_ventana";   // entrando en zona esperada
-    else                         estado = "normal";
+    if      (zScore >= 2.0) estado = "vencido";
+    else if (zScore >= 0.5) estado = "en_ventana";
+    else                    estado = "normal";
 
-    resultado.set(numero, {
+    resultado.set(n, {
       estado,
-      apariciones: apariciones.length,
-      gapMedio: Math.round(mean * 10) / 10,
-      gapStd:   Math.round(std * 10) / 10,
-      gapActual,
-      zScore:   Math.round(zScore * 100) / 100,
-      ultimaFecha: draws[ultimaAparicion]?.fecha || null,
+      diasDesdeUltima,
+      cicloPromedio: Math.round(mean * 10) / 10,
+      cicloStd:      Math.round(std * 10) / 10,
+      zScore:        Math.round(zScore * 100) / 100,
+      aparicionesEnVentana: apariciones.length,
+      ultimaFecha: entry.ultima,
     });
-  });
-
-  // Números que nunca han aparecido
-  for (let n = 0; n <= 99; n++) {
-    if (!resultado.has(n)) {
-      resultado.set(n, { estado: "nunca", apariciones: 0 });
-    }
   }
 
   return resultado;
@@ -254,14 +285,14 @@ function aplicarEliminacion(draws, rezago, diciembre) {
   const recientes = draws.slice(-6);
   const hoy       = draws[draws.length - 1]?.fecha;
 
-  // Regla 1: Cayó hoy o ayer → baja probabilidad de repetición (excepto diciembre)
+  // Regla 1: Cayó hace ≤3 días → baja probabilidad de repetición (excepto diciembre)
   if (!diciembre) {
     recientes.forEach((d) => {
       const info = rezago.get(d.numero);
-      if (info && info.gapActual <= 2) {
+      if (info && info.estado === "reciente") {
         if (!eliminados.has(d.numero)) {
           eliminados.set(d.numero, {
-            razon: `Cayó hace ${info.gapActual === 0 ? "este turno" : info.gapActual === 1 ? "1 sorteo" : "2 sorteos"}`,
+            razon: `Cayó hace ${info.diasDesdeUltima === 0 ? "hoy" : `${info.diasDesdeUltima} día${info.diasDesdeUltima > 1 ? "s" : ""}`}`,
             regla: "reciente",
           });
         }
@@ -274,7 +305,7 @@ function aplicarEliminacion(draws, rezago, diciembre) {
   rezago.forEach((info, numero) => {
     if (info.zScore >= 3.0 && info.estado !== "reciente") {
       eliminados.set(numero, {
-        razon: `${info.gapActual} sorteos sin caer (${info.zScore}σ sobre su promedio — sobrecalentado)`,
+        razon: `${info.diasDesdeUltima} días sin caer (${info.zScore}σ sobre su promedio de ${info.cicloPromedio} días — sobrecalentado)`,
         regla: "sobrecalentado",
       });
     }
@@ -340,14 +371,13 @@ function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, semanales
     }
   }
 
-  // ── Rezago (números en ventana o vencidos con z moderado) ──
+  // ── Rezago (números en ventana = candidatos naturales) ──
   rezago.forEach((info, numero) => {
     if (info.estado === "en_ventana") {
-      // zScore entre 0.5 y 2 = candidato natural
       const rezagoScore = Math.min(1, (info.zScore - 0.5) / 1.5);
       addScore(numero, "rezago",
         rezagoScore,
-        `Rezago: ${info.gapActual} sorteos sin caer (promedio ${info.gapMedio}, en ventana)`
+        `Rezago: ${info.diasDesdeUltima} días sin caer (ciclo promedio ${info.cicloPromedio} días — en ventana)`
       );
     }
   });
@@ -584,20 +614,22 @@ export async function estadoRezago(pais) {
   const draws    = enrich(rawDraws.filter((d) => !pais || d.pais === pais));
   const rezago   = calcularRezago(draws);
 
-  const vencidos   = [];
-  const enVentana  = [];
-  const recientes  = [];
+  const vencidos  = [];
+  const enVentana = [];
+  const recientes = [];
 
   rezago.forEach((info, numero) => {
     const { simbolo, familia } = getSymboloFamilia(numero);
     const entry = { numero, pad: padNum(numero), simbolo, familia, ...info };
-    if (info.estado === "vencido")     vencidos.push(entry);
+    if      (info.estado === "vencido")    vencidos.push(entry);
     else if (info.estado === "en_ventana") enVentana.push(entry);
     else if (info.estado === "reciente")   recientes.push(entry);
   });
 
-  vencidos.sort((a, b)  => b.zScore - a.zScore);
-  enVentana.sort((a, b) => b.zScore - a.zScore);
+  // Vencidos: más días sin caer primero
+  vencidos.sort((a, b) => (b.diasDesdeUltima ?? 0) - (a.diasDesdeUltima ?? 0));
+  // En ventana: los más cercanos a su límite superior (z más alto) primero
+  enVentana.sort((a, b) => (b.zScore ?? 0) - (a.zScore ?? 0));
 
   return { vencidos, enVentana, recientes };
 }
