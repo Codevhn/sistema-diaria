@@ -8434,6 +8434,47 @@ body.login-page {
   border-radius: var(--radius-md);
   color: var(--color-accent);
 }
+/* Lag estadístico A↔B */
+.lag-stats-box {
+  background: rgba(242,196,74,0.05);
+  border: 1px solid rgba(242,196,74,0.12);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.65rem;
+  font-size: 0.76rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.lag-stats-box:empty { display: none; }
+.lag-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.lag-dir {
+  font-weight: 700;
+  color: var(--color-accent);
+  font-size: 0.8rem;
+  min-width: 56px;
+}
+.lag-stat {
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  color: var(--color-text);
+}
+.lag-stat--p90 {
+  background: rgba(242,196,74,0.15);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+.lag-stat--none {
+  color: var(--color-muted);
+  font-style: italic;
+  background: none;
+}
+
 .pair-num-info {
   font-size: 0.78rem;
   color: var(--color-muted);

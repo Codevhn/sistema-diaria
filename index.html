@@ -459,6 +459,7 @@
             <div id="p-infoB" class="pair-num-info"></div>
           </div>
         </div>
+        <div id="p-lag-stats" class="lag-stats-box" style="margin-bottom:8px"></div>
         <div class="pair-form__windows">
           <div class="pair-form__win-row">
             <span class="pair-form__win-label">A cae → esperar B en</span>
@@ -2873,6 +2874,7 @@
                 <label class="modal-label" for="mp-numB">Número B (compañero esperado)</label>
                 <input id="mp-numB" type="text" maxlength="2" inputmode="numeric" placeholder="00–99" class="pair-num-input" autocomplete="off" />
                 <div id="mp-infoB" class="pair-num-info" style="margin-top:4px;font-size:.82rem;color:var(--clr-gold)"></div>
+                <div id="mp-lag-stats" class="lag-stats-box"></div>
               </div>
               <div class="modal-field">
                 <span class="modal-label">${padA} cae → esperar B en</span>
@@ -2903,16 +2905,49 @@
         cancelBtn.textContent = "Cancelar";
         modal.classList.remove("hidden");
 
-        // Mostrar símbolo de B en tiempo real
+        // Mostrar símbolo + lag calculado de B en tiempo real
         document.getElementById("mp-numB")?.addEventListener("input", (e) => {
           const v = e.target.value.trim();
           const el = document.getElementById("mp-infoB");
+          const lagEl = document.getElementById("mp-lag-stats");
           if (!el) return;
           const n = parseInt(v, 10);
-          if (!Number.isFinite(n) || n < 0 || n > 99 || v.length < 1) { el.textContent = ""; return; }
+          if (!Number.isFinite(n) || n < 0 || n > 99 || v.length < 1) {
+            el.textContent = "";
+            if (lagEl) lagEl.innerHTML = "";
+            return;
+          }
           const pad = String(n).padStart(2, "0");
           const info = GUIA?.[pad];
           el.textContent = info ? `${info.simbolo || ""}${info.familia ? ` · ${info.familia}` : ""}` : pad;
+
+          // Calcular lag histórico A→B y B→A
+          if (lagEl && drawsCache?.length && v.length === 2) {
+            const lagAB = calcularLagAB(numA, n, drawsCache.filter(d => !d.esTest));
+            const lagBA = calcularLagAB(n, numA, drawsCache.filter(d => !d.esTest));
+            if (lagAB) {
+              // Auto-rellenar ventanas con datos históricos
+              const abMinEl = document.getElementById("mp-ab-min");
+              const abMaxEl = document.getElementById("mp-ab-max");
+              if (abMinEl) abMinEl.value = Math.max(0, lagAB.mediana);
+              if (abMaxEl) abMaxEl.value = lagAB.p90;
+            }
+            if (lagBA) {
+              const baMinEl = document.getElementById("mp-ba-min");
+              const baMaxEl = document.getElementById("mp-ba-max");
+              if (baMinEl) baMinEl.value = Math.max(0, lagBA.mediana);
+              if (baMaxEl) baMaxEl.value = lagBA.p90;
+            }
+            const fmtLag = (lag) => lag
+              ? `<span class="lag-stat">N=${lag.n}</span> <span class="lag-stat">mín ${lag.min}d</span> <span class="lag-stat">mediana ${lag.mediana}d</span> <span class="lag-stat lag-stat--p90">p90 ${lag.p90}d</span>`
+              : `<span class="lag-stat lag-stat--none">sin datos suficientes</span>`;
+            lagEl.innerHTML = `
+              <div class="lag-row"><span class="lag-dir">${String(numA).padStart(2,"0")}→${pad}</span>${fmtLag(lagAB)}</div>
+              <div class="lag-row"><span class="lag-dir">${pad}→${String(numA).padStart(2,"0")}</span>${fmtLag(lagBA)}</div>
+            `;
+          } else if (lagEl) {
+            lagEl.innerHTML = `<span class="lag-stat lag-stat--none">Cargando historial…</span>`;
+          }
         });
 
         // Cargar par existente si ya hay uno guardado con este A
@@ -5334,6 +5369,47 @@
 
     // ── PARES VINCULADOS ──────────────────────────────────────────────────────
 
+    /**
+     * Dado A y B, escanea el historial y calcula cuántos días tardó B
+     * en aparecer después de cada ocurrencia de A.
+     * Retorna estadísticas en días reales, o null si hay menos de 2 muestras.
+     */
+    function calcularLagAB(numA, numB, draws) {
+      const TURN_ORDER = { "11AM": 0, "12PM": 1, "3PM": 2, "6PM": 3, "9PM": 4 };
+      const sorted = [...draws].sort((a, b) => {
+        if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+        return (TURN_ORDER[a.horario] ?? 2) - (TURN_ORDER[b.horario] ?? 2);
+      });
+      const lags = [];
+      for (let i = 0; i < sorted.length; i++) {
+        if (Number(sorted[i].numero) !== numA) continue;
+        for (let j = i + 1; j < sorted.length; j++) {
+          if (Number(sorted[j].numero) === numB) {
+            const dA = new Date(sorted[i].fecha);
+            const dB = new Date(sorted[j].fecha);
+            const dias = Math.round((dB - dA) / 86_400_000);
+            if (dias >= 0 && dias <= 90) lags.push(dias);
+            break;
+          }
+          // no buscar más allá de 90 días
+          const gap = Math.round((new Date(sorted[j].fecha) - new Date(sorted[i].fecha)) / 86_400_000);
+          if (gap > 90) break;
+        }
+      }
+      if (lags.length < 2) return null;
+      const s = [...lags].sort((a, b) => a - b);
+      const n = s.length;
+      const pct = (p) => s[Math.min(Math.floor(n * p), n - 1)];
+      return {
+        n,
+        min: s[0],
+        max: s[n - 1],
+        mediana: pct(0.5),
+        p75: pct(0.75),
+        p90: pct(0.9),
+      };
+    }
+
     const PAIRS_SCOPE = "number_pairs";
 
     function pairKey(a, b) {
@@ -5439,6 +5515,36 @@
       };
       padOnBlur(pNumA, "p-infoA");
       padOnBlur(pNumB, "p-infoB");
+
+      // Lag histórico A→B cuando ambos números están completos
+      function recalcPairLag() {
+        const lagEl = document.getElementById("p-lag-stats");
+        if (!lagEl) return;
+        const rawA = (pNumA?.value || "").trim();
+        const rawB = (pNumB?.value || "").trim();
+        if (!/^\d{2}$/.test(rawA) || !/^\d{2}$/.test(rawB)) { lagEl.innerHTML = ""; return; }
+        const nA = parseInt(rawA, 10), nB = parseInt(rawB, 10);
+        if (nA === nB || !drawsCache?.length) { lagEl.innerHTML = ""; return; }
+        const hist = drawsCache.filter(d => !d.esTest);
+        const lagAB = calcularLagAB(nA, nB, hist);
+        const lagBA = calcularLagAB(nB, nA, hist);
+        if (lagAB) {
+          document.getElementById("p-ab-min").value = Math.max(0, lagAB.mediana);
+          document.getElementById("p-ab-max").value = lagAB.p90;
+        }
+        if (lagBA) {
+          document.getElementById("p-ba-min").value = Math.max(0, lagBA.mediana);
+          document.getElementById("p-ba-max").value = lagBA.p90;
+        }
+        const fmtLag = (lag, dir) => lag
+          ? `<div class="lag-row"><span class="lag-dir">${dir}</span><span class="lag-stat">N=${lag.n}</span> <span class="lag-stat">mín ${lag.min}d</span> <span class="lag-stat">mediana ${lag.mediana}d</span> <span class="lag-stat lag-stat--p90">p90 ${lag.p90}d</span></div>`
+          : `<div class="lag-row"><span class="lag-dir">${dir}</span><span class="lag-stat lag-stat--none">sin datos suficientes</span></div>`;
+        lagEl.innerHTML = fmtLag(lagAB, `${rawA}→${rawB}`) + fmtLag(lagBA, `${rawB}→${rawA}`);
+      }
+      pNumA?.addEventListener("input", recalcPairLag);
+      pNumA?.addEventListener("blur", recalcPairLag);
+      pNumB?.addEventListener("input", recalcPairLag);
+      pNumB?.addEventListener("blur", recalcPairLag);
 
       pGuardar?.addEventListener("click", async () => {
         const rawA = (pNumA?.value || "").trim();
