@@ -8530,6 +8530,216 @@ body.login-page {
   color: var(--color-accent);
 }
 
+/* ── CONSTELACIONES ──────────────────────────────────────────────────────── */
+
+/* Formulario */
+.const-form {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.const-form__row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.const-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.const-name-input {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  padding: 0.4rem 0.7rem;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 280px;
+  max-width: 100%;
+}
+.const-name-input:focus { border-color: var(--color-accent); }
+.const-tipo-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.const-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.const-radio input { accent-color: var(--color-accent); }
+.const-form__members {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.const-add-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.const-members-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 32px;
+}
+
+/* Chips genéricos de constelación */
+.const-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(242,196,74,0.1);
+  border: 1px solid rgba(242,196,74,0.25);
+  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+.const-chip small {
+  font-weight: 400;
+  color: var(--color-text);
+  font-size: 0.72rem;
+}
+.const-chip--editable { cursor: default; }
+.const-chip__del {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.const-chip__del:hover { color: #e55; }
+
+/* Lista de constelaciones guardadas */
+.const-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.const-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.8rem 1rem;
+}
+.const-card__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.const-card__name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-accent);
+}
+.const-card__meta {
+  font-size: 0.76rem;
+  color: var(--color-muted);
+}
+.const-card__members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.const-card__nota {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Pulso — filas de constelación activa */
+.const-active-row {
+  background: rgba(242,196,74,0.05);
+  border: 1px solid rgba(242,196,74,0.15);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 8px;
+}
+.const-active-row--vencida {
+  border-color: rgba(255,80,80,0.2);
+  background: rgba(255,80,80,0.04);
+}
+.const-active-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.const-active-name {
+  font-weight: 700;
+  color: var(--color-accent);
+  font-size: 0.9rem;
+}
+.const-active-trigger {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+.const-active-trigger strong { color: var(--color-text); }
+.const-active-dias {
+  font-size: 0.76rem;
+  background: rgba(242,196,74,0.12);
+  color: var(--color-accent);
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  font-weight: 600;
+}
+.const-active-dias--vencida {
+  background: rgba(255,80,80,0.15);
+  color: #f06;
+}
+.const-active-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.const-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 6px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.const-member small {
+  font-weight: 400;
+  font-size: 0.7rem;
+}
+.const-member--visto {
+  background: rgba(80,220,120,0.1);
+  border-color: rgba(80,220,120,0.25);
+  color: #5dc88a;
+  text-decoration: line-through;
+  opacity: 0.65;
+}
+.const-member--falta {
+  background: rgba(242,196,74,0.12);
+  border-color: rgba(242,196,74,0.3);
+  color: var(--color-accent);
+}
+
 /* Lista de pares */
 .pair-list {
   display: flex;

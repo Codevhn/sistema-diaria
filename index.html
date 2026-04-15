@@ -488,6 +488,55 @@
       <h3 style="margin-top:28px">Pares registrados</h3>
       <div id="p-list" class="pair-list"></div>
 
+      <!-- ── CONSTELACIONES ─────────────────────────────────── -->
+      <hr style="margin:36px 0 28px;opacity:.12">
+      <h2>Constelaciones</h2>
+      <p class="hint" style="margin-bottom:18px">Grupos de números que tienden a aparecer todos dentro de una ventana de días. Cuando uno cae, el sistema rastrea cuáles siguen pendientes.</p>
+
+      <div class="const-form" id="const-form-wrap">
+        <div class="const-form__row">
+          <div class="const-form__field">
+            <label class="pair-form__label">Nombre</label>
+            <input id="c-nombre" type="text" placeholder="Ej: Costurera, Guerra…" class="const-name-input" />
+          </div>
+          <div class="const-form__field">
+            <label class="pair-form__label">Ventana (días)</label>
+            <input id="c-ventana" type="number" min="1" max="60" value="10" class="pair-days" />
+          </div>
+        </div>
+        <div class="const-form__row">
+          <label class="pair-form__label">Tipo de activación</label>
+          <div class="const-tipo-opts">
+            <label class="const-radio"><input type="radio" name="c-tipo" value="grupo_libre" checked /> <span>Grupo libre — cualquier miembro puede iniciar el ciclo</span></label>
+            <label class="const-radio"><input type="radio" name="c-tipo" value="disparador_fijo" /> <span>Disparador fijo — un número específico activa el grupo</span></label>
+          </div>
+        </div>
+        <div class="const-form__row" id="c-disparador-row" style="display:none">
+          <label class="pair-form__label">Número disparador</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input id="c-disparador" type="text" maxlength="2" inputmode="numeric" placeholder="00–99" class="pair-num-input" style="width:72px" />
+            <div id="c-info-disparador" class="pair-num-info" style="font-size:.82rem;color:var(--clr-gold)"></div>
+          </div>
+        </div>
+        <div class="const-form__members">
+          <label class="pair-form__label">Miembros del grupo</label>
+          <div class="const-add-member">
+            <input id="c-add-num" type="text" maxlength="2" inputmode="numeric" placeholder="00–99" class="pair-num-input" style="width:72px" />
+            <button id="c-add-btn" class="btn-outline small">Agregar</button>
+          </div>
+          <div id="c-members-chips" class="const-members-chips"></div>
+        </div>
+        <label class="pair-form__label">Nota <small>(opcional)</small></label>
+        <input id="c-nota" type="text" placeholder="Ej: 95 Costurera necesita 44 Mesa, 14 Novia, 33 Carpintero" class="pair-nota-input" />
+        <div class="pair-form__actions">
+          <button id="c-guardar" class="btn-primary">Guardar constelación</button>
+          <span id="c-status" class="pair-status"></span>
+        </div>
+      </div>
+
+      <h3 style="margin-top:28px">Constelaciones registradas</h3>
+      <div id="c-list" class="const-list"></div>
+
       <!-- Archivo de notas libres anteriores -->
       <details class="pair-archive" style="margin-top:28px">
         <summary>Notas libres anteriores</summary>
@@ -5595,6 +5644,210 @@
       });
     })();
 
+    // ── CONSTELACIONES ────────────────────────────────────────────────────────
+
+    const CONST_SCOPE = "constellations";
+
+    function constKey(nombre) {
+      return `const:${nombre.toLowerCase().replace(/\s+/g, "_")}`;
+    }
+
+    async function saveConstellationToDb(c) {
+      return DB.saveKnowledge([{ key: constKey(c.nombre), scope: CONST_SCOPE, data: c, updatedAt: Date.now() }]);
+    }
+
+    async function listConstellationsFromDb() {
+      const rows = await DB.getKnowledgeByScope(CONST_SCOPE);
+      return rows.map(r => r.data).filter(Boolean);
+    }
+
+    async function deleteConstellationFromDb(nombre) {
+      return DB.deleteKnowledgeByKey(constKey(nombre));
+    }
+
+    /**
+     * Dado el listado de constelaciones y el historial (excl. test),
+     * devuelve las que están activas: disparadas dentro de su ventana
+     * y con miembros aún pendientes.
+     */
+    function detectActiveConstellations(constellations, draws) {
+      if (!constellations.length || !draws.length) return [];
+      const TURN_ORDER = { "11AM": 0, "12PM": 1, "3PM": 2, "6PM": 3, "9PM": 4 };
+      const sorted = [...draws].sort((a, b) => {
+        if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+        return (TURN_ORDER[a.horario] ?? 2) - (TURN_ORDER[b.horario] ?? 2);
+      });
+      const todayMs = Date.now();
+      const results = [];
+
+      for (const c of constellations) {
+        const ventanaDias = c.ventanaDias || 10;
+        const cutoff = new Date(todayMs - ventanaDias * 86_400_000).toISOString().slice(0, 10);
+        const recentDraws = sorted.filter(d => d.fecha >= cutoff);
+        const miembros = (c.miembros || []).map(Number);
+        if (!miembros.length) continue;
+
+        let activadoEn = null, activadoPor = null;
+
+        if (c.tipo === "disparador_fijo" && c.disparador != null) {
+          const trig = recentDraws.find(d => Number(d.numero) === Number(c.disparador));
+          if (trig) { activadoEn = trig.fecha; activadoPor = Number(c.disparador); }
+        } else {
+          // cualquier miembro dispara
+          const first = recentDraws.find(d => miembros.includes(Number(d.numero)));
+          if (first) { activadoEn = first.fecha; activadoPor = Number(first.numero); }
+        }
+        if (!activadoEn) continue;
+
+        const drawsSince = sorted.filter(d => d.fecha >= activadoEn);
+        const numsSince = new Set(drawsSince.map(d => Number(d.numero)));
+        const vistos    = miembros.filter(m => numsSince.has(m));
+        const faltantes = miembros.filter(m => !numsSince.has(m));
+        if (!faltantes.length) continue; // todos ya cayeron, ciclo completo
+
+        const diasActivo    = Math.round((todayMs - new Date(activadoEn).getTime()) / 86_400_000);
+        const diasRestantes = ventanaDias - diasActivo;
+        results.push({ c, activadoEn, activadoPor, vistos, faltantes, diasActivo, diasRestantes });
+      }
+      return results;
+    }
+
+    async function renderConstellationList() {
+      const listEl = document.getElementById("c-list");
+      if (!listEl) return;
+      const constellations = await listConstellationsFromDb();
+      if (!constellations.length) {
+        listEl.innerHTML = "<p class='hint' style='font-size:.82rem'>Sin constelaciones registradas aún.</p>";
+        return;
+      }
+      listEl.innerHTML = "";
+      for (const c of constellations) {
+        const card = document.createElement("div");
+        card.className = "const-card";
+        const miembros = (c.miembros || []).map(Number);
+        const chipsHtml = miembros.map(m => {
+          const pad = String(m).padStart(2, "0");
+          const sim = GUIA?.[pad]?.simbolo || "";
+          return `<span class="const-chip">${pad} <small>${sim}</small></span>`;
+        }).join("");
+        const tipoLabel = c.tipo === "disparador_fijo"
+          ? `Disparador: <strong>${String(c.disparador).padStart(2,"0")} ${GUIA?.[String(c.disparador).padStart(2,"0")]?.simbolo || ""}</strong>`
+          : "Grupo libre";
+        card.innerHTML = `
+          <div class="const-card__head">
+            <span class="const-card__name">${c.nombre}</span>
+            <span class="const-card__meta">${tipoLabel} · ${c.ventanaDias || 10}d</span>
+          </div>
+          <div class="const-card__members">${chipsHtml}</div>
+          ${c.nota ? `<div class="const-card__nota">${c.nota}</div>` : ""}
+        `;
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn-ghost small";
+        delBtn.textContent = "Eliminar";
+        delBtn.style.cssText = "margin-top:8px;font-size:.75rem;opacity:.5";
+        delBtn.addEventListener("click", async () => {
+          if (!confirm(`¿Eliminar la constelación "${c.nombre}"?`)) return;
+          await deleteConstellationFromDb(c.nombre);
+          invalidatePulso();
+          renderConstellationList();
+          renderPulso();
+        });
+        card.appendChild(delBtn);
+        listEl.appendChild(card);
+      }
+    }
+
+    // Bind del formulario de constelaciones
+    (function bindConstellationForm() {
+      let _members = [];
+
+      function renderMemberChips() {
+        const el = document.getElementById("c-members-chips");
+        if (!el) return;
+        el.innerHTML = _members.map((m, i) => {
+          const pad = String(m).padStart(2, "0");
+          const sim = GUIA?.[pad]?.simbolo || "";
+          return `<span class="const-chip const-chip--editable" data-i="${i}">${pad} <small>${sim}</small> <button class="const-chip__del" data-i="${i}">✕</button></span>`;
+        }).join("") || "<span style='color:var(--color-muted);font-size:.8rem'>Agrega al menos 2 números</span>";
+        el.querySelectorAll(".const-chip__del").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.dataset.i, 10);
+            _members.splice(idx, 1);
+            renderMemberChips();
+          });
+        });
+      }
+
+      // Mostrar/ocultar disparador según tipo
+      document.querySelectorAll("input[name='c-tipo']").forEach(r => {
+        r.addEventListener("change", () => {
+          const row = document.getElementById("c-disparador-row");
+          if (row) row.style.display = r.value === "disparador_fijo" && r.checked ? "" : "none";
+        });
+      });
+
+      // Info disparador
+      document.getElementById("c-disparador")?.addEventListener("input", (e) => {
+        const el = document.getElementById("c-info-disparador");
+        if (!el) return;
+        const n = parseInt(e.target.value.trim(), 10);
+        if (!Number.isFinite(n) || n < 0 || n > 99) { el.textContent = ""; return; }
+        const pad = String(n).padStart(2, "0");
+        el.textContent = GUIA?.[pad]?.simbolo || pad;
+      });
+
+      // Agregar miembro
+      function addMember() {
+        const raw = (document.getElementById("c-add-num")?.value || "").trim();
+        const n = parseInt(raw, 10);
+        if (!Number.isFinite(n) || n < 0 || n > 99) return;
+        if (_members.includes(n)) { showToast("Ese número ya está en el grupo.", { variant: "info" }); return; }
+        _members.push(n);
+        document.getElementById("c-add-num").value = "";
+        renderMemberChips();
+      }
+      document.getElementById("c-add-btn")?.addEventListener("click", addMember);
+      document.getElementById("c-add-num")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); addMember(); }
+      });
+
+      // Guardar
+      document.getElementById("c-guardar")?.addEventListener("click", async () => {
+        const nombre = (document.getElementById("c-nombre")?.value || "").trim();
+        const ventanaDias = parseInt(document.getElementById("c-ventana")?.value, 10) || 10;
+        const tipo = document.querySelector("input[name='c-tipo']:checked")?.value || "grupo_libre";
+        const disparadorRaw = (document.getElementById("c-disparador")?.value || "").trim();
+        const disparador = tipo === "disparador_fijo" ? parseInt(disparadorRaw, 10) : null;
+        const nota = (document.getElementById("c-nota")?.value || "").trim();
+        const statusEl = document.getElementById("c-status");
+
+        if (!nombre) { if (statusEl) statusEl.textContent = "Escribe un nombre."; return; }
+        if (_members.length < 2) { if (statusEl) statusEl.textContent = "Agrega al menos 2 miembros."; return; }
+        if (tipo === "disparador_fijo" && !Number.isFinite(disparador)) {
+          if (statusEl) statusEl.textContent = "Ingresa el número disparador."; return;
+        }
+
+        const constellation = { nombre, tipo, disparador, miembros: [..._members], ventanaDias, nota };
+        try {
+          await saveConstellationToDb(constellation);
+          if (statusEl) statusEl.textContent = `"${nombre}" guardada.`;
+          _members = [];
+          renderMemberChips();
+          document.getElementById("c-nombre").value = "";
+          document.getElementById("c-nota").value = "";
+          if (document.getElementById("c-disparador")) document.getElementById("c-disparador").value = "";
+          invalidatePulso();
+          renderConstellationList();
+          renderPulso();
+        } catch (err) {
+          if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+        }
+      });
+
+      renderMemberChips();
+    })();
+
     function getHypothesisFilterNumero() {
       const raw = (hypoSearchInput?.value || "").trim();
       if (!raw) return "";
@@ -6168,6 +6421,39 @@
             }
           }
         } catch (_) { /* pares opcionales, no bloquear */ }
+
+        // ── Constelaciones activas ────────────────────────────────────────────
+        try {
+          const constellations = await listConstellationsFromDb();
+          if (constellations.length) {
+            const active = detectActiveConstellations(constellations, sorted.filter(d => !d.esTest));
+            if (active.length) {
+              const constSec = document.createElement("div");
+              constSec.className = "pulso-group";
+              constSec.innerHTML = `<div class="pulso-group__head"><span class="pulso-group__label">Constelaciones activas</span><span class="pulso-group__freq">${active.length} en curso</span></div>`;
+              for (const { c, activadoPor, vistos, faltantes, diasActivo, diasRestantes } of active) {
+                const padTrig = String(activadoPor).padStart(2, "0");
+                const simTrig = GUIA?.[padTrig]?.simbolo || "";
+                const vencida = diasRestantes < 0;
+                const row = document.createElement("div");
+                row.className = `const-active-row${vencida ? " const-active-row--vencida" : ""}`;
+                row.innerHTML = `
+                  <div class="const-active-head">
+                    <span class="const-active-name">${c.nombre}</span>
+                    <span class="const-active-trigger">disparado por <strong>${padTrig} ${simTrig}</strong></span>
+                    <span class="const-active-dias ${vencida ? "const-active-dias--vencida" : ""}">día ${diasActivo}/${c.ventanaDias || 10}</span>
+                  </div>
+                  <div class="const-active-members">
+                    ${vistos.map(m => { const p = String(m).padStart(2,"0"); return `<span class="const-member const-member--visto" title="${GUIA?.[p]?.simbolo||""}">${p} <small>${GUIA?.[p]?.simbolo||""}</small></span>`; }).join("")}
+                    ${faltantes.map(m => { const p = String(m).padStart(2,"0"); return `<span class="const-member const-member--falta" title="${GUIA?.[p]?.simbolo||""}">${p} <small>${GUIA?.[p]?.simbolo||""}</small></span>`; }).join("")}
+                  </div>
+                `;
+                constSec.appendChild(row);
+              }
+              frag.appendChild(constSec);
+            }
+          }
+        } catch (_) { /* constelaciones opcionales */ }
 
         resultPulso.innerHTML = "";
         resultPulso.appendChild(frag);
@@ -7655,7 +7941,7 @@ function buildVariantEntries(profile) {
         el.classList.remove("hidden");
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();
-        if (id === "view-hypo") { renderPairList(); }
+        if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
         if (id === "view-analysis") renderPulso();
         if (id === "view-maint") refreshDuplicados();
         if (id === "view-modes") refreshModesPanel();
