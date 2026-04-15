@@ -7410,6 +7410,92 @@ button.ghost:hover {
   overflow-x: auto;
 }
 
+/* ── Historial Pega3 — card-rows ─────────────────────────────────────────── */
+.p3hr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.p3hr-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--color-surface);
+  transition: background 0.15s, border-color 0.15s;
+}
+.p3hr-row:hover {
+  background: rgba(242,196,74,0.06);
+  border-color: rgba(242,196,74,0.18);
+}
+.p3hr-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+.p3hr-fecha {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.p3hr-turn, .p3hr-country {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.p3hr-turn--am    { background: rgba(255,200,60,0.15);  color: #f5c842; }
+.p3hr-turn--pm    { background: rgba(80,160,255,0.15);  color: #5fa8f5; }
+.p3hr-turn--night { background: rgba(160,80,255,0.15);  color: #b07aff; }
+.p3hr-country--hn { background: rgba(0,200,140,0.12);   color: #3ecfa0; }
+.p3hr-country--ni { background: rgba(80,160,255,0.12);  color: #5fa8f5; }
+.p3hr-country--sv { background: rgba(255,90,90,0.12);   color: #f07070; }
+
+.p3hr-nums {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.p3hr-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 35% 30%, #252535 0%, #14141c 100%);
+  border: 1px solid rgba(242,196,74,0.35);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--color-accent);
+  text-shadow: 0 0 8px rgba(242,196,74,0.5);
+  box-shadow: 0 0 6px rgba(242,196,74,0.12);
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+.p3hr-del {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.p3hr-row:hover .p3hr-del { opacity: 1; }
+.p3hr-del:hover { color: #f06060; }
+
 /* Search input */
 .pega3-hist-search {
   background: var(--color-surface);
