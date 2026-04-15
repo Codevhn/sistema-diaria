@@ -8138,6 +8138,73 @@ body.login-page {
   letter-spacing: 0.06em;
 }
 
+/* Barra de probabilidad dentro del chip */
+.pulso-chip__bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 2px 0;
+}
+.pulso-chip__bar::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: var(--pct, 0%);
+  background: var(--clr-gold, #c9a84c);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.pulso-chip__hint {
+  font-size: 0.58rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 1px;
+}
+
+/* Chips Markov */
+.pulso-chip--markov {
+  border-color: rgba(100, 180, 255, 0.3);
+  background: rgba(100, 180, 255, 0.05);
+}
+.pulso-chip--markov .pulso-chip__bar::after {
+  background: #64b4ff;
+}
+
+/* Chips motor unificado */
+.pulso-chip--motor {
+  border-color: rgba(120, 220, 150, 0.3);
+  background: rgba(120, 220, 150, 0.05);
+}
+.pulso-chip--motor .pulso-chip__bar::after {
+  background: #78dc96;
+}
+.pulso-chip--penalizado {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+/* Señales de estado */
+.pulso-signal--elim {
+  color: var(--color-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255,255,255,0.1);
+  font-size: 0.76rem;
+}
+.pulso-signal--elim::before { content: "✕ "; color: #e05555; }
+.pulso-signal--warn {
+  background: rgba(220, 100, 60, 0.07);
+  border-color: rgba(220, 100, 60, 0.25);
+}
+.pulso-signal--warn::before { content: "⚠ "; color: #dc643c; }
+.pulso-signal--ok {
+  background: rgba(100, 200, 120, 0.07);
+  border-color: rgba(100, 200, 120, 0.25);
+}
+.pulso-signal--ok::before { content: "✓ "; color: #64c878; }
+
 /* ═══════════════════════════════════════════════════
    PARES VINCULADOS — view-hypo
    ═══════════════════════════════════════════════════ */

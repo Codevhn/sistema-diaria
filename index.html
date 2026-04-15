@@ -958,6 +958,7 @@
       setLocalDrawSnapshotMode,
     } from "./src/local-draw-cache.js";
     import { supabase } from "./src/supabaseClient.js";
+    import { ejecutarMotorSeñales, sucesoresMarkov, estadoRezago } from "./src/signal-engine.js";
     import { logout as supabaseLogout, requireAuthOrRedirect } from "./src/auth.js";
     import { showBootLoader, hideBootLoader } from "./src/boot-loader.js";
     const bootOverlay = document.getElementById("boot-loader");
@@ -6058,6 +6059,103 @@
           sigEl.className = "pulso-signal";
           sigEl.textContent = signal;
           frag.appendChild(sigEl);
+        }
+
+        // ── Motor de señales unificado ───────────────────────────────────────
+        try {
+          const pais = last.pais || "";
+          const [motorResult, rezagoResult, sucesores] = await Promise.allSettled([
+            ejecutarMotorSeñales({ pais, turno: nextHorario, topN: 8 }),
+            estadoRezago(pais),
+            sucesoresMarkov(lastNum, pais, 4),
+          ]);
+
+          // ── Sucesores Markov del último número ──
+          const suc = sucesores.status === "fulfilled" ? sucesores.value : [];
+          if (suc.length) {
+            const markovSec = document.createElement("div");
+            markovSec.className = "pulso-group";
+            markovSec.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">Markov — tras ${lastPad} ${lastInfo.simbolo || ""}</span>
+                <span class="pulso-group__freq">transiciones históricas</span>
+              </div>`;
+            const markovChips = document.createElement("div");
+            markovChips.className = "pulso-chips";
+            suc.forEach(({ pad, simbolo, prob, count }) => {
+              const chip = document.createElement("div");
+              chip.className = "pulso-chip pulso-chip--markov";
+              chip.innerHTML = `
+                <span class="pulso-chip__num">${pad}</span>
+                <span class="pulso-chip__sym">${simbolo}</span>
+                <div class="pulso-chip__bar" style="--pct:${prob}%"></div>
+                <span class="pulso-chip__count">${prob}% · ${count}×</span>`;
+              markovChips.appendChild(chip);
+            });
+            markovSec.appendChild(markovChips);
+            frag.appendChild(markovSec);
+          }
+
+          // ── Candidatos del motor unificado ──
+          const motor = motorResult.status === "fulfilled" ? motorResult.value : null;
+          if (motor?.candidatos?.length) {
+            const motorSec = document.createElement("div");
+            motorSec.className = "pulso-group";
+            motorSec.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">Motor unificado — candidatos para ${nextHorario}</span>
+                <span class="pulso-group__freq">${motor.universo} números tras filtros · ${motor.contexto.dataQuality === "alto" ? "datos sólidos" : motor.contexto.dataQuality === "medio" ? "datos moderados" : "datos limitados"}</span>
+              </div>`;
+            const motorChips = document.createElement("div");
+            motorChips.className = "pulso-chips";
+            motor.candidatos.forEach((c) => {
+              const chip = document.createElement("div");
+              chip.className = `pulso-chip pulso-chip--motor${c.penalizado ? " pulso-chip--penalizado" : ""}`;
+              const topSignal = c.signals[0];
+              chip.innerHTML = `
+                <span class="pulso-chip__num">${c.pad}</span>
+                <span class="pulso-chip__sym">${c.simbolo}</span>
+                <div class="pulso-chip__bar" style="--pct:${Math.round(c.score * 100)}%"></div>
+                <span class="pulso-chip__count">${Math.round(c.score * 100)}%</span>
+                ${topSignal ? `<span class="pulso-chip__hint" title="${topSignal.label}">${topSignal.source}</span>` : ""}`;
+              chip.title = c.signals.map((s) => s.label).join("\n");
+              motorChips.appendChild(chip);
+            });
+            motorSec.appendChild(motorChips);
+            frag.appendChild(motorSec);
+
+            // ── Números eliminados (resumen) ──
+            if (motor.eliminados?.length) {
+              const elimSec = document.createElement("div");
+              elimSec.className = "pulso-signal pulso-signal--elim";
+              const recientes = motor.eliminados.filter((e) => e.regla === "reciente").map((e) => `${e.pad} ${e.simbolo}`).slice(0, 5);
+              const sobrec   = motor.eliminados.filter((e) => e.regla === "sobrecalentado").map((e) => `${e.pad}`).slice(0, 4);
+              let txt = "";
+              if (recientes.length) txt += `Excluidos (cayeron reciente): ${recientes.join(" · ")}`;
+              if (sobrec.length) txt += `${txt ? "  |  " : ""}Sobrecalentados (sistema los evita): ${sobrec.join(" · ")}`;
+              if (txt) elimSec.textContent = txt;
+              if (txt) frag.appendChild(elimSec);
+            }
+          }
+
+          // ── Números vencidos (rezago) ──
+          const rez = rezagoResult.status === "fulfilled" ? rezagoResult.value : null;
+          if (rez?.vencidos?.length) {
+            const vencSec = document.createElement("div");
+            vencSec.className = "pulso-signal pulso-signal--warn";
+            const lista = rez.vencidos.slice(0, 5).map((v) => `${v.pad} ${v.simbolo} (${v.gapActual})`).join(" · ");
+            vencSec.innerHTML = `<strong>Vencidos</strong> — muchos días sin caer, el sistema los evita: ${lista}`;
+            frag.appendChild(vencSec);
+          }
+          if (rez?.enVentana?.length) {
+            const ventSec = document.createElement("div");
+            ventSec.className = "pulso-signal pulso-signal--ok";
+            const lista = rez.enVentana.slice(0, 6).map((v) => `${v.pad} ${v.simbolo}`).join(" · ");
+            ventSec.innerHTML = `<strong>En ventana</strong> — dentro de su ciclo histórico normal: ${lista}`;
+            frag.appendChild(ventSec);
+          }
+        } catch (motorErr) {
+          console.warn("signal-engine error (no bloquea)", motorErr);
         }
 
         // ── Pares vinculados activos ──────────────────────────────────────────
