@@ -404,9 +404,14 @@
         </article>
         </article>
         <article class="card pega3-card pega3-card--insights">
-          <div class="card-head">Historial Pega3</div>
+          <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span>Historial Pega3</span><input id="pega3-hist-search" type="text" placeholder="Fecha o n�mero2026" class="pega3-hist-search" /></div>
           <div id="pega3-historial" class="pega3-historial">
             <p class="hint">Registra sorteos para comenzar el análisis.</p>
+          </div>
+          <div id="pega3-hist-pager" class="pega3-pager" style="display:none">
+            <button id="pega3-pager-prev" class="btn-ghost pega3-pager__btn">&lsaquo; Ant</button>
+            <span id="pega3-pager-info" class="pega3-pager__info"></span>
+            <button id="pega3-pager-next" class="btn-ghost pega3-pager__btn">Sig &rsaquo;</button>
           </div>
           <div class="pega3-analisis">
             <div class="pega3-analisis__head">
@@ -1898,6 +1903,9 @@
     let pega3DrawCache = [];
     let pega3ActiveDrawId = null;
     let pega3AnalysisCache = null;
+    let _pega3Page = 0;
+    const PEGA3_PAGE_SIZE = 30;
+    let _pega3Filter = "";
     const formatFriendlyDate = (value) => {
       if (!value) return "";
       const date =
@@ -6351,46 +6359,78 @@
 
     function renderPega3HistorialList(draws = []) {
       if (!pega3Historial) return;
-      if (!draws.length) {
-        pega3Historial.innerHTML = "<p class='hint'>Aún no registras sorteos Pega3.</p>";
+      const pager = document.getElementById("pega3-hist-pager");
+      const pagerInfo = document.getElementById("pega3-pager-info");
+      const prevBtn = document.getElementById("pega3-pager-prev");
+      const nextBtn = document.getElementById("pega3-pager-next");
+
+      const q = _pega3Filter.toLowerCase().trim();
+      const filtered = q
+        ? draws.filter((r) => {
+            const nums = (r.pares || []).join(" ");
+            return (
+              (r.fecha || "").includes(q) ||
+              nums.includes(q) ||
+              (PEGA3_TURN_LABELS[r.horario] || r.horario || "").toLowerCase().includes(q) ||
+              ((r.pais || "HN").toLowerCase()).includes(q)
+            );
+          })
+        : draws;
+
+      if (!filtered.length) {
+        pega3Historial.innerHTML = q
+          ? "<p class='hint'>Sin resultados para esa búsqueda.</p>"
+          : "<p class='hint'>Aún no registras sorteos Pega3.</p>";
+        if (pager) pager.style.display = "none";
         return;
       }
-      const fragment = document.createDocumentFragment();
-      draws.slice(0, 60).forEach((row) => {
-        const item = document.createElement("div");
-        item.className = "pega3-entry";
-        const colorIndex = computePega3DateColorIndex(row.fecha || "");
-        item.dataset.colorIndex = colorIndex;
-        const info = document.createElement("div");
-        info.className = "pega3-entry__info";
-        const title = document.createElement("strong");
-        const friendly = row.fecha ? formatFriendlyDate(row.fecha) : row.fecha;
-        title.textContent = `${friendly || "—"}`;
-        const meta = document.createElement("span");
-        meta.className = "pega3-entry__meta";
+
+      const totalPages = Math.ceil(filtered.length / PEGA3_PAGE_SIZE);
+      if (_pega3Page >= totalPages) _pega3Page = totalPages - 1;
+      if (_pega3Page < 0) _pega3Page = 0;
+      const start = _pega3Page * PEGA3_PAGE_SIZE;
+      const page = filtered.slice(start, start + PEGA3_PAGE_SIZE);
+
+      const table = document.createElement("table");
+      table.className = "pega3-hist-table";
+      table.innerHTML = `<thead><tr>
+        <th>Fecha</th><th>Turno</th><th>País</th><th>Par 1</th><th>Par 2</th><th>Par 3</th><th></th>
+      </tr></thead>`;
+      const tbody = document.createElement("tbody");
+      page.forEach((row) => {
+        const tr = document.createElement("tr");
         const paisCode = (row.pais || "HN").toUpperCase();
         const paisLabel = PEGA3_COUNTRY_LABELS[paisCode] || paisCode;
-        meta.textContent = `${PEGA3_TURN_LABELS[row.horario] || row.horario || ""} · ${paisLabel}`;
-        const nums = document.createElement("div");
-        nums.className = "pega3-entry__pairs";
-        nums.textContent = row.pares.map((n) => formatNumber(n)).join(" – ");
-        info.append(title, meta, nums);
-
-        const actions = document.createElement("div");
-        actions.className = "pega3-entry__actions";
-        const deleteBtn = document.createElement("button");
-        deleteBtn.type = "button";
-        deleteBtn.className = "btn-ghost pega3-entry__delete";
-        deleteBtn.textContent = "Eliminar";
-        deleteBtn.addEventListener("click", () => handlePega3Delete(row));
-        actions.appendChild(deleteBtn);
-
-        item.appendChild(info);
-        item.appendChild(actions);
-        fragment.appendChild(item);
+        const pares = row.pares || [];
+        const fmt = (n) => (n != null ? formatNumber(n) : "—");
+        tr.innerHTML = `
+          <td class="p3ht-fecha">${row.fecha || "—"}</td>
+          <td class="p3ht-turno">${PEGA3_TURN_LABELS[row.horario] || row.horario || "—"}</td>
+          <td class="p3ht-pais">${paisLabel}</td>
+          <td class="p3ht-num">${fmt(pares[0])}</td>
+          <td class="p3ht-num">${fmt(pares[1])}</td>
+          <td class="p3ht-num">${fmt(pares[2])}</td>
+          <td class="p3ht-del"></td>
+        `;
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "btn-ghost pega3-entry__delete";
+        delBtn.textContent = "✕";
+        delBtn.title = "Eliminar";
+        delBtn.addEventListener("click", () => handlePega3Delete(row));
+        tr.querySelector(".p3ht-del").appendChild(delBtn);
+        tbody.appendChild(tr);
       });
+      table.appendChild(tbody);
       pega3Historial.innerHTML = "";
-      pega3Historial.appendChild(fragment);
+      pega3Historial.appendChild(table);
+
+      if (pager) {
+        pager.style.display = "flex";
+        if (pagerInfo) pagerInfo.textContent = `Página ${_pega3Page + 1} de ${totalPages}  (${filtered.length} registros)`;
+        if (prevBtn) prevBtn.disabled = _pega3Page === 0;
+        if (nextBtn) nextBtn.disabled = _pega3Page >= totalPages - 1;
+      }
     }
 
     async function handlePega3Delete(row) {
@@ -6610,6 +6650,17 @@
     pega3SaveBtn?.addEventListener("click", handlePega3Save);
     document.getElementById("pega3-btn-cargar")?.addEventListener("click", () => refreshPega3Historial());
     document.getElementById("pega3-btn-analizar")?.addEventListener("click", () => runPega3Analysis());
+    document.getElementById("pega3-hist-search")?.addEventListener("input", (e) => {
+      _pega3Filter = e.target.value;
+      _pega3Page = 0;
+      renderPega3HistorialList(pega3DrawCache);
+    });
+    document.getElementById("pega3-pager-prev")?.addEventListener("click", () => {
+      if (_pega3Page > 0) { _pega3Page--; renderPega3HistorialList(pega3DrawCache); }
+    });
+    document.getElementById("pega3-pager-next")?.addEventListener("click", () => {
+      _pega3Page++; renderPega3HistorialList(pega3DrawCache);
+    });
     pega3GeneratorBtn?.addEventListener("click", () => generatePega3ConversionTrio());
     pega3ParInputs.forEach((input) => {
       input?.addEventListener("input", () => resetPega3GeneratorOutput("Vuelve a generar el trío para reflejar los cambios."));
