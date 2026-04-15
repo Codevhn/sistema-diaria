@@ -3181,6 +3181,7 @@
           try {
             await savePairToDb({ numA, numB, ventanaAB: { min: abMin, max: abMax }, ventanaBA: { min: baMin, max: baMax }, nota });
             mostrarAviso(`Par ${padA} ↔ ${padB} guardado.`, { variant: "success" });
+            invalidatePulso();
             renderPairList();
             renderPulso();
           } catch (err) {
@@ -5480,6 +5481,7 @@
     async function handleDrawsMutated() {
       invalidateDrawCache();
       invalidateMemoryCache();
+      invalidatePulso();
       await Promise.allSettled([
         refreshHistoryPanel({ forceReload: true }),
         refreshNotebookList(),
@@ -5634,6 +5636,7 @@
         delBtn.addEventListener("click", async () => {
           if (!confirm(`¿Eliminar el par ${padA} ↔ ${padB}?`)) return;
           await deletePairFromDb(pair.numA, pair.numB);
+          invalidatePulso();
           renderPairList();
           renderPulso();
         });
@@ -5700,6 +5703,7 @@
           document.getElementById("p-infoA").textContent = "";
           document.getElementById("p-infoB").textContent = "";
           await renderPairList();
+          invalidatePulso();
           renderPulso();
         } catch (err) {
           if (pStatus) pStatus.textContent = `Error: ${err.message}`;
@@ -5967,6 +5971,11 @@
 
     // ── PULSO: análisis de candidatos por conversión/equivalencia ──────────────
 
+    // ── Caché de Pulso ────────────────────────────────────────────────────────
+    // El panel solo se recalcula cuando hay nuevos datos, no al navegar.
+    let _pulsoStale = true;
+    function invalidatePulso() { _pulsoStale = true; }
+
     // ── Helpers de UI para el motor de señales ────────────────────────────────
 
     /** Crea un <img> del número con fallback silencioso */
@@ -6046,6 +6055,7 @@
 
     async function renderPulso() {
       if (!resultPulso) return;
+      if (!_pulsoStale) return; // sin cambios en los datos, no recalcular
       resultPulso.innerHTML = "<p class='pulso-empty'>Cargando historial…</p>";
       try {
         const draws = await DB.listDraws({ excludeTest: true });
@@ -6291,6 +6301,7 @@
 
         resultPulso.innerHTML = "";
         resultPulso.appendChild(frag);
+        _pulsoStale = false; // caché válido hasta el próximo cambio de datos
       } catch (err) {
         console.error("renderPulso error", err);
         resultPulso.innerHTML = `<p class='pulso-empty'>No se pudo calcular: ${err.message}</p>`;
