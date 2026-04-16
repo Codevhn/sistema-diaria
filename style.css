@@ -9225,3 +9225,98 @@ body.login-page {
 }
 .pulso-recovery-banner span:first-child { font-weight: 700; color: #f06060; }
 .pulso-recovery-banner span:last-child { color: var(--color-muted); }
+
+/* ── SUPER PREMIO / MODO RECUPERACIÓN (panel view-hypo) ─────────────────── */
+.sp-mode-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(255,160,40,0.18);
+  color: #ffaa28;
+  border: 1px solid rgba(255,160,40,0.35);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  margin-left: 10px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}
+
+.sp-year-tab {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.65rem;
+  transition: all 0.15s;
+}
+.sp-year-tab:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.sp-year-tab--active {
+  background: rgba(242,196,74,0.12);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.sp-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.sp-month__name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.sp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.sp-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0.3rem 0.45rem;
+  min-width: 38px;
+  transition: all 0.15s;
+}
+.sp-chip:hover { border-color: rgba(242,196,74,0.35); }
+.sp-chip__dow {
+  font-size: 0.62rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  line-height: 1;
+}
+.sp-chip__day {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+.sp-chip--ganado {
+  background: rgba(255,140,0,0.15);
+  border-color: rgba(255,140,0,0.5);
+}
+.sp-chip--ganado .sp-chip__dow { color: #ffaa28; }
+.sp-chip--ganado .sp-chip__day { color: #ffaa28; }
+
+/* Recovery banner in Pulso */
+.sp-recovery-banner {
+  border: 1px solid rgba(255,140,0,0.3) !important;
+  background: rgba(255,140,0,0.06) !important;
+}
+.sp-recovery-desc {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  margin: 4px 0 0;
+  padding: 0 2px;
+}

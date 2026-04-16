@@ -550,6 +550,14 @@
       <h3 style="margin-top:28px">Constelaciones registradas</h3>
       <div id="c-list" class="const-list"></div>
 
+      <!-- ── SUPER PREMIO / MODO RECUPERACIÓN ───────────────────────────── -->
+      <hr style="margin:36px 0 28px;opacity:.12">
+      <h2>Super Premio <span class="sp-mode-badge" id="sp-mode-badge" style="display:none"></span></h2>
+      <p class="hint" style="margin-bottom:18px">Marca los miércoles y sábados donde La Diaria pagó un super premio. El sistema activará Modo Recuperación automáticamente durante los 14 días siguientes.</p>
+
+      <div class="sp-year-tabs" id="hypo-sp-year-tabs"></div>
+      <div class="sp-calendar" id="hypo-sp-calendar"></div>
+
       <!-- Archivo de notas libres anteriores -->
       <details class="pair-archive" style="margin-top:28px">
         <summary>Notas libres anteriores</summary>
@@ -6089,6 +6097,165 @@
       });
     }
 
+    // ── SUPER PREMIO / MODO RECUPERACIÓN (panel en view-hypo) ────────────────
+
+    async function listSuperPremios() {
+      const rows = await DB.getKnowledgeByScope(SP_SCOPE);
+      return rows.map(r => r.data).filter(Boolean).map(d => ({
+        fecha: d.fecha,
+        ganado: d.ganado !== undefined ? d.ganado : !!d.fecha // compat con entradas antiguas
+      }));
+    }
+
+    async function saveSuperPremioMark(fecha, ganado) {
+      if (ganado) {
+        return DB.saveKnowledge([{ key: spKey(fecha), scope: SP_SCOPE, data: { fecha, ganado: true }, updatedAt: Date.now() }]);
+      } else {
+        return DB.deleteKnowledgeByKey(spKey(fecha));
+      }
+    }
+
+    // Returns recovery mode info or null if not in recovery
+    function detectRecoveryMode(superPremios) {
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const cutoffMs = today.getTime() - SP_RECOVERY_DAYS * 86_400_000;
+
+      const recent = superPremios
+        .filter(sp => sp.ganado && sp.fecha <= todayStr && new Date(sp.fecha).getTime() >= cutoffMs)
+        .sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+      if (!recent.length) return null;
+      const latest = recent[0];
+      const diasDesde = Math.round((today.getTime() - new Date(latest.fecha).getTime()) / 86_400_000);
+      return { fecha: latest.fecha, diasDesde, diasRestantes: SP_RECOVERY_DAYS - diasDesde };
+    }
+
+    // Get all Wednesdays (3) and Saturdays (6) for a year
+    function getSuperPremioFechas(year) {
+      const dates = [];
+      const d = new Date(year, 0, 1);
+      while (d.getFullYear() === year) {
+        const dow = d.getDay();
+        if (dow === 3 || dow === 6) dates.push(d.toISOString().slice(0, 10));
+        d.setDate(d.getDate() + 1);
+      }
+      return dates;
+    }
+
+    const MONTH_NAMES_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+    let _spHypoYear = new Date().getFullYear();
+    let _spHypoMarked = new Set(); // set of marked fechas (hypo panel)
+
+    async function renderSuperPremioHypo() {
+      const tabsEl = document.getElementById("hypo-sp-year-tabs");
+      const calEl = document.getElementById("hypo-sp-calendar");
+      if (!tabsEl || !calEl) return;
+
+      // Load marked dates
+      const list = await listSuperPremios();
+      _spHypoMarked = new Set(list.filter(sp => sp.ganado).map(sp => sp.fecha));
+
+      // Update recovery mode badge
+      const recovery = detectRecoveryMode(list);
+      const badge = document.getElementById("sp-mode-badge");
+      if (badge) {
+        if (recovery) {
+          badge.textContent = `⚡ Modo Recuperación · día ${recovery.diasDesde}/${SP_RECOVERY_DAYS}`;
+          badge.style.display = "";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+
+      // Render year tabs
+      const currentYear = new Date().getFullYear();
+      const years = [];
+      for (let y = 2015; y <= currentYear; y++) years.push(y);
+
+      tabsEl.innerHTML = years.map(y =>
+        `<button class="sp-year-tab${y === _spHypoYear ? " sp-year-tab--active" : ""}" data-year="${y}">${y}</button>`
+      ).join("");
+
+      tabsEl.querySelectorAll(".sp-year-tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+          _spHypoYear = parseInt(btn.dataset.year, 10);
+          renderSuperPremioCalendar();
+          tabsEl.querySelectorAll(".sp-year-tab").forEach(b => b.classList.toggle("sp-year-tab--active", b === btn));
+        });
+      });
+
+      renderSuperPremioCalendar();
+      invalidatePulso();
+    }
+
+    function renderSuperPremioCalendar() {
+      const calEl = document.getElementById("hypo-sp-calendar");
+      if (!calEl) return;
+
+      const dates = getSuperPremioFechas(_spHypoYear);
+      // Group by month
+      const byMonth = {};
+      for (const f of dates) {
+        const m = parseInt(f.slice(5, 7), 10) - 1;
+        if (!byMonth[m]) byMonth[m] = [];
+        byMonth[m].push(f);
+      }
+
+      calEl.innerHTML = "";
+      for (const [mIdx, fechas] of Object.entries(byMonth)) {
+        const section = document.createElement("div");
+        section.className = "sp-month";
+        const heading = document.createElement("div");
+        heading.className = "sp-month__name";
+        heading.textContent = MONTH_NAMES_ES[parseInt(mIdx)];
+        section.appendChild(heading);
+
+        const chips = document.createElement("div");
+        chips.className = "sp-chips";
+        for (const fecha of fechas) {
+          const d = new Date(fecha + "T12:00:00");
+          const dow = d.getDay() === 3 ? "Mié" : "Sáb";
+          const day = d.getDate();
+          const marked = _spHypoMarked.has(fecha);
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = `sp-chip${marked ? " sp-chip--ganado" : ""}`;
+          chip.dataset.fecha = fecha;
+          chip.innerHTML = `<span class="sp-chip__dow">${dow}</span><span class="sp-chip__day">${day}</span>`;
+          chip.title = fecha;
+          chip.addEventListener("click", async () => {
+            const nowMarked = _spHypoMarked.has(fecha);
+            if (nowMarked) {
+              _spHypoMarked.delete(fecha);
+              chip.classList.remove("sp-chip--ganado");
+            } else {
+              _spHypoMarked.add(fecha);
+              chip.classList.add("sp-chip--ganado");
+            }
+            await saveSuperPremioMark(fecha, !nowMarked);
+            // Update recovery badge
+            const list = Array.from(_spHypoMarked).map(f => ({ fecha: f, ganado: true }));
+            const recovery = detectRecoveryMode(list);
+            const badge = document.getElementById("sp-mode-badge");
+            if (badge) {
+              if (recovery) {
+                badge.textContent = `⚡ Modo Recuperación · día ${recovery.diasDesde}/${SP_RECOVERY_DAYS}`;
+                badge.style.display = "";
+              } else {
+                badge.style.display = "none";
+              }
+            }
+            invalidatePulso();
+          });
+          chips.appendChild(chip);
+        }
+        section.appendChild(chips);
+        calEl.appendChild(section);
+      }
+    }
+
     function getHypothesisFilterNumero() {
       const raw = (hypoSearchInput?.value || "").trim();
       if (!raw) return "";
@@ -6713,6 +6880,24 @@
             }
           }
         } catch (_) { /* constelaciones opcionales */ }
+
+        // ── Modo Recuperación (Super Premio) ─────────────────────────────────
+        try {
+          const spList = await listSuperPremios();
+          const recovery = detectRecoveryMode(spList);
+          if (recovery) {
+            const recSec = document.createElement("div");
+            recSec.className = "pulso-group sp-recovery-banner";
+            recSec.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">⚡ Modo Recuperación activo</span>
+                <span class="pulso-group__freq">día ${recovery.diasDesde} de ${SP_RECOVERY_DAYS} · desde ${recovery.fecha}</span>
+              </div>
+              <p class="sp-recovery-desc">La Diaria pagó un super premio hace ${recovery.diasDesde} día${recovery.diasDesde !== 1 ? "s" : ""}. En recuperación, el sistema prioriza números recientes y sus conversiones.</p>
+            `;
+            frag.prepend(recSec);
+          }
+        } catch (_) { /* recovery opcional */ }
 
         resultPulso.innerHTML = "";
         resultPulso.appendChild(frag);
@@ -8211,7 +8396,7 @@ function buildVariantEntries(profile) {
         el.classList.remove("hidden");
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();
-        if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
+        if (id === "view-hypo") { renderPairList(); renderConstellationList(); renderSuperPremioHypo(); }
         if (id === "view-analysis") renderPulso();
         if (id === "view-superpremio") renderSuperPremioPanel();
         if (id === "view-maint") refreshDuplicados();
