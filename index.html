@@ -5182,7 +5182,10 @@
           const m = d.getMonth();
           if (!result[y]) result[y] = {};
           if (!result[y][m]) result[y][m] = [];
-          result[y][m].push(d.toISOString().slice(0, 10));
+          // Usar fecha local, NO toISOString (que convierte a UTC y desfasa el día)
+          const mm = String(m + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          result[y][m].push(`${y}-${mm}-${dd}`);
         }
         d.setDate(d.getDate() + 1);
       }
@@ -5327,7 +5330,9 @@
         const markedCount = dates.filter(f => _spMarkedSet.has(f)).length;
         const chipsHtml = dates.map(fecha => {
           const day = parseInt(fecha.slice(8), 10);
-          const dow = new Date(fecha).getDay();
+          // Parsear en local para evitar desfase UTC
+          const [fy, fm, fd] = fecha.split("-").map(Number);
+          const dow = new Date(fy, fm - 1, fd).getDay();
           const isSat = dow === 6;
           const isMarked = _spMarkedSet.has(fecha);
           return `<button class="sp-date-chip${isSat ? " sp-date-chip--sat" : " sp-date-chip--wed"}${isMarked ? " sp-date-chip--marked" : ""}"

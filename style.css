@@ -8712,23 +8712,24 @@ body.login-page {
 .sp-month-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
 }
 .sp-date-chip {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  padding: 0.2rem 0.4rem;
+  padding: 0.45rem 0.65rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 36px;
+  min-width: 52px;
+  gap: 2px;
   transition: all 0.12s;
 }
-.sp-date-chip:hover { border-color: var(--color-accent); }
-.sp-chip-dow { font-size: 0.58rem; color: var(--color-muted); line-height: 1; }
-.sp-chip-day { font-size: 0.8rem; font-weight: 700; line-height: 1.2; }
+.sp-date-chip:hover { border-color: var(--color-accent); background: rgba(242,196,74,0.06); }
+.sp-chip-dow { font-size: 0.68rem; color: var(--color-muted); line-height: 1; font-weight: 600; }
+.sp-chip-day { font-size: 1rem; font-weight: 700; line-height: 1.2; }
 .sp-date-chip--wed .sp-chip-day { color: #5fa8f5; }
 .sp-date-chip--sat .sp-chip-day { color: var(--color-accent); }
 .sp-date-chip--marked {
