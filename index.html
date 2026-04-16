@@ -40,7 +40,6 @@
     <button data-view="superpremio"><span class="sidebar-icon fa-solid fa-trophy"></span><i>Super Premio</i></button>
     <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
     <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
-    <button data-view="notebook"><span class="sidebar-icon fa-solid fa-bookmark"></span><i>Cuaderno</i></button>
     <button data-view="geometry"><span
         class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
     <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
@@ -550,14 +549,6 @@
       <h3 style="margin-top:28px">Constelaciones registradas</h3>
       <div id="c-list" class="const-list"></div>
 
-      <!-- ── SUPER PREMIO / MODO RECUPERACIÓN ───────────────────────────── -->
-      <hr style="margin:36px 0 28px;opacity:.12">
-      <h2>Super Premio <span class="sp-mode-badge" id="sp-mode-badge" style="display:none"></span></h2>
-      <p class="hint" style="margin-bottom:18px">Marca los miércoles y sábados donde La Diaria pagó un super premio. El sistema activará Modo Recuperación automáticamente durante los 14 días siguientes.</p>
-
-      <div class="sp-year-tabs" id="hypo-sp-year-tabs"></div>
-      <div class="sp-calendar" id="hypo-sp-calendar"></div>
-
       <!-- Archivo de notas libres anteriores -->
       <details class="pair-archive" style="margin-top:28px">
         <summary>Notas libres anteriores</summary>
@@ -637,93 +628,6 @@
           <div id="g-turnos-cands" class="geom-candidates"></div>
         </div>
       </div>
-    </section>
-
-    <!-- CUADERNO -->
-    <section id="view-notebook" class="view hidden">
-      <h2>Cuaderno de seguimiento</h2>
-      <p class="hint">
-        Guarda un trío de sorteos para darle seguimiento durante la semana. Puedes importar los números del panel del día
-        o usar los resultados ya registrados.
-      </p>
-      <div class="notebook-form">
-        <label>
-          Fecha
-          <input type="date" id="nb-fecha" />
-        </label>
-        <label>
-          País
-          <select id="nb-pais">
-            <option value="HN">HN</option>
-            <option value="NI">NI</option>
-            <option value="SV">SV</option>
-          </select>
-        </label>
-      </div>
-      <div class="notebook-numbers">
-        <label>
-          11 AM
-          <input id="nb-11" maxlength="2" placeholder="--" />
-        </label>
-        <label>
-          3 PM
-          <input id="nb-3" maxlength="2" placeholder="--" />
-        </label>
-        <label>
-          9 PM
-          <input id="nb-9" maxlength="2" placeholder="--" />
-        </label>
-      </div>
-      <div class="notebook-actions">
-        <button id="nb-fill-day" class="btn-outline">Usar panel del día</button>
-        <button id="nb-fill-results" class="btn-outline">Traer resultados guardados</button>
-        <button id="nb-save" class="btn-primary">Guardar trio</button>
-      </div>
-      <div id="nb-list" class="notebook-list">
-        <p class="hint">Todavía no tienes elementos en el cuaderno.</p>
-      </div>
-
-      <article class="followups-card card">
-        <div class="followups-card__head">
-          <div>
-            <h3>Apuntes de seguimiento 00–99</h3>
-            <p class="hint">
-              Anota qué números suelen seguir a cada resultado. Usa comas, espacios o saltos de línea para separar múltiples opciones.
-            </p>
-          </div>
-          <div class="followups-head-actions">
-            <button id="followups-refresh" class="btn-outline btn-compact">Actualizar</button>
-          </div>
-        </div>
-        <div class="followups-meta">
-          <div class="followups-card__filter">
-            <label for="followups-filter">Ir directo al número</label>
-            <div class="followups-filter">
-              <input
-                id="followups-filter"
-                maxlength="2"
-                inputmode="numeric"
-                placeholder="00–99"
-                aria-label="Filtrar por número 00 al 99"
-              />
-              <button id="followups-filter-reset" type="button" class="btn-ghost btn-compact">Ver todos</button>
-            </div>
-            <p class="hint followups-filter-hint">También puedes usar el panel para saltar a un número con apuntes.</p>
-          </div>
-          <div class="followups-quick-index">
-            <div class="followups-quick-index__head">
-              <h4>Accesos rápidos</h4>
-              <p class="hint">Selecciona un número para saltar directo al registro.</p>
-            </div>
-            <div id="followups-index" class="followups-index">
-              <p class="hint">Mantén guardados tus apuntes para ver accesos rápidos.</p>
-            </div>
-          </div>
-        </div>
-        <div id="followups-grid" class="followups-grid">
-          <p class="hint">Cargando apuntes…</p>
-        </div>
-      </article>
     </section>
 
     <!-- MEMORIA -->
@@ -1206,22 +1110,6 @@
     const modeSaveBtn = document.getElementById("mode-save");
     let editingModeId = null;
 
-    const notebookFechaInput = document.getElementById("nb-fecha");
-    const notebookPaisSelect = document.getElementById("nb-pais");
-    const notebookInputs = {
-      "11AM": document.getElementById("nb-11"),
-      "3PM": document.getElementById("nb-3"),
-      "9PM": document.getElementById("nb-9"),
-    };
-    const notebookFillDayBtn = document.getElementById("nb-fill-day");
-    const notebookFillResultsBtn = document.getElementById("nb-fill-results");
-    const notebookSaveBtn = document.getElementById("nb-save");
-    const notebookList = document.getElementById("nb-list");
-    const followupsGrid = document.getElementById("followups-grid");
-    const followupsIndex = document.getElementById("followups-index");
-    const followupsRefreshBtn = document.getElementById("followups-refresh");
-    const followupsFilterInput = document.getElementById("followups-filter");
-    const followupsFilterResetBtn = document.getElementById("followups-filter-reset");
     const triggerRelationsList = document.getElementById("trigger-relations-list");
     const triggerStatsList = document.getElementById("trigger-stats-list");
     const triggerEventsList = document.getElementById("trigger-events-list");
@@ -1719,8 +1607,6 @@
       const el = document.getElementById(id);
       if (el && !el.value) el.value = todayISO;
     });
-    if (notebookFechaInput && !notebookFechaInput.value) notebookFechaInput.value = todayISO;
-    if (notebookPaisSelect && dayPais?.value) notebookPaisSelect.value = dayPais.value;
     if (geometryPaisSelect && dayPais?.value) geometryPaisSelect.value = dayPais.value;
     if (geometryPaisSelect && !geometryPaisSelect.value) geometryPaisSelect.value = "HN";
 
@@ -1780,11 +1666,6 @@
     const hypothesisCache = {
       map: new Map(),
       dirty: true,
-    };
-    const FOLLOWUP_SCOPE = "followups";
-    const followupsStore = {
-      data: new Map(),
-      loaded: false,
     };
     let triggerRelationsCache = [];
     let triggerEditingRelationId = null;
@@ -1853,52 +1734,6 @@
         .join(", ");
     }
 
-    function normalizeFollowupKey(numero) {
-      return formatNumber(typeof numero === "number" ? numero : parseInt(numero, 10) || 0);
-    }
-
-    function normalizeFollowupList(values = []) {
-      const unique = new Set();
-      values.forEach((value) => {
-        const raw = (value || "").trim();
-        if (!/^\d{1,2}$/.test(raw)) return;
-        const parsed = parseInt(raw, 10);
-        if (Number.isNaN(parsed)) return;
-        unique.add(formatNumber(parsed));
-      });
-      return Array.from(unique);
-    }
-
-    function seedFollowupsStore(rows = []) {
-      const map = new Map();
-      rows.forEach((row) => {
-        const numeroRaw =
-          row?.data?.numero ??
-          (typeof row?.key === "string" && row.key.includes("_") ? row.key.split("_").pop() : null);
-        const key = numeroRaw !== null ? normalizeFollowupKey(numeroRaw) : null;
-        if (!key) return;
-        const followers = Array.isArray(row?.data?.seguidores)
-          ? row.data.seguidores.map((value) => formatNumber(value))
-          : [];
-        map.set(key, followers);
-      });
-      followupsStore.data = map;
-      followupsStore.loaded = true;
-    }
-
-    async function ensureFollowupsStore({ force = false } = {}) {
-      if (!force && followupsStore.loaded) {
-        return followupsStore.data;
-      }
-      const rows = await DB.getKnowledgeByScope(FOLLOWUP_SCOPE);
-      seedFollowupsStore(rows);
-      return followupsStore.data;
-    }
-
-    function getFollowupsValue(numero) {
-      const key = normalizeFollowupKey(numero);
-      return followupsStore.data.get(key) || [];
-    }
     let memoryCachedDraws = null;
     let memorySelectedNumero = null;
     let memorySummary = [];
@@ -2003,45 +1838,6 @@
       const day = String(date.getDate()).padStart(2, "0");
       const month = MONTH_ABBR[date.getMonth()] || "";
       return `${day} ${month}`;
-    };
-    const getWeekStartDate = (value) => {
-      const base =
-        value instanceof Date
-          ? new Date(value.getFullYear(), value.getMonth(), value.getDate())
-          : parseISODate(value);
-      if (!(base instanceof Date) || Number.isNaN(base.getTime())) return null;
-      const start = new Date(base.getFullYear(), base.getMonth(), base.getDate());
-      const dow = start.getDay();
-      const offset = dow === 0 ? 6 : dow - 1;
-      start.setDate(start.getDate() - offset);
-      return start;
-    };
-    const getFirstMondayOfMonth = (year, month) => {
-      const cursor = new Date(year, month, 1);
-      while (cursor.getDay() !== 1) {
-        cursor.setDate(cursor.getDate() + 1);
-      }
-      return cursor;
-    };
-    const getNotebookWeekMeta = (isoDate) => {
-      const date = parseISODate(isoDate);
-      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
-      const weekStart = getWeekStartDate(date);
-      if (!weekStart) return null;
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      const weekStartIso = formatDateISO(weekStart);
-      const weekEndIso = formatDateISO(weekEnd);
-      const firstMonday = getFirstMondayOfMonth(date.getFullYear(), date.getMonth());
-      const weekIndex =
-        weekStart < firstMonday
-          ? 0
-          : Math.floor((weekStart.getTime() - firstMonday.getTime()) / (7 * DAY_MS)) + 1;
-      return {
-        key: weekStartIso,
-        title: weekIndex > 0 ? `Semana ${weekIndex}` : "Semana previa",
-        range: `${formatShortDate(weekStartIso)} - ${formatShortDate(weekEndIso)}`,
-      };
     };
     const formatWindowRange = (startIso, endIso) => {
       const start = formatShortDate(startIso);
@@ -4125,384 +3921,6 @@
       renderDecemberDetail();
     });
 
-    function setNotebookInputs(values = {}) {
-      HORARIO_KEYS.forEach((turno) => {
-        const input = notebookInputs[turno];
-        if (!input) return;
-        input.value = values[turno] ?? "";
-      });
-    }
-
-    async function renderFollowupsPanel({ force = false } = {}) {
-      if (!followupsGrid) return;
-      followupsGrid.innerHTML = "<p class='hint'>Cargando apuntes…</p>";
-      try {
-        const store = await ensureFollowupsStore({ force });
-        const fragment = document.createDocumentFragment();
-        const indexSummary = [];
-        for (let i = 0; i < 100; i += 1) {
-          const numero = formatNumber(i);
-          const values = store.get(numero) || [];
-          indexSummary.push({ numero, hasValues: values.length > 0 });
-          const item = document.createElement("div");
-          item.className = "followup-item";
-          item.dataset.followupRow = numero;
-
-          const head = document.createElement("div");
-          head.className = "followup-item__head";
-          item.appendChild(head);
-
-          const label = document.createElement("div");
-          label.className = "followup-number";
-          const labelNumber = document.createElement("span");
-          labelNumber.className = "followup-number-value";
-          labelNumber.textContent = numero;
-          const labelSymbol = document.createElement("small");
-          labelSymbol.className = "followup-number-symbol";
-          labelSymbol.textContent = getSymbol(parseInt(numero, 10)) || "—";
-          label.appendChild(labelNumber);
-          label.appendChild(labelSymbol);
-          head.appendChild(label);
-
-          const actions = document.createElement("div");
-          actions.className = "followup-actions";
-          const clearBtn = document.createElement("button");
-          clearBtn.type = "button";
-          clearBtn.className = "btn-ghost btn-compact";
-          clearBtn.dataset.followupClear = numero;
-          clearBtn.textContent = "Limpiar";
-          actions.appendChild(clearBtn);
-
-          const saveBtn = document.createElement("button");
-          saveBtn.type = "button";
-          saveBtn.className = "btn-primary btn-compact";
-          saveBtn.dataset.followupSave = numero;
-          saveBtn.textContent = "Guardar";
-          actions.appendChild(saveBtn);
-          head.appendChild(actions);
-
-          const body = document.createElement("div");
-          body.className = "followup-item__body";
-          item.appendChild(body);
-
-          const inputsWrap = document.createElement("div");
-          inputsWrap.className = "followup-inputs";
-          inputsWrap.dataset.followupInputs = numero;
-          body.appendChild(inputsWrap);
-
-          const addBtn = document.createElement("button");
-          addBtn.type = "button";
-          addBtn.className = "followup-add";
-          addBtn.dataset.followupAdd = numero;
-          addBtn.textContent = "Agregar seguimiento";
-          body.appendChild(addBtn);
-
-          populateFollowupInputs(numero, values, inputsWrap);
-          fragment.appendChild(item);
-        }
-        followupsGrid.innerHTML = "";
-        followupsGrid.appendChild(fragment);
-        renderFollowupsIndex(indexSummary);
-        applyFollowupsFilter(followupsFilterInput?.value || "");
-      } catch (err) {
-        console.error("followups render error", err);
-        followupsGrid.innerHTML = `<p class='hint'>No se pudieron cargar los apuntes: ${err.message}</p>`;
-        if (followupsIndex) {
-          followupsIndex.innerHTML = `<p class='hint'>No se pudieron listar los accesos directos: ${err.message}</p>`;
-        }
-      }
-    }
-
-    function applyFollowupsFilter(rawValue = "") {
-      if (!followupsGrid) return;
-      const query = (rawValue || "").trim();
-      const isValid = /^\d{1,2}$/.test(query);
-      const normalized = isValid ? normalizeFollowupKey(query) : "";
-      const rows = followupsGrid.querySelectorAll("[data-followup-row]");
-      rows.forEach((row) => {
-        if (!isValid) {
-          row.hidden = false;
-          row.classList.remove("followup-item--highlight");
-          return;
-        }
-        const matches = row.dataset.followupRow === normalized;
-        row.hidden = !matches;
-        if (!matches) {
-          row.classList.remove("followup-item--highlight");
-        }
-      });
-      if (isValid) {
-        const target = followupsGrid.querySelector(`[data-followup-row="${normalized}"]`);
-        if (target) {
-          target.hidden = false;
-          target.classList.add("followup-item--highlight");
-          window.setTimeout(() => target.classList.remove("followup-item--highlight"), 1200);
-        }
-        syncFollowupsIndexSelection(normalized);
-      } else {
-        syncFollowupsIndexSelection("");
-      }
-    }
-
-    function getFollowupInputsContainer(numero) {
-      return followupsGrid?.querySelector(`[data-followup-inputs="${numero}"]`);
-    }
-
-    function getActiveFollowupsFilterValue() {
-      const raw = followupsFilterInput?.value?.trim() || "";
-      if (!/^\d{1,2}$/.test(raw)) return "";
-      return normalizeFollowupKey(raw);
-    }
-
-    function renderFollowupsIndex(summary = []) {
-      if (!followupsIndex) return;
-      followupsIndex.innerHTML = "";
-      if (!summary.length) {
-        const hint = document.createElement("p");
-        hint.className = "hint";
-        hint.textContent = "Mantén guardados tus apuntes para ver accesos rápidos.";
-        followupsIndex.appendChild(hint);
-        return;
-      }
-      const fragment = document.createDocumentFragment();
-      const active = getActiveFollowupsFilterValue();
-      summary.forEach(({ numero, hasValues }) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.dataset.followupJump = numero;
-        button.className = "followups-index__item";
-        if (hasValues) {
-          button.classList.add("followups-index__item--filled");
-        }
-        if (active && active === numero) {
-          button.classList.add("followups-index__item--selected");
-        }
-        button.textContent = numero;
-        fragment.appendChild(button);
-      });
-      followupsIndex.appendChild(fragment);
-    }
-
-    function rebuildFollowupsIndexFromStore() {
-      if (!followupsIndex || !(followupsStore.data instanceof Map)) return;
-      const summary = [];
-      for (let i = 0; i < 100; i += 1) {
-        const numero = formatNumber(i);
-        const values = followupsStore.data.get(numero) || [];
-        summary.push({ numero, hasValues: values.length > 0 });
-      }
-      renderFollowupsIndex(summary);
-    }
-
-    function syncFollowupsIndexSelection(activeNumero = "") {
-      if (!followupsIndex) return;
-      const buttons = followupsIndex.querySelectorAll("[data-followup-jump]");
-      buttons.forEach((button) => {
-        const matches = activeNumero && button.dataset.followupJump === activeNumero;
-        button.classList.toggle("followups-index__item--selected", Boolean(matches));
-      });
-    }
-
-    function focusFollowupRow(numero) {
-      if (!followupsGrid) return;
-      const normalized = normalizeFollowupKey(numero);
-      const row = followupsGrid.querySelector(`[data-followup-row="${normalized}"]`);
-      if (!row) return;
-      row.hidden = false;
-      row.classList.add("followup-item--highlight");
-      row.scrollIntoView({ behavior: "smooth", block: "start" });
-      window.setTimeout(() => row.classList.remove("followup-item--highlight"), 1200);
-    }
-
-    function resolveFollowupSymbol(value) {
-      if (!/^\d{1,2}$/.test(value || "")) return "";
-      const parsed = parseInt(value, 10);
-      if (Number.isNaN(parsed)) return "";
-      return getSymbol(parsed) || "";
-    }
-
-    function updateFollowupChipSymbol(input, symbolEl) {
-      if (!symbolEl) return;
-      symbolEl.textContent = resolveFollowupSymbol(input.value.trim()) || "—";
-    }
-
-    function addFollowupInput(numero, value = "", containerOverride = null) {
-      const container = containerOverride || getFollowupInputsContainer(numero);
-      if (!container) return null;
-      const chip = document.createElement("div");
-      chip.className = "followup-chip";
-      const input = document.createElement("input");
-      input.type = "text";
-      input.inputMode = "numeric";
-      input.pattern = "\\d{1,2}";
-      input.maxLength = 2;
-      input.placeholder = "--";
-      input.value = value;
-      input.dataset.followupEntry = numero;
-      chip.appendChild(input);
-      const symbolEl = document.createElement("span");
-      symbolEl.className = "followup-chip-symbol";
-      symbolEl.textContent = resolveFollowupSymbol(value) || "—";
-      chip.appendChild(symbolEl);
-      const removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.dataset.followupRemove = numero;
-      removeBtn.innerHTML = "&times;";
-      chip.appendChild(removeBtn);
-      container.appendChild(chip);
-      input.addEventListener("input", () => updateFollowupChipSymbol(input, symbolEl));
-      return input;
-    }
-
-    function populateFollowupInputs(numero, values = [], containerOverride = null) {
-      const container = containerOverride || getFollowupInputsContainer(numero);
-      if (!container) return;
-      container.innerHTML = "";
-      const list = values.length ? values : [""];
-      list.forEach((value) => addFollowupInput(numero, value, container));
-    }
-
-    function collectFollowupEntries(numero) {
-      const inputs = followupsGrid?.querySelectorAll(`[data-followup-entry="${numero}"]`) || [];
-      const rawValues = Array.from(inputs).map((input) => input.value.trim());
-      return normalizeFollowupList(rawValues);
-    }
-
-    async function persistFollowupEntries(numero, values = []) {
-      const followers = normalizeFollowupList(values);
-      const entry = [
-        {
-          key: `followup_${numero}`,
-          scope: FOLLOWUP_SCOPE,
-          data: { numero, seguidores: followers },
-          updatedAt: Date.now(),
-        },
-      ];
-      const ok = await DB.saveKnowledge(entry);
-      if (!ok) {
-        throw new Error("Supabase no confirmó el guardado");
-      }
-      followupsStore.data.set(numero, followers);
-      followupsStore.loaded = true;
-      populateFollowupInputs(numero, followers);
-      rebuildFollowupsIndexFromStore();
-      return followers;
-    }
-
-    async function clearFollowupValue(numero) {
-      await persistFollowupEntries(numero, []);
-    }
-
-    notebookFillDayBtn?.addEventListener("click", () => {
-      const values = {};
-      SLOT_CONFIG.forEach((config) => {
-        const input = document.getElementById(config.inputId);
-        const val = input?.value.trim();
-        values[config.key] = /^\d{1,2}$/.test(val || "") ? val.padStart(2, "0") : "";
-      });
-      setNotebookInputs(values);
-      showToast("Números copiados del panel del día.", { variant: "info" });
-    });
-
-    notebookFillResultsBtn?.addEventListener("click", async () => {
-      try {
-        const fecha = notebookFechaInput?.value;
-        const pais = notebookPaisSelect?.value || "HN";
-        if (!fecha) {
-          showToast("Selecciona una fecha para traer los resultados.", { variant: "warning" });
-          return;
-        }
-        const draws = await DB.listDraws({ excludeTest: true });
-        const map = {};
-        HORARIO_KEYS.forEach((turno) => {
-          const draw = pickDraw(draws, fecha, pais, turno);
-          map[turno] = draw ? formatNumber(draw.numero) : "";
-        });
-        setNotebookInputs(map);
-        showToast("Resultados guardados cargados en el cuaderno.", { variant: "success" });
-      } catch (err) {
-        console.error("nb fill results", err);
-        showToast(`No se pudieron traer los resultados: ${err.message}`, { variant: "danger" });
-      }
-    });
-
-    followupsRefreshBtn?.addEventListener("click", () => renderFollowupsPanel({ force: true }));
-    followupsFilterInput?.addEventListener("input", (event) => applyFollowupsFilter(event.target.value));
-    followupsFilterResetBtn?.addEventListener("click", () => {
-      if (followupsFilterInput) {
-        followupsFilterInput.value = "";
-        followupsFilterInput.focus();
-      }
-      applyFollowupsFilter("");
-    });
-    followupsIndex?.addEventListener("click", (event) => {
-      const button = event.target.closest?.("[data-followup-jump]");
-      if (!button) return;
-      const numero = button.dataset.followupJump;
-      if (!numero) return;
-      const normalized = normalizeFollowupKey(numero);
-      const currentFilter = getActiveFollowupsFilterValue();
-      if (currentFilter && currentFilter !== normalized && followupsFilterInput) {
-        followupsFilterInput.value = "";
-        applyFollowupsFilter("");
-      }
-      focusFollowupRow(normalized);
-      syncFollowupsIndexSelection(normalized);
-    });
-    followupsGrid?.addEventListener("click", async (event) => {
-      const addBtn = event.target.closest?.("[data-followup-add]");
-      if (addBtn) {
-        const numero = addBtn.dataset.followupAdd;
-        const input = addFollowupInput(numero, "");
-        input?.focus();
-        return;
-      }
-      const removeBtn = event.target.closest?.("[data-followup-remove]");
-      if (removeBtn) {
-        const numero = removeBtn.dataset.followupRemove;
-        const chip = removeBtn.closest(".followup-chip");
-        const container = getFollowupInputsContainer(numero);
-        if (!chip || !container) return;
-        if (container.querySelectorAll("[data-followup-entry]").length <= 1) {
-          const input = chip.querySelector("input");
-          if (input) input.value = "";
-        } else {
-          chip.remove();
-        }
-        return;
-      }
-      const saveBtn = event.target.closest?.("[data-followup-save]");
-      if (saveBtn) {
-        const numero = saveBtn.dataset.followupSave;
-        const values = collectFollowupEntries(numero);
-        const endBusy = withButtonBusy(saveBtn, "Guardando…");
-        try {
-          await persistFollowupEntries(numero, values);
-          showToast(`Apunte del ${numero} guardado.`, { variant: "success", timeout: 2200 });
-        } catch (err) {
-          console.error("followup save error", err);
-          showToast(`No se pudo guardar el apunte: ${err.message}`, { variant: "danger" });
-        } finally {
-          endBusy();
-        }
-        return;
-      }
-      const clearBtn = event.target.closest?.("[data-followup-clear]");
-      if (clearBtn) {
-        const numero = clearBtn.dataset.followupClear;
-        const endBusy = withButtonBusy(clearBtn, "Limpiando…");
-        try {
-          await clearFollowupValue(numero);
-          showToast(`Apunte del ${numero} limpiado.`, { variant: "info", timeout: 1800 });
-        } catch (err) {
-          console.error("followup clear error", err);
-          showToast(`No se pudo limpiar el apunte: ${err.message}`, { variant: "danger" });
-        } finally {
-          endBusy();
-        }
-      }
-    });
-
     const TRIGGER_STATUS_LABELS = {
       OPEN: "Abierto",
       HIT: "Hit",
@@ -4969,131 +4387,6 @@
       }
     });
 
-    async function refreshNotebookList() {
-      if (!notebookList) return;
-      const entries = await DB.listNotebookEntries();
-      if (!entries.length) {
-        notebookList.innerHTML = "<p class='hint'>Todavía no tienes elementos en el cuaderno.</p>";
-        return;
-      }
-      notebookList.innerHTML = "";
-      const sortedEntries = entries.slice().reverse();
-      let currentWeekKey = null;
-      sortedEntries.forEach((entry) => {
-        const weekMeta = getNotebookWeekMeta(entry.fecha);
-        if (weekMeta && weekMeta.key !== currentWeekKey) {
-          currentWeekKey = weekMeta.key;
-          const divider = document.createElement("div");
-          divider.className = "notebook-week-divider";
-          divider.innerHTML = `
-            <span class="notebook-week-divider__line" aria-hidden="true"></span>
-            <div class="notebook-week-divider__text">
-              <span class="notebook-week-divider__title">${weekMeta.title}</span>
-              <span class="notebook-week-divider__range">${weekMeta.range}</span>
-            </div>
-            <span class="notebook-week-divider__line" aria-hidden="true"></span>
-          `;
-          notebookList.appendChild(divider);
-        } else if (!weekMeta) {
-          currentWeekKey = null;
-        }
-        const card = document.createElement("article");
-        card.className = "notebook-card";
-        card.innerHTML = `
-          <div class="notebook-card__head">
-            <strong>${formatFriendlyDate(entry.fecha)} · ${entry.pais || "HN"}</strong>
-            <button type="button" class="btn-ghost" data-nb-delete="${entry.id}">Eliminar</button>
-          </div>
-        `;
-        const numbers = document.createElement("div");
-        numbers.className = "notebook-card__numbers";
-        HORARIO_KEYS.forEach((turno) => {
-          const span = document.createElement("span");
-          const numberRaw = entry.numeros?.[turno];
-          const hasNumber = numberRaw !== undefined && numberRaw !== null && numberRaw !== "";
-          const numericValue = hasNumber ? parseInt(numberRaw, 10) : null;
-          const formatted = hasNumber && Number.isFinite(numericValue)
-            ? formatNumber(numericValue)
-            : hasNumber
-              ? String(numberRaw)
-              : "--";
-          const symbol = hasNumber && Number.isFinite(numericValue) ? getSymbol(numericValue) || "" : "";
-          span.innerHTML = `
-            <small>${turno}</small>
-            <strong>${formatted}</strong>
-            ${symbol ? `<span class="notebook-card__symbol">${symbol}</span>` : ""}
-          `;
-          numbers.appendChild(span);
-        });
-        card.appendChild(numbers);
-        const actions = document.createElement("div");
-        actions.className = "notebook-card__actions";
-        const viewBtn = document.createElement("button");
-        viewBtn.type = "button";
-        viewBtn.className = "btn-outline";
-        viewBtn.textContent = "Ver en panel";
-        viewBtn.dataset.nbView = entry.id;
-        viewBtn.dataset.fecha = entry.fecha;
-        viewBtn.dataset.pais = entry.pais || "";
-        actions.appendChild(viewBtn);
-        const followBtn = document.createElement("button");
-        followBtn.type = "button";
-        followBtn.className = "btn-ghost";
-        followBtn.textContent = "Seguir";
-        followBtn.dataset.nbFollow = entry.id;
-        followBtn.dataset.fecha = entry.fecha;
-        followBtn.dataset.pais = entry.pais || "";
-        actions.appendChild(followBtn);
-        card.appendChild(actions);
-        notebookList.appendChild(card);
-      });
-    }
-
-    notebookSaveBtn?.addEventListener("click", async () => {
-      const fecha = notebookFechaInput?.value;
-      const pais = notebookPaisSelect?.value || "HN";
-      if (!fecha) {
-        showToast("Selecciona la fecha del trío que deseas guardar.", { variant: "warning" });
-        return;
-      }
-      const numeros = {};
-      let completos = true;
-      Object.entries(notebookInputs).forEach(([turno, input]) => {
-        if (!input) return;
-        const val = (input.value || "").trim();
-        if (!/^\d{2}$/.test(val)) completos = false;
-        numeros[turno] = val;
-      });
-      if (!completos) {
-        showToast("Completa los sorteos del cuaderno (formato 00-99) antes de guardar.", { variant: "warning" });
-        return;
-      }
-      try {
-        await DB.addNotebookEntry({ fecha, pais, numeros });
-        showToast("Trío agregado al cuaderno.", { variant: "success" });
-        await refreshNotebookList();
-      } catch (err) {
-        console.error("nb save error", err);
-        showToast(`No se pudo guardar el trío: ${err.message}`, { variant: "danger" });
-      }
-    });
-
-    notebookList?.addEventListener("click", async (event) => {
-      const delBtn = event.target.closest("[data-nb-delete]");
-      if (delBtn) {
-        const id = Number(delBtn.dataset.nbDelete);
-        await DB.deleteNotebookEntry(id);
-        await refreshNotebookList();
-        showToast("Entrada retirada del cuaderno.", { variant: "info" });
-        return;
-      }
-      const viewBtn = event.target.closest("[data-nb-view]");
-      if (viewBtn) {
-        await focusDayPanel(viewBtn.dataset.fecha || null, viewBtn.dataset.pais || null);
-        return;
-      }
-    });
-
     function navigateToView(key) {
       const btn = document.querySelector(`.sidebar button[data-view="${key}"]`);
       if (btn) {
@@ -5354,7 +4647,6 @@
       invalidatePulso();
       await Promise.allSettled([
         refreshHistoryPanel({ forceReload: true }),
-        refreshNotebookList(),
         renderMemoryBoard({ forceReload: true }),
         renderGapPanel({ forceReload: true }),
       ]);
@@ -5366,7 +4658,6 @@
     async function bootstrapExtendedPanels() {
       await Promise.allSettled([
         refreshHistoryPanel(),
-        refreshNotebookList(),
       ]);
     }
 
@@ -6097,165 +5388,6 @@
       });
     }
 
-    // ── SUPER PREMIO / MODO RECUPERACIÓN (panel en view-hypo) ────────────────
-
-    async function listSuperPremios() {
-      const rows = await DB.getKnowledgeByScope(SP_SCOPE);
-      return rows.map(r => r.data).filter(Boolean).map(d => ({
-        fecha: d.fecha,
-        ganado: d.ganado !== undefined ? d.ganado : !!d.fecha // compat con entradas antiguas
-      }));
-    }
-
-    async function saveSuperPremioMark(fecha, ganado) {
-      if (ganado) {
-        return DB.saveKnowledge([{ key: spKey(fecha), scope: SP_SCOPE, data: { fecha, ganado: true }, updatedAt: Date.now() }]);
-      } else {
-        return DB.deleteKnowledgeByKey(spKey(fecha));
-      }
-    }
-
-    // Returns recovery mode info or null if not in recovery
-    function detectRecoveryMode(superPremios) {
-      const today = new Date();
-      const todayStr = today.toISOString().slice(0, 10);
-      const cutoffMs = today.getTime() - SP_RECOVERY_DAYS * 86_400_000;
-
-      const recent = superPremios
-        .filter(sp => sp.ganado && sp.fecha <= todayStr && new Date(sp.fecha).getTime() >= cutoffMs)
-        .sort((a, b) => b.fecha.localeCompare(a.fecha));
-
-      if (!recent.length) return null;
-      const latest = recent[0];
-      const diasDesde = Math.round((today.getTime() - new Date(latest.fecha).getTime()) / 86_400_000);
-      return { fecha: latest.fecha, diasDesde, diasRestantes: SP_RECOVERY_DAYS - diasDesde };
-    }
-
-    // Get all Wednesdays (3) and Saturdays (6) for a year
-    function getSuperPremioFechas(year) {
-      const dates = [];
-      const d = new Date(year, 0, 1);
-      while (d.getFullYear() === year) {
-        const dow = d.getDay();
-        if (dow === 3 || dow === 6) dates.push(d.toISOString().slice(0, 10));
-        d.setDate(d.getDate() + 1);
-      }
-      return dates;
-    }
-
-    const MONTH_NAMES_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-
-    let _spHypoYear = new Date().getFullYear();
-    let _spHypoMarked = new Set(); // set of marked fechas (hypo panel)
-
-    async function renderSuperPremioHypo() {
-      const tabsEl = document.getElementById("hypo-sp-year-tabs");
-      const calEl = document.getElementById("hypo-sp-calendar");
-      if (!tabsEl || !calEl) return;
-
-      // Load marked dates
-      const list = await listSuperPremios();
-      _spHypoMarked = new Set(list.filter(sp => sp.ganado).map(sp => sp.fecha));
-
-      // Update recovery mode badge
-      const recovery = detectRecoveryMode(list);
-      const badge = document.getElementById("sp-mode-badge");
-      if (badge) {
-        if (recovery) {
-          badge.textContent = `⚡ Modo Recuperación · día ${recovery.diasDesde}/${SP_RECOVERY_DAYS}`;
-          badge.style.display = "";
-        } else {
-          badge.style.display = "none";
-        }
-      }
-
-      // Render year tabs
-      const currentYear = new Date().getFullYear();
-      const years = [];
-      for (let y = 2015; y <= currentYear; y++) years.push(y);
-
-      tabsEl.innerHTML = years.map(y =>
-        `<button class="sp-year-tab${y === _spHypoYear ? " sp-year-tab--active" : ""}" data-year="${y}">${y}</button>`
-      ).join("");
-
-      tabsEl.querySelectorAll(".sp-year-tab").forEach(btn => {
-        btn.addEventListener("click", () => {
-          _spHypoYear = parseInt(btn.dataset.year, 10);
-          renderSuperPremioCalendar();
-          tabsEl.querySelectorAll(".sp-year-tab").forEach(b => b.classList.toggle("sp-year-tab--active", b === btn));
-        });
-      });
-
-      renderSuperPremioCalendar();
-      invalidatePulso();
-    }
-
-    function renderSuperPremioCalendar() {
-      const calEl = document.getElementById("hypo-sp-calendar");
-      if (!calEl) return;
-
-      const dates = getSuperPremioFechas(_spHypoYear);
-      // Group by month
-      const byMonth = {};
-      for (const f of dates) {
-        const m = parseInt(f.slice(5, 7), 10) - 1;
-        if (!byMonth[m]) byMonth[m] = [];
-        byMonth[m].push(f);
-      }
-
-      calEl.innerHTML = "";
-      for (const [mIdx, fechas] of Object.entries(byMonth)) {
-        const section = document.createElement("div");
-        section.className = "sp-month";
-        const heading = document.createElement("div");
-        heading.className = "sp-month__name";
-        heading.textContent = MONTH_NAMES_ES[parseInt(mIdx)];
-        section.appendChild(heading);
-
-        const chips = document.createElement("div");
-        chips.className = "sp-chips";
-        for (const fecha of fechas) {
-          const d = new Date(fecha + "T12:00:00");
-          const dow = d.getDay() === 3 ? "Mié" : "Sáb";
-          const day = d.getDate();
-          const marked = _spHypoMarked.has(fecha);
-          const chip = document.createElement("button");
-          chip.type = "button";
-          chip.className = `sp-chip${marked ? " sp-chip--ganado" : ""}`;
-          chip.dataset.fecha = fecha;
-          chip.innerHTML = `<span class="sp-chip__dow">${dow}</span><span class="sp-chip__day">${day}</span>`;
-          chip.title = fecha;
-          chip.addEventListener("click", async () => {
-            const nowMarked = _spHypoMarked.has(fecha);
-            if (nowMarked) {
-              _spHypoMarked.delete(fecha);
-              chip.classList.remove("sp-chip--ganado");
-            } else {
-              _spHypoMarked.add(fecha);
-              chip.classList.add("sp-chip--ganado");
-            }
-            await saveSuperPremioMark(fecha, !nowMarked);
-            // Update recovery badge
-            const list = Array.from(_spHypoMarked).map(f => ({ fecha: f, ganado: true }));
-            const recovery = detectRecoveryMode(list);
-            const badge = document.getElementById("sp-mode-badge");
-            if (badge) {
-              if (recovery) {
-                badge.textContent = `⚡ Modo Recuperación · día ${recovery.diasDesde}/${SP_RECOVERY_DAYS}`;
-                badge.style.display = "";
-              } else {
-                badge.style.display = "none";
-              }
-            }
-            invalidatePulso();
-          });
-          chips.appendChild(chip);
-        }
-        section.appendChild(chips);
-        calEl.appendChild(section);
-      }
-    }
-
     function getHypothesisFilterNumero() {
       const raw = (hypoSearchInput?.value || "").trim();
       if (!raw) return "";
@@ -6883,17 +6015,19 @@
 
         // ── Modo Recuperación (Super Premio) ─────────────────────────────────
         try {
-          const spList = await listSuperPremios();
-          const recovery = detectRecoveryMode(spList);
-          if (recovery) {
+          const spFechas = await listSpFromDb();
+          const rec = detectarModoRecuperacion(spFechas);
+          if (rec && rec.activo) {
+            const diasDesde = rec.diasTranscurridos;
+            const fecha = rec.ultimoEvento;
             const recSec = document.createElement("div");
             recSec.className = "pulso-group sp-recovery-banner";
             recSec.innerHTML = `
               <div class="pulso-group__head">
                 <span class="pulso-group__label">⚡ Modo Recuperación activo</span>
-                <span class="pulso-group__freq">día ${recovery.diasDesde} de ${SP_RECOVERY_DAYS} · desde ${recovery.fecha}</span>
+                <span class="pulso-group__freq">día ${diasDesde} de ${SP_RECOVERY_DAYS} · desde ${fecha}</span>
               </div>
-              <p class="sp-recovery-desc">La Diaria pagó un super premio hace ${recovery.diasDesde} día${recovery.diasDesde !== 1 ? "s" : ""}. En recuperación, el sistema prioriza números recientes y sus conversiones.</p>
+              <p class="sp-recovery-desc">La Diaria pagó un super premio hace ${diasDesde} día${diasDesde !== 1 ? "s" : ""}. En recuperación, el sistema prioriza números recientes y sus conversiones.</p>
             `;
             frag.prepend(recSec);
           }
@@ -8372,7 +7506,6 @@ function buildVariantEntries(profile) {
       analysis: "view-analysis",
       transform: "view-transform",
       pega3: "view-pega3",
-      notebook: "view-notebook",
       geometry: "view-geometry",
       memory: "view-memory",
       guide: "view-guide",
@@ -8396,7 +7529,7 @@ function buildVariantEntries(profile) {
         el.classList.remove("hidden");
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();
-        if (id === "view-hypo") { renderPairList(); renderConstellationList(); renderSuperPremioHypo(); }
+        if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
         if (id === "view-analysis") renderPulso();
         if (id === "view-superpremio") renderSuperPremioPanel();
         if (id === "view-maint") refreshDuplicados();
@@ -8405,10 +7538,6 @@ function buildVariantEntries(profile) {
           syncPega3Context();
           refreshPega3Historial();
           renderPega3Panels();
-        }
-        if (id === "view-notebook") {
-          refreshNotebookList();
-          renderFollowupsPanel();
         }
         if (id === "view-memory") {
           renderMemoryBoard();
