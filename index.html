@@ -1074,7 +1074,9 @@
     const currentUser = await requireAuthOrRedirect("./login.html");
     if (!currentUser) throw new Error("Auth requerida");
     supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session?.user) {
+      // Solo redirigir en logout explícito — ignorar INITIAL_SESSION y
+      // TOKEN_REFRESHED donde session puede ser null momentáneamente
+      if (event === "SIGNED_OUT") {
         window.location.href = "./login.html";
       }
     });
