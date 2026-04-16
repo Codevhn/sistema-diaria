@@ -8775,6 +8775,12 @@ body.login-page {
 }
 .sp-rep-chip small { font-weight: 400; color: var(--color-text); font-size: 0.7rem; }
 .sp-rep-chip em { font-style: normal; font-size: 0.7rem; color: var(--color-muted); }
+.sp-rep-chip--active {
+  background: rgba(242,196,74,0.22);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 6px rgba(242,196,74,0.35);
+}
+.sp-rep-chip--active em { color: var(--color-accent); font-weight: 700; }
 
 /* Pulso recovery banner */
 .pulso-recovery-banner {

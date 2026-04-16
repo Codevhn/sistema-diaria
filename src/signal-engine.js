@@ -515,16 +515,19 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     familiasPenalizadas
   );
 
-  // 6b. Modo recuperación: boost pre-evento numbers
-  if (recuperacion?.activo && recuperacion.preEventoNums?.length) {
-    const preSet = new Set(recuperacion.preEventoNums.map(Number));
+  // 6b. Modo recuperación: boost numbers repeating after the super premio payment
+  if (recuperacion?.activo && recuperacion.repetidosPostEvento?.length) {
+    const repMap = new Map(recuperacion.repetidosPostEvento.map(({ numero, veces }) => [Number(numero), veces]));
     composed.forEach((data, numero) => {
-      if (preSet.has(numero)) {
-        data.score = Math.min(1, data.score * 1.45);
+      if (repMap.has(numero)) {
+        const veces = repMap.get(numero);
+        // More repetitions = stronger boost (cap at 1.8x)
+        const boostFactor = Math.min(1.8, 1.3 + (veces - 2) * 0.15);
+        data.score = Math.min(1, data.score * boostFactor);
         data.signals.unshift({
           source: "recuperacion",
-          label: `Modo recuperación: cayó antes del último super premio (+45% peso)`,
-          value: 0.75,
+          label: `Modo recuperación: repitió ${veces}× desde el último pago super premio (+${Math.round((boostFactor-1)*100)}% peso)`,
+          value: Math.min(0.95, 0.6 + veces * 0.1),
         });
       }
     });

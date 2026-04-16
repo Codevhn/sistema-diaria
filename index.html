@@ -5205,27 +5205,35 @@
       };
     }
 
-    /** Numbers drawn in the SP_PRE_EVENTO_DAYS days before and on the super premio date */
-    function calcularNumsPreEvento(spFecha, draws) {
-      const cutoff = new Date(new Date(spFecha).getTime() - SP_PRE_EVENTO_DAYS * 86_400_000).toISOString().slice(0, 10);
-      return [...new Set(
-        draws.filter(d => d.fecha >= cutoff && d.fecha <= spFecha).map(d => Number(d.numero))
-      )];
+    /** Numbers that have appeared 2+ times in draws since the super premio date (within recovery window).
+     *  Returns [{numero, veces}] sorted by frequency descending. */
+    function detectarNumerosRepetidosPostEvento(spFecha, draws) {
+      const [fy, fm, fd] = spFecha.split("-").map(Number);
+      const spTime = new Date(fy, fm - 1, fd).getTime();
+      const endTime = spTime + SP_RECOVERY_DAYS * 86_400_000;
+      const ed = new Date(endTime);
+      const endDate = `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2,"0")}-${String(ed.getDate()).padStart(2,"0")}`;
+      const postDraws = draws.filter(d => d.fecha > spFecha && d.fecha <= endDate);
+      const counts = {};
+      postDraws.forEach(d => { const n = Number(d.numero); counts[n] = (counts[n] || 0) + 1; });
+      return Object.entries(counts)
+        .filter(([, c]) => c >= 2)
+        .sort((a, b) => b[1] - a[1])
+        .map(([n, veces]) => ({ numero: Number(n), veces: Number(veces) }));
     }
 
-    /** Analyze what happened in the 14 days after a super premio date */
+    /** Analyze what repeated in the SP_RECOVERY_DAYS days after a super premio date */
     function analizarPostEvento(spFecha, draws) {
-      const end = new Date(new Date(spFecha).getTime() + SP_RECOVERY_DAYS * 86_400_000).toISOString().slice(0, 10);
-      const preNums = new Set(calcularNumsPreEvento(spFecha, draws));
-      const postDraws = draws.filter(d => d.fecha > spFecha && d.fecha <= end);
-      const postNums = postDraws.map(d => Number(d.numero));
-      const repeticiones = [...new Set(postNums.filter(n => preNums.has(n)))];
+      const [fy, fm, fd] = spFecha.split("-").map(Number);
+      const spTime = new Date(fy, fm - 1, fd).getTime();
+      const endTime = spTime + SP_RECOVERY_DAYS * 86_400_000;
+      const ed = new Date(endTime);
+      const endDate = `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2,"0")}-${String(ed.getDate()).padStart(2,"0")}`;
+      const postDraws = draws.filter(d => d.fecha > spFecha && d.fecha <= endDate);
+      const repetidos = detectarNumerosRepetidosPostEvento(spFecha, draws);
       return {
         fecha: spFecha,
-        preNums: [...preNums],
-        postNums,
-        repeticiones,
-        tasaRepeticion: postNums.length ? Math.round(repeticiones.length / postNums.length * 100) : 0,
+        repetidos,                          // [{numero, veces}]
         totalPostSorteos: postDraws.length,
       };
     }
@@ -5287,17 +5295,21 @@
         const hist = drawsCache.filter(d => !d.esTest);
         const analyses = spFechas.map(f => analizarPostEvento(f, hist)).filter(a => a.totalPostSorteos > 0);
         if (analyses.length) {
-          const avgTasa = Math.round(analyses.reduce((s, a) => s + a.tasaRepeticion, 0) / analyses.length);
-          const allReps = analyses.flatMap(a => a.repeticiones);
+          // Aggregate: cuántas veces repitió cada número en todas las ventanas post-pago
           const repFreq = {};
-          allReps.forEach(n => { repFreq[n] = (repFreq[n] || 0) + 1; });
-          const topReps = Object.entries(repFreq).sort((a,b) => b[1]-a[1]).slice(0, 8);
+          analyses.forEach(a => a.repetidos.forEach(({ numero, veces }) => {
+            repFreq[numero] = (repFreq[numero] || 0) + veces;
+          }));
+          const topReps = Object.entries(repFreq).sort((a,b) => b[1]-a[1]).slice(0, 10);
+          // Si hay modo recuperación activo, mostrar los que están repitiendo AHORA
+          const currentReps = rec.activo && rec.ultimoEvento
+            ? detectarNumerosRepetidosPostEvento(rec.ultimoEvento, hist)
+            : [];
           analysisEl.innerHTML = `
             <div class="sp-analysis-box">
               <div class="sp-analysis-head">Análisis histórico — ${analyses.length} super premios registrados</div>
-              <div class="sp-analysis-stat">Tasa de repetición promedio post-evento: <strong>${avgTasa}%</strong></div>
               ${topReps.length ? `
-              <div class="sp-analysis-stat" style="margin-top:8px">Números que más repiten en ventana post-evento:</div>
+              <div class="sp-analysis-stat" style="margin-top:6px">Números que más repiten en los 14 días post-pago:</div>
               <div class="sp-analysis-chips">
                 ${topReps.map(([n, c]) => {
                   const pad = String(n).padStart(2,"0");
@@ -5307,9 +5319,18 @@
               </div>` : ""}
               ${rec.activo ? `
               <div class="sp-analysis-stat sp-analysis-stat--warning" style="margin-top:10px">
-                ⚠️ Estás en modo recuperación. Último super premio: <strong>${rec.ultimoEvento}</strong> (hace ${rec.diasTranscurridos} días).
-                El motor de señales está ajustando los pesos automáticamente.
-              </div>` : ""}
+                ⚠️ Modo recuperación activo. Último pago: <strong>${rec.ultimoEvento}</strong> (hace ${rec.diasTranscurridos} días · ${rec.diasRestantes}d restantes).
+              </div>
+              ${currentReps.length ? `
+              <div class="sp-analysis-stat" style="margin-top:6px">Repitiendo desde ese pago:</div>
+              <div class="sp-analysis-chips">
+                ${currentReps.map(({ numero, veces }) => {
+                  const pad = String(numero).padStart(2,"0");
+                  const sim = GUIA?.[pad]?.simbolo || "";
+                  return `<span class="sp-rep-chip sp-rep-chip--active">${pad} <small>${sim}</small> <em>${veces}×</em></span>`;
+                }).join("")}
+              </div>` : `<div class="sp-analysis-stat" style="margin-top:6px;color:var(--color-muted)">Aún no hay repeticiones desde ese pago.</div>`}
+              ` : ""}
             </div>
           `;
         } else {
@@ -5829,15 +5850,15 @@
         // ── Motor de señales unificado ───────────────────────────────────────
         try {
           const pais = last.pais || "";
-          const preEventoNums = recoveryMode.activo && recoveryMode.ultimoEvento
-            ? calcularNumsPreEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
+          const repetidosPostEvento = recoveryMode.activo && recoveryMode.ultimoEvento
+            ? detectarNumerosRepetidosPostEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
             : [];
           const [motorResult, rezagoResult, sucesores] = await Promise.allSettled([
             ejecutarMotorSeñales({
               pais,
               turno: nextHorario,
               topN: 8,
-              recuperacion: recoveryMode.activo ? { activo: true, preEventoNums } : null,
+              recuperacion: recoveryMode.activo ? { activo: true, repetidosPostEvento } : null,
             }),
             estadoRezago(pais),
             sucesoresMarkov(lastNum, pais, 4),
@@ -6025,14 +6046,26 @@
           if (rec && rec.activo) {
             const diasDesde = rec.diasTranscurridos;
             const fecha = rec.ultimoEvento;
+            const hist2 = sorted.filter(d => !d.esTest);
+            const reps = detectarNumerosRepetidosPostEvento(fecha, hist2);
             const recSec = document.createElement("div");
             recSec.className = "pulso-group sp-recovery-banner";
+            const repsHtml = reps.length
+              ? `<div class="sp-analysis-chips" style="margin-top:6px">
+                  ${reps.map(({ numero, veces }) => {
+                    const pad = String(numero).padStart(2,"0");
+                    const sim = GUIA?.[pad]?.simbolo || "";
+                    return `<span class="sp-rep-chip sp-rep-chip--active">${pad} <small>${sim}</small> <em>${veces}×</em></span>`;
+                  }).join("")}
+                </div>`
+              : `<p class="sp-recovery-desc" style="margin:4px 0 0">Aún no hay repeticiones registradas desde ese pago.</p>`;
             recSec.innerHTML = `
               <div class="pulso-group__head">
-                <span class="pulso-group__label">⚡ Modo Recuperación activo</span>
-                <span class="pulso-group__freq">día ${diasDesde} de ${SP_RECOVERY_DAYS} · desde ${fecha}</span>
+                <span class="pulso-group__label">⚡ Modo Recuperación activo — día ${diasDesde} de ${SP_RECOVERY_DAYS}</span>
+                <span class="pulso-group__freq">pago: ${fecha} · ${rec.diasRestantes}d restantes</span>
               </div>
-              <p class="sp-recovery-desc">La Diaria pagó un super premio hace ${diasDesde} día${diasDesde !== 1 ? "s" : ""}. En recuperación, el sistema prioriza números recientes y sus conversiones.</p>
+              <p class="sp-recovery-desc" style="margin:4px 0 2px">La Diaria pagó super premio hace ${diasDesde} día${diasDesde !== 1 ? "s" : ""}. Números repitiendo desde ese pago:</p>
+              ${repsHtml}
             `;
             frag.prepend(recSec);
           }
