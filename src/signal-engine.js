@@ -466,7 +466,7 @@ function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, semanales
  * @param {number}   [opts.topN]     - Cuántos candidatos devolver (default: 10)
  * @returns {Promise<SignalResult>}
  */
-export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CANDIDATES } = {}) {
+export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CANDIDATES, recuperacion = null } = {}) {
   // 1. Cargar todos los sorteos
   const rawDraws = await DB.listDraws({ excludeTest: true });
   if (rawDraws.length < 20) {
@@ -514,6 +514,21 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     lastNums,
     familiasPenalizadas
   );
+
+  // 6b. Modo recuperación: boost pre-evento numbers
+  if (recuperacion?.activo && recuperacion.preEventoNums?.length) {
+    const preSet = new Set(recuperacion.preEventoNums.map(Number));
+    composed.forEach((data, numero) => {
+      if (preSet.has(numero)) {
+        data.score = Math.min(1, data.score * 1.45);
+        data.signals.unshift({
+          source: "recuperacion",
+          label: `Modo recuperación: cayó antes del último super premio (+45% peso)`,
+          value: 0.75,
+        });
+      }
+    });
+  }
 
   // 7. Rankear candidatos (excluyendo eliminados)
   const candidatos = [];
@@ -565,6 +580,7 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     eliminados:  eliminadosArr,
     universo:    100 - eliminados.size,
     diciembre:   enDiciembre,
+    recuperacion: recuperacion || null,
     contexto: {
       totalSorteos:    draws.length,
       ultimoSorteo:    { numero: lastDraw?.numero, horario: lastDraw?.horario, fecha: lastDraw?.fecha },

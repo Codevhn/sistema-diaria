@@ -9081,3 +9081,147 @@ body.login-page {
   .wiki-nav { border-right: none; border-bottom: 1px solid var(--color-border); max-height: 220px; }
   .wiki-content { padding: 20px 16px; }
 }
+
+/* ── SUPER PREMIOS ─────────────────────────────────────────────────────────── */
+.sp-modo-badge {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+.sp-modo-badge--on  { background: rgba(255,60,60,0.15); color: #f06060; border: 1px solid rgba(255,60,60,0.3); }
+.sp-modo-badge--off { background: rgba(255,255,255,0.07); color: var(--color-muted); border: 1px solid rgba(255,255,255,0.1); }
+
+.sp-year-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+.sp-year-btn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sp-year-btn:hover { border-color: var(--color-accent); color: var(--color-text); }
+.sp-year-btn--active { background: rgba(242,196,74,0.12); border-color: var(--color-accent); color: var(--color-accent); }
+.sp-year-count {
+  background: var(--color-accent);
+  color: #000;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  padding: 0.05rem 0.4rem;
+  font-weight: 700;
+}
+
+.sp-months {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+.sp-month-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sp-month-label {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  min-width: 90px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.sp-month-count { color: var(--color-accent); font-size: 0.72rem; }
+.sp-month-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.sp-date-chip {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 36px;
+  transition: all 0.12s;
+}
+.sp-date-chip:hover { border-color: var(--color-accent); }
+.sp-chip-dow { font-size: 0.58rem; color: var(--color-muted); line-height: 1; }
+.sp-chip-day { font-size: 0.8rem; font-weight: 700; line-height: 1.2; }
+.sp-date-chip--wed .sp-chip-day { color: #5fa8f5; }
+.sp-date-chip--sat .sp-chip-day { color: var(--color-accent); }
+.sp-date-chip--marked {
+  background: rgba(242,196,74,0.18);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 8px rgba(242,196,74,0.25);
+}
+.sp-date-chip--marked .sp-chip-day { color: var(--color-accent); }
+.sp-date-chip--marked .sp-chip-dow { color: var(--color-text); }
+
+.sp-analysis-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
+  margin-top: 20px;
+}
+.sp-analysis-head {
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+.sp-analysis-stat { font-size: 0.83rem; color: var(--color-text); }
+.sp-analysis-stat--warning { color: #f0a060; }
+.sp-analysis-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+.sp-rep-chip {
+  background: rgba(242,196,74,0.1);
+  border: 1px solid rgba(242,196,74,0.25);
+  border-radius: 6px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sp-rep-chip small { font-weight: 400; color: var(--color-text); font-size: 0.7rem; }
+.sp-rep-chip em { font-style: normal; font-size: 0.7rem; color: var(--color-muted); }
+
+/* Pulso recovery banner */
+.pulso-recovery-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255,80,60,0.08);
+  border: 1px solid rgba(255,80,60,0.25);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+}
+.pulso-recovery-banner span:first-child { font-weight: 700; color: #f06060; }
+.pulso-recovery-banner span:last-child { color: var(--color-muted); }

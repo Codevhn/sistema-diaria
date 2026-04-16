@@ -37,6 +37,7 @@
     <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
     <button data-view="analysis"><span
         class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
+    <button data-view="superpremio"><span class="sidebar-icon fa-solid fa-trophy"></span><i>Super Premio</i></button>
     <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
     <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
     <button data-view="notebook"><span class="sidebar-icon fa-solid fa-bookmark"></span><i>Cuaderno</i></button>
@@ -437,6 +438,18 @@
           </div>
         </article>
       </div>
+    </section>
+
+    <!-- SUPER PREMIO -->
+    <section id="view-superpremio" class="view hidden">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap">
+        <h2 style="margin:0">Super Premios</h2>
+        <span id="sp-modo-badge" class="sp-modo-badge"></span>
+      </div>
+      <p class="hint" style="margin-bottom:20px">Marca los miércoles y sábados donde La Diaria pagó un super premio. El motor de señales ajustará automáticamente los pesos cuando estés en periodo de recuperación.</p>
+      <div class="sp-year-tabs" id="sp-year-tabs"></div>
+      <div class="sp-months" id="sp-months"></div>
+      <div class="sp-analysis-panel" id="sp-analysis-panel"></div>
     </section>
 
     <!-- HIPÓTESIS / PARES VINCULADOS -->
@@ -5836,6 +5849,246 @@
       renderMemberChips();
     })();
 
+    // ── SUPER PREMIOS ─────────────────────────────────────────────────────────────
+
+    const SP_SCOPE = "super_premios";
+    const SP_RECOVERY_DAYS = 14;
+    const SP_PRE_EVENTO_DAYS = 3;
+    const MONTHS_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+    function spKey(fecha) { return `sp:${fecha}`; }
+
+    async function saveSpToDb(fecha) {
+      return DB.saveKnowledge([{ key: spKey(fecha), scope: SP_SCOPE, data: { fecha }, updatedAt: Date.now() }]);
+    }
+    async function deleteSpFromDb(fecha) {
+      return DB.deleteKnowledgeByKey(spKey(fecha));
+    }
+    async function listSpFromDb() {
+      const rows = await DB.getKnowledgeByScope(SP_SCOPE);
+      return rows.map(r => r.data?.fecha).filter(Boolean).sort();
+    }
+
+    /** Genera todas las fechas miércoles(3) y sábado(6) entre fromYear y toYear inclusive.
+     *  Retorna: { year: { month(0-11): ["YYYY-MM-DD", ...] } }
+     */
+    function generateWedSatDates(fromYear, toYear) {
+      const result = {};
+      const d = new Date(fromYear, 0, 1);
+      const end = new Date(toYear, 11, 31);
+      while (d <= end) {
+        const dow = d.getDay();
+        if (dow === 3 || dow === 6) {
+          const y = d.getFullYear();
+          const m = d.getMonth();
+          if (!result[y]) result[y] = {};
+          if (!result[y][m]) result[y][m] = [];
+          result[y][m].push(d.toISOString().slice(0, 10));
+        }
+        d.setDate(d.getDate() + 1);
+      }
+      return result;
+    }
+
+    /** Returns recovery mode status based on marked super premios */
+    function detectarModoRecuperacion(spFechas) {
+      if (!spFechas.length) return { activo: false, diasRestantes: 0, ultimoEvento: null };
+      const ultima = [...spFechas].sort().pop();
+      const dias = Math.round((Date.now() - new Date(ultima).getTime()) / 86_400_000);
+      return {
+        activo: dias <= SP_RECOVERY_DAYS,
+        diasRestantes: Math.max(0, SP_RECOVERY_DAYS - dias),
+        diasTranscurridos: dias,
+        ultimoEvento: ultima,
+      };
+    }
+
+    /** Numbers drawn in the SP_PRE_EVENTO_DAYS days before and on the super premio date */
+    function calcularNumsPreEvento(spFecha, draws) {
+      const cutoff = new Date(new Date(spFecha).getTime() - SP_PRE_EVENTO_DAYS * 86_400_000).toISOString().slice(0, 10);
+      return [...new Set(
+        draws.filter(d => d.fecha >= cutoff && d.fecha <= spFecha).map(d => Number(d.numero))
+      )];
+    }
+
+    /** Analyze what happened in the 14 days after a super premio date */
+    function analizarPostEvento(spFecha, draws) {
+      const end = new Date(new Date(spFecha).getTime() + SP_RECOVERY_DAYS * 86_400_000).toISOString().slice(0, 10);
+      const preNums = new Set(calcularNumsPreEvento(spFecha, draws));
+      const postDraws = draws.filter(d => d.fecha > spFecha && d.fecha <= end);
+      const postNums = postDraws.map(d => Number(d.numero));
+      const repeticiones = [...new Set(postNums.filter(n => preNums.has(n)))];
+      return {
+        fecha: spFecha,
+        preNums: [...preNums],
+        postNums,
+        repeticiones,
+        tasaRepeticion: postNums.length ? Math.round(repeticiones.length / postNums.length * 100) : 0,
+        totalPostSorteos: postDraws.length,
+      };
+    }
+
+    let _spMarkedSet = new Set(); // cache local de fechas marcadas
+    let _spCalendar = null;       // cache del calendario generado
+    let _spActiveYear = null;
+
+    async function renderSuperPremioPanel() {
+      const tabsEl = document.getElementById("sp-year-tabs");
+      const monthsEl = document.getElementById("sp-months");
+      const analysisEl = document.getElementById("sp-analysis-panel");
+      const badgeEl = document.getElementById("sp-modo-badge");
+      if (!tabsEl || !monthsEl) return;
+
+      // Load marked dates
+      const spFechas = await listSpFromDb();
+      _spMarkedSet = new Set(spFechas);
+
+      // Generate calendar if not cached
+      if (!_spCalendar) {
+        const currentYear = new Date().getFullYear();
+        _spCalendar = generateWedSatDates(2015, currentYear);
+      }
+
+      // Recovery mode badge
+      const rec = detectarModoRecuperacion(spFechas);
+      if (badgeEl) {
+        badgeEl.className = `sp-modo-badge sp-modo-badge--${rec.activo ? "on" : "off"}`;
+        badgeEl.textContent = rec.activo
+          ? `🔴 Modo recuperación activo — ${rec.diasRestantes} días restantes`
+          : "⚪ Modo recuperación inactivo";
+      }
+
+      // Year tabs
+      const years = Object.keys(_spCalendar).map(Number).sort((a, b) => b - a); // newest first
+      if (!_spActiveYear || !_spCalendar[_spActiveYear]) _spActiveYear = years[0];
+
+      tabsEl.innerHTML = years.map(y => {
+        const countYear = Object.values(_spCalendar[y] || {}).flat().filter(f => _spMarkedSet.has(f)).length;
+        return `<button class="sp-year-btn${y === _spActiveYear ? " sp-year-btn--active" : ""}" data-year="${y}">
+          ${y}${countYear ? `<span class="sp-year-count">${countYear}</span>` : ""}
+        </button>`;
+      }).join("");
+
+      tabsEl.querySelectorAll(".sp-year-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          _spActiveYear = parseInt(btn.dataset.year, 10);
+          renderSpYear(monthsEl);
+          // update active tab style
+          tabsEl.querySelectorAll(".sp-year-btn").forEach(b => b.classList.toggle("sp-year-btn--active", parseInt(b.dataset.year,10) === _spActiveYear));
+        });
+      });
+
+      renderSpYear(monthsEl);
+
+      // Analysis panel
+      if (analysisEl && spFechas.length && drawsCache?.length) {
+        const hist = drawsCache.filter(d => !d.esTest);
+        const analyses = spFechas.map(f => analizarPostEvento(f, hist)).filter(a => a.totalPostSorteos > 0);
+        if (analyses.length) {
+          const avgTasa = Math.round(analyses.reduce((s, a) => s + a.tasaRepeticion, 0) / analyses.length);
+          const allReps = analyses.flatMap(a => a.repeticiones);
+          const repFreq = {};
+          allReps.forEach(n => { repFreq[n] = (repFreq[n] || 0) + 1; });
+          const topReps = Object.entries(repFreq).sort((a,b) => b[1]-a[1]).slice(0, 8);
+          analysisEl.innerHTML = `
+            <div class="sp-analysis-box">
+              <div class="sp-analysis-head">Análisis histórico — ${analyses.length} super premios registrados</div>
+              <div class="sp-analysis-stat">Tasa de repetición promedio post-evento: <strong>${avgTasa}%</strong></div>
+              ${topReps.length ? `
+              <div class="sp-analysis-stat" style="margin-top:8px">Números que más repiten en ventana post-evento:</div>
+              <div class="sp-analysis-chips">
+                ${topReps.map(([n, c]) => {
+                  const pad = String(n).padStart(2,"0");
+                  const sim = GUIA?.[pad]?.simbolo || "";
+                  return `<span class="sp-rep-chip">${pad} <small>${sim}</small> <em>${c}×</em></span>`;
+                }).join("")}
+              </div>` : ""}
+              ${rec.activo ? `
+              <div class="sp-analysis-stat sp-analysis-stat--warning" style="margin-top:10px">
+                ⚠️ Estás en modo recuperación. Último super premio: <strong>${rec.ultimoEvento}</strong> (hace ${rec.diasTranscurridos} días).
+                El motor de señales está ajustando los pesos automáticamente.
+              </div>` : ""}
+            </div>
+          `;
+        } else {
+          analysisEl.innerHTML = "";
+        }
+      } else if (analysisEl) {
+        analysisEl.innerHTML = "";
+      }
+    }
+
+    function renderSpYear(monthsEl) {
+      if (!_spCalendar || !_spActiveYear) return;
+      const months = _spCalendar[_spActiveYear] || {};
+      const sortedMonths = Object.keys(months).map(Number).sort((a,b) => a-b);
+
+      monthsEl.innerHTML = sortedMonths.map(m => {
+        const dates = months[m] || [];
+        const markedCount = dates.filter(f => _spMarkedSet.has(f)).length;
+        const chipsHtml = dates.map(fecha => {
+          const day = parseInt(fecha.slice(8), 10);
+          const dow = new Date(fecha).getDay();
+          const isSat = dow === 6;
+          const isMarked = _spMarkedSet.has(fecha);
+          return `<button class="sp-date-chip${isSat ? " sp-date-chip--sat" : " sp-date-chip--wed"}${isMarked ? " sp-date-chip--marked" : ""}"
+            data-fecha="${fecha}" title="${fecha}">
+            <span class="sp-chip-dow">${isSat ? "sáb" : "mié"}</span>
+            <span class="sp-chip-day">${day}</span>
+          </button>`;
+        }).join("");
+        return `<div class="sp-month-row">
+          <div class="sp-month-label">${MONTHS_ES[m]}<span class="sp-month-count">${markedCount ? markedCount + " ✓" : ""}</span></div>
+          <div class="sp-month-chips">${chipsHtml}</div>
+        </div>`;
+      }).join("");
+
+      monthsEl.querySelectorAll(".sp-date-chip").forEach(chip => {
+        chip.addEventListener("click", async () => {
+          const fecha = chip.dataset.fecha;
+          const wasMarked = _spMarkedSet.has(fecha);
+          if (wasMarked) {
+            _spMarkedSet.delete(fecha);
+            chip.classList.remove("sp-date-chip--marked");
+            await deleteSpFromDb(fecha).catch(() => {});
+          } else {
+            _spMarkedSet.add(fecha);
+            chip.classList.add("sp-date-chip--marked");
+            await saveSpToDb(fecha).catch(() => {});
+          }
+          // Update month count
+          const row = chip.closest(".sp-month-row");
+          const countEl = row?.querySelector(".sp-month-count");
+          if (countEl) {
+            const monthDates = row.querySelectorAll(".sp-date-chip");
+            const cnt = [...monthDates].filter(c => c.classList.contains("sp-date-chip--marked")).length;
+            countEl.textContent = cnt ? cnt + " ✓" : "";
+          }
+          // Update year tab count
+          const allMarked = monthsEl.querySelectorAll(".sp-date-chip--marked").length;
+          const activeTab = document.querySelector(`.sp-year-btn[data-year="${_spActiveYear}"]`);
+          if (activeTab) {
+            let countSpan = activeTab.querySelector(".sp-year-count");
+            if (allMarked) {
+              if (!countSpan) { countSpan = document.createElement("span"); countSpan.className = "sp-year-count"; activeTab.appendChild(countSpan); }
+              countSpan.textContent = allMarked;
+            } else if (countSpan) countSpan.remove();
+          }
+          // Refresh analysis and badge
+          const spFechas = [..._spMarkedSet].sort();
+          const rec = detectarModoRecuperacion(spFechas);
+          const badgeEl = document.getElementById("sp-modo-badge");
+          if (badgeEl) {
+            badgeEl.className = `sp-modo-badge sp-modo-badge--${rec.activo ? "on" : "off"}`;
+            badgeEl.textContent = rec.activo
+              ? `🔴 Modo recuperación activo — ${rec.diasRestantes} días restantes`
+              : "⚪ Modo recuperación inactivo";
+          }
+          invalidatePulso();
+        });
+      });
+    }
+
     function getHypothesisFilterNumero() {
       const raw = (hypoSearchInput?.value || "").trim();
       if (!raw) return "";
@@ -6215,6 +6468,16 @@
         `;
         frag.appendChild(lastCard);
 
+        // Recovery mode banner
+        const spFechas = await listSpFromDb().catch(() => []);
+        const recoveryMode = detectarModoRecuperacion(spFechas);
+        if (recoveryMode.activo) {
+          const recBanner = document.createElement("div");
+          recBanner.className = "pulso-recovery-banner";
+          recBanner.innerHTML = `<span>🔴 Modo recuperación activo</span><span>Último super premio: ${recoveryMode.ultimoEvento} · ${recoveryMode.diasTranscurridos} días · ${recoveryMode.diasRestantes}d restantes · Motor ajustado para favorecer números pre-evento</span>`;
+          frag.appendChild(recBanner);
+        }
+
         // Grupos de candidatos
         if (groups.length) {
           const groupsWrap = document.createElement("div");
@@ -6262,8 +6525,16 @@
         // ── Motor de señales unificado ───────────────────────────────────────
         try {
           const pais = last.pais || "";
+          const preEventoNums = recoveryMode.activo && recoveryMode.ultimoEvento
+            ? calcularNumsPreEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
+            : [];
           const [motorResult, rezagoResult, sucesores] = await Promise.allSettled([
-            ejecutarMotorSeñales({ pais, turno: nextHorario, topN: 8 }),
+            ejecutarMotorSeñales({
+              pais,
+              turno: nextHorario,
+              topN: 8,
+              recuperacion: recoveryMode.activo ? { activo: true, preEventoNums } : null,
+            }),
             estadoRezago(pais),
             sucesoresMarkov(lastNum, pais, 4),
           ]);
@@ -7924,6 +8195,7 @@ function buildVariantEntries(profile) {
       maint: "view-maint",
       modes: "view-modes",
       wiki:  "view-wiki",
+      superpremio: "view-superpremio",
     };
     const sidebarButtons = document.querySelectorAll(".sidebar button");
     sidebarButtons.forEach((b) => {
@@ -7941,6 +8213,7 @@ function buildVariantEntries(profile) {
         if (id === "view-wiki")  initWiki();
         if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
         if (id === "view-analysis") renderPulso();
+        if (id === "view-superpremio") renderSuperPremioPanel();
         if (id === "view-maint") refreshDuplicados();
         if (id === "view-modes") refreshModesPanel();
         if (id === "view-pega3") {
