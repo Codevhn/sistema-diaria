@@ -8891,3 +8891,63 @@ body.login-page {
   margin: 4px 0 0;
   padding: 0 2px;
 }
+
+/* ── Calendario adversarial en Pulso ──────────────────────────── */
+.pulso-calendario { border-left: 3px solid #6a8dff; padding-left: 10px; }
+.pulso-cal-row { margin-top: 8px; }
+.pulso-cal-row__head {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+.pulso-cal-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.pulso-cal-chip {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: help;
+}
+.pulso-cal-chip small { font-weight: 400; color: var(--color-muted); font-size: 0.7rem; }
+.pulso-cal-chip em { font-style: normal; font-size: 0.7rem; font-weight: 700; }
+.pulso-cal-chip--block {
+  background: rgba(220,80,80,0.1);
+  border-color: rgba(220,80,80,0.35);
+}
+.pulso-cal-chip--block em { color: #ff8080; }
+.pulso-cal-chip--boost {
+  background: rgba(106,141,255,0.12);
+  border-color: rgba(106,141,255,0.4);
+}
+.pulso-cal-chip--boost em { color: #8fb0ff; }
+.pulso-cal-events { display: flex; flex-direction: column; gap: 6px; }
+.pulso-cal-event {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pulso-cal-event-label { font-weight: 700; font-size: 0.82rem; color: var(--color-text); }
+.pulso-cal-event-when { font-size: 0.72rem; color: var(--color-muted); }
+.pulso-cal-event-nums { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+.pulso-cal-event-num {
+  background: rgba(106,141,255,0.12);
+  border: 1px solid rgba(106,141,255,0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+  color: #8fb0ff;
+  font-weight: 600;
+}

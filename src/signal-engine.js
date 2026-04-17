@@ -15,6 +15,7 @@ import { detectarPatrones } from "./pattern-detector.js";
 import { evaluarModos } from "./mode-engine.js";
 import { analizarPatronesMensuales } from "./monthly-trends.js";
 import { analizarSecuenciasSemanales } from "./weekly-patterns.js";
+import { getEfectosCalendarioPorNumero, getEventosProximos } from "./popularity-calendar.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -515,6 +516,27 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     familiasPenalizadas
   );
 
+  // 6a. Calendario adversarial: bloqueo por fechas patrias + evasión por adyacencia de día del mes
+  try {
+    const fechaCalendario = fecha || (lastDraw?.fecha) || new Date().toISOString().slice(0, 10);
+    const efectosCal = getEfectosCalendarioPorNumero(fechaCalendario);
+    efectosCal.forEach(({ factor, motivos, tipos }, numero) => {
+      const data = composed.get(numero);
+      if (!data) return;
+      data.score = Math.max(0, Math.min(1, data.score * factor));
+      const tipoLabel = tipos.has("penalizacion") && tipos.has("boost")
+        ? "calendario-mixto"
+        : tipos.has("penalizacion") ? "calendario-bloqueo" : "calendario-boost";
+      const pctChange = Math.round((factor - 1) * 100);
+      const sign = pctChange >= 0 ? "+" : "";
+      data.signals.unshift({
+        source: tipoLabel,
+        label: `${motivos[0]}${motivos.length > 1 ? ` (+${motivos.length - 1} efecto${motivos.length > 2 ? "s" : ""} más)` : ""} (${sign}${pctChange}% peso)`,
+        value: Math.min(0.95, 0.5 + Math.abs(factor - 1)),
+      });
+    });
+  } catch (e) { /* calendario opcional, no romper motor */ }
+
   // 6b. Modo recuperación: boost numbers repeating after the super premio payment
   if (recuperacion?.activo && recuperacion.repetidosPostEvento?.length) {
     const repMap = new Map(recuperacion.repetidosPostEvento.map(({ numero, veces }) => [Number(numero), veces]));
@@ -578,12 +600,30 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
   if (draws.length > 5000)      dataQuality = "alto";
   else if (draws.length > 2000) dataQuality = "medio";
 
+  // 10. Calendario: efectos activos hoy + próximos eventos (para UI)
+  let calendarioInfo = null;
+  try {
+    const fechaCal = fecha || lastDraw?.fecha || new Date().toISOString().slice(0, 10);
+    const efectosActivos = getEfectosCalendarioPorNumero(fechaCal);
+    const proximos = getEventosProximos(fechaCal, 120);
+    const bloqueados = [];
+    const boosteados = [];
+    efectosActivos.forEach(({ factor, motivos, tipos }, numero) => {
+      const item = { numero, pad: padNum(numero), factor: Math.round(factor * 100) / 100, motivo: motivos[0] };
+      if (factor < 1) bloqueados.push(item); else if (factor > 1) boosteados.push(item);
+    });
+    bloqueados.sort((a, b) => a.factor - b.factor);
+    boosteados.sort((a, b) => b.factor - a.factor);
+    calendarioInfo = { bloqueados, boosteados, proximos };
+  } catch (e) { /* opcional */ }
+
   return {
     candidatos:  topCandidatos,
     eliminados:  eliminadosArr,
     universo:    100 - eliminados.size,
     diciembre:   enDiciembre,
     recuperacion: recuperacion || null,
+    calendario:  calendarioInfo,
     contexto: {
       totalSorteos:    draws.length,
       ultimoSorteo:    { numero: lastDraw?.numero, horario: lastDraw?.horario, fecha: lastDraw?.fecha },

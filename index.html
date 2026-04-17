@@ -5927,6 +5927,62 @@
               if (recElim.length) frag.appendChild(buildRezagoSection(recElim, "elim", "✕ Excluidos — cayeron hace poco (baja probabilidad de repetición inmediata)"));
               if (sobElim.length) frag.appendChild(buildRezagoSection(sobElim, "warn", "⚠ Sobrecalentados — el sistema los evita porque el jugador los espera"));
             }
+
+            // ── Calendario adversarial: bloqueos y boosts activos hoy ──
+            const cal = motor.calendario;
+            if (cal && (cal.bloqueados?.length || cal.boosteados?.length || cal.proximos?.length)) {
+              const calSec = document.createElement("div");
+              calSec.className = "pulso-group pulso-calendario";
+              const blocksHtml = cal.bloqueados.length ? `
+                <div class="pulso-cal-row">
+                  <div class="pulso-cal-row__head">🚫 Números bloqueados por contexto</div>
+                  <div class="pulso-cal-chips">
+                    ${cal.bloqueados.map(b => {
+                      const sim = GUIA?.[b.pad]?.simbolo || "";
+                      const pct = Math.round((1 - b.factor) * 100);
+                      return `<span class="pulso-cal-chip pulso-cal-chip--block" title="${b.motivo}">${b.pad} <small>${sim}</small> <em>−${pct}%</em></span>`;
+                    }).join("")}
+                  </div>
+                </div>` : "";
+              const boostsHtml = cal.boosteados.length ? `
+                <div class="pulso-cal-row">
+                  <div class="pulso-cal-row__head">↗ Números con boost por adyacencia de día</div>
+                  <div class="pulso-cal-chips">
+                    ${cal.boosteados.map(b => {
+                      const sim = GUIA?.[b.pad]?.simbolo || "";
+                      const pct = Math.round((b.factor - 1) * 100);
+                      return `<span class="pulso-cal-chip pulso-cal-chip--boost" title="${b.motivo}">${b.pad} <small>${sim}</small> <em>+${pct}%</em></span>`;
+                    }).join("")}
+                  </div>
+                </div>` : "";
+              const prox = cal.proximos.slice(0, 4);
+              const proxHtml = prox.length ? `
+                <div class="pulso-cal-row">
+                  <div class="pulso-cal-row__head">📅 Próximos eventos hondureños</div>
+                  <div class="pulso-cal-events">
+                    ${prox.map(p => {
+                      const numsList = p.numeros.map(n => {
+                        const pad = String(n).padStart(2, "0");
+                        const sim = GUIA?.[pad]?.simbolo || "";
+                        return `<span class="pulso-cal-event-num">${pad} ${sim}</span>`;
+                      }).join("");
+                      return `<div class="pulso-cal-event">
+                        <span class="pulso-cal-event-label">${p.label}</span>
+                        <span class="pulso-cal-event-when">en ${p.diasFaltan}d (${p.fecha})</span>
+                        <div class="pulso-cal-event-nums">${numsList}</div>
+                      </div>`;
+                    }).join("")}
+                  </div>
+                </div>` : "";
+              calSec.innerHTML = `
+                <div class="pulso-group__head">
+                  <span class="pulso-group__label">📆 Calendario adversarial</span>
+                  <span class="pulso-group__freq">fechas patrias + evasión por día del mes</span>
+                </div>
+                ${blocksHtml}${boostsHtml}${proxHtml}
+              `;
+              frag.appendChild(calSec);
+            }
           }
 
           // ── Números vencidos y en ventana (rezago) ──
