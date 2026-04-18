@@ -18,6 +18,7 @@ import { analizarSecuenciasSemanales } from "./weekly-patterns.js";
 import { getEfectosCalendarioPorNumero, getEventosProximos } from "./popularity-calendar.js";
 import { calcularPopularidad, popularidadAFactor, getCadenasActivas, getMercado } from "./popularity-model.js";
 import { generarVariantesMulti, generarVariantes } from "./conversion-engine.js";
+import { detectarClusters, pesoPorCluster, numerosDelCluster } from "./digit-cluster-detector.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -631,6 +632,40 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     };
   } catch (e) { /* opcional */ }
 
+  // 6e. Detector de clusters de dígitos: La Diaria a veces "mina" {d1,d2,d3...}
+  //     por varios sorteos. Boostear números que pertenezcan al cluster activo.
+  let clustersInfo = null;
+  try {
+    const clusters = detectarClusters(draws, { lookback: 12, umbralRatio: 0.65, minK: 2, maxK: 5 });
+    if (clusters.length) {
+      const pesos = pesoPorCluster(clusters);
+      pesos.forEach(({ peso, clusterRank, digitos }, numero) => {
+        const target = composed.get(numero);
+        if (!target) return;
+        // Factor 1.0 a 1.40 según peso del cluster
+        const factor = 1 + Math.min(0.40, peso * 0.45);
+        target.score = Math.max(0, Math.min(1, target.score * factor));
+        const pct = Math.round((factor - 1) * 100);
+        target.signals.unshift({
+          source: "cluster-digito",
+          label: `Cluster activo {${digitos.join(",")}} #${clusterRank + 1} — La Diaria está minando estos dígitos (+${pct}% peso)`,
+          value: Math.min(0.95, 0.55 + peso * 0.4),
+        });
+      });
+
+      clustersInfo = clusters.map((c, idx) => ({
+        rank: idx + 1,
+        digitos: c.digitos,
+        cobertura: Math.round(c.cobertura * 100),
+        hits: c.hits,
+        total: c.total,
+        score: Math.round(c.score * 100) / 100,
+        sorteos: c.sorteos.map((n) => ({ numero: n, pad: padNum(n) })),
+        miembros: numerosDelCluster(c.digitos).map((n) => ({ numero: n, pad: padNum(n) })),
+      }));
+    }
+  } catch (e) { /* opcional */ }
+
   // 6c. Modo recuperación: boost numbers repeating after the super premio payment
   if (recuperacion?.activo && recuperacion.repetidosPostEvento?.length) {
     const repMap = new Map(recuperacion.repetidosPostEvento.map(({ numero, veces }) => [Number(numero), veces]));
@@ -720,6 +755,7 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     calendario:  calendarioInfo,
     popularidad: popularidadInfo,
     variantes:   variantesInfo,
+    clusters:    clustersInfo,
     contexto: {
       totalSorteos:    draws.length,
       ultimoSorteo:    { numero: lastDraw?.numero, horario: lastDraw?.horario, fecha: lastDraw?.fecha },

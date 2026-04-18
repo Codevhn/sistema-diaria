@@ -9040,3 +9040,55 @@ body.login-page {
 .pulso-var-chip small { opacity: 0.8; }
 .pulso-var-chip em { font-style: normal; font-size: 0.68rem; color: var(--color-muted); }
 .pulso-var-chip b { font-size: 0.7rem; color: #b08aff; font-weight: 700; }
+
+/* ── Detector de Clusters de Dígitos (Pulso) ──────────────────────────────── */
+.pulso-clusters { border-left: 3px solid #50d0a8; padding-left: 10px; }
+.pulso-cluster-card {
+  background: rgba(80,208,168,0.06);
+  border: 1px solid rgba(80,208,168,0.2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 8px;
+}
+.pulso-cluster-card__head {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.pulso-cluster-rank {
+  background: #50d0a8; color: #002a1f;
+  font-weight: 800; font-size: 0.78rem;
+  padding: 2px 6px; border-radius: 4px;
+}
+.pulso-cluster-digits { display: inline-flex; gap: 3px; }
+.pulso-cluster-digit {
+  display: inline-block;
+  background: rgba(80,208,168,0.25);
+  border: 1px solid rgba(80,208,168,0.5);
+  color: #7be8c2;
+  font-weight: 800; font-size: 0.85rem;
+  width: 20px; height: 20px; line-height: 18px;
+  text-align: center; border-radius: 50%;
+}
+.pulso-cluster-meta { font-size: 0.74rem; color: var(--color-muted); margin-left: auto; }
+.pulso-cluster-row {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 4px; margin-top: 4px; font-size: 0.76rem;
+}
+.pulso-cluster-lbl { color: var(--color-muted); font-size: 0.72rem; margin-right: 4px; }
+.pulso-cluster-hit {
+  background: rgba(80,208,168,0.18);
+  border: 1px solid rgba(80,208,168,0.4);
+  color: #7be8c2;
+  font-weight: 700;
+  padding: 1px 6px; border-radius: 4px;
+}
+.pulso-cluster-hit small { font-weight: 400; opacity: 0.75; margin-left: 2px; }
+.pulso-cluster-miembro {
+  background: rgba(80,208,168,0.06);
+  border: 1px solid rgba(80,208,168,0.2);
+  color: var(--color-text);
+  padding: 1px 5px; border-radius: 4px;
+  font-size: 0.72rem;
+}
+.pulso-cluster-miembro small { opacity: 0.7; margin-left: 2px; }
+.pulso-cluster-more { color: var(--color-muted); font-size: 0.72rem; font-style: italic; }

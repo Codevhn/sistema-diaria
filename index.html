@@ -6126,6 +6126,47 @@
             frag.appendChild(varSec);
           }
 
+          // ── Clusters de dígitos activos ──────────────────────────────────
+          const clustersData = motor?.clusters;
+          if (clustersData && clustersData.length) {
+            const clSec = document.createElement("div");
+            clSec.className = "pulso-group pulso-clusters";
+            const blocks = clustersData.slice(0, 3).map(c => {
+              const digitChips = c.digitos.map(d => `<span class="pulso-cluster-digit">${d}</span>`).join("");
+              const sortedSorteos = c.sorteos.map(s => {
+                const sim = GUIA?.[s.pad]?.simbolo || "";
+                return `<span class="pulso-cluster-hit">${s.pad} <small>${sim}</small></span>`;
+              }).join("");
+              const miembros = c.miembros.slice(0, 16).map(m => {
+                const sim = GUIA?.[m.pad]?.simbolo || "";
+                return `<span class="pulso-cluster-miembro">${m.pad}<small>${sim}</small></span>`;
+              }).join("");
+              return `<div class="pulso-cluster-card">
+                <div class="pulso-cluster-card__head">
+                  <span class="pulso-cluster-rank">#${c.rank}</span>
+                  <span class="pulso-cluster-digits">${digitChips}</span>
+                  <span class="pulso-cluster-meta">${c.cobertura}% cobertura · ${c.hits}/${c.total} sorteos</span>
+                </div>
+                <div class="pulso-cluster-row">
+                  <span class="pulso-cluster-lbl">Cayeron del cluster:</span>
+                  ${sortedSorteos}
+                </div>
+                <div class="pulso-cluster-row">
+                  <span class="pulso-cluster-lbl">Universo combinatorio (${c.miembros.length} números):</span>
+                  ${miembros}${c.miembros.length > 16 ? `<span class="pulso-cluster-more">+${c.miembros.length - 16}</span>` : ""}
+                </div>
+              </div>`;
+            }).join("");
+            clSec.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">🎯 Clusters de dígitos activos</span>
+                <span class="pulso-group__freq">La Diaria está minando estos dígitos en los últimos 12 sorteos</span>
+              </div>
+              ${blocks}
+            `;
+            frag.appendChild(clSec);
+          }
+
           // ── Números vencidos y en ventana (rezago) ──
           const rez = rezagoResult.status === "fulfilled" ? rezagoResult.value : null;
           if (rez?.vencidos?.length)  frag.appendChild(buildRezagoSection(rez.vencidos.slice(0, 6),  "warn", "Vencidos — llevan mucho más de su ciclo normal sin caer"));
