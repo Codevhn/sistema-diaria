@@ -5735,6 +5735,13 @@
         sim.textContent = item.simbolo || item.pad;
         card.appendChild(sim);
 
+        if (item.badge) {
+          const badge = document.createElement("span");
+          badge.className = "rezago-card__badge";
+          badge.textContent = item.badge;
+          card.appendChild(badge);
+        }
+
         if (item.diasDesdeUltima != null) {
           const dias = document.createElement("span");
           dias.className = "rezago-card__dias";
@@ -5752,9 +5759,15 @@
           ciclo.className = "rezago-card__ciclo";
           ciclo.textContent = `ciclo: ${item.cicloPromedio}d`;
           card.appendChild(ciclo);
+        } else if (item.subtext) {
+          const sub = document.createElement("span");
+          sub.className = "rezago-card__ciclo";
+          sub.textContent = item.subtext;
+          card.appendChild(sub);
         }
 
-        wrap.title = item.razon || "";
+        if (item.tooltip) card.title = item.tooltip;
+        else if (item.razon) card.title = item.razon;
         grid.appendChild(card);
       });
 
@@ -5977,57 +5990,40 @@
             } catch (e) { /* opcional */ }
           }
           if (calData && (calData.bloqueados?.length || calData.boosteados?.length || calData.proximos?.length)) {
-            const calSec = document.createElement("div");
-            calSec.className = "pulso-group pulso-calendario";
-            const blocksHtml = calData.bloqueados.length ? `
-              <div class="pulso-cal-row">
-                <div class="pulso-cal-row__head">🚫 Números bloqueados por contexto</div>
-                <div class="pulso-cal-chips">
-                  ${calData.bloqueados.map(b => {
-                    const sim = GUIA?.[b.pad]?.simbolo || "";
-                    const pct = Math.round((1 - b.factor) * 100);
-                    return `<span class="pulso-cal-chip pulso-cal-chip--block" title="${b.motivo}">${b.pad} <small>${sim}</small> <em>−${pct}%</em></span>`;
-                  }).join("")}
-                </div>
-              </div>` : "";
-            const boostsHtml = calData.boosteados.length ? `
-              <div class="pulso-cal-row">
-                <div class="pulso-cal-row__head">↗ Números con boost por adyacencia de día</div>
-                <div class="pulso-cal-chips">
-                  ${calData.boosteados.map(b => {
-                    const sim = GUIA?.[b.pad]?.simbolo || "";
-                    const pct = Math.round((b.factor - 1) * 100);
-                    return `<span class="pulso-cal-chip pulso-cal-chip--boost" title="${b.motivo}">${b.pad} <small>${sim}</small> <em>+${pct}%</em></span>`;
-                  }).join("")}
-                </div>
-              </div>` : "";
-            const prox = calData.proximos.slice(0, 4);
-            const proxHtml = prox.length ? `
-              <div class="pulso-cal-row">
-                <div class="pulso-cal-row__head">📅 Próximos eventos hondureños</div>
-                <div class="pulso-cal-events">
-                  ${prox.map(p => {
-                    const numsList = p.numeros.map(n => {
-                      const pad = String(n).padStart(2, "0");
-                      const sim = GUIA?.[pad]?.simbolo || "";
-                      return `<span class="pulso-cal-event-num">${pad} ${sim}</span>`;
-                    }).join("");
-                    return `<div class="pulso-cal-event">
-                      <span class="pulso-cal-event-label">${p.label}</span>
-                      <span class="pulso-cal-event-when">en ${p.diasFaltan}d (${p.fecha})</span>
-                      <div class="pulso-cal-event-nums">${numsList}</div>
-                    </div>`;
-                  }).join("")}
-                </div>
-              </div>` : "";
-            calSec.innerHTML = `
-              <div class="pulso-group__head">
-                <span class="pulso-group__label">📆 Calendario adversarial</span>
-                <span class="pulso-group__freq">fechas patrias + evasión por día del mes</span>
-              </div>
-              ${blocksHtml}${boostsHtml}${proxHtml}
-            `;
-            frag.appendChild(calSec);
+            if (calData.bloqueados?.length) {
+              const items = calData.bloqueados.map(b => ({
+                pad: b.pad,
+                simbolo: GUIA?.[b.pad]?.simbolo || "",
+                badge: `−${Math.round((1 - b.factor) * 100)}%`,
+                razon: b.motivo,
+              }));
+              frag.appendChild(buildRezagoSection(items, "cal-block", "📆 Calendario — números bloqueados por contexto (fechas patrias)"));
+            }
+            if (calData.boosteados?.length) {
+              const items = calData.boosteados.map(b => ({
+                pad: b.pad,
+                simbolo: GUIA?.[b.pad]?.simbolo || "",
+                badge: `+${Math.round((b.factor - 1) * 100)}%`,
+                razon: b.motivo,
+              }));
+              frag.appendChild(buildRezagoSection(items, "cal-boost", "📆 Calendario — boost por adyacencia de día del mes"));
+            }
+            const prox = calData.proximos?.slice(0, 4) || [];
+            if (prox.length) {
+              const items = [];
+              prox.forEach(p => {
+                p.numeros.slice(0, 6).forEach(n => {
+                  const pad = String(n).padStart(2, "0");
+                  items.push({
+                    pad,
+                    simbolo: GUIA?.[pad]?.simbolo || "",
+                    razon: p.label,
+                    subtext: `en ${p.diasFaltan}d`,
+                  });
+                });
+              });
+              frag.appendChild(buildRezagoSection(items, "cal-prox", "📅 Próximos eventos hondureños"));
+            }
           }
 
           // ── Modelo de popularidad: mercado caliente/frío + cadenas activas ──
@@ -6051,8 +6047,6 @@
             } catch (e) { /* opcional */ }
           }
           if (popData && (popData.calientes?.length || popData.libres?.length || popData.cadenasActivas?.length)) {
-            const popSec = document.createElement("div");
-            popSec.className = "pulso-group pulso-popularidad";
             const cadenaLabels = {
               mujer_madre: "Mujer / Madre", muerte: "Muerte", boda_novia: "Boda / Novia",
               animales_casa: "Animales de casa", fiesta: "Fiesta", aves: "Aves",
@@ -6060,55 +6054,40 @@
               infierno: "Infierno / Sombra", cocina: "Cocina", naturaleza: "Naturaleza",
               joyeria: "Joyería", religion: "Religión", transporte: "Transporte",
             };
-            const cadHtml = popData.cadenasActivas?.length ? `
-              <div class="pulso-pop-row">
-                <div class="pulso-pop-row__head">🔗 Cadenas semánticas activas</div>
-                <div class="pulso-pop-cadenas">
-                  ${popData.cadenasActivas.map(c => {
-                    const trigs = c.triggers.map(t => `<span class="pulso-pop-trigger" title="cayó recientemente">${t.pad}</span>`).join("");
-                    const targs = c.targets.map(t => {
-                      const sim = GUIA?.[t.pad]?.simbolo || "";
-                      return `<span class="pulso-pop-target" title="el público lo espera">${t.pad} <small>${sim}</small></span>`;
-                    }).join("");
-                    return `<div class="pulso-pop-cadena">
-                      <div class="pulso-pop-cadena__head"><strong>${cadenaLabels[c.cadena] || c.cadena}</strong> <em>${c.intensidad}% activa</em></div>
-                      <div class="pulso-pop-cadena__body">
-                        <span class="pulso-pop-cadena__lbl">disparadores:</span> ${trigs}
-                        <span class="pulso-pop-cadena__arrow">→</span>
-                        <span class="pulso-pop-cadena__lbl">expectativa:</span> ${targs}
-                      </div>
-                    </div>`;
-                  }).join("")}
-                </div>
-              </div>` : "";
-            const calientesHtml = popData.calientes?.length ? `
-              <div class="pulso-pop-row">
-                <div class="pulso-pop-row__head">🔥 Mercado caliente — La Diaria los evita</div>
-                <div class="pulso-cal-chips">
-                  ${popData.calientes.map(c => {
-                    const sim = GUIA?.[c.pad]?.simbolo || "";
-                    return `<span class="pulso-cal-chip pulso-cal-chip--block" title="${c.motivo}">${c.pad} <small>${sim}</small> <em>${c.score}</em></span>`;
-                  }).join("")}
-                </div>
-              </div>` : "";
-            const libresHtml = popData.libres?.length ? `
-              <div class="pulso-pop-row">
-                <div class="pulso-pop-row__head">💎 Números libres — baja popularidad, más probables</div>
-                <div class="pulso-cal-chips">
-                  ${popData.libres.map(l => {
-                    const sim = GUIA?.[l.pad]?.simbolo || "";
-                    return `<span class="pulso-cal-chip pulso-cal-chip--boost" title="popularidad ${l.score}/100">${l.pad} <small>${sim}</small></span>`;
-                  }).join("")}
-                </div>
-              </div>` : "";
-            popSec.innerHTML = `
-              <div class="pulso-group__head">
-                <span class="pulso-group__label">🎭 Popularidad del público (modelo adversarial)</span>
-                <span class="pulso-group__freq">cadenas semánticas + saladitos</span>
-              </div>
-              ${cadHtml}${calientesHtml}${libresHtml}
-            `;
-            frag.appendChild(popSec);
+            // Cadenas activas → cards de targets agrupadas por cadena
+            popData.cadenasActivas?.forEach(c => {
+              const items = c.targets.map(t => ({
+                pad: t.pad,
+                simbolo: GUIA?.[t.pad]?.simbolo || "",
+                razon: `expectativa de ${cadenaLabels[c.cadena] || c.cadena}`,
+                subtext: `por ${c.triggers.map(x => x.pad).join("·")}`,
+              }));
+              if (items.length) {
+                const trigList = c.triggers.map(t => t.pad).join(", ");
+                frag.appendChild(buildRezagoSection(items, "pop-cadena",
+                  `🔗 Cadena ${cadenaLabels[c.cadena] || c.cadena} activa (${c.intensidad}%) — disparadores ${trigList}`));
+              }
+            });
+            // Calientes
+            if (popData.calientes?.length) {
+              const items = popData.calientes.map(c => ({
+                pad: c.pad,
+                simbolo: GUIA?.[c.pad]?.simbolo || "",
+                badge: `${c.score}`,
+                razon: c.motivo,
+              }));
+              frag.appendChild(buildRezagoSection(items, "pop-hot", "🔥 Mercado caliente — La Diaria los evita"));
+            }
+            // Libres
+            if (popData.libres?.length) {
+              const items = popData.libres.map(l => ({
+                pad: l.pad,
+                simbolo: GUIA?.[l.pad]?.simbolo || "",
+                badge: `${l.score}`,
+                razon: "baja popularidad",
+              }));
+              frag.appendChild(buildRezagoSection(items, "pop-cool", "💎 Números libres — baja popularidad, más probables"));
+            }
           }
 
           // ── Motor de variantes: sustituciones probables ──────────────────
@@ -6120,116 +6099,84 @@
               equiv_directa: "equivalencia", equiv_espejo: "espejo equiv.",
               mirror: "espejo", encadenado: "encadenada",
             };
-            const varSec = document.createElement("div");
-            varSec.className = "pulso-group pulso-variantes";
-            const seedsHtml = varData.semillas.slice(0, 6).map(s => {
-              const sim = GUIA?.[s.pad]?.simbolo || "";
-              return `<span class="pulso-var-seed" title="peso ${s.peso}">${s.pad} <small>${sim}</small></span>`;
-            }).join("");
-            const varHtml = varData.variantes.map(v => {
-              const sim = GUIA?.[v.pad]?.simbolo || "";
+            // Semillas
+            if (varData.semillas?.length) {
+              const items = varData.semillas.slice(0, 6).map(s => ({
+                pad: s.pad,
+                simbolo: GUIA?.[s.pad]?.simbolo || "",
+                badge: `${Math.round(s.peso * 100)}%`,
+                razon: "semilla activa",
+              }));
+              frag.appendChild(buildRezagoSection(items, "variante-seed", "🔁 Motor de variantes — semillas activas"));
+            }
+            // Top variantes
+            const items = varData.variantes.map(v => {
               const principal = v.fuentes[0];
               const tipoLbl = TIPO_LBL[principal?.tipo] || principal?.tipo || "";
               const allSrc = v.fuentes.map(f => `${f.pad} (${TIPO_LBL[f.tipo]||f.tipo})`).join(" · ");
-              return `<span class="pulso-var-chip" title="desde: ${allSrc}">
-                <span class="pulso-var-num">${v.pad}</span>
-                <small>${sim}</small>
-                <em>${principal?.pad}→${tipoLbl}</em>
-                <b>${Math.round(v.peso*100)}%</b>
-              </span>`;
-            }).join("");
-            varSec.innerHTML = `
-              <div class="pulso-group__head">
-                <span class="pulso-group__label">🔁 Motor de variantes</span>
-                <span class="pulso-group__freq">sustituciones probables (conv · equiv · espejo · encadenadas)</span>
-              </div>
-              <div class="pulso-pop-row">
-                <div class="pulso-pop-row__head">Semillas activas (último sorteo + recientes + calientes)</div>
-                <div class="pulso-cal-chips">${seedsHtml}</div>
-              </div>
-              <div class="pulso-pop-row">
-                <div class="pulso-pop-row__head">Variantes con mayor peso adversarial</div>
-                <div class="pulso-var-chips">${varHtml}</div>
-              </div>
-            `;
-            frag.appendChild(varSec);
+              return {
+                pad: v.pad,
+                simbolo: GUIA?.[v.pad]?.simbolo || "",
+                badge: `${Math.round(v.peso * 100)}%`,
+                razon: `${principal?.pad}→${tipoLbl}`,
+                tooltip: `desde: ${allSrc}`,
+              };
+            });
+            frag.appendChild(buildRezagoSection(items, "variante", "🔁 Variantes con mayor peso adversarial (sustituciones probables)"));
           }
 
           // ── Clusters de dígitos activos ──────────────────────────────────
           const clustersData = motor?.clusters;
           if (clustersData && clustersData.length) {
-            const clSec = document.createElement("div");
-            clSec.className = "pulso-group pulso-clusters";
-            const blocks = clustersData.slice(0, 3).map(c => {
-              const digitChips = c.digitos.map(d => `<span class="pulso-cluster-digit">${d}</span>`).join("");
-              const sortedSorteos = c.sorteos.map(s => {
-                const sim = GUIA?.[s.pad]?.simbolo || "";
-                return `<span class="pulso-cluster-hit">${s.pad} <small>${sim}</small></span>`;
-              }).join("");
-              const miembros = c.miembros.slice(0, 16).map(m => {
-                const sim = GUIA?.[m.pad]?.simbolo || "";
-                return `<span class="pulso-cluster-miembro">${m.pad}<small>${sim}</small></span>`;
-              }).join("");
-              return `<div class="pulso-cluster-card">
-                <div class="pulso-cluster-card__head">
-                  <span class="pulso-cluster-rank">#${c.rank}</span>
-                  <span class="pulso-cluster-digits">${digitChips}</span>
-                  <span class="pulso-cluster-meta">${c.cobertura}% cobertura · ${c.hits}/${c.total} sorteos</span>
-                </div>
-                <div class="pulso-cluster-row">
-                  <span class="pulso-cluster-lbl">Cayeron del cluster:</span>
-                  ${sortedSorteos}
-                </div>
-                <div class="pulso-cluster-row">
-                  <span class="pulso-cluster-lbl">Universo combinatorio (${c.miembros.length} números):</span>
-                  ${miembros}${c.miembros.length > 16 ? `<span class="pulso-cluster-more">+${c.miembros.length - 16}</span>` : ""}
-                </div>
-              </div>`;
-            }).join("");
-            clSec.innerHTML = `
-              <div class="pulso-group__head">
-                <span class="pulso-group__label">🎯 Clusters de dígitos activos</span>
-                <span class="pulso-group__freq">La Diaria está minando estos dígitos en los últimos 12 sorteos</span>
-              </div>
-              ${blocks}
-            `;
-            frag.appendChild(clSec);
+            clustersData.slice(0, 3).forEach(c => {
+              const digitos = `{${c.digitos.join(",")}}`;
+              // Hits del cluster (cayeron recientes)
+              if (c.sorteos?.length) {
+                const items = c.sorteos.map(s => ({
+                  pad: s.pad,
+                  simbolo: GUIA?.[s.pad]?.simbolo || "",
+                  razon: `cayó · cluster ${digitos}`,
+                }));
+                frag.appendChild(buildRezagoSection(items, "cluster-hit",
+                  `🎯 Cluster #${c.rank} ${digitos} — ${c.cobertura}% cobertura · ${c.hits}/${c.total} sorteos`));
+              }
+              // Universo combinatorio
+              if (c.miembros?.length) {
+                const items = c.miembros.slice(0, 16).map(m => ({
+                  pad: m.pad,
+                  simbolo: GUIA?.[m.pad]?.simbolo || "",
+                  razon: `miembro ${digitos}`,
+                }));
+                frag.appendChild(buildRezagoSection(items, "cluster",
+                  `Universo combinatorio del cluster ${digitos} (${c.miembros.length} números)`));
+              }
+            });
           }
 
           // ── Recuperación: pre-evento + repetidos (con decay) ─────────────
           const recData = motor?.recuperacion;
           if (recData?.activo && (recData.preEvento?.length || recData.repetidos?.length)) {
-            const recSec = document.createElement("div");
-            recSec.className = "pulso-group pulso-recuperacion";
             const decayPct = Math.round((recData.decayFactor ?? 0) * 100);
-            const preHtml = recData.preEvento?.length ? `
-              <div class="pulso-pop-row">
-                <div class="pulso-pop-row__head">🫥 Escondidos pre-SP — cayeron 3-7 días antes y no han vuelto</div>
-                <div class="pulso-cal-chips">
-                  ${recData.preEvento.map(p => {
-                    const sim = GUIA?.[p.pad]?.simbolo || "";
-                    return `<span class="pulso-cal-chip pulso-cal-chip--boost" title="Pre-SP, ${p.veces}× en ventana">${p.pad} <small>${sim}</small> <em>${p.veces}×</em></span>`;
-                  }).join("")}
-                </div>
-              </div>` : "";
-            const repHtml = recData.repetidos?.length ? `
-              <div class="pulso-pop-row">
-                <div class="pulso-pop-row__head">🔁 Repetidos post-SP — la operadora insiste en estos</div>
-                <div class="pulso-cal-chips">
-                  ${recData.repetidos.map(r => {
-                    const sim = GUIA?.[r.pad]?.simbolo || "";
-                    return `<span class="pulso-cal-chip pulso-cal-chip--block" title="Repetido ${r.veces}× post-SP">${r.pad} <small>${sim}</small> <em>${r.veces}×</em></span>`;
-                  }).join("")}
-                </div>
-              </div>` : "";
-            recSec.innerHTML = `
-              <div class="pulso-group__head">
-                <span class="pulso-group__label">🩹 Modo recuperación post super premio</span>
-                <span class="pulso-group__freq">día ${recData.diasTranscurridos}/14 · intensidad ${decayPct}%</span>
-              </div>
-              ${preHtml}${repHtml}
-            `;
-            frag.appendChild(recSec);
+            if (recData.preEvento?.length) {
+              const items = recData.preEvento.map(p => ({
+                pad: p.pad,
+                simbolo: GUIA?.[p.pad]?.simbolo || "",
+                badge: `${p.veces}×`,
+                razon: "escondido pre-SP",
+              }));
+              frag.appendChild(buildRezagoSection(items, "recup-pre",
+                `🫥 Recuperación · escondidos pre-SP — día ${recData.diasTranscurridos}/14 · intensidad ${decayPct}%`));
+            }
+            if (recData.repetidos?.length) {
+              const items = recData.repetidos.map(r => ({
+                pad: r.pad,
+                simbolo: GUIA?.[r.pad]?.simbolo || "",
+                badge: `${r.veces}×`,
+                razon: "repetido post-SP",
+              }));
+              frag.appendChild(buildRezagoSection(items, "recup-rep",
+                `🔁 Recuperación · repetidos post-SP — la operadora insiste`));
+            }
           }
 
           // ── Indicador dominical ──────────────────────────────────────────

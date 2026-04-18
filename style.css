@@ -7968,6 +7968,43 @@ body.login-page {
 .rezago-section--ok  .rezago-section__head { color: #64c878; }
 .rezago-section--elim .rezago-section__head { color: #9a9282; }
 
+/* Secciones adversariales — heads y fondos coherentes */
+.rezago-section--cal-block   { border-color: rgba(255, 90, 90, 0.25); background: rgba(255, 90, 90, 0.04); }
+.rezago-section--cal-block .rezago-section__head { color: #ff8080; }
+
+.rezago-section--cal-boost   { border-color: rgba(106, 180, 255, 0.25); background: rgba(106, 180, 255, 0.04); }
+.rezago-section--cal-boost .rezago-section__head { color: #8fb8ff; }
+
+.rezago-section--cal-prox    { border-color: rgba(106, 141, 255, 0.25); background: rgba(106, 141, 255, 0.04); }
+.rezago-section--cal-prox .rezago-section__head { color: #8fa8ff; }
+
+.rezago-section--pop-hot     { border-color: rgba(240, 130, 60, 0.28); background: rgba(240, 130, 60, 0.05); }
+.rezago-section--pop-hot .rezago-section__head { color: #f08c4a; }
+
+.rezago-section--pop-cool    { border-color: rgba(122, 221, 161, 0.25); background: rgba(122, 221, 161, 0.05); }
+.rezago-section--pop-cool .rezago-section__head { color: #7adda1; }
+
+.rezago-section--pop-cadena  { border-color: rgba(240, 160, 80, 0.25); background: rgba(240, 160, 80, 0.04); }
+.rezago-section--pop-cadena .rezago-section__head { color: #f0a050; }
+
+.rezago-section--variante-seed { border-color: rgba(176, 138, 255, 0.35); background: rgba(176, 138, 255, 0.06); }
+.rezago-section--variante-seed .rezago-section__head { color: #c8a8ff; }
+
+.rezago-section--variante    { border-color: rgba(176, 138, 255, 0.25); background: rgba(176, 138, 255, 0.04); }
+.rezago-section--variante .rezago-section__head { color: #b08aff; }
+
+.rezago-section--cluster-hit { border-color: rgba(80, 208, 168, 0.35); background: rgba(80, 208, 168, 0.06); }
+.rezago-section--cluster-hit .rezago-section__head { color: #7be8c2; }
+
+.rezago-section--cluster     { border-color: rgba(80, 208, 168, 0.2); background: rgba(80, 208, 168, 0.03); }
+.rezago-section--cluster .rezago-section__head { color: #50d0a8; }
+
+.rezago-section--recup-pre   { border-color: rgba(122, 221, 161, 0.3); background: rgba(122, 221, 161, 0.05); }
+.rezago-section--recup-pre .rezago-section__head { color: #7adda1; }
+
+.rezago-section--recup-rep   { border-color: rgba(255, 107, 107, 0.3); background: rgba(255, 107, 107, 0.05); }
+.rezago-section--recup-rep .rezago-section__head { color: #ff8080; }
+
 .rezago-grid {
   display: flex;
   flex-wrap: wrap;
@@ -7989,6 +8026,20 @@ body.login-page {
 .rezago-card--warn { border-color: rgba(220, 100, 60, 0.3); }
 .rezago-card--ok   { border-color: rgba(100, 200, 120, 0.3); }
 .rezago-card--elim { border-color: rgba(255,255,255,0.1); opacity: 0.6; }
+
+/* Variantes adversariales — colores de borde/badge unificados con rezago-card */
+.rezago-card--cal-block    { border-color: rgba(255, 90, 90, 0.3); }
+.rezago-card--cal-boost    { border-color: rgba(106, 180, 255, 0.3); }
+.rezago-card--cal-prox     { border-color: rgba(106, 141, 255, 0.3); }
+.rezago-card--pop-hot      { border-color: rgba(240, 130, 60, 0.35); }
+.rezago-card--pop-cool     { border-color: rgba(122, 221, 161, 0.3); }
+.rezago-card--pop-cadena   { border-color: rgba(240, 160, 80, 0.3); }
+.rezago-card--variante-seed { border-color: rgba(176, 138, 255, 0.45); }
+.rezago-card--variante     { border-color: rgba(176, 138, 255, 0.3); }
+.rezago-card--cluster-hit  { border-color: rgba(80, 208, 168, 0.45); }
+.rezago-card--cluster      { border-color: rgba(80, 208, 168, 0.25); }
+.rezago-card--recup-pre    { border-color: rgba(122, 221, 161, 0.35); }
+.rezago-card--recup-rep    { border-color: rgba(255, 107, 107, 0.35); }
 
 .rezago-card__img {
   width: 36px;
@@ -8021,6 +8072,39 @@ body.login-page {
 }
 .rezago-card--ok  .rezago-card__dias { color: #64c878; }
 .rezago-card--elim .rezago-card__dias { color: #9a9282; }
+
+/* Badge prominente (% / score / veces) */
+.rezago-card__badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 1px;
+  letter-spacing: 0.02em;
+}
+.rezago-card--cal-block    .rezago-card__badge { background: rgba(255, 90, 90, 0.16); color: #ff8080; }
+.rezago-card--cal-boost    .rezago-card__badge { background: rgba(106, 180, 255, 0.16); color: #8fb8ff; }
+.rezago-card--pop-hot      .rezago-card__badge { background: rgba(240, 130, 60, 0.18); color: #f08c4a; }
+.rezago-card--pop-cool     .rezago-card__badge { background: rgba(122, 221, 161, 0.16); color: #7adda1; }
+.rezago-card--variante-seed .rezago-card__badge { background: rgba(176, 138, 255, 0.22); color: #c8a8ff; }
+.rezago-card--variante     .rezago-card__badge { background: rgba(176, 138, 255, 0.16); color: #b08aff; }
+.rezago-card--recup-pre    .rezago-card__badge { background: rgba(122, 221, 161, 0.18); color: #7adda1; }
+.rezago-card--recup-rep    .rezago-card__badge { background: rgba(255, 107, 107, 0.18); color: #ff8080; }
+
+/* Color del texto __dias por variante (motivo línea 1) */
+.rezago-card--cal-block    .rezago-card__dias,
+.rezago-card--pop-hot      .rezago-card__dias,
+.rezago-card--recup-rep    .rezago-card__dias { color: #ff8080; }
+.rezago-card--cal-boost    .rezago-card__dias,
+.rezago-card--cal-prox     .rezago-card__dias { color: #8fb8ff; }
+.rezago-card--pop-cool     .rezago-card__dias,
+.rezago-card--recup-pre    .rezago-card__dias { color: #7adda1; }
+.rezago-card--pop-cadena   .rezago-card__dias { color: #f0a050; }
+.rezago-card--variante-seed .rezago-card__dias,
+.rezago-card--variante     .rezago-card__dias { color: #b08aff; }
+.rezago-card--cluster-hit  .rezago-card__dias,
+.rezago-card--cluster      .rezago-card__dias { color: #50d0a8; }
 .rezago-card__ciclo {
   font-size: 0.56rem;
   color: #9a9282;
@@ -8891,210 +8975,6 @@ body.login-page {
   margin: 4px 0 0;
   padding: 0 2px;
 }
-
-/* ── Calendario adversarial en Pulso ──────────────────────────── */
-.pulso-calendario { border-left: 3px solid #6a8dff; padding-left: 10px; }
-.pulso-cal-row { margin-top: 8px; }
-.pulso-cal-row__head {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--color-muted);
-  margin-bottom: 4px;
-  letter-spacing: 0.3px;
-}
-.pulso-cal-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.pulso-cal-chip {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  padding: 0.18rem 0.5rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--color-text);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: help;
-}
-.pulso-cal-chip small { font-weight: 400; color: var(--color-muted); font-size: 0.7rem; }
-.pulso-cal-chip em { font-style: normal; font-size: 0.7rem; font-weight: 700; }
-.pulso-cal-chip--block {
-  background: rgba(220,80,80,0.1);
-  border-color: rgba(220,80,80,0.35);
-}
-.pulso-cal-chip--block em { color: #ff8080; }
-.pulso-cal-chip--boost {
-  background: rgba(106,141,255,0.12);
-  border-color: rgba(106,141,255,0.4);
-}
-.pulso-cal-chip--boost em { color: #8fb0ff; }
-.pulso-cal-events { display: flex; flex-direction: column; gap: 6px; }
-.pulso-cal-event {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 6px;
-  padding: 6px 8px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.pulso-cal-event-label { font-weight: 700; font-size: 0.82rem; color: var(--color-text); }
-.pulso-cal-event-when { font-size: 0.72rem; color: var(--color-muted); }
-.pulso-cal-event-nums { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
-.pulso-cal-event-num {
-  background: rgba(106,141,255,0.12);
-  border: 1px solid rgba(106,141,255,0.3);
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 0.72rem;
-  color: #8fb0ff;
-  font-weight: 600;
-}
-
-/* ── Modelo de Popularidad (Pulso) ─────────────────────────────────────────── */
-.pulso-popularidad { border-left: 3px solid #f0a050; padding-left: 10px; }
-.pulso-pop-row { margin-top: 8px; }
-.pulso-pop-row__head {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 6px;
-}
-.pulso-pop-cadenas { display: flex; flex-direction: column; gap: 6px; }
-.pulso-pop-cadena {
-  background: rgba(240,160,80,0.06);
-  border: 1px solid rgba(240,160,80,0.2);
-  border-radius: 6px;
-  padding: 6px 10px;
-}
-.pulso-pop-cadena__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 0.85rem;
-  margin-bottom: 4px;
-}
-.pulso-pop-cadena__head em {
-  font-style: normal;
-  font-size: 0.72rem;
-  color: #f0a050;
-  font-weight: 600;
-}
-.pulso-pop-cadena__body {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.78rem;
-}
-.pulso-pop-cadena__lbl { color: var(--color-muted); font-size: 0.72rem; margin-right: 2px; }
-.pulso-pop-cadena__arrow { color: #f0a050; font-weight: 700; margin: 0 4px; }
-.pulso-pop-trigger {
-  background: rgba(255,90,90,0.18);
-  border: 1px solid rgba(255,90,90,0.4);
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-weight: 700;
-  font-size: 0.74rem;
-  color: #ff8080;
-}
-.pulso-pop-target {
-  background: rgba(106,200,141,0.14);
-  border: 1px solid rgba(106,200,141,0.34);
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-weight: 600;
-  font-size: 0.74rem;
-  color: #7adda1;
-}
-.pulso-pop-target small { font-weight: 400; opacity: 0.75; margin-left: 2px; }
-
-/* ── Motor de Variantes (Pulso) ────────────────────────────────────────────── */
-.pulso-variantes { border-left: 3px solid #b08aff; padding-left: 10px; }
-.pulso-var-seed {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: rgba(176,138,255,0.18);
-  border: 1px solid rgba(176,138,255,0.4);
-  border-radius: 4px;
-  padding: 2px 7px;
-  font-weight: 700;
-  font-size: 0.78rem;
-  color: #c8a8ff;
-  margin: 2px;
-}
-.pulso-var-seed small { font-weight: 400; opacity: 0.75; }
-.pulso-var-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.pulso-var-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: rgba(176,138,255,0.08);
-  border: 1px solid rgba(176,138,255,0.25);
-  border-radius: 5px;
-  padding: 3px 8px;
-  font-size: 0.76rem;
-  color: var(--color-text);
-}
-.pulso-var-chip .pulso-var-num { font-weight: 700; color: #c8a8ff; }
-.pulso-var-chip small { opacity: 0.8; }
-.pulso-var-chip em { font-style: normal; font-size: 0.68rem; color: var(--color-muted); }
-.pulso-var-chip b { font-size: 0.7rem; color: #b08aff; font-weight: 700; }
-
-/* ── Detector de Clusters de Dígitos (Pulso) ──────────────────────────────── */
-.pulso-clusters { border-left: 3px solid #50d0a8; padding-left: 10px; }
-.pulso-cluster-card {
-  background: rgba(80,208,168,0.06);
-  border: 1px solid rgba(80,208,168,0.2);
-  border-radius: 6px;
-  padding: 8px 10px;
-  margin-top: 8px;
-}
-.pulso-cluster-card__head {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-.pulso-cluster-rank {
-  background: #50d0a8; color: #002a1f;
-  font-weight: 800; font-size: 0.78rem;
-  padding: 2px 6px; border-radius: 4px;
-}
-.pulso-cluster-digits { display: inline-flex; gap: 3px; }
-.pulso-cluster-digit {
-  display: inline-block;
-  background: rgba(80,208,168,0.25);
-  border: 1px solid rgba(80,208,168,0.5);
-  color: #7be8c2;
-  font-weight: 800; font-size: 0.85rem;
-  width: 20px; height: 20px; line-height: 18px;
-  text-align: center; border-radius: 50%;
-}
-.pulso-cluster-meta { font-size: 0.74rem; color: var(--color-muted); margin-left: auto; }
-.pulso-cluster-row {
-  display: flex; flex-wrap: wrap; align-items: center;
-  gap: 4px; margin-top: 4px; font-size: 0.76rem;
-}
-.pulso-cluster-lbl { color: var(--color-muted); font-size: 0.72rem; margin-right: 4px; }
-.pulso-cluster-hit {
-  background: rgba(80,208,168,0.18);
-  border: 1px solid rgba(80,208,168,0.4);
-  color: #7be8c2;
-  font-weight: 700;
-  padding: 1px 6px; border-radius: 4px;
-}
-.pulso-cluster-hit small { font-weight: 400; opacity: 0.75; margin-left: 2px; }
-.pulso-cluster-miembro {
-  background: rgba(80,208,168,0.06);
-  border: 1px solid rgba(80,208,168,0.2);
-  color: var(--color-text);
-  padding: 1px 5px; border-radius: 4px;
-  font-size: 0.72rem;
-}
-.pulso-cluster-miembro small { opacity: 0.7; margin-left: 2px; }
-.pulso-cluster-more { color: var(--color-muted); font-size: 0.72rem; font-style: italic; }
-
-/* ── Modo Recuperación detallado ──────────────────────────────────────────── */
-.pulso-recuperacion { border-left: 3px solid #ff6b6b; padding-left: 10px; }
 
 /* ── Indicador dominical ──────────────────────────────────────────────────── */
 .pulso-dominical {
