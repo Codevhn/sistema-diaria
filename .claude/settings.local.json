@@ -43,7 +43,19 @@
       "Bash(node --input-type=module -e \"import\\('file:///tmp/pm.mjs'\\).then\\(m=>{const popMap=m.calcularPopularidad\\([{numero:37},{numero:11},{numero:80}],{lookback:20}\\);const merc=m.getMercado\\(popMap,{topN:5}\\);console.log\\('calientes:',merc.calientes.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('frios:',merc.frios.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('reprimidos count:',merc.reprimidos.length\\);console.log\\('OK'\\);}\\).catch\\(e=>{console.error\\(e\\);process.exit\\(1\\)}\\)\")",
       "Bash(cp src/popularity-model.js src/popularity-model.mjs)",
       "Bash(node --input-type=module -e \"import\\('./src/popularity-model.mjs'\\).then\\(m=>{const popMap=m.calcularPopularidad\\([{numero:37},{numero:11},{numero:80}],{lookback:20}\\);const merc=m.getMercado\\(popMap,{topN:5}\\);console.log\\('calientes:',merc.calientes.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('frios:',merc.frios.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('reprimidos count:',merc.reprimidos.length\\);console.log\\('score 9:',popMap.get\\(9\\)?.score,'score 1:',popMap.get\\(1\\)?.score,'score 50:',popMap.get\\(50\\)?.score\\);console.log\\('OK'\\);}\\).catch\\(e=>{console.error\\(e\\);process.exit\\(1\\)}\\)\")",
-      "Bash(rm src/popularity-model.mjs)"
+      "Bash(rm src/popularity-model.mjs)",
+      "Bash(grep -n \"btnFixDates\\\\?\\\\\\\\.addEventListener\\\\|btn-nuke\" index.html)",
+      "Bash(awk 'NR>=9155 && NR<=9210' index.html)",
+      "Bash(cp src/backtest.js src/backtest.mjs)",
+      "Bash(cp src/signal-engine.js src/signal-engine.mjs)",
+      "Bash(sed -i 's|\"./signal-engine.js\"|\"./signal-engine.mjs\"|; s|\"./popularity-model.js\"|\"./popularity-model.mjs\"|' src/backtest.mjs)",
+      "Bash(sed -i 's|\"./popularity-model.js\"|\"./popularity-model.mjs\"|' src/signal-engine.mjs)",
+      "Bash(node --input-type=module -e \"import\\('./src/backtest.mjs'\\).then\\(m=>console.log\\('module loaded',Object.keys\\(m\\)\\)\\).catch\\(e=>{console.error\\(String\\(e\\).split\\('\\\\n'\\)[0]\\);process.exit\\(1\\)}\\)\")",
+      "Bash(cp src/backtest.js src/_bt.mjs)",
+      "Bash(cp src/popularity-model.js src/_pm.mjs)",
+      "Bash(node --check src/_bt.mjs)",
+      "Bash(node --check src/_pm.mjs)",
+      "Bash(rm src/_bt.mjs src/_pm.mjs)"
     ]
   }
 }

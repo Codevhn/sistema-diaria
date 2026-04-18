@@ -62,7 +62,7 @@ function getSymboloFamilia(numero) {
 }
 
 /** Enriquece cada draw con fechaDate y turnoOrder */
-function enrich(draws) {
+export function enrich(draws) {
   return draws
     .map((d) => ({
       ...d,
@@ -90,7 +90,7 @@ function isDiciembre(fecha) {
  * Solo considera transiciones consecutivas (turno siguiente o mismo día siguiente turno).
  * @returns {Map<number, Map<number, number>>} transitions[from][to] = count
  */
-function buildMarkov1(draws) {
+export function buildMarkov1(draws) {
   const matrix = new Map(); // from → Map(to → count)
 
   for (let i = 0; i < draws.length - 1; i++) {
@@ -117,7 +117,7 @@ function buildMarkov1(draws) {
  * Calcula probabilidades normalizadas desde la matriz cruda.
  * @returns {Map<number, {total, top: [{numero, prob, count}]}>}
  */
-function normalizeMarkov1(matrix) {
+export function normalizeMarkov1(matrix) {
   const result = new Map();
   matrix.forEach((row, from) => {
     const total = Array.from(row.values()).reduce((s, c) => s + c, 0);
@@ -136,7 +136,7 @@ function normalizeMarkov1(matrix) {
  * Construye la matriz de transición (A,B)→C.
  * @returns {Map<string, Map<number, number>>} transitions["A:B"][to] = count
  */
-function buildMarkov2(draws) {
+export function buildMarkov2(draws) {
   const matrix = new Map();
 
   for (let i = 0; i < draws.length - 2; i++) {
@@ -161,7 +161,7 @@ function buildMarkov2(draws) {
   return matrix;
 }
 
-function normalizeMarkov2(matrix) {
+export function normalizeMarkov2(matrix) {
   const result = new Map();
   matrix.forEach((row, key) => {
     const total = Array.from(row.values()).reduce((s, c) => s + c, 0);
@@ -195,7 +195,7 @@ const REZAGO_VENTANA_DIAS = 180; // solo miramos los últimos 180 días para el 
  *   "ausente"      — no apareció en la ventana de análisis (ignorar para señales)
  *   "insuficiente" — apareció pero muy pocas veces para calcular ciclo confiable
  */
-function calcularRezago(draws) {
+export function calcularRezago(draws) {
   const ahora     = Date.now();
   const ventanaMs = REZAGO_VENTANA_DIAS * DAY_MS;
   const corte     = ahora - ventanaMs;
@@ -282,7 +282,7 @@ function calcularRezago(draws) {
  * La eliminación NO es absoluta para todos los casos — en diciembre
  * el filtro de recientes se relaja.
  */
-function aplicarEliminacion(draws, rezago, diciembre) {
+export function aplicarEliminacion(draws, rezago, diciembre) {
   const eliminados = new Map(); // numero → {razon, regla}
 
   // Últimos N draws para contexto inmediato
@@ -334,7 +334,7 @@ function aplicarEliminacion(draws, rezago, diciembre) {
  * @param {number[]} lastNums - Últimos números sorteados (contexto Markov)
  * @returns {Map<number, {score, signals: []}>}
  */
-function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, semanales }, lastNums, familiasPenalizadas) {
+export function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, semanales }, lastNums, familiasPenalizadas) {
   const scores = new Map(); // numero → {rawScores: {source: val}, signals: []}
 
   function addScore(numero, source, value, label) {
