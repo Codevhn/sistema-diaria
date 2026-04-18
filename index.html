@@ -5205,6 +5205,26 @@
       };
     }
 
+    /** Numbers that appeared in the 3-7 days BEFORE the super premio (window of 5 days).
+     *  These are candidates for "the operator was hiding them" — pre-event boost.
+     *  Returns [{numero, veces}] sorted by frequency descending. */
+    function detectarNumerosPreEvento(spFecha, draws) {
+      const [fy, fm, fd] = spFecha.split("-").map(Number);
+      const spTime = new Date(fy, fm - 1, fd).getTime();
+      const startTime = spTime - 7 * 86_400_000; // 7 días antes
+      const endTime   = spTime - 3 * 86_400_000; // 3 días antes (no contar los más cercanos)
+      const sd = new Date(startTime);
+      const ed = new Date(endTime);
+      const startDate = `${sd.getFullYear()}-${String(sd.getMonth()+1).padStart(2,"0")}-${String(sd.getDate()).padStart(2,"0")}`;
+      const endDate   = `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2,"0")}-${String(ed.getDate()).padStart(2,"0")}`;
+      const preDraws = draws.filter(d => d.fecha >= startDate && d.fecha <= endDate);
+      const counts = {};
+      preDraws.forEach(d => { const n = Number(d.numero); counts[n] = (counts[n] || 0) + 1; });
+      return Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([n, veces]) => ({ numero: Number(n), veces: Number(veces) }));
+    }
+
     /** Numbers that have appeared 2+ times in draws since the super premio date (within recovery window).
      *  Returns [{numero, veces}] sorted by frequency descending. */
     function detectarNumerosRepetidosPostEvento(spFecha, draws) {
@@ -5853,12 +5873,21 @@
           const repetidosPostEvento = recoveryMode.activo && recoveryMode.ultimoEvento
             ? detectarNumerosRepetidosPostEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
             : [];
+          const preEvento = recoveryMode.activo && recoveryMode.ultimoEvento
+            ? detectarNumerosPreEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
+            : [];
           const [motorResult, rezagoResult, sucesores] = await Promise.allSettled([
             ejecutarMotorSeñales({
               pais,
               turno: nextHorario,
               topN: 8,
-              recuperacion: recoveryMode.activo ? { activo: true, repetidosPostEvento } : null,
+              recuperacion: recoveryMode.activo ? {
+                activo: true,
+                repetidosPostEvento,
+                preEvento,
+                diasTranscurridos: recoveryMode.diasTranscurridos,
+                ultimoEvento: recoveryMode.ultimoEvento,
+              } : null,
             }),
             estadoRezago(pais),
             sucesoresMarkov(lastNum, pais, 4),
@@ -6165,6 +6194,57 @@
               ${blocks}
             `;
             frag.appendChild(clSec);
+          }
+
+          // ── Recuperación: pre-evento + repetidos (con decay) ─────────────
+          const recData = motor?.recuperacion;
+          if (recData?.activo && (recData.preEvento?.length || recData.repetidos?.length)) {
+            const recSec = document.createElement("div");
+            recSec.className = "pulso-group pulso-recuperacion";
+            const decayPct = Math.round((recData.decayFactor ?? 0) * 100);
+            const preHtml = recData.preEvento?.length ? `
+              <div class="pulso-pop-row">
+                <div class="pulso-pop-row__head">🫥 Escondidos pre-SP — cayeron 3-7 días antes y no han vuelto</div>
+                <div class="pulso-cal-chips">
+                  ${recData.preEvento.map(p => {
+                    const sim = GUIA?.[p.pad]?.simbolo || "";
+                    return `<span class="pulso-cal-chip pulso-cal-chip--boost" title="Pre-SP, ${p.veces}× en ventana">${p.pad} <small>${sim}</small> <em>${p.veces}×</em></span>`;
+                  }).join("")}
+                </div>
+              </div>` : "";
+            const repHtml = recData.repetidos?.length ? `
+              <div class="pulso-pop-row">
+                <div class="pulso-pop-row__head">🔁 Repetidos post-SP — la operadora insiste en estos</div>
+                <div class="pulso-cal-chips">
+                  ${recData.repetidos.map(r => {
+                    const sim = GUIA?.[r.pad]?.simbolo || "";
+                    return `<span class="pulso-cal-chip pulso-cal-chip--block" title="Repetido ${r.veces}× post-SP">${r.pad} <small>${sim}</small> <em>${r.veces}×</em></span>`;
+                  }).join("")}
+                </div>
+              </div>` : "";
+            recSec.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">🩹 Modo recuperación post super premio</span>
+                <span class="pulso-group__freq">día ${recData.diasTranscurridos}/14 · intensidad ${decayPct}%</span>
+              </div>
+              ${preHtml}${repHtml}
+            `;
+            frag.appendChild(recSec);
+          }
+
+          // ── Indicador dominical ──────────────────────────────────────────
+          const domData = motor?.dominical;
+          if (domData?.esDomingo) {
+            const domSec = document.createElement("div");
+            domSec.className = "pulso-dominical";
+            domSec.innerHTML = `
+              <span class="pulso-dominical__icon">☀️</span>
+              <div class="pulso-dominical__text">
+                <strong>Factor dominical activo</strong>
+                <span>Domingo: menor volumen de juego → suavización +18% sobre populares (${domData.afectados} números afectados)</span>
+              </div>
+            `;
+            frag.appendChild(domSec);
           }
 
           // ── Números vencidos y en ventana (rezago) ──

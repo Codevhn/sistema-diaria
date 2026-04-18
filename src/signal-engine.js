@@ -666,23 +666,123 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     }
   } catch (e) { /* opcional */ }
 
-  // 6c. Modo recuperación: boost numbers repeating after the super premio payment
-  if (recuperacion?.activo && recuperacion.repetidosPostEvento?.length) {
-    const repMap = new Map(recuperacion.repetidosPostEvento.map(({ numero, veces }) => [Number(numero), veces]));
-    composed.forEach((data, numero) => {
-      if (repMap.has(numero)) {
-        const veces = repMap.get(numero);
-        // More repetitions = stronger boost (cap at 1.8x)
-        const boostFactor = Math.min(1.8, 1.3 + (veces - 2) * 0.15);
-        data.score = Math.min(1, data.score * boostFactor);
-        data.signals.unshift({
-          source: "recuperacion",
-          label: `Modo recuperación: repitió ${veces}× desde el último pago super premio (+${Math.round((boostFactor-1)*100)}% peso)`,
-          value: Math.min(0.95, 0.6 + veces * 0.1),
+  // 6c. Modo recuperación mejorado:
+  //     - Escala el boost de repetidosPostEvento con días desde el SP (decae)
+  //     - Boost separado a "pre-evento": números que cayeron 3-7 días ANTES del SP
+  //       y aún no han caído post-evento (la operadora los estaba "escondiendo")
+  let recuperacionInfo = null;
+  if (recuperacion?.activo) {
+    const dias = Number.isFinite(recuperacion.diasTranscurridos)
+      ? recuperacion.diasTranscurridos
+      : 0;
+    // Decay: día 0 = 1.0, día 14 ≈ 0.0
+    const decayFactor = Math.max(0, 1 - dias / 14);
+
+    // (a) Boost a repetidos post-evento (escalado)
+    if (recuperacion.repetidosPostEvento?.length) {
+      const repMap = new Map(recuperacion.repetidosPostEvento.map(({ numero, veces }) => [Number(numero), veces]));
+      composed.forEach((data, numero) => {
+        if (repMap.has(numero)) {
+          const veces = repMap.get(numero);
+          // Boost escalado por días: temprano fuerte, tarde suave
+          const baseBoost = Math.min(0.8, 0.3 + (veces - 2) * 0.15);
+          const boostFactor = 1 + baseBoost * decayFactor;
+          data.score = Math.min(1, data.score * boostFactor);
+          data.signals.unshift({
+            source: "recuperacion-repetido",
+            label: `Recuperación: repitió ${veces}× post-SP, día ${dias}/14 (+${Math.round((boostFactor - 1) * 100)}% peso)`,
+            value: Math.min(0.95, 0.6 + veces * 0.1),
+          });
+        }
+      });
+    }
+
+    // (b) Boost a pre-evento: números que cayeron 3-7 días ANTES del SP
+    //     y NO han caído desde el SP (estaban siendo "escondidos")
+    if (recuperacion.preEvento?.length) {
+      const repMapNums = new Set((recuperacion.repetidosPostEvento || []).map((r) => Number(r.numero)));
+      const postEventoNums = new Set();
+      const spDate = recuperacion.ultimoEvento ? new Date(recuperacion.ultimoEvento + "T00:00:00") : null;
+      if (spDate) {
+        draws.forEach((d) => {
+          if (d.fechaDate && d.fechaDate >= spDate) postEventoNums.add(d.numero);
         });
       }
-    });
+      recuperacion.preEvento.forEach(({ numero, veces }) => {
+        const n = Number(numero);
+        if (postEventoNums.has(n)) return; // ya cayó post-SP, no es "escondido"
+        if (repMapNums.has(n)) return;
+        const data = composed.get(n);
+        if (!data) return;
+        const baseBoost = Math.min(0.5, 0.2 + (veces - 1) * 0.1);
+        const boostFactor = 1 + baseBoost * decayFactor;
+        data.score = Math.min(1, data.score * boostFactor);
+        data.signals.unshift({
+          source: "recuperacion-preevento",
+          label: `Recuperación: cayó ${veces}× los días previos al SP y no ha vuelto — la operadora lo estaba escondiendo (+${Math.round((boostFactor - 1) * 100)}% peso)`,
+          value: Math.min(0.9, 0.55 + veces * 0.08),
+        });
+      });
+    }
+
+    recuperacionInfo = {
+      activo: true,
+      diasTranscurridos: dias,
+      diasRestantes: Math.max(0, 14 - dias),
+      decayFactor: Math.round(decayFactor * 100) / 100,
+      ultimoEvento: recuperacion.ultimoEvento || null,
+      repetidos: (recuperacion.repetidosPostEvento || []).slice(0, 8).map((r) => ({
+        numero: r.numero, pad: padNum(r.numero), veces: r.veces,
+      })),
+      preEvento: (recuperacion.preEvento || []).slice(0, 8).map((r) => ({
+        numero: r.numero, pad: padNum(r.numero), veces: r.veces,
+      })),
+    };
   }
+
+  // 6f. Factor adversarial dominical:
+  //     Los domingos hay menos volumen de juego → la operadora puede pagar
+  //     números medianamente populares sin tanto riesgo. Suavizamos las
+  //     penalizaciones que aplicamos por popularidad caliente.
+  let dominicalInfo = null;
+  try {
+    const fechaRefDow = fecha
+      ? new Date(fecha + "T12:00:00")
+      : (lastDraw?.fechaDate ? new Date(lastDraw.fechaDate.getTime() + 86400000) : new Date());
+    const dow = fechaRefDow.getDay(); // 0 = domingo
+    if (dow === 0) {
+      let afectados = 0;
+      composed.forEach((data) => {
+        // Recuperar solo señales de popularidad caliente (ya aplicaron penalty < 1)
+        const penal = data.signals.find((s) => s.source === "popularidad-caliente");
+        if (penal) {
+          // Compensar 35% del penalty (rebote dominical)
+          data.score = Math.min(1, data.score * 1.18);
+          afectados++;
+        }
+      });
+      dominicalInfo = {
+        esDomingo: true,
+        fecha: fechaRefDow.toISOString().slice(0, 10),
+        afectados,
+        nota: "Domingo: menor volumen → suavización de penalty a populares (+18%)",
+      };
+      if (afectados) {
+        // Marcador global (señal informativa)
+        composed.forEach((data) => {
+          if (data.signals.some((s) => s.source === "popularidad-caliente")) {
+            data.signals.unshift({
+              source: "factor-dominical",
+              label: "Domingo: rebote dominical aplicado (+18% sobre penalty popular)",
+              value: 0.5,
+            });
+          }
+        });
+      }
+    } else {
+      dominicalInfo = { esDomingo: false };
+    }
+  } catch (e) { /* opcional */ }
 
   // 7. Rankear candidatos (excluyendo eliminados)
   const candidatos = [];
@@ -751,11 +851,12 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     eliminados:  eliminadosArr,
     universo:    100 - eliminados.size,
     diciembre:   enDiciembre,
-    recuperacion: recuperacion || null,
+    recuperacion: recuperacionInfo || recuperacion || null,
     calendario:  calendarioInfo,
     popularidad: popularidadInfo,
     variantes:   variantesInfo,
     clusters:    clustersInfo,
+    dominical:   dominicalInfo,
     contexto: {
       totalSorteos:    draws.length,
       ultimoSorteo:    { numero: lastDraw?.numero, horario: lastDraw?.horario, fecha: lastDraw?.fecha },
