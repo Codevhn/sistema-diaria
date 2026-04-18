@@ -559,11 +559,20 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
         value: Math.min(0.95, 0.5 + Math.abs(factor - 1)),
       });
     });
-    const mercado = getMercado(popMap, 8);
+    const mercado = getMercado(popMap, { topN: 8, rezagoMap: rezago });
     const cadenasActivas = getCadenasActivas(draws, { lookback: 15 });
     popularidadInfo = {
       calientes: mercado.calientes.map((e) => ({ numero: e.numero, pad: padNum(e.numero), score: e.score, motivo: e.motivos[0] || "Popular" })),
-      libres:    mercado.libres.map((e) => ({ numero: e.numero, pad: padNum(e.numero), score: e.score })),
+      frios:     mercado.frios.map((e) => ({ numero: e.numero, pad: padNum(e.numero), score: e.score, dias: e.diasDesdeUltima })),
+      reprimidos: mercado.reprimidos.map((e) => ({
+        numero: e.numero,
+        pad: padNum(e.numero),
+        score: e.score,
+        dias: e.diasDesdeUltima,
+        zScore: e.zScore != null ? Number(e.zScore.toFixed(2)) : null,
+        motivo: e.motivos[0] || "Popular reprimido",
+      })),
+      libres:    mercado.frios.map((e) => ({ numero: e.numero, pad: padNum(e.numero), score: e.score })), // alias retrocompat
       cadenasActivas: cadenasActivas.slice(0, 6).map((c) => ({
         cadena: c.cadena,
         triggers: c.triggers.map((n) => ({ numero: n, pad: padNum(n) })),

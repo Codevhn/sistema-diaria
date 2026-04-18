@@ -151,6 +151,38 @@ export const MULT5_POPULARES = [5, 15, 25, 35, 45, 55, 65, 75, 85, 95];
 // Evitados por superstición popular
 export const EVITADOS_SUPERSTICION = [22, 66];
 
+// ─── Piso cultural de popularidad (FIX: el modelo necesita reconocer que ──────
+// los terminales bajos, redondos y "clásicos del jugador" son culturalmente
+// populares aunque no estén en ninguna cadena semántica. Sin este piso, el
+// sistema confundía números HIPER-jugados (01, 02, 03, 08, 09…) con "fríos
+// libres", cuando en realidad son números reprimidos por el operador).
+//
+// Estructura: number → { score, motivo }
+// Se aplica como SUMA al inicio de calcularPopularidad (Step 0).
+export const POPULARIDAD_BASE = (() => {
+  const base = {};
+  const add = (n, score, motivo) => {
+    if (!base[n]) base[n] = { score: 0, motivos: [] };
+    base[n].score += score;
+    base[n].motivos.push(motivo);
+  };
+
+  // Terminales bajos 01-09 + 00: el público los ama (sueños básicos, fechas)
+  for (let n = 0; n <= 9; n++) add(n, 30, "Terminal bajo (clásico jugador)");
+
+  // Decenas redondas adicionales (10/20/30/…/90 y 00 ya cubierto)
+  for (let n = 10; n <= 90; n += 10) add(n, 10, "Decena redonda");
+
+  // Clásicos del jugador hondureño (números que la gente compra "por costumbre")
+  const CLASICOS = [7, 13, 22, 33, 50, 69, 77, 99];
+  CLASICOS.forEach((n) => add(n, 18, "Clásico del jugador"));
+
+  // Cumpleaños / días del mes (01-31): el público apuesta fechas
+  for (let n = 1; n <= 31; n++) add(n, 8, "Día del mes (fecha)");
+
+  return base;
+})();
+
 // ─── Cálculo de popularidad ───────────────────────────────────────────────────
 
 /**
@@ -169,6 +201,15 @@ export function calcularPopularidad(sorteos = [], opts = {}) {
     if (!out.has(n)) out.set(n, { score: 0, motivos: [], cadenas: new Set() });
     return out.get(n);
   }
+
+  // 0. Piso cultural — números que el público SIEMPRE juega aunque no estén
+  //    en una cadena semántica. Sin esto, terminales bajos y fechas caían
+  //    en el panel "libres" cuando en realidad son hiper-populares.
+  Object.entries(POPULARIDAD_BASE).forEach(([n, data]) => {
+    const e = ensure(parseInt(n, 10));
+    e.score += data.score;
+    data.motivos.forEach((m) => e.motivos.push(m));
+  });
 
   // 1. Base estética (saladitos, redondos, mult5)
   DOBLES_SALADITOS.forEach((n) => {
@@ -278,20 +319,82 @@ export function getCadenasActivas(sorteos = [], opts = {}) {
 }
 
 /**
- * Devuelve top N números más populares (calientes) y menos populares (libres).
+ * Devuelve segmentación adversarial del mercado:
+ *   - calientes  : popularidad alta (operadora los evita pagar)
+ *   - frios      : popularidad baja Y ausencia razonable (zona fría real)
+ *   - reprimidos : popularidad alta Y ausencia anómala (operadora los retiene)
+ *
+ * Antes existía solo "libres" mezclando frios + reprimidos, lo cual era
+ * un error conceptual: si un número con score alto no aparece, NO es porque
+ * "nadie lo juegue", es porque el operador lo está conteniendo activamente.
+ *
+ * @param {Map} popMap            - resultado de calcularPopularidad
+ * @param {object|number} opts    - {topN, rezagoMap, umbralRepresion, umbralFrio}
+ *                                  o number para retrocompat (topN)
+ * @returns {{calientes, frios, reprimidos, libres}}
+ *          (libres se mantiene como alias de frios por retrocompatibilidad)
  */
-export function getMercado(popMap, topN = 8) {
-  const entries = Array.from(popMap.entries())
-    .map(([numero, data]) => ({ numero, ...data }))
-    .filter((e) => e.score > 0);
+export function getMercado(popMap, opts = {}) {
+  // Retrocompat: si pasan number, lo tratamos como topN
+  if (typeof opts === "number") opts = { topN: opts };
+  const {
+    topN = 8,
+    rezagoMap = null,         // Map<numero, {diasDesdeUltima, cicloPromedio, zScore}>
+    umbralRepresion = 14,     // días mínimos sin caer para considerar represión
+    umbralFrio = 25,          // score máximo para considerarse "frío real" (estricto)
+    umbralPopular = 45,       // score mínimo para considerar "popular"
+  } = opts;
 
-  const calientes = [...entries].sort((a, b) => b.score - a.score).slice(0, topN);
-  // Para "libres" considerar TODOS los números 0-99, asignando score 0 a los faltantes
-  const libres = [];
+  // Construir lista completa 0-99 con score (faltantes → 0)
+  const todos = [];
   for (let n = 0; n <= 99; n++) {
     const e = popMap.get(n);
-    libres.push({ numero: n, score: e?.score || 0, motivos: e?.motivos || [], cadenas: e?.cadenas || [] });
+    todos.push({
+      numero: n,
+      score: e?.score || 0,
+      motivos: e?.motivos || [],
+      cadenas: e?.cadenas || [],
+      diasDesdeUltima: rezagoMap?.get(n)?.diasDesdeUltima ?? null,
+      cicloPromedio:   rezagoMap?.get(n)?.cicloPromedio ?? null,
+      zScore:          rezagoMap?.get(n)?.zScore ?? null,
+    });
   }
-  libres.sort((a, b) => a.score - b.score);
-  return { calientes, libres: libres.slice(0, topN) };
+
+  // Calientes: top score (popularidad alta)
+  const calientes = [...todos]
+    .filter((e) => e.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topN);
+
+  // Fríos REALES: score bajo (poco populares de verdad)
+  // Si hay rezagoMap, también pedimos que tengan rezago razonable (no estén
+  // recién caídos), para que el panel sugiera candidatos accionables.
+  const frios = [...todos]
+    .filter((e) => e.score <= umbralFrio)
+    .sort((a, b) => a.score - b.score || (b.diasDesdeUltima ?? 0) - (a.diasDesdeUltima ?? 0))
+    .slice(0, topN);
+
+  // REPRIMIDOS: score alto + ausencia anómala
+  // Estos son los que la gente sí compra pero el operador retiene.
+  let reprimidos = [];
+  if (rezagoMap) {
+    reprimidos = todos
+      .filter((e) => e.score >= umbralPopular &&
+                     e.diasDesdeUltima !== null &&
+                     e.diasDesdeUltima >= umbralRepresion)
+      .sort((a, b) => {
+        // Ranking: combinar popularidad + anomalía de rezago (zScore si existe)
+        const aIdx = a.score * 0.6 + Math.max(0, a.zScore || 0) * 30;
+        const bIdx = b.score * 0.6 + Math.max(0, b.zScore || 0) * 30;
+        return bIdx - aIdx;
+      })
+      .slice(0, topN);
+  }
+
+  return {
+    calientes,
+    frios,
+    reprimidos,
+    libres: frios, // alias retrocompat — código antiguo sigue funcionando
+  };
 }

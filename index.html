@@ -6032,11 +6032,13 @@
             try {
               const popMod = await import("./src/popularity-model.js");
               const popMap = popMod.calcularPopularidad(sorted, { lookback: 20 });
-              const mercado = popMod.getMercado(popMap, 8);
+              const mercado = popMod.getMercado(popMap, { topN: 8 });
               const cadenas = popMod.getCadenasActivas(sorted, { lookback: 15 });
               popData = {
                 calientes: mercado.calientes.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score, motivo: e.motivos[0] || "Popular" })),
-                libres:    mercado.libres.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score })),
+                frios:     mercado.frios.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score, dias: e.diasDesdeUltima })),
+                reprimidos: mercado.reprimidos.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score, dias: e.diasDesdeUltima, zScore: e.zScore, motivo: e.motivos[0] || "Popular reprimido" })),
+                libres:    mercado.frios.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score })),
                 cadenasActivas: cadenas.slice(0, 6).map(c => ({
                   cadena: c.cadena,
                   triggers: c.triggers.map(n => ({ numero: n, pad: String(n).padStart(2,"0") })),
@@ -6046,7 +6048,7 @@
               };
             } catch (e) { /* opcional */ }
           }
-          if (popData && (popData.calientes?.length || popData.libres?.length || popData.cadenasActivas?.length)) {
+          if (popData && (popData.calientes?.length || popData.frios?.length || popData.libres?.length || popData.reprimidos?.length || popData.cadenasActivas?.length)) {
             const cadenaLabels = {
               mujer_madre: "Mujer / Madre", muerte: "Muerte", boda_novia: "Boda / Novia",
               animales_casa: "Animales de casa", fiesta: "Fiesta", aves: "Aves",
@@ -6078,15 +6080,30 @@
               }));
               frag.appendChild(buildRezagoSection(items, "pop-hot", "🔥 Mercado caliente — La Diaria los evita"));
             }
-            // Libres
-            if (popData.libres?.length) {
-              const items = popData.libres.map(l => ({
+            // Reprimidos: populares + ausencia anómala = el operador los retiene
+            const reprimidos = popData.reprimidos?.length ? popData.reprimidos : [];
+            if (reprimidos.length) {
+              const items = reprimidos.map(r => ({
+                pad: r.pad,
+                simbolo: GUIA?.[r.pad]?.simbolo || "",
+                badge: `${r.score}/${r.dias ?? "—"}d`,
+                razon: r.motivo || "Popular reprimido",
+                subtext: r.zScore != null ? `${r.zScore > 0 ? "+" : ""}${r.zScore}σ rezago` : (r.dias != null ? `${r.dias} días sin caer` : ""),
+                tooltip: "Número que el público sí compra pero el operador retiene. Candidato a explosión cuando se libere.",
+              }));
+              frag.appendChild(buildRezagoSection(items, "pop-hot", "🛑 Reprimidos — populares + ausencia anómala (operador los retiene)"));
+            }
+            // Zona fría real (antes "libres") — popularidad baja real, no reprimidos
+            const frios = popData.frios?.length ? popData.frios : popData.libres;
+            if (frios?.length) {
+              const items = frios.map(l => ({
                 pad: l.pad,
                 simbolo: GUIA?.[l.pad]?.simbolo || "",
                 badge: `${l.score}`,
-                razon: "baja popularidad",
+                razon: "popularidad baja real",
+                subtext: l.dias != null ? `${l.dias}d sin caer` : "",
               }));
-              frag.appendChild(buildRezagoSection(items, "pop-cool", "💎 Números libres — baja popularidad, más probables"));
+              frag.appendChild(buildRezagoSection(items, "pop-cool", "❄️ Zona fría real — bajo interés del público (no necesariamente más probables)"));
             }
           }
 
@@ -8768,11 +8785,15 @@ function buildVariantEntries(profile) {
               <span>Dobles populares (11, 22, 33, 55, 66, 77, 88, 99 — el 44 está excluido por ti), redondos (terminan en 0) y múltiplos de 5. El público los adora porque son "bonitos".</span>
             </div>
             <div class="wiki-state wiki-state--warn">
-              <strong>3. Activaciones recientes</strong>
+              <strong>3. Piso cultural (terminales bajos + fechas + clásicos)</strong>
+              <span>Terminales 00–09 (sueños básicos: agua, dinero, muerto…), días del mes 01–31 (la gente apuesta cumpleaños), y clásicos del jugador (07, 13, 22, 33, 50, 69, 77, 99). Sin este piso el modelo confundía números HIPER-jugados con "fríos libres".</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>4. Activaciones recientes</strong>
               <span>~60 reglas trigger→targets extraídas de tus respuestas. Ej.: si cae el 03, dispara la cadena muerte; si cae el 37, dispara dinero.</span>
             </div>
             <div class="wiki-state wiki-state--muted">
-              <strong>4. Supersticiones evitadas</strong>
+              <strong>5. Supersticiones evitadas</strong>
               <span>Algunos números (como 22 y 66) son evitados culturalmente — bajan en popularidad.</span>
             </div>
           </div>
@@ -8789,8 +8810,17 @@ function buildVariantEntries(profile) {
           <ul>
             <li><strong>🔗 Cadena X activa</strong> (ámbar) — los disparadores cayeron recientemente, estos son los targets que el público espera.</li>
             <li><strong>🔥 Mercado caliente</strong> (naranja) — top 8 más populares ahora mismo. La operadora los evita.</li>
-            <li><strong>💎 Números libres</strong> (verde) — top 8 con menor popularidad. Más probables.</li>
+            <li><strong>🛑 Reprimidos</strong> (naranja oscuro) — populares Y con ausencia anómala (≥14 días sin caer + score ≥55). Estos son los que el público sí compra pero el operador retiene activamente. <em>NO son "más probables" — son candidatos a explosión cuando la represión termine, pero mientras dure es probable que sigan retenidos.</em></li>
+            <li><strong>❄️ Zona fría real</strong> (verde) — popularidad baja real (score ≤50). El público no los compra mucho, así que la operadora no tiene motivo para retenerlos. Pero "no retenidos" tampoco significa "más probables" automáticamente — solo significa que no son adversariales.</li>
           </ul>
+
+          <h3>El bug conceptual que se corrigió</h3>
+          <p>Antes existía un único panel "💎 Números libres — más probables" que mezclaba dos cosas muy distintas:</p>
+          <ul>
+            <li><strong>Fríos reales</strong> (popularidad baja) — neutros adversarialmente.</li>
+            <li><strong>Reprimidos</strong> (popularidad alta + ausencia anómala) — la operadora los está conteniendo.</li>
+          </ul>
+          <p>Etiquetar a los reprimidos como "más probables porque nadie los juega" era falso: la gente sí los juega, por eso están reprimidos. Ahora se separan en paneles distintos para que la lectura sea correcta.</p>
 
           <h3>Por qué es importante</h3>
           <p>Un número con buen score Markov o buen rezago, pero con popularidad alta, no es buen candidato — porque la operadora hará lo posible por evitarlo. El modelo ajusta el ranking final por este factor.</p>

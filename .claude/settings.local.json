@@ -34,7 +34,16 @@
       "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\\\\.claude\\\\worktrees\\\\nervous-euclid\" fetch origin)",
       "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\\\\.claude\\\\worktrees\\\\nervous-euclid\" log origin/main --oneline -3)",
       "Bash(git -C \"C:/Users/codev/OneDrive/Documents/sistema-diaria-main\" pull origin main)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(node --check src/popularity-model.js)",
+      "Bash(node --check src/signal-engine.js)",
+      "Bash(node --input-type=module -e \"import\\('./src/popularity-model.js'\\).then\\(m=>{const popMap=m.calcularPopularidad\\([{numero:37},{numero:11},{numero:80}],{lookback:20}\\);const merc=m.getMercado\\(popMap,{topN:5}\\);console.log\\('calientes:',merc.calientes.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('frios:',merc.frios.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('reprimidos:',merc.reprimidos.length\\);console.log\\('OK'\\);}\\).catch\\(e=>{console.error\\(e\\);process.exit\\(1\\)}\\)\")",
+      "Bash(cp src/popularity-model.js /tmp/pm.mjs)",
+      "Bash(cp src/conversion-engine.js /tmp/ce.mjs)",
+      "Bash(node --input-type=module -e \"import\\('file:///tmp/pm.mjs'\\).then\\(m=>{const popMap=m.calcularPopularidad\\([{numero:37},{numero:11},{numero:80}],{lookback:20}\\);const merc=m.getMercado\\(popMap,{topN:5}\\);console.log\\('calientes:',merc.calientes.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('frios:',merc.frios.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('reprimidos count:',merc.reprimidos.length\\);console.log\\('OK'\\);}\\).catch\\(e=>{console.error\\(e\\);process.exit\\(1\\)}\\)\")",
+      "Bash(cp src/popularity-model.js src/popularity-model.mjs)",
+      "Bash(node --input-type=module -e \"import\\('./src/popularity-model.mjs'\\).then\\(m=>{const popMap=m.calcularPopularidad\\([{numero:37},{numero:11},{numero:80}],{lookback:20}\\);const merc=m.getMercado\\(popMap,{topN:5}\\);console.log\\('calientes:',merc.calientes.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('frios:',merc.frios.map\\(e=>e.numero+'='+e.score\\)\\);console.log\\('reprimidos count:',merc.reprimidos.length\\);console.log\\('score 9:',popMap.get\\(9\\)?.score,'score 1:',popMap.get\\(1\\)?.score,'score 50:',popMap.get\\(50\\)?.score\\);console.log\\('OK'\\);}\\).catch\\(e=>{console.error\\(e\\);process.exit\\(1\\)}\\)\")",
+      "Bash(rm src/popularity-model.mjs)"
     ]
   }
 }
