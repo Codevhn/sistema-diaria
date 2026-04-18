@@ -8015,13 +8015,13 @@ body.login-page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 8px 10px;
-  min-width: 62px;
-  max-width: 80px;
+  padding: 10px 14px;
+  min-width: 92px;
+  max-width: 120px;
 }
 .rezago-card--warn { border-color: rgba(220, 100, 60, 0.3); }
 .rezago-card--ok   { border-color: rgba(100, 200, 120, 0.3); }
@@ -8042,30 +8042,30 @@ body.login-page {
 .rezago-card--recup-rep    { border-color: rgba(255, 107, 107, 0.35); }
 
 .rezago-card__img {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
   border-radius: 4px;
   margin-bottom: 2px;
 }
 .rezago-card__num {
   font-family: var(--font-mono);
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--color-accent);
   line-height: 1;
 }
 .rezago-card__sim {
-  font-size: 0.64rem;
+  font-size: 0.78rem;
   color: #c8bfa8;
   text-align: center;
-  max-width: 72px;
+  max-width: 108px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .rezago-card__dias {
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #e07850;
   text-align: center;
@@ -8076,11 +8076,11 @@ body.login-page {
 /* Badge prominente (% / score / veces) */
 .rezago-card__badge {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 800;
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: 4px;
-  margin-top: 1px;
+  margin-top: 2px;
   letter-spacing: 0.02em;
 }
 .rezago-card--cal-block    .rezago-card__badge { background: rgba(255, 90, 90, 0.16); color: #ff8080; }
@@ -8106,7 +8106,7 @@ body.login-page {
 .rezago-card--cluster-hit  .rezago-card__dias,
 .rezago-card--cluster      .rezago-card__dias { color: #50d0a8; }
 .rezago-card__ciclo {
-  font-size: 0.56rem;
+  font-size: 0.68rem;
   color: #9a9282;
   text-align: center;
 }
