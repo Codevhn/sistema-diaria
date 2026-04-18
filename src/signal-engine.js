@@ -17,6 +17,7 @@ import { analizarPatronesMensuales } from "./monthly-trends.js";
 import { analizarSecuenciasSemanales } from "./weekly-patterns.js";
 import { getEfectosCalendarioPorNumero, getEventosProximos } from "./popularity-calendar.js";
 import { calcularPopularidad, popularidadAFactor, getCadenasActivas, getMercado } from "./popularity-model.js";
+import { generarVariantesMulti, generarVariantes } from "./conversion-engine.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -571,6 +572,65 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     };
   } catch (e) { /* opcional */ }
 
+  // 6d. Variantes adversariales: si N está caliente o acaba de caer,
+  //     La Diaria probablemente tira una VARIANTE de N (conversión, equiv, espejo)
+  //     en vez del propio N. Boosteamos esas variantes.
+  let variantesInfo = null;
+  try {
+    const seeds = [];
+    // Semilla principal: último número con peso máximo
+    if (lastDraw && Number.isFinite(lastDraw.numero)) {
+      seeds.push({ numero: lastDraw.numero, peso: 1.0 });
+    }
+    // Semillas secundarias: últimos 4 sorteos con peso decreciente
+    draws.slice(-5, -1).forEach((d, i, arr) => {
+      const w = 0.4 + (i / arr.length) * 0.4;
+      seeds.push({ numero: d.numero, peso: w });
+    });
+    // Semillas terciarias: top 4 calientes del mercado
+    if (popularidadInfo?.calientes?.length) {
+      popularidadInfo.calientes.slice(0, 4).forEach((c) => {
+        seeds.push({ numero: c.numero, peso: 0.6 });
+      });
+    }
+
+    const variantesMap = generarVariantesMulti(seeds, { encadenadas: true });
+    const seedNums = new Set(seeds.map((s) => s.numero));
+
+    variantesMap.forEach(({ peso, fuentes }, numero) => {
+      if (seedNums.has(numero)) return; // no boostear las propias semillas
+      const target = composed.get(numero);
+      if (!target) return;
+      // Factor multiplicativo: peso 0-1 → 1.0 a 1.45
+      const factor = 1 + Math.min(0.45, peso * 0.5);
+      target.score = Math.max(0, Math.min(1, target.score * factor));
+      const principal = fuentes.sort((a, b) => b.peso - a.peso)[0];
+      const pct = Math.round((factor - 1) * 100);
+      target.signals.unshift({
+        source: "variante-conversion",
+        label: `Variante de ${padNum(principal.seed)} (${principal.tipo}) — La Diaria sustituye en vez de pagar el original (+${pct}% peso)`,
+        value: Math.min(0.95, 0.55 + peso * 0.4),
+      });
+    });
+
+    // Para UI: top 10 variantes más fuertes
+    const topVariantes = Array.from(variantesMap.entries())
+      .filter(([n]) => !seedNums.has(n))
+      .map(([numero, { peso, fuentes }]) => ({
+        numero,
+        pad: padNum(numero),
+        peso: Math.round(peso * 100) / 100,
+        fuentes: fuentes.slice(0, 3).map((f) => ({ seed: f.seed, pad: padNum(f.seed), tipo: f.tipo })),
+      }))
+      .sort((a, b) => b.peso - a.peso)
+      .slice(0, 10);
+
+    variantesInfo = {
+      semillas: seeds.map((s) => ({ numero: s.numero, pad: padNum(s.numero), peso: Math.round(s.peso * 100) / 100 })),
+      variantes: topVariantes,
+    };
+  } catch (e) { /* opcional */ }
+
   // 6c. Modo recuperación: boost numbers repeating after the super premio payment
   if (recuperacion?.activo && recuperacion.repetidosPostEvento?.length) {
     const repMap = new Map(recuperacion.repetidosPostEvento.map(({ numero, veces }) => [Number(numero), veces]));
@@ -659,6 +719,7 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     recuperacion: recuperacion || null,
     calendario:  calendarioInfo,
     popularidad: popularidadInfo,
+    variantes:   variantesInfo,
     contexto: {
       totalSorteos:    draws.length,
       ultimoSorteo:    { numero: lastDraw?.numero, horario: lastDraw?.horario, fecha: lastDraw?.fecha },

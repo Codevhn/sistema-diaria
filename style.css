@@ -9011,3 +9011,32 @@ body.login-page {
   color: #7adda1;
 }
 .pulso-pop-target small { font-weight: 400; opacity: 0.75; margin-left: 2px; }
+
+/* ── Motor de Variantes (Pulso) ────────────────────────────────────────────── */
+.pulso-variantes { border-left: 3px solid #b08aff; padding-left: 10px; }
+.pulso-var-seed {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(176,138,255,0.18);
+  border: 1px solid rgba(176,138,255,0.4);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #c8a8ff;
+  margin: 2px;
+}
+.pulso-var-seed small { font-weight: 400; opacity: 0.75; }
+.pulso-var-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.pulso-var-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(176,138,255,0.08);
+  border: 1px solid rgba(176,138,255,0.25);
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 0.76rem;
+  color: var(--color-text);
+}
+.pulso-var-chip .pulso-var-num { font-weight: 700; color: #c8a8ff; }
+.pulso-var-chip small { opacity: 0.8; }
+.pulso-var-chip em { font-style: normal; font-size: 0.68rem; color: var(--color-muted); }
+.pulso-var-chip b { font-size: 0.7rem; color: #b08aff; font-weight: 700; }

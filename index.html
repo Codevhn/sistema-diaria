@@ -6082,6 +6082,50 @@
             frag.appendChild(popSec);
           }
 
+          // ── Motor de variantes: sustituciones probables ──────────────────
+          const varData = motor?.variantes;
+          if (varData && varData.variantes?.length) {
+            const TIPO_LBL = {
+              simple_d0: "conv. decena", simple_d1: "conv. unidad",
+              compound: "compuesta", compound_mirror: "espejo compuesta",
+              equiv_directa: "equivalencia", equiv_espejo: "espejo equiv.",
+              mirror: "espejo", encadenado: "encadenada",
+            };
+            const varSec = document.createElement("div");
+            varSec.className = "pulso-group pulso-variantes";
+            const seedsHtml = varData.semillas.slice(0, 6).map(s => {
+              const sim = GUIA?.[s.pad]?.simbolo || "";
+              return `<span class="pulso-var-seed" title="peso ${s.peso}">${s.pad} <small>${sim}</small></span>`;
+            }).join("");
+            const varHtml = varData.variantes.map(v => {
+              const sim = GUIA?.[v.pad]?.simbolo || "";
+              const principal = v.fuentes[0];
+              const tipoLbl = TIPO_LBL[principal?.tipo] || principal?.tipo || "";
+              const allSrc = v.fuentes.map(f => `${f.pad} (${TIPO_LBL[f.tipo]||f.tipo})`).join(" · ");
+              return `<span class="pulso-var-chip" title="desde: ${allSrc}">
+                <span class="pulso-var-num">${v.pad}</span>
+                <small>${sim}</small>
+                <em>${principal?.pad}→${tipoLbl}</em>
+                <b>${Math.round(v.peso*100)}%</b>
+              </span>`;
+            }).join("");
+            varSec.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">🔁 Motor de variantes</span>
+                <span class="pulso-group__freq">sustituciones probables (conv · equiv · espejo · encadenadas)</span>
+              </div>
+              <div class="pulso-pop-row">
+                <div class="pulso-pop-row__head">Semillas activas (último sorteo + recientes + calientes)</div>
+                <div class="pulso-cal-chips">${seedsHtml}</div>
+              </div>
+              <div class="pulso-pop-row">
+                <div class="pulso-pop-row__head">Variantes con mayor peso adversarial</div>
+                <div class="pulso-var-chips">${varHtml}</div>
+              </div>
+            `;
+            frag.appendChild(varSec);
+          }
+
           // ── Números vencidos y en ventana (rezago) ──
           const rez = rezagoResult.status === "fulfilled" ? rezagoResult.value : null;
           if (rez?.vencidos?.length)  frag.appendChild(buildRezagoSection(rez.vencidos.slice(0, 6),  "warn", "Vencidos — llevan mucho más de su ciclo normal sin caer"));
