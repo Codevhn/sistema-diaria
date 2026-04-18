@@ -8951,3 +8951,63 @@ body.login-page {
   color: #8fb0ff;
   font-weight: 600;
 }
+
+/* ── Modelo de Popularidad (Pulso) ─────────────────────────────────────────── */
+.pulso-popularidad { border-left: 3px solid #f0a050; padding-left: 10px; }
+.pulso-pop-row { margin-top: 8px; }
+.pulso-pop-row__head {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.pulso-pop-cadenas { display: flex; flex-direction: column; gap: 6px; }
+.pulso-pop-cadena {
+  background: rgba(240,160,80,0.06);
+  border: 1px solid rgba(240,160,80,0.2);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.pulso-pop-cadena__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+.pulso-pop-cadena__head em {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: #f0a050;
+  font-weight: 600;
+}
+.pulso-pop-cadena__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+}
+.pulso-pop-cadena__lbl { color: var(--color-muted); font-size: 0.72rem; margin-right: 2px; }
+.pulso-pop-cadena__arrow { color: #f0a050; font-weight: 700; margin: 0 4px; }
+.pulso-pop-trigger {
+  background: rgba(255,90,90,0.18);
+  border: 1px solid rgba(255,90,90,0.4);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 700;
+  font-size: 0.74rem;
+  color: #ff8080;
+}
+.pulso-pop-target {
+  background: rgba(106,200,141,0.14);
+  border: 1px solid rgba(106,200,141,0.34);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 600;
+  font-size: 0.74rem;
+  color: #7adda1;
+}
+.pulso-pop-target small { font-weight: 400; opacity: 0.75; margin-left: 2px; }

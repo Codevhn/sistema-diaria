@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(grep -n \"markov\\\\|transition\\\\|cadena\\\\|serie.*temp\\\\|time.*series\" /c/Users/codev/OneDrive/Documents/sistema-diaria-main/src/*.js)",
+      "Bash(xargs grep:*)",
+      "Bash(ls -la /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/src/*.js)",
+      "Bash(grep -n \"detectarPatrones\\\\|evaluarModos\\\\|analizarYProponer\" /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/src/*.js)",
+      "Bash(sed -n '8220,8226p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/index.html)",
+      "Bash(sed -n '3182,3188p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/index.html)",
+      "Bash(sed -n '5635,5641p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/index.html)",
+      "Bash(sed -n '5700,5706p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/index.html)",
+      "Bash(sed -n '2670,2690p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/index.html)",
+      "Bash(sed -n '3010,3025p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/index.html)",
+      "Bash(sed -n '548,580p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/style.css)",
+      "Bash(sed -n '2968,3050p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/style.css)",
+      "Bash(sed -n '676,695p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/style.css)",
+      "Bash(sed -n '3106,3115p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/style.css)",
+      "Bash(sed -n '119,160p' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/style.css)",
+      "Bash(python3 -c ':*)",
+      "Bash(node -e ':*)",
+      "Bash(sed -i '407s/.*/          <div class=\"card-head\" style=\"display:flex;align-items:center;justify-content:space-between;gap:12px\"><span>Historial Pega3<\\\\/span><input id=\"pega3-hist-search\" type=\"text\" placeholder=\"Fecha o n\\\\xfamero\\\\u2026\" class=\"pega3-hist-search\" \\\\/><\\\\/div>/' /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/index.html)",
+      "Bash(sed -n 408,413p /c/Users/codev/OneDrive/Documents/sistema-diaria-main/.claude/worktrees/nervous-euclid/index.html)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\" log --oneline -3)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\" status --short)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\" pull origin main)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\" remote -v)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\\\\.claude\\\\worktrees\\\\nervous-euclid\" remote -v)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\" ls-files src/)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\" ls-files --others --exclude-standard src/)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\\\\.claude\\\\worktrees\\\\nervous-euclid\" log --oneline -3)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\\\\.claude\\\\worktrees\\\\nervous-euclid\" fetch origin)",
+      "Bash(git -C \"C:\\\\Users\\\\codev\\\\OneDrive\\\\Documents\\\\sistema-diaria-main\\\\.claude\\\\worktrees\\\\nervous-euclid\" log origin/main --oneline -3)",
+      "Bash(git -C \"C:/Users/codev/OneDrive/Documents/sistema-diaria-main\" pull origin main)",
+      "Bash(gh api:*)"
+    ]
+  }
+}

@@ -6001,6 +6001,87 @@
             frag.appendChild(calSec);
           }
 
+          // ── Modelo de popularidad: mercado caliente/frío + cadenas activas ──
+          let popData = motor?.popularidad;
+          if (!popData) {
+            try {
+              const popMod = await import("./src/popularity-model.js");
+              const popMap = popMod.calcularPopularidad(sorted, { lookback: 20 });
+              const mercado = popMod.getMercado(popMap, 8);
+              const cadenas = popMod.getCadenasActivas(sorted, { lookback: 15 });
+              popData = {
+                calientes: mercado.calientes.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score, motivo: e.motivos[0] || "Popular" })),
+                libres:    mercado.libres.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score })),
+                cadenasActivas: cadenas.slice(0, 6).map(c => ({
+                  cadena: c.cadena,
+                  triggers: c.triggers.map(n => ({ numero: n, pad: String(n).padStart(2,"0") })),
+                  targets:  c.targets.map(n => ({ numero: n, pad: String(n).padStart(2,"0") })),
+                  intensidad: Math.round(c.intensidad * 100),
+                })),
+              };
+            } catch (e) { /* opcional */ }
+          }
+          if (popData && (popData.calientes?.length || popData.libres?.length || popData.cadenasActivas?.length)) {
+            const popSec = document.createElement("div");
+            popSec.className = "pulso-group pulso-popularidad";
+            const cadenaLabels = {
+              mujer_madre: "Mujer / Madre", muerte: "Muerte", boda_novia: "Boda / Novia",
+              animales_casa: "Animales de casa", fiesta: "Fiesta", aves: "Aves",
+              vejez: "Vejez", dinero: "Dinero", armas_ley: "Armas / Ley",
+              infierno: "Infierno / Sombra", cocina: "Cocina", naturaleza: "Naturaleza",
+              joyeria: "Joyería", religion: "Religión", transporte: "Transporte",
+            };
+            const cadHtml = popData.cadenasActivas?.length ? `
+              <div class="pulso-pop-row">
+                <div class="pulso-pop-row__head">🔗 Cadenas semánticas activas</div>
+                <div class="pulso-pop-cadenas">
+                  ${popData.cadenasActivas.map(c => {
+                    const trigs = c.triggers.map(t => `<span class="pulso-pop-trigger" title="cayó recientemente">${t.pad}</span>`).join("");
+                    const targs = c.targets.map(t => {
+                      const sim = GUIA?.[t.pad]?.simbolo || "";
+                      return `<span class="pulso-pop-target" title="el público lo espera">${t.pad} <small>${sim}</small></span>`;
+                    }).join("");
+                    return `<div class="pulso-pop-cadena">
+                      <div class="pulso-pop-cadena__head"><strong>${cadenaLabels[c.cadena] || c.cadena}</strong> <em>${c.intensidad}% activa</em></div>
+                      <div class="pulso-pop-cadena__body">
+                        <span class="pulso-pop-cadena__lbl">disparadores:</span> ${trigs}
+                        <span class="pulso-pop-cadena__arrow">→</span>
+                        <span class="pulso-pop-cadena__lbl">expectativa:</span> ${targs}
+                      </div>
+                    </div>`;
+                  }).join("")}
+                </div>
+              </div>` : "";
+            const calientesHtml = popData.calientes?.length ? `
+              <div class="pulso-pop-row">
+                <div class="pulso-pop-row__head">🔥 Mercado caliente — La Diaria los evita</div>
+                <div class="pulso-cal-chips">
+                  ${popData.calientes.map(c => {
+                    const sim = GUIA?.[c.pad]?.simbolo || "";
+                    return `<span class="pulso-cal-chip pulso-cal-chip--block" title="${c.motivo}">${c.pad} <small>${sim}</small> <em>${c.score}</em></span>`;
+                  }).join("")}
+                </div>
+              </div>` : "";
+            const libresHtml = popData.libres?.length ? `
+              <div class="pulso-pop-row">
+                <div class="pulso-pop-row__head">💎 Números libres — baja popularidad, más probables</div>
+                <div class="pulso-cal-chips">
+                  ${popData.libres.map(l => {
+                    const sim = GUIA?.[l.pad]?.simbolo || "";
+                    return `<span class="pulso-cal-chip pulso-cal-chip--boost" title="popularidad ${l.score}/100">${l.pad} <small>${sim}</small></span>`;
+                  }).join("")}
+                </div>
+              </div>` : "";
+            popSec.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">🎭 Popularidad del público (modelo adversarial)</span>
+                <span class="pulso-group__freq">cadenas semánticas + saladitos</span>
+              </div>
+              ${cadHtml}${calientesHtml}${libresHtml}
+            `;
+            frag.appendChild(popSec);
+          }
+
           // ── Números vencidos y en ventana (rezago) ──
           const rez = rezagoResult.status === "fulfilled" ? rezagoResult.value : null;
           if (rez?.vencidos?.length)  frag.appendChild(buildRezagoSection(rez.vencidos.slice(0, 6),  "warn", "Vencidos — llevan mucho más de su ciclo normal sin caer"));

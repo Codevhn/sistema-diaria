@@ -16,6 +16,7 @@ import { evaluarModos } from "./mode-engine.js";
 import { analizarPatronesMensuales } from "./monthly-trends.js";
 import { analizarSecuenciasSemanales } from "./weekly-patterns.js";
 import { getEfectosCalendarioPorNumero, getEventosProximos } from "./popularity-calendar.js";
+import { calcularPopularidad, popularidadAFactor, getCadenasActivas, getMercado } from "./popularity-model.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -537,7 +538,40 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     });
   } catch (e) { /* calendario opcional, no romper motor */ }
 
-  // 6b. Modo recuperación: boost numbers repeating after the super premio payment
+  // 6b. Modelo de popularidad adversarial: La Diaria evita pagar lo popular
+  let popularidadInfo = null;
+  try {
+    const popMap = calcularPopularidad(draws, { lookback: 20 });
+    popMap.forEach((data, numero) => {
+      const target = composed.get(numero);
+      if (!target) return;
+      const factor = popularidadAFactor(data.score);
+      target.score = Math.max(0, Math.min(1, target.score * factor));
+      const pctChange = Math.round((factor - 1) * 100);
+      const sign = pctChange >= 0 ? "+" : "";
+      const tag = factor < 0.9 ? "popularidad-caliente" : factor > 1.1 ? "popularidad-libre" : "popularidad-neutra";
+      const labelHead = data.motivos[0] || (factor < 1 ? "Número popular" : "Número libre");
+      target.signals.unshift({
+        source: tag,
+        label: `${labelHead} (popularidad ${data.score}/100, ${sign}${pctChange}% peso)`,
+        value: Math.min(0.95, 0.5 + Math.abs(factor - 1)),
+      });
+    });
+    const mercado = getMercado(popMap, 8);
+    const cadenasActivas = getCadenasActivas(draws, { lookback: 15 });
+    popularidadInfo = {
+      calientes: mercado.calientes.map((e) => ({ numero: e.numero, pad: padNum(e.numero), score: e.score, motivo: e.motivos[0] || "Popular" })),
+      libres:    mercado.libres.map((e) => ({ numero: e.numero, pad: padNum(e.numero), score: e.score })),
+      cadenasActivas: cadenasActivas.slice(0, 6).map((c) => ({
+        cadena: c.cadena,
+        triggers: c.triggers.map((n) => ({ numero: n, pad: padNum(n) })),
+        targets:  c.targets.map((n) => ({ numero: n, pad: padNum(n) })),
+        intensidad: Math.round(c.intensidad * 100),
+      })),
+    };
+  } catch (e) { /* opcional */ }
+
+  // 6c. Modo recuperación: boost numbers repeating after the super premio payment
   if (recuperacion?.activo && recuperacion.repetidosPostEvento?.length) {
     const repMap = new Map(recuperacion.repetidosPostEvento.map(({ numero, veces }) => [Number(numero), veces]));
     composed.forEach((data, numero) => {
@@ -624,6 +658,7 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     diciembre:   enDiciembre,
     recuperacion: recuperacion || null,
     calendario:  calendarioInfo,
+    popularidad: popularidadInfo,
     contexto: {
       totalSorteos:    draws.length,
       ultimoSorteo:    { numero: lastDraw?.numero, horario: lastDraw?.horario, fecha: lastDraw?.fecha },
