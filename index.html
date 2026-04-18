@@ -8652,6 +8652,347 @@ function buildVariantEntries(profile) {
         `,
       },
       {
+        id: "adv-tesis",
+        categoria: "Sistema adversarial",
+        titulo: "Tesis adversarial — qué es y por qué",
+        contenido: `
+          <h2>Sistema adversarial</h2>
+          <p class="wiki-lead">El motor del sistema NO intenta predecir el número ganador como si fuera azar puro. Modela el <em>comportamiento estratégico de La Diaria</em> — la operadora que decide qué número paga y cuál no.</p>
+
+          <h3>El supuesto base</h3>
+          <p>La Diaria es un negocio. Su objetivo es <strong>cobrar mucho y pagar poco</strong>. Por eso, cuando un número está siendo comprado masivamente por el público, la operadora prefiere tirar otro — uno equivalente, parecido o relacionado — pero NO el que el público espera.</p>
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> Si esta semana medio Honduras está comprando el <strong>16 Anillo</strong> porque soñaron con boda, La Diaria probablemente tira el <strong>61</strong> (espejo), el <strong>10</strong> (de la cadena boda), o el <strong>17</strong> (adyacente al día). Paga poco, mantiene el "guiño" para que el público siga jugando.
+          </div>
+
+          <h3>Las 6 capas del motor adversarial</h3>
+          <p>El sistema aplica seis filtros encadenados al score base de cada número:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok">
+              <strong>1. Calendario adversarial</strong>
+              <span>Bloquea o boostea según fechas patrias, día del mes y eventos próximos.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>2. Modelo de popularidad</strong>
+              <span>Penaliza números calientes (muy comprados), favorece libres.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>3. Modo recuperación post-SP</strong>
+              <span>Detecta el ciclo post super premio: repetidos y escondidos pre-evento.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>4. Motor de variantes</strong>
+              <span>Genera todas las sustituciones matemáticas de los números calientes.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>5. Detector de clusters</strong>
+              <span>Identifica conjuntos pequeños de dígitos que la operadora está minando.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>6. Factor dominical</strong>
+              <span>Suaviza penalty a populares los domingos (menor volumen de juego).</span>
+            </div>
+          </div>
+
+          <h3>Cómo verlo en el panel Escenarios</h3>
+          <p>Cada capa aparece como una sección con tarjetas de número. El borde y el badge de color te dicen qué tipo de señal es:</p>
+          <ul>
+            <li><strong>Rojo</strong> — penalización adversarial (la operadora lo evita)</li>
+            <li><strong>Verde</strong> — boost positivo (favorable para que caiga)</li>
+            <li><strong>Morado</strong> — variante derivada por sustitución matemática</li>
+            <li><strong>Teal/Verde agua</strong> — miembro de cluster activo</li>
+            <li><strong>Naranja</strong> — popular caliente o cadena semántica activa</li>
+            <li><strong>Azul</strong> — calendario / próximos eventos</li>
+          </ul>
+
+          <h3>Lo que NO promete</h3>
+          <p>Esto no es predicción mística ni garantía. Es modelado de comportamiento. El sistema dice: <em>"si la operadora se está comportando así, estos números tienen ventaja contextual"</em>. Tú tomas la decisión final con esta información.</p>
+        `,
+      },
+      {
+        id: "adv-calendario",
+        categoria: "Sistema adversarial",
+        titulo: "📆 Calendario adversarial — fechas patrias y día del mes",
+        contenido: `
+          <h2>Calendario adversarial</h2>
+          <p class="wiki-lead">Aplica dos reglas de evasión basadas en el calendario hondureño: bloqueo por fechas patrias y boost por adyacencia de día.</p>
+
+          <h3>Regla 1: Fechas patrias y eventos culturales</h3>
+          <p>Cuando se acerca un evento cultural fuerte (Día de la Madre, Independencia, Navidad, etc.), el público compra masivamente los números asociados al evento. La operadora los <strong>bloquea</strong> durante una ventana pre y post evento.</p>
+          <div class="wiki-example">
+            <strong>Ejemplo Día de la Madre (2do domingo de mayo):</strong><br>
+            Números asociados: <strong>2, 5, 19, 42</strong> (cadena mujer/madre).<br>
+            Ventana de bloqueo: 10 días antes y 5 días después.<br>
+            Durante esa ventana esos números reciben penalty <strong>−45%</strong>.
+          </div>
+          <p>El sistema cataloga 14 eventos hondureños con su fecha (fija o movible), números asociados, intensidad y forma de la curva de bloqueo (trapezoidal o campana).</p>
+
+          <h3>Regla 2: Adyacencia de día del mes</h3>
+          <p>Una observación tuya muy concreta: si hoy es <strong>17</strong>, La Diaria casi nunca tira el <strong>17</strong>. Lo tira el <strong>16 o el 18</strong> (un día antes o después). Es el "guiño" sin pagar el evidente.</p>
+          <div class="wiki-example">
+            <strong>Hoy 17 de abril:</strong><br>
+            · Número 17 → penalty <strong>−45%</strong> (es el día exacto)<br>
+            · Números 16 y 18 → boost <strong>+25%</strong> (adyacentes)<br>
+            · Resto → sin efecto
+          </div>
+
+          <h3>Próximos eventos</h3>
+          <p>El panel también muestra los próximos eventos en una ventana de 120 días con sus números asociados, para que sepas qué se viene en el horizonte adversarial.</p>
+
+          <h3>Lo que ves en el panel</h3>
+          <p>Tres secciones:</p>
+          <ul>
+            <li><strong>📆 Bloqueados</strong> (rojo) — números penalizados ahora mismo, con el motivo y % de reducción.</li>
+            <li><strong>📆 Boost por adyacencia</strong> (azul claro) — D±1 del día actual.</li>
+            <li><strong>📅 Próximos eventos</strong> (azul) — qué viene en los próximos meses.</li>
+          </ul>
+        `,
+      },
+      {
+        id: "adv-popularidad",
+        categoria: "Sistema adversarial",
+        titulo: "🎭 Modelo de popularidad — qué compra el público",
+        contenido: `
+          <h2>Modelo de popularidad del público</h2>
+          <p class="wiki-lead">Calcula qué números está comprando masivamente el público hondureño en este momento. Cuanto más popular, más lo evita la operadora.</p>
+
+          <h3>De qué se nutre el modelo</h3>
+          <p>Cuatro fuentes de popularidad:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--warn">
+              <strong>1. Cadenas semánticas activas</strong>
+              <span>15 cadenas culturales (mujer/madre, muerte, boda, animales, fiesta, aves, vejez, dinero, armas, infierno, cocina, naturaleza, joyería, religión, transporte). Si cae un número de la cadena, el público sale a comprar el resto.</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>2. Saladitos estéticos</strong>
+              <span>Dobles populares (11, 22, 33, 55, 66, 77, 88, 99 — el 44 está excluido por ti), redondos (terminan en 0) y múltiplos de 5. El público los adora porque son "bonitos".</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>3. Activaciones recientes</strong>
+              <span>~60 reglas trigger→targets extraídas de tus respuestas. Ej.: si cae el 03, dispara la cadena muerte; si cae el 37, dispara dinero.</span>
+            </div>
+            <div class="wiki-state wiki-state--muted">
+              <strong>4. Supersticiones evitadas</strong>
+              <span>Algunos números (como 22 y 66) son evitados culturalmente — bajan en popularidad.</span>
+            </div>
+          </div>
+
+          <h3>Cómo se traduce a peso adversarial</h3>
+          <p>Cada número recibe un score de popularidad de 0 a 100. Ese score se convierte en factor multiplicativo:</p>
+          <div class="wiki-example">
+            · <strong>Popularidad 0</strong>   → factor <strong>1.35×</strong> (libre, la operadora puede pagarlo)<br>
+            · <strong>Popularidad 50</strong>  → factor <strong>1.00×</strong> (neutral)<br>
+            · <strong>Popularidad 100</strong> → factor <strong>0.65×</strong> (caliente, la operadora lo evita)
+          </div>
+
+          <h3>Lo que ves en el panel</h3>
+          <ul>
+            <li><strong>🔗 Cadena X activa</strong> (ámbar) — los disparadores cayeron recientemente, estos son los targets que el público espera.</li>
+            <li><strong>🔥 Mercado caliente</strong> (naranja) — top 8 más populares ahora mismo. La operadora los evita.</li>
+            <li><strong>💎 Números libres</strong> (verde) — top 8 con menor popularidad. Más probables.</li>
+          </ul>
+
+          <h3>Por qué es importante</h3>
+          <p>Un número con buen score Markov o buen rezago, pero con popularidad alta, no es buen candidato — porque la operadora hará lo posible por evitarlo. El modelo ajusta el ranking final por este factor.</p>
+        `,
+      },
+      {
+        id: "adv-variantes",
+        categoria: "Sistema adversarial",
+        titulo: "🔁 Motor de variantes — sustituciones matemáticas",
+        contenido: `
+          <h2>Motor de variantes</h2>
+          <p class="wiki-lead">Cuando un número está caliente o acaba de caer, La Diaria a menudo no lo paga. En su lugar, tira una <em>variante</em> matemática: conversión, equivalencia o espejo.</p>
+
+          <h3>Las reglas matemáticas oficiales</h3>
+          <div class="wiki-example">
+            <strong>Conversión:</strong> 0↔1 · 2↔5 · 3↔8 · 4↔7 · 6↔9<br>
+            <strong>Equivalencia:</strong> 0↔5 · 1↔6 · 2↔7 · 3↔8 · 4↔9<br>
+            <strong>Espejo:</strong> invierte los dos dígitos (23 ↔ 32)
+          </div>
+
+          <h3>Las 8 categorías de variantes</h3>
+          <p>Para cada número semilla el motor genera todas las variantes posibles, cada una con un peso adversarial calibrado:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok">
+              <strong>Conversión simple decena/unidad — peso 0.95</strong>
+              <span>Solo se cambia un dígito. Es la sustitución más reconocible.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Conversión compuesta — peso 0.85</strong>
+              <span>Ambos dígitos se convierten. Ej.: 23 → 58.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Espejo de compuesta — peso 0.70</strong>
+              <span>La conversión compuesta y luego invertir. Ej.: 23 → 85.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Equivalencia directa — peso 0.80</strong>
+              <span>Ambos dígitos por equivalencia. Ej.: 23 → 78.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Espejo de equivalencia — peso 0.65</strong>
+              <span>Equivalencia y luego invertir. Ej.: 23 → 87.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Espejo simple — peso 0.75</strong>
+              <span>Solo invertir dígitos. Ej.: 23 → 32.</span>
+            </div>
+            <div class="wiki-state wiki-state--muted">
+              <strong>Encadenado — peso 0.45</strong>
+              <span>Composición: aplicar conversión y luego equivalencia (o viceversa). Más sutil, peso menor.</span>
+            </div>
+          </div>
+
+          <h3>Las semillas que activan el motor</h3>
+          <p>El motor trabaja sobre tres tipos de semillas, con pesos decrecientes:</p>
+          <ul>
+            <li><strong>Último número</strong> (peso 1.0) — la semilla más fuerte</li>
+            <li><strong>Últimos 4 sorteos</strong> (peso 0.4–0.8) — contexto reciente</li>
+            <li><strong>Top 4 calientes del mercado</strong> (peso 0.6) — lo que el público espera</li>
+          </ul>
+
+          <h3>Cómo se acumula</h3>
+          <p>Si una variante aparece desde múltiples semillas (ej.: el 78 es variante simultánea del 23 y del 87), su peso se acumula con saturación suave (cap a 1.0). Cuanto más caminos llevan a un número, más alto su boost.</p>
+
+          <h3>Lo que ves en el panel</h3>
+          <ul>
+            <li><strong>🔁 Semillas activas</strong> (morado fuerte) — los números que están "irradiando" variantes con sus pesos.</li>
+            <li><strong>🔁 Variantes con mayor peso</strong> (morado suave) — top 10 sustituciones probables. El badge muestra el peso acumulado, la línea de motivo dice de qué semilla viene y qué tipo de transformación es.</li>
+          </ul>
+
+          <h3>Lectura práctica</h3>
+          <p>Si ves <strong>78</strong> con badge <strong>87%</strong> y motivo <strong>"23→compuesta"</strong>, significa: el 23 cayó recientemente, su conversión compuesta es 78, y el sistema te dice que es muy probable que la operadora tire el 78 en lugar del 23 nuevo.</p>
+        `,
+      },
+      {
+        id: "adv-clusters",
+        categoria: "Sistema adversarial",
+        titulo: "🎯 Clusters de dígitos — cuando se mina un set pequeño",
+        contenido: `
+          <h2>Detector de clusters de dígitos</h2>
+          <p class="wiki-lead">A veces La Diaria se "estanca" durante varios sorteos en un conjunto pequeño de dígitos. Si los últimos 12 sorteos solo usan 3-4 dígitos, hay un cluster activo y los próximos sorteos saldrán del mismo universo.</p>
+
+          <h3>Ejemplo real</h3>
+          <div class="wiki-example">
+            <strong>Sorteos recientes:</strong> 09, 91, 16, 60, 61, 90, 06<br>
+            <strong>Cluster detectado:</strong> {0, 1, 6, 9} — solo 4 dígitos cubren todos esos sorteos.<br>
+            <strong>Universo combinatorio:</strong> 16 números posibles (00, 01, 06, 09, 10, 11, 16, 19, 60, 61, 66, 69, 90, 91, 96, 99).<br>
+            <strong>Lectura:</strong> los siguientes sorteos probablemente saldrán de esos 16.
+          </div>
+
+          <h3>Cómo lo detecta el algoritmo</h3>
+          <ol>
+            <li>Toma los últimos 12 sorteos.</li>
+            <li>Identifica qué dígitos aparecen al menos una vez (universo).</li>
+            <li>Prueba <strong>todas las combinaciones</strong> de dígitos de tamaño 2 a 5.</li>
+            <li>Para cada combinación, mide la <strong>cobertura</strong>: % de sorteos cuyos DOS dígitos están en el set.</li>
+            <li>Reporta solo los clusters con cobertura ≥ <strong>65%</strong>.</li>
+            <li>Filtra clusters dominados (si {0,1,6,9} captura lo mismo que {0,1,3,6,9}, gana el más pequeño).</li>
+          </ol>
+
+          <h3>El score</h3>
+          <p>Cada cluster recibe un score que combina dos factores:</p>
+          <div class="wiki-example">
+            <strong>Score = cobertura × 0.7 + eficiencia × 0.3</strong><br>
+            donde <em>eficiencia = 1 − (k/10)</em> (cluster pequeño = más eficiente)
+          </div>
+          <p>Un cluster con 90% de cobertura y solo 3 dígitos es mejor que uno con 70% de cobertura y 5 dígitos.</p>
+
+          <h3>Cómo se usa en el motor</h3>
+          <p>Los miembros del cluster reciben boost <strong>+0% a +40%</strong> sobre su score adversarial, escalado por el rank del cluster (el #1 pesa más que el #2 o #3).</p>
+
+          <h3>Lo que ves en el panel</h3>
+          <ul>
+            <li><strong>🎯 Cluster #1 {0,1,6,9}</strong> (teal fuerte) — los sorteos recientes que cayeron del cluster.</li>
+            <li><strong>Universo combinatorio</strong> (teal suave) — los 16 números que componen el cluster, todos candidatos.</li>
+          </ul>
+          <p>Se muestran hasta 3 clusters distintos, ordenados por score.</p>
+
+          <h3>Cuándo confiar más</h3>
+          <p>Si la cobertura es ≥ 80% con un cluster pequeño (k=2 o k=3), la señal es muy fuerte. Si la cobertura está cerca del umbral (65%) y el cluster es grande (k=5), trátalo como pista débil — puede ser ruido.</p>
+        `,
+      },
+      {
+        id: "adv-recuperacion",
+        categoria: "Sistema adversarial",
+        titulo: "🩹 Modo recuperación — el ciclo post super premio",
+        contenido: `
+          <h2>Modo recuperación post super premio</h2>
+          <p class="wiki-lead">Después de pagar un super premio, La Diaria entra en una fase de "recuperación de caja" donde su comportamiento cambia. El sistema lo detecta y ajusta el motor.</p>
+
+          <h3>Cuándo se activa</h3>
+          <p>El modo se activa automáticamente durante <strong>14 días</strong> después de cualquier fecha marcada como super premio en la sección de Super Premios. El banner rojo en el Panel del día te lo indica.</p>
+
+          <h3>Decay temporal — la intensidad se atenúa</h3>
+          <p>El boost no es plano durante los 14 días. Decae linealmente:</p>
+          <div class="wiki-example">
+            · Día 0  → intensidad <strong>100%</strong> (máximo efecto)<br>
+            · Día 7  → intensidad <strong>50%</strong><br>
+            · Día 14 → intensidad <strong>0%</strong> (modo se apaga solo)
+          </div>
+          <p>Esto refleja que el efecto del super premio se diluye con el tiempo. Sin decay, los últimos días del modo darían señales falsamente fuertes.</p>
+
+          <h3>Dos señales distintas</h3>
+
+          <h4>🫥 Escondidos pre-SP (verde)</h4>
+          <p>Números que cayeron 3-7 días <strong>antes</strong> del super premio y NO han vuelto a caer desde. Hipótesis: la operadora los estaba "guardando" durante la fase de acumulación porque iban a ser parte del super premio.</p>
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> El 47 cayó 2 veces entre el día −7 y −3 antes del SP, y desde entonces no ha vuelto. El sistema lo marca como candidato natural a regresar — el operador lo "soltó" después del pago.
+          </div>
+
+          <h4>🔁 Repetidos post-SP (rojo)</h4>
+          <p>Números que han caído 2 o más veces desde el super premio. La operadora insiste en ellos — probablemente porque tiene poco capital expuesto en esos números.</p>
+          <p>El boost se escala por el número de repeticiones: más repeticiones = más boost.</p>
+
+          <h3>Lo que ves en el panel</h3>
+          <ul>
+            <li><strong>Banner rojo</strong> en Panel del día indicando que el modo está activo, con días transcurridos y restantes.</li>
+            <li><strong>🫥 Escondidos pre-SP</strong> (verde) — candidatos que el sistema cree que la operadora "soltará" pronto.</li>
+            <li><strong>🔁 Repetidos post-SP</strong> (rojo) — números insistentes de esta fase.</li>
+            <li>El header muestra <strong>día X/14 · intensidad Y%</strong>.</li>
+          </ul>
+
+          <h3>Cómo marcar un super premio</h3>
+          <p>Ve a la sección "Super Premios" en el sidebar y marca con click la fecha del miércoles o sábado donde se pagó un super premio. El modo se activa automáticamente.</p>
+        `,
+      },
+      {
+        id: "adv-dominical",
+        categoria: "Sistema adversarial",
+        titulo: "☀️ Factor dominical — los domingos juegan diferente",
+        contenido: `
+          <h2>Factor adversarial dominical</h2>
+          <p class="wiki-lead">Los domingos el volumen de juego de La Diaria es menor (menos ventanillas activas, menos tiempo, menos público). Eso cambia el cálculo de riesgo de la operadora.</p>
+
+          <h3>La intuición</h3>
+          <p>Cuando hay mucho volumen (entre semana), pagar un número popular es caro porque MUCHA gente lo compró. Cuando hay poco volumen (domingos), pagar el mismo número popular cuesta menos. Por eso la operadora se "relaja" un poco con los populares los domingos.</p>
+
+          <h3>Cómo se aplica</h3>
+          <p>Solo se activa cuando la fecha objetivo es <strong>domingo</strong> (día de la semana = 0). Para todos los números que recibieron penalty por popularidad caliente:</p>
+          <div class="wiki-example">
+            · Penalty original: −20% a −35% (popularidad alta)<br>
+            · Compensación dominical: <strong>+18%</strong> sobre el score ajustado<br>
+            · Resultado: el penalty queda en aprox. −5% a −20%
+          </div>
+          <p>Es un rebote que NO elimina el penalty — solo lo suaviza.</p>
+
+          <h3>Cuándo ves el banner</h3>
+          <p>Cuando el sistema detecta que la próxima fecha objetivo cae en domingo, aparece el banner amarillo <strong>"☀️ Factor dominical activo"</strong> con el número de candidatos afectados.</p>
+
+          <h3>Lo que NO hace</h3>
+          <ul>
+            <li>No afecta el calendario adversarial.</li>
+            <li>No afecta clusters ni variantes.</li>
+            <li>No promueve números libres adicionalmente.</li>
+            <li>Solo "perdona" parcialmente el penalty a populares calientes.</li>
+          </ul>
+
+          <h3>Por qué es importante</h3>
+          <p>Sin este factor el motor sería demasiado pesimista los domingos sobre números populares que SÍ pueden caer porque la operadora tiene menor exposición ese día. Con el factor, los rankings dominicales reflejan la realidad de menor volumen.</p>
+        `,
+      },
+      {
         id: "guia-suenos",
         categoria: "Referencia",
         titulo: "Guía de los sueños — símbolos y familias",
