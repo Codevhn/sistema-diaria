@@ -7962,10 +7962,21 @@ function buildVariantEntries(profile) {
       });
 
       const handleOutside = (event) => {
-        if (!sidebar.classList.contains("show-mobile")) return;
-        if (sidebar.contains(event.target)) return;
-        if (toggleBtn.contains(event.target)) return;
-        closeSidebarMobile();
+        // Móvil: cerrar drawer si está abierto y el click es fuera
+        if (sidebar.classList.contains("show-mobile")) {
+          if (sidebar.contains(event.target)) return;
+          if (toggleBtn.contains(event.target)) return;
+          closeSidebarMobile();
+          return;
+        }
+        // Desktop: si el sidebar está expandido y el click es fuera, colapsar
+        if (window.innerWidth > 768 && !document.body.classList.contains("sidebar-collapsed")) {
+          if (sidebar.contains(event.target)) return;
+          if (toggleBtn.contains(event.target)) return;
+          document.body.classList.add("sidebar-collapsed");
+          toggleBtn.classList.remove("sidebar-open");
+          toggleBtn.setAttribute("aria-expanded", "false");
+        }
       };
 
       const outsideEvents = window.PointerEvent
