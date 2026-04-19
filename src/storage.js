@@ -601,6 +601,18 @@ export const DB = {
     const targetPais = context.pais ?? null;
     const turno = context.turno ?? null;
 
+    // Solo registrar predicciones para fechas de hoy o futuras.
+    // Si la fecha objetivo ya pasó hace más de 1 día, es ruido histórico — ignorar.
+    if (targetFecha) {
+      const todayMs = Date.now();
+      const targetMs = Date.parse(targetFecha + "T00:00:00");
+      const diffDays = (todayMs - targetMs) / 86400000;
+      if (diffDays > 1) {
+        console.info(`[logPredictions] Ignorando predicción para fecha pasada: ${targetFecha}`);
+        return false;
+      }
+    }
+
     if (targetFecha !== null || targetPais !== null) {
       try {
         let updater = supabase
@@ -695,6 +707,37 @@ export const DB = {
     return selectAll("prediction_logs", {
       order: [{ column: "created_at", ascending: true }],
     });
+  },
+
+  /**
+   * Descarta automáticamente predicciones "pendientes" cuya fecha objetivo
+   * ya pasó hace más de `staleDays` días — son fantasmas de sesiones anteriores
+   * donde se ingresaba historial, no predicciones en tiempo real.
+   *
+   * @param {number} [staleDays=5]
+   * @returns {Promise<number>} cantidad de filas descartadas
+   */
+  async cleanStalePredictions(staleDays = 5) {
+    try {
+      const cutoff = new Date(Date.now() - staleDays * 86400000)
+        .toISOString()
+        .slice(0, 10); // "YYYY-MM-DD"
+
+      const { data, error } = await supabase
+        .from("prediction_logs")
+        .update(encodeRecord({ estado: "descartado", closedAt: Date.now() }))
+        .eq("estado", "pendiente")
+        .lt("target_fecha", cutoff)
+        .select("id");
+
+      if (reportSupabaseError("cleanStalePredictions", error)) return 0;
+      const count = Array.isArray(data) ? data.length : 0;
+      if (count > 0) console.info(`[cleanStalePredictions] Descartadas ${count} predicciones vencidas (target < ${cutoff})`);
+      return count;
+    } catch (err) {
+      reportSupabaseException("cleanStalePredictions", err);
+      return 0;
+    }
   },
 
   async listHypothesisReminders() {

@@ -5904,8 +5904,10 @@
         `;
         frag.appendChild(lastCard);
 
-        // ── Hit-tracker live: cómo le está yendo al motor en producción ──
+        // ── Hit-tracker live: cómo le está yendo el motor en producción real ──
         try {
+          // Limpiar primero los pendientes fantasma de sesiones históricas
+          await DB.cleanStalePredictions(5).catch(() => {});
           const hitStats = await computeHitTrackerStats({ topN: 8, recent: 30 });
           const hitWrap = document.createElement("div");
           hitWrap.innerHTML = renderHitTrackerHTML(hitStats, GUIA);

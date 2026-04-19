@@ -128,9 +128,10 @@ export async function computeHitTrackerStats(opts = {}) {
     streakMisses,
     lastResolvedAt: resolved.length ? resolved[resolved.length - 1].createdAt : null,
     topN,
-    // Detalle completo para mostrar historial al jugador
-    resolvedBatches: resolved.slice().reverse(), // más recientes primero
-    pendingBatches: pending.slice().reverse(),
+    // Detalle para mostrar historial al jugador — solo predicciones reales (2026+)
+    // El jugador no necesita ver artefactos de sesiones de ingreso histórico.
+    resolvedBatches: resolved.filter((b) => !b.fecha || b.fecha >= "2026-01-01").reverse(),
+    pendingBatches:  pending.filter((b)  => !b.fecha || b.fecha >= "2026-01-01").reverse(),
   };
 }
 
