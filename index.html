@@ -862,6 +862,7 @@
     import { computeHitTrackerStats, renderHitTrackerHTML } from "./src/hit-tracker.js";
     import { getVencidos, renderRelativosHTML } from "./src/relativos-engine.js";
     import { initSuperPremioPicker } from "./src/superpremio-picker.js";
+    import { initNotifications } from "./src/notifications.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -7810,6 +7811,9 @@ function buildVariantEntries(profile) {
         }
       });
     }
+
+    // ── Notificaciones del navegador ──
+    initNotifications().catch(() => {});
 
     // ── Super Premio Picker: inyectar en panel Números Rápidos al arranque ──
     try {

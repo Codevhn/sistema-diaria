@@ -9372,6 +9372,77 @@ body.login-page {
 /* ═══════════════════════════════════════════════════
    SUPER PREMIO PICKER — selector inteligente de 6
    ═══════════════════════════════════════════════════ */
+
+/* ── Badge de estado del día ─────────────────────── */
+.sp-day-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+.sp-day-badge--active {
+  background: rgba(201,168,76,0.14);
+  border: 1px solid rgba(201,168,76,0.4);
+  color: #f2c94c;
+  animation: sp-badge-glow 2.5s ease-in-out infinite;
+}
+.sp-day-badge--waiting {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--color-muted);
+}
+@keyframes sp-badge-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(201,168,76,0); }
+  50%       { box-shadow: 0 0 14px rgba(201,168,76,0.3); }
+}
+
+/* ── Botón bloqueado ─────────────────────────────── */
+.sp-picker__btn--locked {
+  background: rgba(255,255,255,0.06) !important;
+  color: var(--color-muted) !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  filter: none !important;
+  transform: none !important;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ── Banner de notificaciones ────────────────────── */
+.sp-notif-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+.sp-notif-banner__text { color: var(--color-muted); }
+.sp-notif-banner__btn {
+  padding: 5px 14px;
+  background: rgba(100,160,255,0.15);
+  border: 1px solid rgba(100,160,255,0.35);
+  border-radius: 6px;
+  color: #8fb8ff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.sp-notif-banner__btn:hover {
+  background: rgba(100,160,255,0.28);
+  color: #c8dcff;
+}
+
 .sp-picker__sep {
   border: none;
   border-top: 1px solid rgba(255,255,255,0.08);

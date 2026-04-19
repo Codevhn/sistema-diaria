@@ -1,25 +1,23 @@
 /**
  * superpremio-picker.js — Selector inteligente de 6 números para Super Premio.
  *
- * La Diaria Super Premio usa los números 01–33. La observación del jugador:
- * los ganadores tienden a ser números poco frecuentes en los sorteos diarios.
- * Este módulo calcula la frecuencia de cada número 01–33 en el historial real
- * y usa selección ponderada inversa: a menor frecuencia → mayor probabilidad de salir.
- *
- * Export principal:
- *   initSuperPremioPicker(draws, guia)  → void (inyecta el panel en el DOM)
+ * El botón solo se habilita los miércoles y sábados (días de sorteo).
+ * Incluye botón de activación de notificaciones del navegador.
  */
+
+import {
+  isSuperPremioDay,
+  nextSuperPremioDate,
+  getNotifPermission,
+  requestNotifPermission,
+  notifySuperPremioIfNeeded,
+} from "./notifications.js";
 
 const SP_NUMS = Array.from({ length: 33 }, (_, i) => i + 1); // 1..33
 const PAD = (n) => String(n).padStart(2, "0");
 
 // ─── Algoritmo de selección ponderada ────────────────────────────────────────
 
-/**
- * Cuenta cuántas veces aparece cada número 01-33 en el historial de sorteos.
- * @param {Array} draws  - array de { numero }
- * @returns {Map<number, number>}  num → frecuencia
- */
 function calcFreqs(draws) {
   const freq = new Map(SP_NUMS.map((n) => [n, 0]));
   for (const d of draws) {
@@ -29,13 +27,6 @@ function calcFreqs(draws) {
   return freq;
 }
 
-/**
- * Selección aleatoria ponderada sin reemplazo.
- * Peso de cada número = (maxFreq - freq + 1)^2  → favorece fuertemente los fríos.
- * @param {Map<number,number>} freq
- * @param {number} count
- * @returns {number[]}
- */
 function weightedSample(freq, count = 6) {
   const maxFreq = Math.max(...freq.values());
   const pool = SP_NUMS.map((n) => ({
@@ -64,7 +55,6 @@ function buildBall(num, freq, maxFreq, guia) {
   const pad = PAD(num);
   const simbolo = guia[pad]?.simbolo || "";
   const f = freq.get(num) ?? 0;
-  // Temperatura: 0=helado, 1=frío, 2=tibio
   const tempRatio = maxFreq > 0 ? f / maxFreq : 0;
   const tempCls = tempRatio < 0.33 ? "sp-ball--ice"
     : tempRatio < 0.66 ? "sp-ball--cold"
@@ -110,14 +100,11 @@ function renderResults(nums, freq, guia) {
   });
   out.appendChild(ballRow);
 
-  // Leyenda de temperatura
   const legend = document.createElement("div");
   legend.className = "sp-result__legend";
-  legend.innerHTML = `
-    <span>❄ Helado = aparece muy poco · 🔵 Frío = aparece poco · 🟡 Tibio = frecuencia media</span>`;
+  legend.innerHTML = `<span>❄ Helado = aparece muy poco · 🔵 Frío = aparece poco · 🟡 Tibio = frecuencia media</span>`;
   out.appendChild(legend);
 
-  // Combo texto para copiar fácil
   const combo = document.createElement("div");
   combo.className = "sp-result__combo";
   combo.textContent = nums.map(PAD).join(" – ");
@@ -126,60 +113,111 @@ function renderResults(nums, freq, guia) {
   return out;
 }
 
+// ─── Banner de notificaciones ─────────────────────────────────────────────────
+
+function buildNotifBanner() {
+  const banner = document.createElement("div");
+  banner.className = "sp-notif-banner";
+
+  function refresh() {
+    const perm = getNotifPermission();
+    if (perm === "unsupported") {
+      banner.innerHTML = `<span class="sp-notif-banner__text">⚠ Tu navegador no soporta notificaciones.</span>`;
+      return;
+    }
+    if (perm === "granted") {
+      banner.innerHTML = `<span class="sp-notif-banner__text">🔔 Notificaciones activas — te avisamos cada miércoles y sábado.</span>`;
+      return;
+    }
+    if (perm === "denied") {
+      banner.innerHTML = `<span class="sp-notif-banner__text muted">🔕 Notificaciones bloqueadas en tu navegador. Actívalas desde la configuración del sitio.</span>`;
+      return;
+    }
+    // "default" — aún no pidió permiso
+    banner.innerHTML = `
+      <span class="sp-notif-banner__text">🔔 ¿Querés que te avisemos cada día de sorteo?</span>
+      <button class="sp-notif-banner__btn">Activar recordatorios</button>`;
+    banner.querySelector(".sp-notif-banner__btn")?.addEventListener("click", async () => {
+      const result = await requestNotifPermission();
+      if (result === "granted") notifySuperPremioIfNeeded();
+      refresh();
+    });
+  }
+
+  refresh();
+  return banner;
+}
+
 // ─── Inicializador principal ──────────────────────────────────────────────────
 
-/**
- * Inyecta el botón y el área de resultado en el panel "Números rápidos".
- * @param {Array}  draws  - historial de sorteos de DB.listDraws()
- * @param {object} guia   - GUIA de sueños
- */
 export function initSuperPremioPicker(draws, guia = {}) {
   const panel = document.querySelector(".day-card--numbers .day-card__body");
   if (!panel) return;
 
-  // Precalcular frecuencias una vez
   const freq = calcFreqs(draws);
+  const hoyEsSorteo = isSuperPremioDay();
+  const diasSemana = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const hoy = new Date();
 
-  // Contenedor del picker
   const pickerWrap = document.createElement("div");
   pickerWrap.className = "sp-picker";
 
-  // Cabecera
-  const head = document.createElement("div");
-  head.className = "sp-picker__head";
-  head.innerHTML = `
-    <div>
-      <div class="sp-picker__sub">Selección ponderada: más peso a los números que menos han salido históricamente del 01 al 33</div>
-    </div>`;
-  pickerWrap.appendChild(head);
+  // ── Estado del día ──────────────────────────────────────────────────────────
+  const dayBadge = document.createElement("div");
+  if (hoyEsSorteo) {
+    dayBadge.className = "sp-day-badge sp-day-badge--active";
+    dayBadge.innerHTML = `🏆 Hoy es <b>${diasSemana[hoy.getDay()]}</b> — ¡día de Super Premio!`;
+  } else {
+    const proximo = nextSuperPremioDate();
+    dayBadge.className = "sp-day-badge sp-day-badge--waiting";
+    dayBadge.innerHTML = `⏳ Próximo sorteo: <b>${proximo}</b>`;
+  }
+  pickerWrap.appendChild(dayBadge);
 
-  // Botón generar
+  // ── Descripción ─────────────────────────────────────────────────────────────
+  const sub = document.createElement("div");
+  sub.className = "sp-picker__sub";
+  sub.textContent = "Selección ponderada: más peso a los números que menos han salido históricamente del 01 al 33.";
+  pickerWrap.appendChild(sub);
+
+  // ── Botón generar ───────────────────────────────────────────────────────────
   const btn = document.createElement("button");
   btn.className = "btn sp-picker__btn";
-  btn.innerHTML = "🎲 Generar mis 6 números";
+
+  if (hoyEsSorteo) {
+    btn.innerHTML = "🎲 Generar mis 6 números";
+    btn.classList.add("sp-picker__btn--active");
+  } else {
+    btn.innerHTML = "🔒 Solo disponible miércoles y sábados";
+    btn.disabled = true;
+    btn.classList.add("sp-picker__btn--locked");
+  }
   pickerWrap.appendChild(btn);
 
-  // Área de resultado
+  // ── Área de resultado ───────────────────────────────────────────────────────
   const resultArea = document.createElement("div");
   resultArea.className = "sp-picker__result";
   pickerWrap.appendChild(resultArea);
 
+  // ── Banner de notificaciones ────────────────────────────────────────────────
+  pickerWrap.appendChild(buildNotifBanner());
+
   panel.appendChild(pickerWrap);
 
-  // ── Evento del botón ──────────────────────────────────────────────────────
-  btn.addEventListener("click", () => {
-    btn.disabled = true;
-    btn.innerHTML = "⏳ Sorteando...";
-    resultArea.innerHTML = "";
+  // ── Evento del botón ────────────────────────────────────────────────────────
+  if (hoyEsSorteo) {
+    btn.addEventListener("click", () => {
+      btn.disabled = true;
+      btn.innerHTML = "⏳ Sorteando...";
+      resultArea.innerHTML = "";
 
-    // Pequeño delay para que se vea la animación del botón
-    setTimeout(() => {
-      const nums = weightedSample(freq, 6);
-      const resultEl = renderResults(nums, freq, guia);
-      resultArea.appendChild(resultEl);
-
-      btn.disabled = false;
-      btn.innerHTML = "🎲 Volver a generar";
-    }, 400);
-  });
+      setTimeout(() => {
+        const nums = weightedSample(freq, 6);
+        const resultEl = renderResults(nums, freq, guia);
+        resultArea.appendChild(resultEl);
+        btn.disabled = false;
+        btn.innerHTML = "🎲 Volver a generar";
+      }, 400);
+    });
+  }
 }
