@@ -3844,8 +3844,9 @@ button.ghost:hover {
     backdrop-filter: none;
   }
   .content {
-    margin-left: 220px;
-    padding: 15px;
+    /* sidebar es overlay (position: fixed) — el content NO reserva espacio */
+    margin-left: 0;
+    padding: 72px 15px 15px;
   }
   .triple {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
