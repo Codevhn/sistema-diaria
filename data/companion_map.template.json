@@ -1,0 +1,680 @@
+{
+  "_meta": {
+    "version": 1,
+    "descripcion": "Mapa de pares conceptuales (compañeros) según el jugador hondureño con experiencia. El sistema usa este grafo para medir la cadencia (días promedio) entre que cae A y luego cae alguno de sus compañeros, y alertar cuando un compañero está vencido vs. su cadencia histórica.",
+    "formato_companero": "Cada entrada de \"companeros\" es: [numero, \"razon opcional\"]. La razon es informativa (aparece en el tooltip), no afecta el calculo.",
+    "bidireccional": "No hace falta repetir el par en ambos lados. Si pones 94 como compañero de 53, el loader auto-agrega 53 como compañero de 94. Si lo pones explicito en ambos, se de-duplica.",
+    "como_llenar": [
+      "1. Recorre la lista \"pares\" (esta ordenada 00 a 99 con su simbolo)",
+      "2. Para cada numero que tenga compañero(s) conceptual(es) claro(s), agrega entradas a su lista \"companeros\".",
+      "3. Cada compañero es un array [numero, \"razon\"] o solo [numero] si no quieres dar razon.",
+      "4. Deja vacia la lista de los numeros sin compañero claro. NO es obligatorio llenar los 100.",
+      "5. Cuando termines, pasamelo y lo integro al sistema."
+    ],
+    "ejemplos_llenos": [
+      "00",
+      "07",
+      "53",
+      "94",
+      "28",
+      "39"
+    ],
+    "nota_importante": "El sistema medira automaticamente la cadencia HISTORICA real (cada cuantos dias en promedio cae un compañero despues de que cae el principal) usando el grafo que vos defines. Vos solo decis \"estos son compañeros conceptuales\", el resto lo calcula el motor."
+  },
+  "pares": [
+    {
+      "numero": 0,
+      "pad": "00",
+      "simbolo": "Avión",
+      "companeros": [
+        [
+          88,
+          "Avion y vapor — cosas que vuelan/se elevan"
+        ]
+      ]
+    },
+    {
+      "numero": 1,
+      "pad": "01",
+      "simbolo": "Pies",
+      "companeros": []
+    },
+    {
+      "numero": 2,
+      "pad": "02",
+      "simbolo": "Mujer",
+      "companeros": []
+    },
+    {
+      "numero": 3,
+      "pad": "03",
+      "simbolo": "Muerto",
+      "companeros": []
+    },
+    {
+      "numero": 4,
+      "pad": "04",
+      "simbolo": "Tigre",
+      "companeros": []
+    },
+    {
+      "numero": 5,
+      "pad": "05",
+      "simbolo": "Embarazada",
+      "companeros": []
+    },
+    {
+      "numero": 6,
+      "pad": "06",
+      "simbolo": "Elefante",
+      "companeros": []
+    },
+    {
+      "numero": 7,
+      "pad": "07",
+      "simbolo": "Navaja",
+      "companeros": [
+        [
+          12,
+          "Caballo y caballo — repetidos en imaginario"
+        ],
+        [
+          4,
+          "Caballo y tigre — animales rapidos"
+        ]
+      ]
+    },
+    {
+      "numero": 8,
+      "pad": "08",
+      "simbolo": "Conejo",
+      "companeros": []
+    },
+    {
+      "numero": 9,
+      "pad": "09",
+      "simbolo": "Hombre",
+      "companeros": []
+    },
+    {
+      "numero": 10,
+      "pad": "10",
+      "simbolo": "Anillo",
+      "companeros": []
+    },
+    {
+      "numero": 11,
+      "pad": "11",
+      "simbolo": "Perro",
+      "companeros": []
+    },
+    {
+      "numero": 12,
+      "pad": "12",
+      "simbolo": "Caballo",
+      "companeros": []
+    },
+    {
+      "numero": 13,
+      "pad": "13",
+      "simbolo": "Gato",
+      "companeros": []
+    },
+    {
+      "numero": 14,
+      "pad": "14",
+      "simbolo": "Boda",
+      "companeros": []
+    },
+    {
+      "numero": 15,
+      "pad": "15",
+      "simbolo": "Ratón",
+      "companeros": []
+    },
+    {
+      "numero": 16,
+      "pad": "16",
+      "simbolo": "Niña",
+      "companeros": []
+    },
+    {
+      "numero": 17,
+      "pad": "17",
+      "simbolo": "Joven",
+      "companeros": []
+    },
+    {
+      "numero": 18,
+      "pad": "18",
+      "simbolo": "Ángel",
+      "companeros": []
+    },
+    {
+      "numero": 19,
+      "pad": "19",
+      "simbolo": "Mariposa",
+      "companeros": []
+    },
+    {
+      "numero": 20,
+      "pad": "20",
+      "simbolo": "Espejo",
+      "companeros": []
+    },
+    {
+      "numero": 21,
+      "pad": "21",
+      "simbolo": "Pájaro",
+      "companeros": []
+    },
+    {
+      "numero": 22,
+      "pad": "22",
+      "simbolo": "Ataúd",
+      "companeros": []
+    },
+    {
+      "numero": 23,
+      "pad": "23",
+      "simbolo": "Mono",
+      "companeros": []
+    },
+    {
+      "numero": 24,
+      "pad": "24",
+      "simbolo": "Sapo",
+      "companeros": []
+    },
+    {
+      "numero": 25,
+      "pad": "25",
+      "simbolo": "Balanza",
+      "companeros": []
+    },
+    {
+      "numero": 26,
+      "pad": "26",
+      "simbolo": "Bandera",
+      "companeros": []
+    },
+    {
+      "numero": 27,
+      "pad": "27",
+      "simbolo": "Juego",
+      "companeros": []
+    },
+    {
+      "numero": 28,
+      "pad": "28",
+      "simbolo": "Gallo",
+      "companeros": [
+        [
+          76,
+          "Gallo y paloma — aves"
+        ],
+        [
+          89,
+          "Gallo y buho — aves"
+        ],
+        [
+          21,
+          "Gallo y pajaro — aves"
+        ]
+      ]
+    },
+    {
+      "numero": 29,
+      "pad": "29",
+      "simbolo": "Padre",
+      "companeros": []
+    },
+    {
+      "numero": 30,
+      "pad": "30",
+      "simbolo": "Bolo",
+      "companeros": []
+    },
+    {
+      "numero": 31,
+      "pad": "31",
+      "simbolo": "Alacrán",
+      "companeros": []
+    },
+    {
+      "numero": 32,
+      "pad": "32",
+      "simbolo": "Culebra",
+      "companeros": []
+    },
+    {
+      "numero": 33,
+      "pad": "33",
+      "simbolo": "Carpintero",
+      "companeros": []
+    },
+    {
+      "numero": 34,
+      "pad": "34",
+      "simbolo": "Música",
+      "companeros": []
+    },
+    {
+      "numero": 35,
+      "pad": "35",
+      "simbolo": "Virgen",
+      "companeros": []
+    },
+    {
+      "numero": 36,
+      "pad": "36",
+      "simbolo": "Viejita",
+      "companeros": []
+    },
+    {
+      "numero": 37,
+      "pad": "37",
+      "simbolo": "Suerte",
+      "companeros": []
+    },
+    {
+      "numero": 38,
+      "pad": "38",
+      "simbolo": "Pistola",
+      "companeros": []
+    },
+    {
+      "numero": 39,
+      "pad": "39",
+      "simbolo": "Jabón",
+      "companeros": [
+        [
+          88,
+          "Lluvia y vapor — agua"
+        ],
+        [
+          41,
+          "Lluvia y pez — agua (verificar)"
+        ]
+      ]
+    },
+    {
+      "numero": 40,
+      "pad": "40",
+      "simbolo": "Cielo",
+      "companeros": []
+    },
+    {
+      "numero": 41,
+      "pad": "41",
+      "simbolo": "Novia",
+      "companeros": []
+    },
+    {
+      "numero": 42,
+      "pad": "42",
+      "simbolo": "Madre",
+      "companeros": []
+    },
+    {
+      "numero": 43,
+      "pad": "43",
+      "simbolo": "Pantera",
+      "companeros": []
+    },
+    {
+      "numero": 44,
+      "pad": "44",
+      "simbolo": "Mesas",
+      "companeros": []
+    },
+    {
+      "numero": 45,
+      "pad": "45",
+      "simbolo": "Iglesia",
+      "companeros": []
+    },
+    {
+      "numero": 46,
+      "pad": "46",
+      "simbolo": "Familia",
+      "companeros": []
+    },
+    {
+      "numero": 47,
+      "pad": "47",
+      "simbolo": "Banco",
+      "companeros": []
+    },
+    {
+      "numero": 48,
+      "pad": "48",
+      "simbolo": "Estrella",
+      "companeros": []
+    },
+    {
+      "numero": 49,
+      "pad": "49",
+      "simbolo": "Sombra",
+      "companeros": []
+    },
+    {
+      "numero": 50,
+      "pad": "50",
+      "simbolo": "Luna nueva",
+      "companeros": []
+    },
+    {
+      "numero": 51,
+      "pad": "51",
+      "simbolo": "Policía",
+      "companeros": []
+    },
+    {
+      "numero": 52,
+      "pad": "52",
+      "simbolo": "Zorrillo",
+      "companeros": []
+    },
+    {
+      "numero": 53,
+      "pad": "53",
+      "simbolo": "Llanta",
+      "companeros": [
+        [
+          94,
+          "Llanta es parte del carro"
+        ],
+        [
+          3,
+          "Llanta y conductor (verificar)"
+        ]
+      ]
+    },
+    {
+      "numero": 54,
+      "pad": "54",
+      "simbolo": "Licor",
+      "companeros": []
+    },
+    {
+      "numero": 55,
+      "pad": "55",
+      "simbolo": "Olas",
+      "companeros": []
+    },
+    {
+      "numero": 56,
+      "pad": "56",
+      "simbolo": "Árbol",
+      "companeros": []
+    },
+    {
+      "numero": 57,
+      "pad": "57",
+      "simbolo": "Cuchillo",
+      "companeros": []
+    },
+    {
+      "numero": 58,
+      "pad": "58",
+      "simbolo": "Venado",
+      "companeros": []
+    },
+    {
+      "numero": 59,
+      "pad": "59",
+      "simbolo": "Selva",
+      "companeros": []
+    },
+    {
+      "numero": 60,
+      "pad": "60",
+      "simbolo": "Dragón",
+      "companeros": []
+    },
+    {
+      "numero": 61,
+      "pad": "61",
+      "simbolo": "Guerra",
+      "companeros": []
+    },
+    {
+      "numero": 62,
+      "pad": "62",
+      "simbolo": "Lagarto",
+      "companeros": []
+    },
+    {
+      "numero": 63,
+      "pad": "63",
+      "simbolo": "Coco",
+      "companeros": []
+    },
+    {
+      "numero": 64,
+      "pad": "64",
+      "simbolo": "Mueble",
+      "companeros": []
+    },
+    {
+      "numero": 65,
+      "pad": "65",
+      "simbolo": "Pintura",
+      "companeros": []
+    },
+    {
+      "numero": 66,
+      "pad": "66",
+      "simbolo": "Diablo",
+      "companeros": []
+    },
+    {
+      "numero": 67,
+      "pad": "67",
+      "simbolo": "Vaca",
+      "companeros": []
+    },
+    {
+      "numero": 68,
+      "pad": "68",
+      "simbolo": "Ladrón",
+      "companeros": []
+    },
+    {
+      "numero": 69,
+      "pad": "69",
+      "simbolo": "Soldado",
+      "companeros": []
+    },
+    {
+      "numero": 70,
+      "pad": "70",
+      "simbolo": "Oro",
+      "companeros": []
+    },
+    {
+      "numero": 71,
+      "pad": "71",
+      "simbolo": "Zapatos",
+      "companeros": []
+    },
+    {
+      "numero": 72,
+      "pad": "72",
+      "simbolo": "Arco",
+      "companeros": []
+    },
+    {
+      "numero": 73,
+      "pad": "73",
+      "simbolo": "Fuego",
+      "companeros": []
+    },
+    {
+      "numero": 74,
+      "pad": "74",
+      "simbolo": "Edificio",
+      "companeros": []
+    },
+    {
+      "numero": 75,
+      "pad": "75",
+      "simbolo": "Reina",
+      "companeros": []
+    },
+    {
+      "numero": 76,
+      "pad": "76",
+      "simbolo": "Palomas",
+      "companeros": []
+    },
+    {
+      "numero": 77,
+      "pad": "77",
+      "simbolo": "Humo",
+      "companeros": []
+    },
+    {
+      "numero": 78,
+      "pad": "78",
+      "simbolo": "Tienda",
+      "companeros": []
+    },
+    {
+      "numero": 79,
+      "pad": "79",
+      "simbolo": "Flores",
+      "companeros": []
+    },
+    {
+      "numero": 80,
+      "pad": "80",
+      "simbolo": "Café",
+      "companeros": []
+    },
+    {
+      "numero": 81,
+      "pad": "81",
+      "simbolo": "Rieles",
+      "companeros": []
+    },
+    {
+      "numero": 82,
+      "pad": "82",
+      "simbolo": "Escuela",
+      "companeros": []
+    },
+    {
+      "numero": 83,
+      "pad": "83",
+      "simbolo": "Bote",
+      "companeros": []
+    },
+    {
+      "numero": 84,
+      "pad": "84",
+      "simbolo": "Coronas",
+      "companeros": []
+    },
+    {
+      "numero": 85,
+      "pad": "85",
+      "simbolo": "Casa",
+      "companeros": []
+    },
+    {
+      "numero": 86,
+      "pad": "86",
+      "simbolo": "Reloj",
+      "companeros": []
+    },
+    {
+      "numero": 87,
+      "pad": "87",
+      "simbolo": "León",
+      "companeros": []
+    },
+    {
+      "numero": 88,
+      "pad": "88",
+      "simbolo": "Platos",
+      "companeros": []
+    },
+    {
+      "numero": 89,
+      "pad": "89",
+      "simbolo": "Búho",
+      "companeros": []
+    },
+    {
+      "numero": 90,
+      "pad": "90",
+      "simbolo": "Lentes",
+      "companeros": []
+    },
+    {
+      "numero": 91,
+      "pad": "91",
+      "simbolo": "Tortuga",
+      "companeros": []
+    },
+    {
+      "numero": 92,
+      "pad": "92",
+      "simbolo": "Águila",
+      "companeros": []
+    },
+    {
+      "numero": 93,
+      "pad": "93",
+      "simbolo": "Cartero",
+      "companeros": []
+    },
+    {
+      "numero": 94,
+      "pad": "94",
+      "simbolo": "Carro",
+      "companeros": [
+        [
+          53,
+          "Carro y su llanta"
+        ],
+        [
+          21,
+          "Carro y choque/accidente (verificar simbolos)"
+        ]
+      ]
+    },
+    {
+      "numero": 95,
+      "pad": "95",
+      "simbolo": "Costurera",
+      "companeros": []
+    },
+    {
+      "numero": 96,
+      "pad": "96",
+      "simbolo": "Dinero",
+      "companeros": []
+    },
+    {
+      "numero": 97,
+      "pad": "97",
+      "simbolo": "Viejito",
+      "companeros": []
+    },
+    {
+      "numero": 98,
+      "pad": "98",
+      "simbolo": "Bailes",
+      "companeros": []
+    },
+    {
+      "numero": 99,
+      "pad": "99",
+      "simbolo": "Aretes",
+      "companeros": []
+    }
+  ]
+}
