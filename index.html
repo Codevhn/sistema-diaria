@@ -5915,11 +5915,23 @@
               const chip = document.createElement("div");
               chip.className = "pulso-chip";
               const numPad = String(item.numero).padStart(2, "0");
-              chip.innerHTML = `
-                <span class="pulso-chip__num">${numPad}</span>
-                ${item.simbolo ? `<span class="pulso-chip__sym">${item.simbolo}</span>` : ""}
-                ${item.apariciones ? `<span class="pulso-chip__count">${item.apariciones}×</span>` : ""}
-              `;
+              chip.appendChild(numImg(numPad, numPad));
+              const numEl = document.createElement("span");
+              numEl.className = "pulso-chip__num";
+              numEl.textContent = numPad;
+              chip.appendChild(numEl);
+              if (item.simbolo) {
+                const symEl = document.createElement("span");
+                symEl.className = "pulso-chip__sym";
+                symEl.textContent = item.simbolo;
+                chip.appendChild(symEl);
+              }
+              if (item.apariciones) {
+                const cntEl = document.createElement("span");
+                cntEl.className = "pulso-chip__count";
+                cntEl.textContent = `${item.apariciones}×`;
+                chip.appendChild(cntEl);
+              }
               chips.appendChild(chip);
             }
             groupEl.appendChild(chips);

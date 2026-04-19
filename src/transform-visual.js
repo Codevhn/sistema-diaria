@@ -1,34 +1,12 @@
-import { GUIA, getColorPolaridad } from "./loader.js";
+import { GUIA } from "./loader.js";
 import {
   CONVERSION_MAP_NOTE,
   getSimpleConversions,
   getCompositeConversions,
 } from "./conversion-map.js";
+import { getEquivalencias } from "./conversion-engine.js";
 
 const padNumber = (n) => String(n).padStart(2, "0");
-
-function hexToRgb(hex) {
-  if (!hex) return { r: 212, g: 167, b: 44 };
-  let value = hex.replace("#", "");
-  if (value.length === 3) {
-    value = value
-      .split("")
-      .map((ch) => ch + ch)
-      .join("");
-  }
-  const num = parseInt(value, 16);
-  if (Number.isNaN(num)) return { r: 212, g: 167, b: 44 };
-  return {
-    r: (num >> 16) & 255,
-    g: (num >> 8) & 255,
-    b: num & 255,
-  };
-}
-
-function colorWithAlpha(hex, alpha = 0.25) {
-  const { r, g, b } = hexToRgb(hex);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 function invertirNumero(n) {
   const s = String(n).padStart(2, "0");
@@ -36,6 +14,73 @@ function invertirNumero(n) {
 }
 function ajusteNumero(n) {
   return (100 - n) % 100;
+}
+
+/**
+ * Crea una rezago-card para un número, usando el mismo estilo del sitio:
+ * imagen + número + símbolo (con fallback .png → .jpg → ocultar).
+ *
+ * @param {number} num
+ * @param {object} [opts]
+ * @param {string} [opts.variant] - sufijo para clase (ej: "variante-seed")
+ * @param {string} [opts.tag]     - texto del badge inferior (ej: "BASE")
+ */
+function buildNumCard(num, { variant = null, tag = null } = {}) {
+  const pad = padNumber(num);
+  const sim = GUIA[pad]?.simbolo || "—";
+  const card = document.createElement("div");
+  card.className = "rezago-card";
+  if (variant) card.classList.add(`rezago-card--${variant}`);
+
+  const img = document.createElement("img");
+  img.className = "rezago-card__img";
+  img.alt = pad;
+  img.src = `data/img/${pad}.png`;
+  img.addEventListener("error", function onErr() {
+    img.removeEventListener("error", onErr);
+    img.src = `data/img/${pad}.jpg`;
+    img.addEventListener("error", () => { img.style.display = "none"; }, { once: true });
+  }, { once: true });
+  card.appendChild(img);
+
+  const numEl = document.createElement("span");
+  numEl.className = "rezago-card__num";
+  numEl.textContent = pad;
+  card.appendChild(numEl);
+
+  const symEl = document.createElement("span");
+  symEl.className = "rezago-card__sim";
+  symEl.textContent = sim;
+  card.appendChild(symEl);
+
+  if (tag) {
+    const badge = document.createElement("span");
+    badge.className = "rezago-card__badge";
+    badge.textContent = tag;
+    card.appendChild(badge);
+  }
+  return card;
+}
+
+function buildRow(label, valores, variant) {
+  const row = document.createElement("div");
+  row.className = "trans-row";
+  const lbl = document.createElement("b");
+  lbl.textContent = label;
+  row.appendChild(lbl);
+
+  const wrap = document.createElement("div");
+  wrap.className = "trans-card-wrap";
+  if (!valores || !valores.length) {
+    const muted = document.createElement("span");
+    muted.className = "muted";
+    muted.textContent = "—";
+    wrap.appendChild(muted);
+  } else {
+    valores.forEach((v) => wrap.appendChild(buildNumCard(v, { variant })));
+  }
+  row.appendChild(wrap);
+  return row;
 }
 
 export function mostrarTransformaciones(numero) {
@@ -61,167 +106,37 @@ export function mostrarTransformaciones(numero) {
   const adj = ajusteNumero(numero);
   const simpleConversions = getSimpleConversions(numero);
   const compositeConversions = getCompositeConversions(numero);
+  const equivalencias = getEquivalencias(numero);
 
-  // Información simbólica
-  const datos = [
-    {
-      tipo: "Base",
-      valores: [numero],
-    },
-    {
-      tipo: "Invertido",
-      valores: [inv],
-    },
-    {
-      tipo: "Ajuste (100−n)",
-      valores: [adj],
-    },
-    {
-      tipo: "Conversión simple",
-      valores: simpleConversions,
-    },
-    {
-      tipo: "Conversión compuesta",
-      valores: compositeConversions,
-    },
-  ];
-
-  // Crear SVG visual
-  const svgNS = "http://www.w3.org/2000/svg";
-  const width = 620;
-  const height = 120;
-  const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("width", width);
-  svg.setAttribute("height", height);
-  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-  svg.classList.add("trans-svg");
-
-  const defs = document.createElementNS(svgNS, "defs");
-  const filter = document.createElementNS(svgNS, "filter");
-  filter.setAttribute("id", "trans-glow");
-  filter.setAttribute("x", "-30%");
-  filter.setAttribute("y", "-30%");
-  filter.setAttribute("width", "160%");
-  filter.setAttribute("height", "160%");
-  const blur = document.createElementNS(svgNS, "feGaussianBlur");
-  blur.setAttribute("stdDeviation", "6");
-  blur.setAttribute("result", "coloredBlur");
-  filter.appendChild(blur);
-  const merge = document.createElementNS(svgNS, "feMerge");
-  const mergeNode1 = document.createElementNS(svgNS, "feMergeNode");
-  mergeNode1.setAttribute("in", "coloredBlur");
-  const mergeNode2 = document.createElementNS(svgNS, "feMergeNode");
-  mergeNode2.setAttribute("in", "SourceGraphic");
-  merge.appendChild(mergeNode1);
-  merge.appendChild(mergeNode2);
-  filter.appendChild(merge);
-  defs.appendChild(filter);
-  svg.appendChild(defs);
-
-  const step = width / (datos.length + 1);
-  const cy = height / 2;
-
-  for (let i = 0; i < datos.length; i++) {
-    const valores = datos[i].valores || [];
-    const hasValores = valores.length > 0;
-    const primary = hasValores ? valores[0] : null;
-    const nStr = hasValores ? padNumber(primary) : "--";
-    const simb =
-      hasValores ? GUIA[padNumber(primary)]?.simbolo || "—" : "—";
-    const color = hasValores ? getColorPolaridad(primary) : "#555";
-    const cx = step * (i + 1);
-
-    // Línea hacia el siguiente
-    if (i < datos.length - 1) {
-      const line = document.createElementNS(svgNS, "line");
-      line.setAttribute("x1", cx + 30);
-      line.setAttribute("y1", cy);
-      line.setAttribute("x2", cx + step - 30);
-      line.setAttribute("y2", cy);
-      line.setAttribute("stroke", "#d4a72c");
-      line.setAttribute("stroke-width", "2");
-      svg.appendChild(line);
-    }
-
-    // Círculo
-    const circle = document.createElementNS(svgNS, "circle");
-    circle.setAttribute("cx", cx);
-    circle.setAttribute("cy", cy);
-    circle.setAttribute("r", "32");
-    circle.setAttribute("fill", colorWithAlpha(color, 0.2));
-    circle.setAttribute("stroke", color);
-    circle.setAttribute("stroke-width", "4");
-    circle.setAttribute("filter", "url(#trans-glow)");
-    svg.appendChild(circle);
-
-    // Número
-    const t1 = document.createElementNS(svgNS, "text");
-    t1.setAttribute("x", cx);
-    t1.setAttribute("y", cy + 5);
-    t1.setAttribute("fill", color);
-    t1.setAttribute("font-size", "24");
-    t1.setAttribute("text-anchor", "middle");
-    t1.textContent = nStr;
-    svg.appendChild(t1);
-
-    // Símbolo
-    const t2 = document.createElementNS(svgNS, "text");
-    t2.setAttribute("x", cx);
-    t2.setAttribute("y", cy + 56);
-    t2.setAttribute("fill", "#ccc");
-    t2.setAttribute("font-size", "13");
-    t2.setAttribute("text-anchor", "middle");
-    t2.textContent = simb;
-    svg.appendChild(t2);
-
-    if (hasValores && valores.length > 1) {
-      const badge = document.createElementNS(svgNS, "text");
-      badge.setAttribute("x", cx);
-      badge.setAttribute("y", cy - 40);
-      badge.setAttribute("fill", "#d4a72c");
-      badge.setAttribute("font-size", "13");
-      badge.setAttribute("text-anchor", "middle");
-      badge.textContent = `+${valores.length - 1}`;
-      svg.appendChild(badge);
-    }
-  }
-
-  // Texto descriptivo
+  // Wrapper principal
   const desc = document.createElement("div");
-  desc.className = "desc trans-desc";
+  desc.className = "desc trans-desc trans-desc--cards";
 
-  const formatChip = (value) => {
-    if (value === null || typeof value === "undefined") return "";
-    const color = getColorPolaridad(value);
-    const bg = colorWithAlpha(color, 0.18);
-    const border = colorWithAlpha(color, 0.8);
-    const info = GUIA[padNumber(value)]?.simbolo || "—";
-    return `
-      <span class="trans-chip" style="--chip-bg:${bg};--chip-border:${border};--chip-color:${color}">
-        <strong>${padNumber(value)}</strong>
-        <small>${info}</small>
-      </span>
-    `;
-  };
+  // Base — destacada
+  const baseRow = document.createElement("div");
+  baseRow.className = "trans-row trans-row--base";
+  const baseLbl = document.createElement("b");
+  baseLbl.textContent = "Base";
+  baseRow.appendChild(baseLbl);
+  const baseWrap = document.createElement("div");
+  baseWrap.className = "trans-card-wrap";
+  baseWrap.appendChild(buildNumCard(numero, { variant: "variante-seed" }));
+  baseRow.appendChild(baseWrap);
+  desc.appendChild(baseRow);
 
-  const describe = (label, values) => {
-    if (!values.length) {
-      return `<div class="trans-row"><b>${label}</b><span class="muted">—</span></div>`;
-    }
-    const chips = values.map(formatChip).join("");
-    return `<div class="trans-row"><b>${label}</b><span class="trans-chip-wrap">${chips}</span></div>`;
-  };
+  // Filas de transformaciones
+  desc.appendChild(buildRow("Invertido", [inv], "variante"));
+  desc.appendChild(buildRow("Ajuste (100−n)", [adj], "variante"));
+  desc.appendChild(buildRow("Conversión simple", simpleConversions, "variante"));
+  desc.appendChild(buildRow("Conversión compuesta", compositeConversions, "variante"));
+  desc.appendChild(buildRow("Equivalencias", equivalencias, "pop-cool"));
 
-  desc.innerHTML = [
-    describe("Base", [numero]),
-    describe("Invertido", [inv]),
-    describe("Ajuste (100−n)", [adj]),
-    describe("Conversión simple", simpleConversions),
-    describe("Conversión compuesta", compositeConversions),
-    `<p class="trans-note">${CONVERSION_MAP_NOTE}. La conversión simple aplica el mapa a un solo dígito y la compuesta a ambos, considerando también el espejo.</p>`,
-  ].join("");
+  // Nota explicativa
+  const note = document.createElement("p");
+  note.className = "trans-note";
+  note.innerHTML = `${CONVERSION_MAP_NOTE}. La conversión simple aplica el mapa a un solo dígito y la compuesta a ambos, considerando también el espejo. Las equivalencias usan el mapa 0↔5, 1↔6, 2↔7, 3↔8, 4↔9 (directa y espejo).`;
+  desc.appendChild(note);
 
   cont.classList.add("transform-output");
-  cont.appendChild(svg);
   cont.appendChild(desc);
 }

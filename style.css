@@ -3030,6 +3030,17 @@ button.ghost:hover {
   flex-wrap: wrap;
   gap: 10px;
 }
+.trans-card-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1 1 auto;
+}
+#t-output .trans-row--base {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed rgba(201, 168, 76, 0.2);
+}
 .trans-chip {
   background: var(--color-surface);
   border: 1px solid rgba(201, 168, 76, 0.25);
