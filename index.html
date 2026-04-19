@@ -918,6 +918,7 @@
     } from "./src/maintenance.js";
     import { mostrarTransformaciones } from "./src/transform-visual.js";
     import { initTooltips } from "./src/tooltip.js";
+    import { computeHitTrackerStats, renderHitTrackerHTML } from "./src/hit-tracker.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -5902,6 +5903,16 @@
         `;
         frag.appendChild(lastCard);
 
+        // ── Hit-tracker live: cómo le está yendo al motor en producción ──
+        try {
+          const hitStats = await computeHitTrackerStats({ topN: 8, recent: 30 });
+          const hitWrap = document.createElement("div");
+          hitWrap.innerHTML = renderHitTrackerHTML(hitStats);
+          if (hitWrap.firstElementChild) frag.appendChild(hitWrap.firstElementChild);
+        } catch (err) {
+          console.warn("hit-tracker render falló:", err?.message || err);
+        }
+
         // Recovery mode banner
         const spFechas = await listSpFromDb().catch(() => []);
         const recoveryMode = detectarModoRecuperacion(spFechas);
@@ -6049,6 +6060,32 @@
             });
             motorSec.appendChild(motorChips);
             frag.appendChild(motorSec);
+
+            // ── Hit-tracker: registrar la predicción para validar contra el sorteo real ──
+            try {
+              // Calcular fecha del próximo sorteo
+              // Si el último fue 9PM (idx 2), el próximo 11AM es de mañana; si no, mismo día.
+              let targetFecha = last.fecha;
+              if (nextHorarioIdx === 0 && last.fecha) {
+                const d = new Date(last.fecha + "T00:00:00");
+                d.setDate(d.getDate() + 1);
+                targetFecha = d.toISOString().slice(0, 10);
+              }
+              const targetPais = last.pais || pais || null;
+              const predictions = motor.candidatos.map((c) => ({
+                numero: c.numero,
+                score: Math.round(c.score * 1000) / 1000,
+                turno: nextHorario,
+              }));
+              // Fire-and-forget: no bloqueamos la UI si Supabase tarda o falla
+              DB.logPredictions(predictions, {
+                fecha: targetFecha,
+                pais: targetPais,
+                turno: nextHorario,
+              }).catch((err) => console.warn("logPredictions falló:", err?.message || err));
+            } catch (err) {
+              console.warn("logPredictions wrapper falló:", err?.message || err);
+            }
 
             // ── Números eliminados (resumen) ──
             if (motor.eliminados?.length) {

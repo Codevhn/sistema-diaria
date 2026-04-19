@@ -9030,6 +9030,103 @@ body.login-page {
 .pulso-dominical__text span { font-size: 0.78rem; color: var(--color-muted); }
 
 /* ═══════════════════════════════════════════════════
+   HIT-TRACKER LIVE — panel de validación del motor
+   ═══════════════════════════════════════════════════ */
+.hit-tracker {
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.hit-tracker::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  opacity: 0.6;
+}
+.hit-tracker--hot     { border-color: rgba(122, 221, 161, 0.55); }
+.hit-tracker--ok      { border-color: rgba(100, 180, 255, 0.45); }
+.hit-tracker--neutral { border-color: rgba(242, 196, 74, 0.30); }
+.hit-tracker--bad     { border-color: rgba(220, 100, 60, 0.40); }
+.hit-tracker--pending,
+.hit-tracker--empty,
+.hit-tracker--error   { border-color: rgba(255,255,255,0.10); opacity: 0.85; }
+
+.hit-tracker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.hit-tracker__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.hit-tracker__verdict {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: rgba(242, 196, 74, 0.10);
+  color: var(--color-text);
+  letter-spacing: 0.04em;
+}
+.hit-tracker--hot     .hit-tracker__verdict { background: rgba(122, 221, 161, 0.18); color: #7adda1; }
+.hit-tracker--ok      .hit-tracker__verdict { background: rgba(100, 180, 255, 0.18); color: #8fb8ff; }
+.hit-tracker--neutral .hit-tracker__verdict { background: rgba(242, 196, 74, 0.16); color: var(--color-accent); }
+.hit-tracker--bad     .hit-tracker__verdict { background: rgba(220, 100, 60, 0.20); color: #ff8a6a; }
+
+.hit-tracker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.hit-tracker__metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+.hit-tracker__metric-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.hit-tracker__metric-value {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.1;
+}
+.hit-tracker__metric-sub {
+  font-size: 0.66rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+.hit-tracker__metric-sub small { opacity: 0.7; }
+.hit-tracker__hint {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════
    LOADER LA DIARIA — slot machine + ring girando
    ═══════════════════════════════════════════════════ */
 .diaria-loader {
