@@ -9028,3 +9028,74 @@ body.login-page {
 .pulso-dominical__text { display: flex; flex-direction: column; gap: 2px; }
 .pulso-dominical__text strong { font-size: 0.88rem; color: #ffcc60; }
 .pulso-dominical__text span { font-size: 0.78rem; color: var(--color-muted); }
+
+/* ═══════════════════════════════════════════════════
+   TOOLTIP CUSTOM — estilo Sims (gold/dark, persistente)
+   ═══════════════════════════════════════════════════ */
+.app-tooltip {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  z-index: 99999;
+  pointer-events: none;
+  max-width: 280px;
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--color-accent);
+  text-align: center;
+  background:
+    linear-gradient(180deg, #1c1c24 0%, #131319 100%);
+  border: 1.5px solid var(--color-accent);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(247, 216, 122, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 6px 18px rgba(0, 0, 0, 0.7),
+    0 0 18px rgba(242, 196, 74, 0.35);
+  text-shadow: 0 0 6px rgba(242, 196, 74, 0.35);
+  opacity: 0;
+  transform: translateY(-2px) scale(0.96);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  white-space: normal;
+  word-wrap: break-word;
+}
+.app-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+/* Pico (estilo bocadillo) — abajo cuando el tooltip va arriba del host */
+.app-tooltip::before,
+.app-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  transform: translateX(-50%);
+}
+.app-tooltip[data-placement="bottom"]::before {
+  top: -8px;
+  border-width: 0 7px 8px 7px;
+  border-color: transparent transparent var(--color-accent) transparent;
+}
+.app-tooltip[data-placement="bottom"]::after {
+  top: -6px;
+  border-width: 0 6px 7px 6px;
+  border-color: transparent transparent #1c1c24 transparent;
+}
+.app-tooltip[data-placement="top"]::before {
+  bottom: -8px;
+  border-width: 8px 7px 0 7px;
+  border-color: var(--color-accent) transparent transparent transparent;
+}
+.app-tooltip[data-placement="top"]::after {
+  bottom: -6px;
+  border-width: 7px 6px 0 6px;
+  border-color: #131319 transparent transparent transparent;
+}
