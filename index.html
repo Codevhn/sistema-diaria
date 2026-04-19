@@ -920,6 +920,7 @@
     import { initTooltips } from "./src/tooltip.js";
     import { computeHitTrackerStats, renderHitTrackerHTML } from "./src/hit-tracker.js";
     import { getVencidos, renderRelativosHTML } from "./src/relativos-engine.js";
+    import { initSuperPremioPicker } from "./src/superpremio-picker.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -8081,6 +8082,14 @@ function buildVariantEntries(profile) {
           toggleBtn.setAttribute("aria-expanded", sidebar.classList.contains("show-mobile") ? "true" : "false");
         }
       });
+    }
+
+    // ── Super Premio Picker: inyectar en panel Números Rápidos al arranque ──
+    try {
+      const spDraws = await DB.listDraws({ excludeTest: true });
+      initSuperPremioPicker(spDraws, GUIA);
+    } catch (err) {
+      console.warn("[superpremio-picker] No se pudo inicializar:", err?.message || err);
     }
 
     try {
