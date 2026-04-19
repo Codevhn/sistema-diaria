@@ -55,7 +55,12 @@
       "Bash(cp src/popularity-model.js src/_pm.mjs)",
       "Bash(node --check src/_bt.mjs)",
       "Bash(node --check src/_pm.mjs)",
-      "Bash(rm src/_bt.mjs src/_pm.mjs)"
+      "Bash(rm src/_bt.mjs src/_pm.mjs)",
+      "Bash(cp src/auth.js src/_auth.mjs)",
+      "Bash(cp src/supabaseClient.js src/_sc.mjs)",
+      "Bash(node --check src/_auth.mjs)",
+      "Bash(node --check src/_sc.mjs)",
+      "Bash(rm src/_auth.mjs src/_sc.mjs)"
     ]
   }
 }

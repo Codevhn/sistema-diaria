@@ -37,15 +37,20 @@ async function fetchSessionWithRetry(options = {}) {
 }
 
 function clearSupabaseSessionStorage() {
-  if (typeof window === "undefined" || !window.sessionStorage) return;
-  const keys = [];
-  for (let i = 0; i < window.sessionStorage.length; i += 1) {
-    const key = window.sessionStorage.key(i);
-    if (key && key.startsWith("sb-")) {
-      keys.push(key);
+  // Limpia tanto localStorage (nuevo default) como sessionStorage (legacy,
+  // por si queda algo de instalaciones previas). Solo toca claves sb-*.
+  if (typeof window === "undefined") return;
+  const wipe = (store) => {
+    if (!store) return;
+    const keys = [];
+    for (let i = 0; i < store.length; i += 1) {
+      const key = store.key(i);
+      if (key && key.startsWith("sb-")) keys.push(key);
     }
-  }
-  keys.forEach((key) => window.sessionStorage.removeItem(key));
+    keys.forEach((key) => store.removeItem(key));
+  };
+  wipe(window.localStorage);
+  wipe(window.sessionStorage);
 }
 
 export async function login(email, password) {
@@ -72,9 +77,11 @@ export async function getCurrentUser(options = {}) {
     const session = await fetchSessionWithRetry(options);
     return session?.user ?? null;
   } catch (err) {
-    console.error("Supabase auth error:", err?.message || err);
-    await supabase.auth.signOut().catch(() => {});
-    clearSupabaseSessionStorage();
+    // NO cerramos sesión aquí — un error transitorio de red o un getSession()
+    // que timeoutea no debería invalidar al usuario. Solo devolvemos null y
+    // dejamos que el caller decida (requireAuthOrRedirect sí redirige, pero
+    // sin nuke explícito: si la sesión vuelve al recargar, el usuario sigue).
+    console.warn("Supabase getSession falló (transitorio, no se cierra sesión):", err?.message || err);
     return null;
   }
 }
@@ -82,8 +89,10 @@ export async function getCurrentUser(options = {}) {
 export async function requireAuthOrRedirect(redirectTo = "./login.html", options = {}) {
   const user = await getCurrentUser(options);
   if (!user) {
-    await supabase.auth.signOut().catch(() => {});
-    clearSupabaseSessionStorage();
+    // Solo limpiamos storage si la sesión realmente está inválida (no por
+    // transitorio). Si getCurrentUser devolvió null por un error transitorio,
+    // el storage sigue teniendo el token y al reintentar el usuario quizá ya
+    // haya sesión. Pero para no dejar al usuario en loop, sí redirigimos.
     window.location.replace(redirectTo);
     return null;
   }
