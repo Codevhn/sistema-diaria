@@ -9127,6 +9127,147 @@ body.login-page {
 }
 
 /* ═══════════════════════════════════════════════════
+   RELATIVOS VENCIDOS — panel de cadencia
+   ═══════════════════════════════════════════════════ */
+.rel-vencidos {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 10px;
+  padding: 14px 16px 12px;
+  margin: 12px 0;
+}
+.rel-vencidos--empty,
+.rel-vencidos--error {
+  color: var(--color-muted);
+}
+.rel-vencidos__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.rel-vencidos__count {
+  background: var(--color-accent);
+  color: #111;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.6;
+}
+.rel-vencidos__hint {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  font-style: italic;
+  margin-bottom: 10px;
+}
+.rel-vencidos__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rel-vencidos__more {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  text-align: center;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* ─── Cada item ────────────────────────────────── */
+.rel-item {
+  background: rgba(255,255,255,0.035);
+  border-radius: 8px;
+  padding: 9px 12px 8px;
+  border-left: 3px solid transparent;
+}
+.rel-item--critical { border-left-color: #e04c41; background: rgba(224,76,65,0.07); }
+.rel-item--high     { border-left-color: #f2a63c; background: rgba(242,166,60,0.07); }
+.rel-item--medium   { border-left-color: var(--color-accent); background: rgba(242,196,74,0.05); }
+.rel-item--low      { border-left-color: rgba(100,160,255,0.5); }
+
+.rel-item__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+  flex-wrap: wrap;
+}
+.rel-item__icon { font-size: 1rem; line-height: 1; }
+.rel-item__nums {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.rel-item__sym {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--color-muted);
+}
+.rel-item__arrow {
+  color: var(--color-accent);
+  font-size: 0.9rem;
+  margin: 0 2px;
+}
+.rel-item__fuente {
+  font-size: 0.68rem;
+  color: var(--color-muted);
+  margin-left: auto;
+  font-style: italic;
+}
+
+/* ─── Barra de progreso ─────────────────────────── */
+.rel-item__bar-wrap {
+  position: relative;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: visible;
+  margin-bottom: 5px;
+}
+.rel-item__bar {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(100,200,100,0.5), var(--color-accent));
+  transition: width 0.5s ease;
+}
+.rel-item--critical .rel-item__bar { background: linear-gradient(90deg, var(--color-accent), #e04c41); }
+.rel-item--high     .rel-item__bar { background: linear-gradient(90deg, var(--color-accent), #f2a63c); }
+/* Marcador de media */
+.rel-item__bar-mean {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  background: rgba(255,255,255,0.55);
+  border-radius: 1px;
+}
+
+/* ─── Stats ─────────────────────────────────────── */
+.rel-item__stats {
+  display: flex;
+  gap: 10px;
+  font-size: 0.72rem;
+  flex-wrap: wrap;
+}
+.rel-item__stats span:first-child {
+  font-weight: 600;
+  color: #e0e0e0;
+}
+.rel-item__since {
+  font-size: 0.67rem;
+  color: var(--color-muted);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════
    LOADER LA DIARIA — slot machine + ring girando
    ═══════════════════════════════════════════════════ */
 .diaria-loader {

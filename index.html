@@ -919,6 +919,7 @@
     import { mostrarTransformaciones } from "./src/transform-visual.js";
     import { initTooltips } from "./src/tooltip.js";
     import { computeHitTrackerStats, renderHitTrackerHTML } from "./src/hit-tracker.js";
+    import { getVencidos, renderRelativosHTML } from "./src/relativos-engine.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -5911,6 +5912,23 @@
           if (hitWrap.firstElementChild) frag.appendChild(hitWrap.firstElementChild);
         } catch (err) {
           console.warn("hit-tracker render falló:", err?.message || err);
+        }
+
+        // ── Relativos vencidos: pares (A→B) donde B está tardando más de lo normal ──
+        try {
+          const allDraws = await DB.listDraws();
+          const vencidos = await getVencidos(allDraws, {
+            maxDays: 45,
+            recentDays: 60,
+            minHits: 2,
+            threshold: 0.5,
+            pais: pais || null,
+          });
+          const relWrap = document.createElement("div");
+          relWrap.innerHTML = renderRelativosHTML(vencidos, GUIA, 10);
+          if (relWrap.firstElementChild) frag.appendChild(relWrap.firstElementChild);
+        } catch (err) {
+          console.warn("relativos-engine falló:", err?.message || err);
         }
 
         // Recovery mode banner
