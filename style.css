@@ -9392,26 +9392,30 @@ body.login-page {
   margin-top: 2px;
 }
 .sp-picker__btn {
-  width: 100%;
-  padding: 13px;
+  display: block;
+  margin: 0 auto;
+  width: auto;
+  min-width: 220px;
+  padding: 12px 28px;
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   background: linear-gradient(135deg, #c9a84c, #f2c94c, #c9a84c);
-  color: #111;
+  color: #1a1000;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(201,168,76,0.35);
-  transition: transform 0.12s, box-shadow 0.12s, filter 0.12s;
+  transition: transform 0.12s, box-shadow 0.12s, background 0.15s, color 0.15s;
 }
 .sp-picker__btn:hover {
-  filter: brightness(1.18) saturate(1.1);
+  background: linear-gradient(135deg, #fff8e8, #fffbf0, #fff8e8);
+  color: #4a2e00;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(201,168,76,0.65);
+  box-shadow: 0 8px 24px rgba(201,168,76,0.55);
 }
-.sp-picker__btn:active { transform: translateY(0); filter: brightness(0.95); }
-.sp-picker__btn:disabled { opacity: 0.6; cursor: wait; filter: none; transform: none; }
+.sp-picker__btn:active { transform: translateY(0); background: linear-gradient(135deg, #b8943c, #d4a83c, #b8943c); color: #fff; }
+.sp-picker__btn:disabled { opacity: 0.6; cursor: wait; transform: none; }
 .sp-picker__result { margin-top: 20px; }
 
 /* ── Resultado ───────────────────────────────────── */
