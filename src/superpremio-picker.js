@@ -144,18 +144,12 @@ export function initSuperPremioPicker(draws, guia = {}) {
   const pickerWrap = document.createElement("div");
   pickerWrap.className = "sp-picker";
 
-  // Separador
-  const sep = document.createElement("hr");
-  sep.className = "sp-picker__sep";
-  pickerWrap.appendChild(sep);
-
   // Cabecera
   const head = document.createElement("div");
   head.className = "sp-picker__head";
   head.innerHTML = `
     <div>
-      <div class="sp-picker__title">🏆 Super Premio — mis 6 de hoy</div>
-      <div class="sp-picker__sub">Selección inteligente entre los números más fríos del 01 al 33</div>
+      <div class="sp-picker__sub">Selección ponderada: más peso a los números que menos han salido históricamente del 01 al 33</div>
     </div>`;
   pickerWrap.appendChild(head);
 
