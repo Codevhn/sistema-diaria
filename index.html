@@ -5835,7 +5835,26 @@
     async function renderPulso() {
       if (!resultPulso) return;
       if (!_pulsoStale) return; // sin cambios en los datos, no recalcular
-      resultPulso.innerHTML = "<p class='pulso-empty'>Cargando historial…</p>";
+      resultPulso.innerHTML = `
+        <div class="diaria-loader" role="status" aria-label="Cargando historial">
+          <div class="diaria-loader__stage">
+            <span class="diaria-loader__ring"></span>
+            <span class="diaria-loader__ring diaria-loader__ring--inner"></span>
+            <span class="diaria-loader__ball">
+              <span class="diaria-loader__reel diaria-loader__reel--tens">
+                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>0</span>
+              </span>
+              <span class="diaria-loader__reel diaria-loader__reel--ones">
+                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>0</span>
+              </span>
+            </span>
+          </div>
+          <div class="diaria-loader__text" aria-hidden="true">
+            <span style="--i:0">A</span><span style="--i:1">n</span><span style="--i:2">a</span><span style="--i:3">l</span><span style="--i:4">i</span><span style="--i:5">z</span><span style="--i:6">a</span><span style="--i:7">n</span><span style="--i:8">d</span><span style="--i:9">o</span><span class="diaria-loader__sp">·</span><span style="--i:10">s</span><span style="--i:11">o</span><span style="--i:12">r</span><span style="--i:13">t</span><span style="--i:14">e</span><span style="--i:15">o</span><span style="--i:16">s</span>
+          </div>
+          <div class="diaria-loader__sub">leyendo memoria del sistema</div>
+        </div>
+      `;
       try {
         const draws = await DB.listDraws({ excludeTest: true });
         if (!draws.length) {
