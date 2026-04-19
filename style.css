@@ -8027,19 +8027,19 @@ body.login-page {
 .rezago-card--ok   { border-color: rgba(100, 200, 120, 0.3); }
 .rezago-card--elim { border-color: rgba(255,255,255,0.1); opacity: 0.6; }
 
-/* Variantes adversariales — colores de borde/badge unificados con rezago-card */
-.rezago-card--cal-block    { border-color: rgba(255, 90, 90, 0.3); }
-.rezago-card--cal-boost    { border-color: rgba(106, 180, 255, 0.3); }
-.rezago-card--cal-prox     { border-color: rgba(106, 141, 255, 0.3); }
-.rezago-card--pop-hot      { border-color: rgba(240, 130, 60, 0.35); }
-.rezago-card--pop-cool     { border-color: rgba(122, 221, 161, 0.3); }
-.rezago-card--pop-cadena   { border-color: rgba(240, 160, 80, 0.3); }
-.rezago-card--variante-seed { border-color: rgba(176, 138, 255, 0.45); }
-.rezago-card--variante     { border-color: rgba(176, 138, 255, 0.3); }
-.rezago-card--cluster-hit  { border-color: rgba(80, 208, 168, 0.45); }
-.rezago-card--cluster      { border-color: rgba(80, 208, 168, 0.25); }
-.rezago-card--recup-pre    { border-color: rgba(122, 221, 161, 0.35); }
-.rezago-card--recup-rep    { border-color: rgba(255, 107, 107, 0.35); }
+/* Variantes adversariales — borde + fondo tintado del mismo color (~10% alpha) */
+.rezago-card--cal-block    { border-color: rgba(255, 90, 90, 0.35);   background: rgba(255, 90, 90, 0.10); }
+.rezago-card--cal-boost    { border-color: rgba(106, 180, 255, 0.35); background: rgba(106, 180, 255, 0.10); }
+.rezago-card--cal-prox     { border-color: rgba(106, 141, 255, 0.35); background: rgba(106, 141, 255, 0.10); }
+.rezago-card--pop-hot      { border-color: rgba(240, 130, 60, 0.40);  background: rgba(240, 130, 60, 0.12); }
+.rezago-card--pop-cool     { border-color: rgba(122, 221, 161, 0.35); background: rgba(122, 221, 161, 0.10); }
+.rezago-card--pop-cadena   { border-color: rgba(240, 160, 80, 0.35);  background: rgba(240, 160, 80, 0.10); }
+.rezago-card--variante-seed { border-color: rgba(176, 138, 255, 0.50); background: rgba(176, 138, 255, 0.13); }
+.rezago-card--variante     { border-color: rgba(176, 138, 255, 0.35); background: rgba(176, 138, 255, 0.10); }
+.rezago-card--cluster-hit  { border-color: rgba(80, 208, 168, 0.50);  background: rgba(80, 208, 168, 0.13); }
+.rezago-card--cluster      { border-color: rgba(80, 208, 168, 0.30);  background: rgba(80, 208, 168, 0.08); }
+.rezago-card--recup-pre    { border-color: rgba(122, 221, 161, 0.40); background: rgba(122, 221, 161, 0.11); }
+.rezago-card--recup-rep    { border-color: rgba(255, 107, 107, 0.40); background: rgba(255, 107, 107, 0.11); }
 
 .rezago-card__img {
   width: 42px;
