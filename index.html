@@ -1022,11 +1022,43 @@
 
     const currentUser = await requireAuthOrRedirect("./login.html");
     if (!currentUser) throw new Error("Auth requerida");
+    // ── Diagnóstico de auth: guardamos los últimos 20 eventos en window.__authLog
+    //    y los imprimimos en consola para poder auditar expulsiones espurias.
+    window.__authLog = [];
+    const _logAuth = (tag, payload) => {
+      const entry = { ts: new Date().toISOString(), tag, ...payload };
+      window.__authLog.push(entry);
+      if (window.__authLog.length > 20) window.__authLog.shift();
+      console.log("[auth]", tag, entry);
+    };
+    _logAuth("boot", { hasUser: !!currentUser, uid: currentUser?.id });
+
+    // Anti-bounce: ignorar SIGNED_OUT que llegue en los primeros 3s tras el
+    // boot. Evita que un fallo transitorio del autoRefreshToken justo después
+    // de cargar tumbe una sesión que el servidor todavía considera válida.
+    const BOOT_GRACE_MS = 3000;
+    const bootAt = Date.now();
     supabase.auth.onAuthStateChange((event, session) => {
-      // Solo redirigir en logout explícito — ignorar INITIAL_SESSION y
-      // TOKEN_REFRESHED donde session puede ser null momentáneamente
+      _logAuth("event", { event, hasSession: !!session, uid: session?.user?.id });
       if (event === "SIGNED_OUT") {
-        window.location.href = "./login.html";
+        const sinceBoot = Date.now() - bootAt;
+        if (sinceBoot < BOOT_GRACE_MS) {
+          console.warn(`[auth] SIGNED_OUT ignorado en ventana de gracia (${sinceBoot}ms < ${BOOT_GRACE_MS}ms)`);
+          return;
+        }
+        // Antes de redirigir, verificamos con el servidor si realmente no hay
+        // sesión. Un SIGNED_OUT puede venir de un refresh fallido transitorio
+        // mientras la sesión todavía está válida en localStorage.
+        supabase.auth.getSession().then(({ data }) => {
+          if (data?.session?.user) {
+            console.warn("[auth] SIGNED_OUT espurio: getSession aún devuelve user. Ignoro.");
+            return;
+          }
+          _logAuth("redirect-login", { reason: "SIGNED_OUT confirmado" });
+          window.location.href = "./login.html";
+        }).catch((err) => {
+          console.warn("[auth] getSession tras SIGNED_OUT falló, no redirijo:", err?.message);
+        });
       }
     });
     await initUserPreferences(currentUser);
