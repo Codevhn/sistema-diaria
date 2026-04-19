@@ -5908,7 +5908,7 @@
         try {
           const hitStats = await computeHitTrackerStats({ topN: 8, recent: 30 });
           const hitWrap = document.createElement("div");
-          hitWrap.innerHTML = renderHitTrackerHTML(hitStats);
+          hitWrap.innerHTML = renderHitTrackerHTML(hitStats, GUIA);
           if (hitWrap.firstElementChild) frag.appendChild(hitWrap.firstElementChild);
         } catch (err) {
           console.warn("hit-tracker render falló:", err?.message || err);

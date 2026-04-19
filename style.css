@@ -9126,6 +9126,108 @@ body.login-page {
   font-style: italic;
 }
 
+/* ── Botón toggle historial ── */
+.ht-toggle {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 6px 0;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s;
+}
+.ht-toggle:hover { background: rgba(255,255,255,0.05); }
+
+/* ── Historial expandible ── */
+.ht-historial {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ht-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 0 2px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  margin-top: 4px;
+}
+
+/* ── Cada batch ── */
+.ht-batch {
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  padding: 8px 10px;
+  border-left: 3px solid rgba(255,255,255,0.1);
+}
+.ht-batch--hit  { border-left-color: #48d06d; background: rgba(72,208,109,0.05); }
+.ht-batch--miss { border-left-color: #e04c41; background: rgba(224,76,65,0.04); }
+.ht-batch--pending { border-left-color: var(--color-accent); background: rgba(242,196,74,0.04); }
+
+.ht-batch__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+}
+.ht-batch__icon { font-size: 0.9rem; }
+.ht-batch__fecha { font-weight: 600; color: #d0d0d0; }
+.ht-batch__resultado { color: var(--color-muted); }
+.ht-batch--hit  .ht-batch__resultado { color: #7de09a; font-weight: 600; }
+
+/* ── Chips de números ── */
+.ht-batch__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.ht-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #d0d0d0;
+  min-width: 36px;
+  text-align: center;
+}
+.ht-chip small {
+  font-size: 0.58rem;
+  font-weight: 400;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60px;
+}
+.ht-chip--hit {
+  background: rgba(72,208,109,0.18);
+  border-color: #48d06d;
+  color: #7de09a;
+  box-shadow: 0 0 8px rgba(72,208,109,0.25);
+}
+.ht-chip--hit small { color: #a0e8b8; }
+.ht-chip--pending {
+  opacity: 0.7;
+  border-style: dashed;
+}
+
 /* ═══════════════════════════════════════════════════
    RELATIVOS VENCIDOS — panel de cadencia
    ═══════════════════════════════════════════════════ */

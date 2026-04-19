@@ -128,13 +128,17 @@ export async function computeHitTrackerStats(opts = {}) {
     streakMisses,
     lastResolvedAt: resolved.length ? resolved[resolved.length - 1].createdAt : null,
     topN,
+    // Detalle completo para mostrar historial al jugador
+    resolvedBatches: resolved.slice().reverse(), // más recientes primero
+    pendingBatches: pending.slice().reverse(),
   };
 }
 
 /**
- * Renderiza un mini-panel HTML con las stats. Devuelve el string HTML.
+ * Renderiza un mini-panel HTML con las stats + historial expandible.
+ * El jugador puede ver exactamente qué números predijo el motor y cuál cayó.
  */
-export function renderHitTrackerHTML(stats) {
+export function renderHitTrackerHTML(stats, guia = {}) {
   if (!stats || stats.error) {
     return `<div class="hit-tracker hit-tracker--error">⚠ No se pudo leer el historial de predicciones${stats?.error ? `: ${stats.error}` : ""}</div>`;
   }
@@ -163,6 +167,63 @@ export function renderHitTrackerHTML(stats) {
   const fmtPct = (v) => `${(v * 100).toFixed(1)}%`;
   const liftSign = stats.pctMejorQueAzar >= 0 ? "+" : "";
   const recentLiftSign = stats.recent.pctMejorQueAzar >= 0 ? "+" : "";
+  const pad = (n) => String(n).padStart(2, "0");
+  const sym = (n) => guia[pad(n)]?.simbolo || "";
+
+  // ── Historial de batches resueltos ──────────────────────────────────────────
+  const batchRows = (stats.resolvedBatches || []).map((b) => {
+    const sorted = [...b.rows]
+      .filter((r) => r.estado !== "descartado")
+      .sort((a, z) => (z.score ?? 0) - (a.score ?? 0));
+
+    const aciertoRow = sorted.find((r) => r.estado === "acierto");
+    const icon = b.hit ? "✅" : "❌";
+    const cls  = b.hit ? "ht-batch--hit" : "ht-batch--miss";
+
+    const chips = sorted.map((r) => {
+      const isHit = r.estado === "acierto";
+      const p = pad(r.numero);
+      const s = sym(r.numero);
+      return `<span class="ht-chip ${isHit ? "ht-chip--hit" : ""}" title="${p} ${s}">${p}${s ? `<small>${s}</small>` : ""}</span>`;
+    }).join("");
+
+    const resultado = aciertoRow
+      ? `Cayó <b>${pad(aciertoRow.numero)}</b> ${sym(aciertoRow.numero)} — estaba en la lista`
+      : `No cayó ninguno de los ${sorted.length} candidatos`;
+
+    return `
+      <div class="ht-batch ${cls}">
+        <div class="ht-batch__head">
+          <span class="ht-batch__icon">${icon}</span>
+          <span class="ht-batch__fecha">${b.fecha || "?"} · ${b.turno || "?"} · ${(b.pais || "").toUpperCase()}</span>
+          <span class="ht-batch__resultado">${resultado}</span>
+        </div>
+        <div class="ht-batch__chips">${chips}</div>
+      </div>`;
+  }).join("");
+
+  // ── Batches pendientes ───────────────────────────────────────────────────────
+  const pendingRows = (stats.pendingBatches || []).map((b) => {
+    const sorted = [...b.rows]
+      .filter((r) => r.estado !== "descartado")
+      .sort((a, z) => (z.score ?? 0) - (a.score ?? 0));
+    const chips = sorted.map((r) => {
+      const p = pad(r.numero);
+      const s = sym(r.numero);
+      return `<span class="ht-chip ht-chip--pending" title="${p} ${s}">${p}${s ? `<small>${s}</small>` : ""}</span>`;
+    }).join("");
+    return `
+      <div class="ht-batch ht-batch--pending">
+        <div class="ht-batch__head">
+          <span class="ht-batch__icon">⏳</span>
+          <span class="ht-batch__fecha">${b.fecha || "?"} · ${b.turno || "?"} · ${(b.pais || "").toUpperCase()}</span>
+          <span class="ht-batch__resultado muted">Esperando resultado</span>
+        </div>
+        <div class="ht-batch__chips">${chips}</div>
+      </div>`;
+  }).join("");
+
+  const historialId = `ht-hist-${Math.random().toString(36).slice(2, 7)}`;
 
   return `
     <div class="hit-tracker ${verdict.cls}">
@@ -193,7 +254,19 @@ export function renderHitTrackerHTML(stats) {
         </div>
       </div>
       <div class="hit-tracker__hint">
-        Mide si el número que cayó estaba en el top-${stats.topN} del motor unificado. Es la prueba honesta de si el sistema le pega más que el azar.
+        Mide si el número que cayó estaba en el top-${stats.topN} del motor. Cada ✅ significa que el sistema lo tenía en su lista antes de que cayera.
+      </div>
+
+      <button class="ht-toggle" onclick="
+        const el=document.getElementById('${historialId}');
+        const open=el.style.display!=='none';
+        el.style.display=open?'none':'block';
+        this.textContent=open?'▼ Ver historial de predicciones':'▲ Ocultar historial';
+      ">▼ Ver historial de predicciones</button>
+
+      <div id="${historialId}" style="display:none" class="ht-historial">
+        ${pendingRows ? `<div class="ht-section-label">⏳ Pendientes de resultado</div>${pendingRows}` : ""}
+        ${batchRows ? `<div class="ht-section-label">Resueltos (más reciente primero)</div>${batchRows}` : ""}
       </div>
     </div>
   `;
