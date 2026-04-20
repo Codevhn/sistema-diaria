@@ -641,3 +641,310 @@ export function renderRelativosAlertaHTML(alertas, backtest, guia = {}) {
 
   return `<div class="rel-alerta-wrap">${btHtml}${alertHtml}</div>`;
 }
+
+// ─── Mapa inverso ─────────────────────────────────────────────────────────────
+
+/**
+ * Construye el mapa inverso: para cada número X devuelve el conjunto de
+ * números que tienen a X como relativo (es decir, Y→X existe en relMap).
+ */
+function buildReverseMap(relMap) {
+  const rev = new Map();
+  for (const [a, targets] of relMap) {
+    for (const b of targets) {
+      if (!rev.has(b)) rev.set(b, new Set());
+      rev.get(b).add(a);
+    }
+  }
+  return rev;
+}
+
+// ─── Backtest de convergencia ─────────────────────────────────────────────────
+
+/**
+ * Para cada día del historial y cada número X que NO cayó ese día,
+ * calcula cuántos números que SÍ cayeron ese día están relacionados con X
+ * (ya sea X→Y o Y→X). Eso es el "score de convergencia" de X ese día.
+ *
+ * Luego mide: dado score=N, ¿con qué frecuencia apareció X en los próximos
+ * 1/2/3 días? Compara contra el grupo sin señal (score=0) como baseline.
+ *
+ * @param {Array}  draws
+ * @param {object} [opts]
+ * @param {number} [opts.maxWindow=3]
+ * @param {number} [opts.minDraws=300]
+ * @returns {Promise<object|null>}
+ */
+export async function backtestConvergencia(draws, opts = {}) {
+  const maxWindow = opts.maxWindow ?? 3;
+  const minDraws  = opts.minDraws  ?? 300;
+
+  const relMap = await loadRelativosMap();
+  if (!relMap.size) return null;
+  const revMap = buildReverseMap(relMap);
+
+  const sorted = draws
+    .filter((d) => d.fecha && !d.esTest && !isNaN(parseInt(d.numero, 10)))
+    .map((d) => ({ day: fechaToDays(d.fecha), num: parseInt(d.numero, 10) }))
+    .filter((d) => !isNaN(d.day))
+    .sort((a, b) => a.day - b.day);
+
+  if (sorted.length < minDraws) return null;
+
+  // Índice día → Set<numero>
+  const byDay = new Map();
+  for (const d of sorted) {
+    if (!byDay.has(d.day)) byDay.set(d.day, new Set());
+    byDay.get(d.day).add(d.num);
+  }
+
+  const days = [...byDay.keys()].sort((a, b) => a - b);
+
+  // stats[convScore] → { trials, hits: { 1:N, 2:N, 3:N } }
+  // convScore: 0=sin señal, 1=una relación, 2=dos, 3+=tres o más
+  const MAX_CONV = 3;
+  const stats = Array.from({ length: MAX_CONV + 1 }, () => ({
+    trials: 0,
+    hits: Object.fromEntries(Array.from({ length: maxWindow }, (_, i) => [i + 1, 0])),
+  }));
+
+  for (let di = 0; di < days.length; di++) {
+    const day = days[di];
+    const dayNums = byDay.get(day);
+
+    for (let x = 0; x <= 99; x++) {
+      if (dayNums.has(x)) continue; // cayó hoy → no es candidato
+
+      // Calcular convergencia de x en este día
+      let conv = 0;
+      // Forward: relativos de x que cayeron hoy (x→Y)
+      for (const r of (relMap.get(x) || [])) {
+        if (dayNums.has(r)) conv++;
+      }
+      // Reverse: números que cayeron hoy y tienen a x como relativo (Y→x)
+      for (const r of (revMap.get(x) || [])) {
+        if (dayNums.has(r)) conv++;
+      }
+
+      const key = Math.min(conv, MAX_CONV);
+      stats[key].trials++;
+
+      // ¿Apareció x en los próximos 1..maxWindow días?
+      for (let w = 1; w <= maxWindow; w++) {
+        if (byDay.get(day + w)?.has(x)) {
+          // Cuenta en esta ventana y todas las mayores (acumulativo)
+          for (let ww = w; ww <= maxWindow; ww++) stats[key].hits[ww]++;
+          break;
+        }
+      }
+    }
+  }
+
+  // Baseline = tasa del grupo sin señal (conv=0)
+  const base0 = stats[0];
+  const baseRates = {};
+  for (let w = 1; w <= maxWindow; w++) {
+    baseRates[w] = base0.trials > 0 ? base0.hits[w] / base0.trials : 0;
+  }
+
+  const levels = {};
+  for (let c = 0; c <= MAX_CONV; c++) {
+    const s = stats[c];
+    levels[c] = { trials: s.trials, windows: {} };
+    for (let w = 1; w <= maxWindow; w++) {
+      const rate = s.trials > 0 ? s.hits[w] / s.trials : 0;
+      const base = baseRates[w];
+      const lift = base > 0 ? rate / base : 0;
+      levels[c].windows[w] = {
+        hits:    s.hits[w],
+        rate:    Math.round(rate * 10000) / 10000,
+        baseline: Math.round(base * 10000) / 10000,
+        lift:    Math.round(lift * 100) / 100,
+        pctVsAzar: Math.round((lift - 1) * 100),
+      };
+    }
+  }
+
+  return { levels, totalDays: days.length, maxWindow };
+}
+
+// ─── Convergencia activa hoy ──────────────────────────────────────────────────
+
+/**
+ * Busca en los últimos N días los números que NO han caído pero tienen
+ * score de convergencia ≥ 1 basado en los que sí cayeron.
+ * Devuelve lista ordenada por convergencia desc.
+ *
+ * @param {Array}  draws
+ * @param {object} [opts]
+ * @param {number} [opts.lookbackDays=2]
+ * @param {string} [opts.pais]
+ * @returns {Promise<Array>}
+ */
+export async function getConvergenciaActiva(draws, opts = {}) {
+  const lookback  = opts.lookbackDays ?? 2;
+  const paisFiltro = opts.pais ?? null;
+
+  const relMap = await loadRelativosMap();
+  if (!relMap.size) return [];
+  const revMap = buildReverseMap(relMap);
+
+  const today = Math.floor(Date.now() / 86400000);
+  const cutoff = today - lookback;
+
+  const recent = draws
+    .filter((d) => d.fecha && !d.esTest && !isNaN(parseInt(d.numero, 10)))
+    .filter((d) => !paisFiltro || (d.pais || "").toUpperCase() === paisFiltro.toUpperCase())
+    .map((d) => ({ day: fechaToDays(d.fecha), num: parseInt(d.numero, 10), fecha: d.fecha, horario: d.horario || "" }))
+    .filter((d) => !isNaN(d.day) && d.day >= cutoff);
+
+  // Agrupar por día
+  const byDay = new Map();
+  for (const d of recent) {
+    if (!byDay.has(d.day)) byDay.set(d.day, { nums: new Set(), draws: [] });
+    byDay.get(d.day).nums.add(d.num);
+    byDay.get(d.day).draws.push(d);
+  }
+
+  // También el índice global para saber si un número ya cayó hoy
+  const todayNums = byDay.get(today)?.nums ?? new Set();
+
+  const nodes = [];
+
+  for (const [day, { nums: dayNums, draws: dayDraws }] of byDay) {
+    const diasDesde = today - day;
+
+    for (let x = 0; x <= 99; x++) {
+      if (dayNums.has(x)) continue;   // cayó ese día, no es candidato
+      if (todayNums.has(x)) continue; // ya cayó hoy, descartarlo
+
+      const triggers = [];
+
+      // Forward: x→Y, Y cayó
+      for (const r of (relMap.get(x) || [])) {
+        if (dayNums.has(r)) {
+          const draw = dayDraws.find((d) => d.num === r);
+          triggers.push({ tipo: "forward", pad: PAD(r), label: `${PAD(x)}→${PAD(r)}`, cuando: draw?.horario || "" });
+        }
+      }
+      // Reverse: Y→x, Y cayó
+      for (const r of (revMap.get(x) || [])) {
+        if (dayNums.has(r)) {
+          const draw = dayDraws.find((d) => d.num === r);
+          triggers.push({ tipo: "reverse", pad: PAD(r), label: `${PAD(r)}→${PAD(x)}`, cuando: draw?.horario || "" });
+        }
+      }
+
+      if (!triggers.length) continue;
+
+      // Evitar duplicados (mismo x puede aparecer en días distintos con señal)
+      const existing = nodes.find((n) => n.num === x);
+      if (existing) {
+        existing.convergencia += triggers.length;
+        existing.triggers.push(...triggers.map((t) => ({ ...t, diasDesde })));
+      } else {
+        nodes.push({
+          num: x,
+          pad: PAD(x),
+          convergencia: triggers.length,
+          triggers: triggers.map((t) => ({ ...t, diasDesde })),
+          diasDesde,
+        });
+      }
+    }
+  }
+
+  nodes.sort((a, b) => b.convergencia - a.convergencia || a.diasDesde - b.diasDesde);
+  return nodes;
+}
+
+// ─── Render de convergencia ───────────────────────────────────────────────────
+
+export function renderConvergenciaHTML(btConv, nodosActivos, guia = {}) {
+  const sym = (pad) => guia[pad]?.simbolo || pad;
+
+  // ── Backtest ──
+  let btHtml = "";
+  if (btConv?.levels) {
+    const L = btConv.levels;
+    // Fila por nivel: 0 (sin señal=baseline), 1, 2, 3+
+    const rows = [0, 1, 2, 3].map((c) => {
+      const lv = L[c];
+      if (!lv || !lv.trials) return "";
+      const w1 = lv.windows[1];
+      const sign = w1.pctVsAzar >= 0 ? "+" : "";
+      const liftCls = w1.lift >= 1.5 ? "conv-lift--hot"
+        : w1.lift >= 1.2           ? "conv-lift--ok"
+        : w1.lift >= 0.85          ? "conv-lift--neutral"
+        :                            "conv-lift--bad";
+      const label = c === 0 ? "Sin señal (baseline)" : c === 3 ? "3+ señales" : `${c} señal${c > 1 ? "es" : ""}`;
+      return `
+        <div class="conv-row">
+          <span class="conv-row__label">${label}</span>
+          <span class="conv-row__trials">${lv.trials.toLocaleString()} casos</span>
+          <span class="conv-row__rate">${(w1.rate * 100).toFixed(1)}%</span>
+          <span class="conv-lift ${liftCls}">${c === 0 ? "—" : `${sign}${w1.pctVsAzar}% · ${w1.lift.toFixed(2)}×`}</span>
+        </div>`;
+    }).join("");
+
+    // Veredicto general: comparar lift de conv≥2 vs baseline
+    const lv2 = L[2]?.windows[1];
+    const lv3 = L[3]?.windows[1];
+    const bestLift = Math.max(lv2?.lift ?? 0, lv3?.lift ?? 0);
+    const verdict = bestLift >= 1.5 ? "🔥 Señal fuerte detectada"
+      : bestLift >= 1.2              ? "✅ Ventaja real con doble señal"
+      : bestLift >= 0.9              ? "≈ Señal débil"
+      :                               "⚠ Sin ventaja estadística";
+
+    btHtml = `
+      <div class="conv-bt">
+        <div class="conv-bt__head">
+          <span class="conv-bt__title">🔀 Backtest de convergencia</span>
+          <span class="conv-bt__verdict">${verdict}</span>
+        </div>
+        <div class="conv-bt__sub">¿Cuándo varios números del mismo día apuntan a X, con qué frecuencia cae X al día siguiente? Analizado sobre ${btConv.totalDays.toLocaleString()} días del historial.</div>
+        <div class="conv-bt__header-row">
+          <span>Nivel</span><span>Casos</span><span>Tasa (día +1)</span><span>vs baseline</span>
+        </div>
+        ${rows}
+      </div>`;
+  }
+
+  // ── Nodos activos ──
+  let nodosHtml = "";
+  if (!nodosActivos.length) {
+    nodosHtml = `<div class="conv-nodos conv-nodos--empty"><span class="hint">Sin convergencias activas en los últimos 2 días.</span></div>`;
+  } else {
+    const items = nodosActivos.slice(0, 12).map((n) => {
+      const trigLabels = n.triggers.map((t) => {
+        const dLabel = t.diasDesde === 0 ? "hoy" : t.diasDesde === 1 ? "ayer" : `${t.diasDesde}d`;
+        return `<span class="conv-trig conv-trig--${t.tipo}" title="${t.label} (${dLabel})">${t.pad}</span>`;
+      }).join("");
+      const scoreCls = n.convergencia >= 3 ? "conv-node--high"
+        : n.convergencia >= 2              ? "conv-node--mid"
+        :                                    "conv-node--low";
+      return `
+        <div class="conv-node ${scoreCls}">
+          <div class="conv-node__score">${n.convergencia}</div>
+          <div class="conv-node__info">
+            <span class="conv-node__pad">${n.pad}</span>
+            <span class="conv-node__sym">${sym(n.pad)}</span>
+          </div>
+          <div class="conv-node__trigs">${trigLabels}</div>
+        </div>`;
+    }).join("");
+
+    nodosHtml = `
+      <div class="conv-nodos">
+        <div class="conv-nodos__head">🎯 Convergencia activa — candidatos</div>
+        <div class="conv-nodos__hint">Números que no han caído pero múltiples números del mismo día los apuntan. Score = cantidad de señales convergentes.</div>
+        <div class="conv-nodos__grid">${items}</div>
+        <div class="conv-nodos__legend">
+          <span class="conv-trig conv-trig--forward">XX</span> relativo de X cayó (X→XX) &nbsp;·&nbsp;
+          <span class="conv-trig conv-trig--reverse">XX</span> apunta hacia X (XX→X)
+        </div>
+      </div>`;
+  }
+
+  return `<div class="conv-wrap">${btHtml}${nodosHtml}</div>`;
+}

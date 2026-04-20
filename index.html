@@ -853,7 +853,7 @@
     import { mostrarTransformaciones } from "./src/transform-visual.js";
     import { initTooltips } from "./src/tooltip.js";
     import { computeHitTrackerStats, renderHitTrackerHTML } from "./src/hit-tracker.js";
-    import { getVencidos, renderRelativosHTML, backtestRelativos, getRelativosEnAlerta, renderRelativosAlertaHTML } from "./src/relativos-engine.js";
+    import { getVencidos, renderRelativosHTML, backtestRelativos, getRelativosEnAlerta, renderRelativosAlertaHTML, backtestConvergencia, getConvergenciaActiva, renderConvergenciaHTML } from "./src/relativos-engine.js";
     import { initSuperPremioPicker } from "./src/superpremio-picker.js";
     import { initNotifications } from "./src/notifications.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
@@ -5525,6 +5525,20 @@
           if (relAlertaWrap.firstElementChild) frag.appendChild(relAlertaWrap.firstElementChild);
         } catch (err) {
           console.warn("relativos-alerta falló:", err?.message || err);
+        }
+
+        // ── Convergencia: números apuntados por múltiples caídas del mismo día ──
+        try {
+          const allDraws = await DB.listDraws();
+          const [btConv, nodosActivos] = await Promise.all([
+            backtestConvergencia(allDraws, { maxWindow: 3 }),
+            getConvergenciaActiva(allDraws, { lookbackDays: 2, pais: pais || null }),
+          ]);
+          const convWrap = document.createElement("div");
+          convWrap.innerHTML = renderConvergenciaHTML(btConv, nodosActivos, GUIA);
+          if (convWrap.firstElementChild) frag.appendChild(convWrap.firstElementChild);
+        } catch (err) {
+          console.warn("convergencia falló:", err?.message || err);
         }
 
         // ── Relativos vencidos: pares (A→B) donde B está tardando más de lo normal ──
