@@ -11,7 +11,8 @@ const HORARIO_ORDER = {
   "3PM": 1,
   "9PM": 2,
 };
-const TURN_OFFSET_MS = 6 * 60 * 60 * 1000; // offset artificial para ordenar turnos
+// Horas reales de cada turno en ms (para timestamps precisos, no artificiales)
+const HORARIO_REAL_MS = { "11AM": 11 * 3600000, "12PM": 12 * 3600000, "3PM": 15 * 3600000, "6PM": 18 * 3600000, "9PM": 21 * 3600000 };
 const REL_KEYS = ["mismo", "invertido", "100-n", "vecino", "mapa simple", "mapa compuesta"];
 const MAX_GAP_SAMPLES = 30;
 
@@ -52,8 +53,7 @@ const sanitizeDraws = (raw = [], { includeTest = false, pais, horario } = {}) =>
     if (!fechaDate) continue;
     const numero = Number(draw.numero);
     if (!Number.isFinite(numero)) continue;
-    const turnoOffset = HORARIO_ORDER[draw.horario] ?? 0;
-    const timestamp = fechaDate.getTime() + turnoOffset * TURN_OFFSET_MS;
+    const timestamp = fechaDate.getTime() + (HORARIO_REAL_MS[draw.horario] ?? 12 * 3600000);
 
     result.push({
       ...draw,

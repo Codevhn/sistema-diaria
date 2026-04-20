@@ -24,6 +24,8 @@ import { detectarClusters, pesoPorCluster, numerosDelCluster } from "./digit-clu
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HORARIO_ORDER = { "11AM": 0, "12PM": 1, "3PM": 2, "6PM": 3, "9PM": 4 };
+// Horas reales de cada turno (para timestamps precisos)
+const HORARIO_REAL_MS = { "11AM": 11 * 3600000, "12PM": 12 * 3600000, "3PM": 15 * 3600000, "6PM": 18 * 3600000, "9PM": 21 * 3600000 };
 const TURNOS_BASE = ["11AM", "3PM", "9PM"];
 
 // Pesos de cada fuente en la puntuación final (deben sumar 1.0)
@@ -203,7 +205,9 @@ export function calcularRezago(draws) {
   // Separar apariciones dentro y fuera de ventana por número
   const porNumero = new Map(); // numero → {enVentana: [fechaMs], todas: [fechaMs]}
   draws.forEach((d) => {
-    const ts = d.fechaDate ? d.fechaDate.getTime() : 0;
+    // Usar hora real del turno para timestamps precisos (evita redondeos de día por usar medianoche)
+    const baseTs = d.fechaDate ? d.fechaDate.getTime() : 0;
+    const ts = baseTs ? baseTs + (HORARIO_REAL_MS[d.horario] ?? 12 * 3600000) : 0;
     if (!ts) return;
     if (!porNumero.has(d.numero)) porNumero.set(d.numero, { enVentana: [], ultima: 0 });
     const entry = porNumero.get(d.numero);
@@ -217,17 +221,17 @@ export function calcularRezago(draws) {
     const entry = porNumero.get(n);
 
     if (!entry) {
-      resultado.set(n, { estado: "ausente", diasDesdeUltima: null, cicloPromedio: null, zScore: null });
+      resultado.set(n, { estado: "ausente", diasDesdeUltima: null, ultimaMs: null, cicloPromedio: null, zScore: null });
       continue;
     }
 
     const diasDesdeUltima = entry.ultima
-      ? Math.round((ahora - entry.ultima) / DAY_MS)
+      ? Math.floor((ahora - entry.ultima) / DAY_MS)
       : null;
 
     // Reciente: cayó hace 3 días o menos
     if (diasDesdeUltima !== null && diasDesdeUltima <= 3) {
-      resultado.set(n, { estado: "reciente", diasDesdeUltima, cicloPromedio: null, zScore: null, ultimaFecha: entry.ultima });
+      resultado.set(n, { estado: "reciente", diasDesdeUltima, ultimaMs: entry.ultima, cicloPromedio: null, zScore: null, ultimaFecha: entry.ultima });
       continue;
     }
 
@@ -238,6 +242,7 @@ export function calcularRezago(draws) {
       resultado.set(n, {
         estado: diasDesdeUltima !== null && diasDesdeUltima <= REZAGO_VENTANA_DIAS ? "insuficiente" : "ausente",
         diasDesdeUltima,
+        ultimaMs: entry.ultima,
         cicloPromedio: null,
         zScore: null,
         ultimaFecha: entry.ultima,
@@ -264,6 +269,7 @@ export function calcularRezago(draws) {
     resultado.set(n, {
       estado,
       diasDesdeUltima,
+      ultimaMs: entry.ultima,
       cicloPromedio: Math.round(mean * 10) / 10,
       cicloStd:      Math.round(std * 10) / 10,
       zScore:        Math.round(zScore * 100) / 100,
@@ -562,7 +568,7 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     const mercado = getMercado(popMap, { topN: 8, rezagoMap: rezago });
     const cadenasActivas = getCadenasActivas(draws, { lookback: 15 });
     popularidadInfo = {
-      calientes: mercado.calientes.map((e) => ({ numero: e.numero, pad: padNum(e.numero), score: e.score, motivo: e.motivos[0] || "Popular" })),
+      calientes: mercado.calientes.map((e) => ({ numero: e.numero, pad: padNum(e.numero), score: e.score, motivo: e.motivos[0] || "Popular", ultimaMs: e.ultimaMs ?? null })),
       frios:     mercado.frios.map((e) => ({ numero: e.numero, pad: padNum(e.numero), score: e.score, dias: e.diasDesdeUltima })),
       reprimidos: mercado.reprimidos.map((e) => ({
         numero: e.numero,

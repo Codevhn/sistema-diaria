@@ -355,6 +355,7 @@ export function getMercado(popMap, opts = {}) {
       motivos: e?.motivos || [],
       cadenas: e?.cadenas || [],
       diasDesdeUltima: rezagoMap?.get(n)?.diasDesdeUltima ?? null,
+      ultimaMs:        rezagoMap?.get(n)?.ultimaMs ?? null,
       cicloPromedio:   rezagoMap?.get(n)?.cicloPromedio ?? null,
       zScore:          rezagoMap?.get(n)?.zScore ?? null,
     });

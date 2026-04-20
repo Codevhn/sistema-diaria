@@ -5391,7 +5391,7 @@
         if (item.diasDesdeUltima != null) {
           const dias = document.createElement("span");
           dias.className = "rezago-card__dias";
-          dias.textContent = `${item.diasDesdeUltima}d sin caer`;
+          dias.textContent = item.diasDesdeUltima === 0 ? "hoy mismo" : `${item.diasDesdeUltima}d sin caer`;
           card.appendChild(dias);
         } else if (item.razon) {
           const razon = document.createElement("span");
@@ -5804,12 +5804,17 @@
             });
             // Calientes
             if (popData.calientes?.length) {
-              const items = popData.calientes.map(c => ({
-                pad: c.pad,
-                simbolo: GUIA?.[c.pad]?.simbolo || "",
-                badge: `${c.score}`,
-                razon: c.motivo,
-              }));
+              const items = popData.calientes.map(c => {
+                const cayoReciente = c.ultimaMs && (Date.now() - c.ultimaMs) < 3 * 86400000;
+                return {
+                  pad: c.pad,
+                  simbolo: GUIA?.[c.pad]?.simbolo || "",
+                  badge: `${c.score}`,
+                  razon: cayoReciente
+                    ? `⚡ cayó ${formatTimeAgo(c.ultimaMs)} · ${c.motivo}`
+                    : c.motivo,
+                };
+              });
               frag.appendChild(buildRezagoSection(items, "pop-hot", "🔥 Mercado caliente — La Diaria los evita"));
             }
             // Reprimidos: populares + ausencia anómala = el operador los retiene
@@ -6670,9 +6675,32 @@
     };
     const formatGapText = (value) => formatDaysGap(value);
 
+    /**
+     * Convierte milisegundos de "hace X tiempo" a texto legible con minutos/horas/días.
+     * @param {number} ms — timestamp pasado (Date.now() al momento del evento)
+     */
+    function formatTimeAgo(ms) {
+      if (!ms) return "—";
+      const diff = Date.now() - ms;
+      if (diff < 0) return "ahora mismo";
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return "ahora mismo";
+      if (mins < 60) return `hace ${mins} min`;
+      const hours = Math.floor(diff / 3600000);
+      if (hours < 24) return `hace ${hours} h`;
+      const days = Math.floor(diff / 86400000);
+      if (days === 1) return "hace 1 día";
+      return `hace ${days} días`;
+    }
+
     const relativeDaysLabel = (value) => {
       if (value === null || typeof value === "undefined") return "Nunca";
-      if (value < 0.5) return "Hoy";
+      // value es float en días — convertir a granularidad fina
+      const totalMins = Math.round(value * 24 * 60);
+      if (totalMins < 2) return "Ahora mismo";
+      if (totalMins < 60) return `Hace ${totalMins} min`;
+      const totalHours = Math.round(value * 24);
+      if (totalHours < 24) return `Hace ${totalHours} h`;
       if (value < 1.5) return "Ayer";
       if (value < 7) return `Hace ${Math.round(value)} días`;
       if (value < 30) return `Hace ${Math.round(value)} días`;
