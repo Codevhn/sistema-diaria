@@ -5531,8 +5531,8 @@
         try {
           const allDraws = await DB.listDraws();
           const [btConv, nodosActivos] = await Promise.all([
-            backtestConvergencia(allDraws, { maxWindow: 3 }),
-            getConvergenciaActiva(allDraws, { lookbackDays: 2, pais: pais || null }),
+            backtestConvergencia(allDraws, { maxWindow: 5 }),
+            getConvergenciaActiva(allDraws, { lookbackDays: 5, pais: pais || null }),
           ]);
           const convWrap = document.createElement("div");
           convWrap.innerHTML = renderConvergenciaHTML(btConv, nodosActivos, GUIA);

@@ -866,35 +866,53 @@ export function renderConvergenciaHTML(btConv, nodosActivos, guia = {}) {
   // ── Backtest ──
   let btHtml = "";
   if (btConv?.levels) {
-    const L = btConv.levels;
-    // Fila por nivel: 0 (sin señal=baseline), 1, 2, 3+
+    const L      = btConv.levels;
+    const mw     = btConv.maxWindow ?? 5;
+    // Columns: show day+1, day+3, day+5 (or up to maxWindow)
+    const wCols  = [1, 3, 5].filter((w) => w <= mw);
+
+    const liftTag = (lv, w, isBaseline) => {
+      if (!lv?.windows?.[w]) return "<span>—</span>";
+      const wn   = lv.windows[w];
+      const sign = wn.pctVsAzar >= 0 ? "+" : "";
+      const cls  = wn.lift >= 1.5  ? "conv-lift--hot"
+        : wn.lift >= 1.2           ? "conv-lift--ok"
+        : wn.lift >= 0.85          ? "conv-lift--neutral"
+        :                            "conv-lift--bad";
+      const txt  = isBaseline
+        ? `${(wn.rate * 100).toFixed(1)}%`
+        : `${sign}${wn.pctVsAzar}%`;
+      return `<span class="conv-lift ${isBaseline ? "conv-lift--neutral" : cls}" title="${wn.lift.toFixed(2)}× vs baseline">${txt}</span>`;
+    };
+
     const rows = [0, 1, 2, 3].map((c) => {
       const lv = L[c];
       if (!lv || !lv.trials) return "";
-      const w1 = lv.windows[1];
-      const sign = w1.pctVsAzar >= 0 ? "+" : "";
-      const liftCls = w1.lift >= 1.5 ? "conv-lift--hot"
-        : w1.lift >= 1.2           ? "conv-lift--ok"
-        : w1.lift >= 0.85          ? "conv-lift--neutral"
-        :                            "conv-lift--bad";
-      const label = c === 0 ? "Sin señal (baseline)" : c === 3 ? "3+ señales" : `${c} señal${c > 1 ? "es" : ""}`;
+      const label = c === 0 ? "Sin señal (base)" : c === 3 ? "3+ señales" : `${c} señal${c > 1 ? "es" : ""}`;
+      const isBase = c === 0;
+      const colCells = wCols.map((w) => liftTag(lv, w, isBase)).join("");
       return `
         <div class="conv-row">
           <span class="conv-row__label">${label}</span>
-          <span class="conv-row__trials">${lv.trials.toLocaleString()} casos</span>
-          <span class="conv-row__rate">${(w1.rate * 100).toFixed(1)}%</span>
-          <span class="conv-lift ${liftCls}">${c === 0 ? "—" : `${sign}${w1.pctVsAzar}% · ${w1.lift.toFixed(2)}×`}</span>
+          <span class="conv-row__trials">${lv.trials.toLocaleString()}</span>
+          ${colCells}
         </div>`;
     }).join("");
 
-    // Veredicto general: comparar lift de conv≥2 vs baseline
-    const lv2 = L[2]?.windows[1];
-    const lv3 = L[3]?.windows[1];
-    const bestLift = Math.max(lv2?.lift ?? 0, lv3?.lift ?? 0);
+    // Veredicto: mejor lift entre conv≥2, ventana más favorable
+    let bestLift = 0;
+    for (const c of [2, 3]) {
+      for (const w of wCols) {
+        const lift = L[c]?.windows?.[w]?.lift ?? 0;
+        if (lift > bestLift) bestLift = lift;
+      }
+    }
     const verdict = bestLift >= 1.5 ? "🔥 Señal fuerte detectada"
-      : bestLift >= 1.2              ? "✅ Ventaja real con doble señal"
+      : bestLift >= 1.2              ? "✅ Ventaja real con señal doble"
       : bestLift >= 0.9              ? "≈ Señal débil"
       :                               "⚠ Sin ventaja estadística";
+
+    const colHeaders = wCols.map((w) => `<span>+${w}d</span>`).join("");
 
     btHtml = `
       <div class="conv-bt">
@@ -902,9 +920,13 @@ export function renderConvergenciaHTML(btConv, nodosActivos, guia = {}) {
           <span class="conv-bt__title">🔀 Backtest de convergencia</span>
           <span class="conv-bt__verdict">${verdict}</span>
         </div>
-        <div class="conv-bt__sub">¿Cuándo varios números del mismo día apuntan a X, con qué frecuencia cae X al día siguiente? Analizado sobre ${btConv.totalDays.toLocaleString()} días del historial.</div>
-        <div class="conv-bt__header-row">
-          <span>Nivel</span><span>Casos</span><span>Tasa (día +1)</span><span>vs baseline</span>
+        <div class="conv-bt__sub">
+          Cuando varios números del mismo día apuntan a X como relativo, ¿con qué frecuencia cae X en los siguientes días?
+          Analizado sobre ${btConv.totalDays.toLocaleString()} días del historial.
+          Ventanas: +1 día / +3 días / +5 días.
+        </div>
+        <div class="conv-bt__header-row conv-bt__header-row--5col">
+          <span>Nivel</span><span>Casos</span>${colHeaders}
         </div>
         ${rows}
       </div>`;
@@ -913,12 +935,12 @@ export function renderConvergenciaHTML(btConv, nodosActivos, guia = {}) {
   // ── Nodos activos ──
   let nodosHtml = "";
   if (!nodosActivos.length) {
-    nodosHtml = `<div class="conv-nodos conv-nodos--empty"><span class="hint">Sin convergencias activas en los últimos 2 días.</span></div>`;
+    nodosHtml = `<div class="conv-nodos conv-nodos--empty"><span class="hint">Sin convergencias activas en los últimos 5 días.</span></div>`;
   } else {
-    const items = nodosActivos.slice(0, 12).map((n) => {
+    const items = nodosActivos.slice(0, 15).map((n) => {
       const trigLabels = n.triggers.map((t) => {
         const dLabel = t.diasDesde === 0 ? "hoy" : t.diasDesde === 1 ? "ayer" : `${t.diasDesde}d`;
-        return `<span class="conv-trig conv-trig--${t.tipo}" title="${t.label} (${dLabel})">${t.pad}</span>`;
+        return `<span class="conv-trig conv-trig--${t.tipo}" title="${t.label} (${dLabel})">${t.pad}<sup>${dLabel}</sup></span>`;
       }).join("");
       const scoreCls = n.convergencia >= 3 ? "conv-node--high"
         : n.convergencia >= 2              ? "conv-node--mid"
@@ -936,12 +958,12 @@ export function renderConvergenciaHTML(btConv, nodosActivos, guia = {}) {
 
     nodosHtml = `
       <div class="conv-nodos">
-        <div class="conv-nodos__head">🎯 Convergencia activa — candidatos</div>
-        <div class="conv-nodos__hint">Números que no han caído pero múltiples números del mismo día los apuntan. Score = cantidad de señales convergentes.</div>
+        <div class="conv-nodos__head">🎯 Convergencia activa — candidatos (últimos 5 días)</div>
+        <div class="conv-nodos__hint">Números que no han caído pero tienen señales apuntando hacia ellos. Score = total de relaciones convergentes. El superíndice indica hace cuántos días cayó el disparador.</div>
         <div class="conv-nodos__grid">${items}</div>
         <div class="conv-nodos__legend">
-          <span class="conv-trig conv-trig--forward">XX</span> relativo de X cayó (X→XX) &nbsp;·&nbsp;
-          <span class="conv-trig conv-trig--reverse">XX</span> apunta hacia X (XX→X)
+          <span class="conv-trig conv-trig--forward">XX</span> X tiene a XX como relativo (X→XX cayó) &nbsp;·&nbsp;
+          <span class="conv-trig conv-trig--reverse">XX</span> XX apunta hacia X (XX→X cayó)
         </div>
       </div>`;
   }
