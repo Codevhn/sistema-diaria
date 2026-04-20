@@ -853,7 +853,7 @@
     import { mostrarTransformaciones } from "./src/transform-visual.js";
     import { initTooltips } from "./src/tooltip.js";
     import { computeHitTrackerStats, renderHitTrackerHTML } from "./src/hit-tracker.js";
-    import { getVencidos, renderRelativosHTML } from "./src/relativos-engine.js";
+    import { getVencidos, renderRelativosHTML, backtestRelativos, getRelativosEnAlerta, renderRelativosAlertaHTML } from "./src/relativos-engine.js";
     import { initSuperPremioPicker } from "./src/superpremio-picker.js";
     import { initNotifications } from "./src/notifications.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
@@ -5511,6 +5511,20 @@
           if (hitWrap.firstElementChild) frag.appendChild(hitWrap.firstElementChild);
         } catch (err) {
           console.warn("hit-tracker render falló:", err?.message || err);
+        }
+
+        // ── Relativos: alerta de disparadores recientes + backtest ──────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const [alertas, backtest] = await Promise.all([
+            getRelativosEnAlerta(allDraws, { lookbackDays: 3, pais: pais || null }),
+            backtestRelativos(allDraws, { maxWindow: 3 }),
+          ]);
+          const relAlertaWrap = document.createElement("div");
+          relAlertaWrap.innerHTML = renderRelativosAlertaHTML(alertas, backtest, GUIA);
+          if (relAlertaWrap.firstElementChild) frag.appendChild(relAlertaWrap.firstElementChild);
+        } catch (err) {
+          console.warn("relativos-alerta falló:", err?.message || err);
         }
 
         // ── Relativos vencidos: pares (A→B) donde B está tardando más de lo normal ──

@@ -392,3 +392,252 @@ export function renderRelativosHTML(vencidos, guia = {}, maxShow = 10) {
       ${pendientesMas}
     </div>`;
 }
+
+// ─── Backtest de relativos ────────────────────────────────────────────────────
+
+/**
+ * Mide si La Diaria tiende a tirar un relativo después de un número.
+ * Compara tasa real vs tasa esperada por azar puro.
+ *
+ * Para cada sorteo histórico (el "disparador"), revisa si alguno de sus 2 relativos
+ * cayó dentro de 1, 2 o 3 días siguientes. Compara con baseline aleatorio.
+ *
+ * @param {Array}  draws
+ * @param {object} [opts]
+ * @param {number} [opts.maxWindow=3]   - días máximos a revisar tras el disparador
+ * @param {number} [opts.minDraws=200]  - mínimo de sorteos para considerar válido
+ * @returns {Promise<object|null>}
+ */
+export async function backtestRelativos(draws, opts = {}) {
+  const maxWindow = opts.maxWindow ?? 3;
+  const minDraws  = opts.minDraws  ?? 200;
+
+  const relMap = await loadRelativosMap();
+  if (!relMap.size) return null;
+
+  // Solo sorteos reales, ordenados
+  const sorted = draws
+    .filter((d) => d.fecha && !d.esTest && !isNaN(parseInt(d.numero, 10)))
+    .map((d) => ({ day: fechaToDays(d.fecha), num: parseInt(d.numero, 10) }))
+    .filter((d) => !isNaN(d.day))
+    .sort((a, b) => a.day - b.day || 0);
+
+  if (sorted.length < minDraws) return null;
+
+  // Índice día → conjunto de números caídos ese día
+  const byDay = new Map();
+  for (const d of sorted) {
+    if (!byDay.has(d.day)) byDay.set(d.day, new Set());
+    byDay.get(d.day).add(d.num);
+  }
+
+  // Calcular promedio de sorteos por día (para baseline)
+  const days = [...byDay.keys()].sort((a, b) => a - b);
+  const avgDrawsPerDay = sorted.length / (days.length || 1);
+
+  // Baseline: P(al menos un relativo en N sorteos aleatorios) = 1-(1-2/100)^(N*dias)
+  const pPerDraw = 2 / 100; // siempre 2 relativos de 100
+  const baseline = {};
+  for (let w = 1; w <= maxWindow; w++) {
+    baseline[w] = 1 - Math.pow(1 - pPerDraw, avgDrawsPerDay * w);
+  }
+
+  // Contar hits por ventana
+  const hits = {};
+  for (let w = 1; w <= maxWindow; w++) hits[w] = 0;
+  let totalTriggers = 0;
+  let noRelMap = 0;
+
+  for (const trigger of sorted) {
+    const rels = relMap.get(trigger.num);
+    if (!rels || !rels.length) { noRelMap++; continue; }
+    totalTriggers++;
+    for (let w = 1; w <= maxWindow; w++) {
+      let hitFound = false;
+      for (let delta = 1; delta <= w; delta++) {
+        const dayNums = byDay.get(trigger.day + delta);
+        if (dayNums && rels.some((r) => dayNums.has(r))) { hitFound = true; break; }
+      }
+      if (hitFound) hits[w]++;
+    }
+  }
+
+  if (!totalTriggers) return null;
+
+  const result = { totalTriggers, avgDrawsPerDay: Math.round(avgDrawsPerDay * 10) / 10, windows: {} };
+  for (let w = 1; w <= maxWindow; w++) {
+    const rate = hits[w] / totalTriggers;
+    const base = baseline[w];
+    const lift = base > 0 ? rate / base : 0;
+    result.windows[w] = {
+      hits: hits[w],
+      rate: Math.round(rate * 1000) / 1000,
+      baseline: Math.round(base * 1000) / 1000,
+      lift: Math.round(lift * 100) / 100,
+      pctVsAzar: Math.round((lift - 1) * 100),
+    };
+  }
+  return result;
+}
+
+// ─── Alertas de relativos recientes ──────────────────────────────────────────
+
+/**
+ * Devuelve los disparadores activos: números que cayeron en los últimos N días
+ * y cuyos relativos aún no han aparecido desde esa caída.
+ *
+ * @param {Array}  draws
+ * @param {object} [opts]
+ * @param {number} [opts.lookbackDays=3]  - cuántos días atrás buscar disparadores
+ * @param {string} [opts.pais]
+ * @returns {Promise<Array>} [{padA, simA, padB, simB, diasDesde, fechaA, horarioA, fuente}]
+ */
+export async function getRelativosEnAlerta(draws, opts = {}) {
+  const lookback = opts.lookbackDays ?? 3;
+  const paisFiltro = opts.pais ?? null;
+
+  const relMap = await loadRelativosMap();
+  if (!relMap.size) return [];
+
+  const today = Math.floor(Date.now() / 86400000);
+  const cutoff = today - lookback;
+
+  const sorted = draws
+    .filter((d) => d.fecha && !d.esTest && !isNaN(parseInt(d.numero, 10)))
+    .filter((d) => !paisFiltro || (d.pais || "").toUpperCase() === paisFiltro.toUpperCase())
+    .map((d) => ({ day: fechaToDays(d.fecha), num: parseInt(d.numero, 10), fecha: d.fecha, horario: d.horario || "" }))
+    .filter((d) => !isNaN(d.day))
+    .sort((a, b) => a.day - b.day);
+
+  // Índice día → números caídos
+  const byDay = new Map();
+  for (const d of sorted) {
+    if (!byDay.has(d.day)) byDay.set(d.day, new Set());
+    byDay.get(d.day).add(d.num);
+  }
+
+  const alertas = [];
+
+  // Buscar disparadores en la ventana reciente
+  const recientes = sorted.filter((d) => d.day >= cutoff);
+
+  for (const trigger of recientes) {
+    const rels = relMap.get(trigger.num);
+    if (!rels || !rels.length) continue;
+
+    const diasDesde = today - trigger.day;
+
+    for (const rel of rels) {
+      // Verificar si el relativo ya cayó después del disparador
+      let yaAparecio = false;
+      for (let delta = 1; delta <= diasDesde; delta++) {
+        const dayNums = byDay.get(trigger.day + delta);
+        if (dayNums?.has(rel)) { yaAparecio = true; break; }
+      }
+      if (yaAparecio) continue;
+
+      // También verificar si ya cayó hoy
+      const hoyNums = byDay.get(today);
+      if (hoyNums?.has(rel)) continue;
+
+      alertas.push({
+        a: trigger.num,
+        b: rel,
+        padA: PAD(trigger.num),
+        padB: PAD(rel),
+        diasDesde,
+        fechaA: trigger.fecha,
+        horarioA: trigger.horario,
+        fuente: "diaria",
+      });
+    }
+  }
+
+  // Ordenar: más recientes primero, luego por número
+  alertas.sort((a, b) => a.diasDesde - b.diasDesde || a.a - b.a);
+  return alertas;
+}
+
+// ─── Render de alerta + backtest ─────────────────────────────────────────────
+
+/**
+ * Renderiza el panel combinado "Relativos en alerta" + resumen de backtest.
+ */
+export function renderRelativosAlertaHTML(alertas, backtest, guia = {}) {
+  const sym = (pad) => guia[pad]?.simbolo || pad;
+
+  // ── Backtest summary ──
+  let btHtml = "";
+  if (backtest) {
+    const w1 = backtest.windows[1];
+    const w2 = backtest.windows[2];
+    const w3 = backtest.windows[3];
+    const verdict = w1.lift >= 1.5 ? { icon: "🔥", label: "Señal fuerte", cls: "rel-bt--hot" }
+      : w1.lift >= 1.15            ? { icon: "✅", label: "Ventaja real", cls: "rel-bt--ok" }
+      : w1.lift >= 0.85            ? { icon: "≈",  label: "Cerca del azar", cls: "rel-bt--neutral" }
+      :                              { icon: "⚠",  label: "Sin ventaja", cls: "rel-bt--bad" };
+    const sign = (v) => v >= 0 ? `+${v}` : `${v}`;
+    btHtml = `
+      <div class="rel-bt ${verdict.cls}">
+        <div class="rel-bt__head">
+          <span class="rel-bt__title">📊 ¿Juega La Diaria con relativos?</span>
+          <span class="rel-bt__verdict">${verdict.icon} ${verdict.label}</span>
+        </div>
+        <div class="rel-bt__grid">
+          <div class="rel-bt__cell">
+            <span class="rel-bt__lbl">Al día siguiente</span>
+            <span class="rel-bt__val">${(w1.rate * 100).toFixed(1)}%</span>
+            <span class="rel-bt__sub">azar ${(w1.baseline * 100).toFixed(1)}% · ${sign(w1.pctVsAzar)}% lift</span>
+          </div>
+          <div class="rel-bt__cell">
+            <span class="rel-bt__lbl">En 2 días</span>
+            <span class="rel-bt__val">${(w2.rate * 100).toFixed(1)}%</span>
+            <span class="rel-bt__sub">azar ${(w2.baseline * 100).toFixed(1)}% · ${sign(w2.pctVsAzar)}%</span>
+          </div>
+          <div class="rel-bt__cell">
+            <span class="rel-bt__lbl">En 3 días</span>
+            <span class="rel-bt__val">${(w3.rate * 100).toFixed(1)}%</span>
+            <span class="rel-bt__sub">azar ${(w3.baseline * 100).toFixed(1)}% · ${sign(w3.pctVsAzar)}%</span>
+          </div>
+          <div class="rel-bt__cell">
+            <span class="rel-bt__lbl">Lift ×</span>
+            <span class="rel-bt__val">${w1.lift.toFixed(2)}×</span>
+            <span class="rel-bt__sub">${backtest.totalTriggers} disparadores analizados</span>
+          </div>
+        </div>
+        <div class="rel-bt__hint">Mide cuántas veces un relativo cayó el día siguiente vs lo esperado por azar (2 de 100 por sorteo). Lift &gt;1.5× indica patrón real.</div>
+      </div>`;
+  }
+
+  // ── Alertas ──
+  let alertHtml = "";
+  if (!alertas.length) {
+    alertHtml = `<div class="rel-alerta rel-alerta--empty"><div class="rel-alerta__hint">No hay disparadores activos en los últimos 3 días.</div></div>`;
+  } else {
+    const rows = alertas.map((al) => {
+      const diasLabel = al.diasDesde === 0 ? "hoy" : al.diasDesde === 1 ? "ayer" : `hace ${al.diasDesde}d`;
+      return `
+        <div class="rel-alerta__row">
+          <div class="rel-alerta__trigger">
+            <span class="rel-alerta__pad">${al.padA}</span>
+            <span class="rel-alerta__sym">${sym(al.padA)}</span>
+            <span class="rel-alerta__when">cayó ${diasLabel}</span>
+          </div>
+          <span class="rel-alerta__arrow">→</span>
+          <div class="rel-alerta__candidate">
+            <span class="rel-alerta__pad rel-alerta__pad--b">${al.padB}</span>
+            <span class="rel-alerta__sym">${sym(al.padB)}</span>
+            <span class="rel-alerta__status">pendiente</span>
+          </div>
+        </div>`;
+    }).join("");
+    alertHtml = `
+      <div class="rel-alerta">
+        <div class="rel-alerta__head">🔗 Relativos en alerta — candidatos de relevo</div>
+        <div class="rel-alerta__hint">Números que cayeron recientemente cuyo relativo oficial aún no ha aparecido.</div>
+        <div class="rel-alerta__list">${rows}</div>
+      </div>`;
+  }
+
+  return `<div class="rel-alerta-wrap">${btHtml}${alertHtml}</div>`;
+}
