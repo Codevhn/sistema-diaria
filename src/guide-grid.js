@@ -1,4 +1,4 @@
-// guide-grid.js — v3.3.1
+// guide-grid.js — v3.4.0
 import { GUIA, getColorPolaridad } from "./loader.js";
 import { DB } from "./storage.js";
 
@@ -39,6 +39,100 @@ function handleImgError(e) {
     img.src = fallback;
   } else {
     img.style.display = "none";
+  }
+}
+
+// ─── Tabla de relativos ────────────────────────────────────────────────────────
+
+function makeNumImg(pad, simbolo, compact = false) {
+  const color = getColorPolaridad(parseInt(pad, 10));
+  const div = document.createElement("div");
+  div.className = compact ? "rel-num-card rel-num-card--sm" : "rel-num-card";
+  div.style.borderColor = color;
+  div.title = `${pad} — ${simbolo || "—"}`;
+  div.innerHTML = `
+    <div class="rel-num-card__img-wrap">
+      <img class="rel-num-card__img" src="${IMG_BASE}${pad}.png" alt="${pad}"
+        onerror="this.src='${IMG_BASE}${pad}.jpg';this.onerror=()=>this.style.display='none'">
+    </div>
+    <div class="rel-num-card__num" style="color:${color}">${pad}</div>
+    <div class="rel-num-card__sym">${simbolo || "—"}</div>
+  `;
+  return div;
+}
+
+async function renderRelativosTable() {
+  const wrap = document.getElementById("guide-relativos");
+  if (!wrap) return;
+  wrap.innerHTML = "<p class='hint'>Cargando relativos…</p>";
+
+  let data;
+  try {
+    const res = await fetch("data/relativos_diaria.json");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch (err) {
+    wrap.innerHTML = `<p class='hint'>⚠ No se pudo cargar relativos_diaria.json: ${err.message}</p>`;
+    return;
+  }
+
+  const pares = data?.pares;
+  if (!pares || !Object.keys(pares).length) {
+    wrap.innerHTML = "<p class='hint'>No hay datos de relativos.</p>";
+    return;
+  }
+
+  wrap.innerHTML = "";
+
+  // Ordenar 00–99
+  const keys = Object.keys(pares).sort((a, b) => parseInt(a) - parseInt(b));
+
+  for (const pad of keys) {
+    const entry = pares[pad];
+    const simbolo = GUIA?.[pad]?.simbolo || entry.simbolo || "—";
+
+    const row = document.createElement("div");
+    row.className = "rel-row";
+
+    // Número principal
+    const mainCard = makeNumImg(pad, simbolo, false);
+    mainCard.classList.add("rel-row__main");
+    mainCard.style.cursor = "pointer";
+    mainCard.addEventListener("click", () => {
+      // Scroll a la card del guide-grid
+      const target = document.querySelector(`.guide-card [data-num="${pad}"]`);
+      if (target) target.closest(".guide-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    row.appendChild(mainCard);
+
+    // Flecha
+    const arrow = document.createElement("div");
+    arrow.className = "rel-row__arrow";
+    arrow.textContent = "→";
+    row.appendChild(arrow);
+
+    // Relativos
+    const relWrap = document.createElement("div");
+    relWrap.className = "rel-row__rels";
+
+    const rels = entry.relativos || [];
+    if (rels.length === 0) {
+      const empty = document.createElement("span");
+      empty.className = "hint";
+      empty.style.fontSize = ".78rem";
+      empty.textContent = "sin relativos registrados";
+      relWrap.appendChild(empty);
+    } else {
+      rels.forEach((r) => {
+        const rPad = r.pad || String(r.numero).padStart(2, "0");
+        const rSim = GUIA?.[rPad]?.simbolo || r.simbolo || "—";
+        const card = makeNumImg(rPad, rSim, true);
+        relWrap.appendChild(card);
+      });
+    }
+
+    row.appendChild(relWrap);
+    wrap.appendChild(row);
   }
 }
 
@@ -121,6 +215,9 @@ export async function mostrarGuia() {
       renderFamilies(event.target.value || "");
     });
   }
+
+  // Tabla de relativos (independiente de GUIA — carga su propio JSON)
+  renderRelativosTable();
 }
 
 async function renderFamilyStats() {

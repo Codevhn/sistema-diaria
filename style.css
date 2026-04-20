@@ -3301,6 +3301,117 @@ button.ghost:hover {
   box-shadow: 0 0 12px rgba(245, 211, 107, 0.8);
 }
 
+/* === TABLA DE RELATIVOS === */
+.guide-relativos-wrap {
+  margin: 36px 0 28px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 24px;
+}
+.guide-relativos-head h3 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  letter-spacing: .04em;
+}
+.guide-relativos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+.rel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  min-height: 88px;
+}
+.rel-row:hover {
+  background: rgba(255,255,255,0.055);
+}
+.rel-row__arrow {
+  font-size: 1.3rem;
+  opacity: .5;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+.rel-row__rels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Tarjeta de número en la tabla de relativos */
+.rel-num-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  border-radius: var(--radius-md);
+  padding: 8px 10px 6px;
+  background: rgba(255,255,255,0.04);
+  min-width: 72px;
+  text-align: center;
+  transition: transform .15s, box-shadow .15s;
+}
+.rel-num-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+.rel-num-card--sm {
+  min-width: 58px;
+  padding: 6px 8px 5px;
+}
+.rel-num-card__img-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rel-num-card--sm .rel-num-card__img-wrap {
+  width: 34px;
+  height: 34px;
+}
+.rel-num-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rel-num-card__num {
+  font-size: .95rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1;
+}
+.rel-num-card--sm .rel-num-card__num {
+  font-size: .82rem;
+}
+.rel-num-card__sym {
+  font-size: .72rem;
+  opacity: .75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 68px;
+}
+.rel-num-card--sm .rel-num-card__sym {
+  font-size: .65rem;
+  max-width: 54px;
+}
+.rel-row__main {
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
