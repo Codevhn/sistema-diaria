@@ -10630,3 +10630,40 @@ body.login-page {
   opacity: 0.45;
   cursor: not-allowed;
 }
+.admin-user-row--banned {
+  opacity: 0.6;
+  border-color: rgba(224,82,82,0.35);
+  background: rgba(224,82,82,0.05);
+}
+.admin-user-banned-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--color-danger);
+  background: rgba(224,82,82,0.12);
+  border: 1px solid rgba(224,82,82,0.3);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+.admin-ban-btn {
+  font-size: 0.74rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  transition: opacity .15s;
+}
+.admin-ban-btn:hover { opacity: .8; }
+.admin-ban-btn:disabled { opacity: .4; cursor: not-allowed; }
+.admin-ban-btn--ban {
+  background: rgba(224,82,82,0.1);
+  color: var(--color-danger);
+  border-color: rgba(224,82,82,0.35);
+}
+.admin-ban-btn--unban {
+  background: rgba(94,196,126,0.1);
+  color: var(--color-success);
+  border-color: rgba(94,196,126,0.35);
+}

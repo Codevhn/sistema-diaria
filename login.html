@@ -50,6 +50,15 @@
     const sessionSwitch = document.getElementById("login-switch");
     const searchParams = new URLSearchParams(window.location.search);
     const forceSwitchMode = searchParams.get("mode") === "switch";
+    // Mostrar aviso si el usuario fue baneado
+    if (searchParams.get("banned") === "1") {
+      const errorBox = document.getElementById("login-error");
+      if (errorBox) {
+        errorBox.textContent = "⛔ Tu cuenta ha sido suspendida. Contacta al administrador.";
+        errorBox.classList.remove("hidden");
+        errorBox.style.color = "var(--color-danger)";
+      }
+    }
     const sessionContinueLabel = sessionContinue?.textContent?.trim() || "Ir al panel";
     let sessionContinueBusy = false;
     let currentViewMode = "form";

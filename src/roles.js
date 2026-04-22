@@ -27,27 +27,54 @@ let _roleCache = null;
 
 // ─── Consulta del rol propio ──────────────────────────────────────────────────
 
-export async function getMyRole() {
+export async function getMyProfile() {
   if (_roleCache) return _roleCache;
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return "lector";
+    if (!session?.user) return null;
     const { data, error } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, banned")
       .eq("user_id", session.user.id)
       .single();
     if (error) throw error;
-    _roleCache = data?.role ?? "lector";
+    _roleCache = data ?? { role: "lector", banned: false };
   } catch (err) {
-    console.warn("[roles] No se pudo leer rol:", err?.message);
-    _roleCache = "lector"; // fallback seguro
+    console.warn("[roles] No se pudo leer perfil:", err?.message);
+    _roleCache = { role: "lector", banned: false };
   }
   return _roleCache;
 }
 
+export async function getMyRole() {
+  const p = await getMyProfile();
+  return p?.role ?? "lector";
+}
+
+/**
+ * Verifica si el usuario actual está baneado.
+ * Si lo está, cierra la sesión y redirige al login con mensaje.
+ */
+export async function checkBanOrRedirect(redirectTo = "./login.html") {
+  const p = await getMyProfile();
+  if (p?.banned) {
+    await supabase.auth.signOut();
+    window.location.replace(`${redirectTo}?banned=1`);
+    return true; // baneado
+  }
+  return false;
+}
+
 export function clearRoleCache() {
   _roleCache = null;
+}
+
+export async function setBanStatus(userId, banned) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ banned, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+  if (error) throw error;
 }
 
 export async function isAdmin()   { return (await getMyRole()) === "admin"; }
@@ -60,7 +87,7 @@ export async function canDelete() { return (await getMyRole()) === "admin"; }
 export async function getAllProfiles() {
   const { data, error } = await supabase
     .from("profiles")
-    .select("user_id, email, role, created_at")
+    .select("user_id, email, role, banned, created_at")
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data ?? [];
