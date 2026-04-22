@@ -30,15 +30,8 @@ function createGuideCard(num, info, { compact = false } = {}) {
   const img = card.querySelector("img.guide-img-photo");
   img.addEventListener("error", handleImgError, { once: true });
 
-  // Clic → scroll a la fila de relativos de este número
-  card.addEventListener("click", () => {
-    const relRow = document.querySelector(`.rel-row[data-num="${nStr}"]`);
-    if (relRow) {
-      relRow.scrollIntoView({ behavior: "smooth", block: "center" });
-      relRow.classList.add("rel-row--highlight");
-      setTimeout(() => relRow.classList.remove("rel-row--highlight"), 1800);
-    }
-  });
+  // Clic → fila de relativos de este número (con highlight)
+  card.addEventListener("click", () => scrollToNum(nStr));
 
   return card;
 }
@@ -57,12 +50,31 @@ function handleImgError(e) {
 
 // ─── Tabla de relativos ────────────────────────────────────────────────────────
 
+/**
+ * Navega a un número dado: resalta su fila en la tabla de relativos
+ * y su card en la guía (scroll al que esté visible primero).
+ */
+function scrollToNum(pad) {
+  // 1. Fila en la tabla de relativos
+  const relRow = document.querySelector(`.rel-row[data-num="${pad}"]`);
+  if (relRow) {
+    relRow.scrollIntoView({ behavior: "smooth", block: "center" });
+    relRow.classList.add("rel-row--highlight");
+    setTimeout(() => relRow.classList.remove("rel-row--highlight"), 1800);
+    return;
+  }
+  // 2. Fallback: card en la guía
+  const guideCard = document.querySelector(`.guide-card[data-num="${pad}"]`);
+  if (guideCard) guideCard.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function makeNumImg(pad, simbolo, compact = false) {
   const color = getColorPolaridad(parseInt(pad, 10));
   const div = document.createElement("div");
   div.className = compact ? "rel-num-card rel-num-card--sm" : "rel-num-card";
   div.style.borderColor = color;
-  div.title = `${pad} — ${simbolo || "—"}`;
+  div.style.cursor = "pointer";
+  div.title = `${pad} ${simbolo || "—"} — clic para ir a sus relativos`;
   div.innerHTML = `
     <div class="rel-num-card__img-wrap">
       <img class="rel-num-card__img" src="${IMG_BASE}${pad}.png" alt="${pad}"
@@ -71,6 +83,7 @@ function makeNumImg(pad, simbolo, compact = false) {
     <div class="rel-num-card__num" style="color:${color}">${pad}</div>
     <div class="rel-num-card__sym">${simbolo || "—"}</div>
   `;
+  div.addEventListener("click", () => scrollToNum(pad));
   return div;
 }
 
@@ -108,15 +121,9 @@ async function renderRelativosTable() {
     row.className = "rel-row";
     row.dataset.num = pad;
 
-    // Número principal
+    // Número principal (el click ya viene de makeNumImg → scrollToNum)
     const mainCard = makeNumImg(pad, simbolo, false);
     mainCard.classList.add("rel-row__main");
-    mainCard.style.cursor = "pointer";
-    mainCard.addEventListener("click", () => {
-      // Scroll a la card del guide-grid
-      const target = document.querySelector(`.guide-card [data-num="${pad}"]`);
-      if (target) target.closest(".guide-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
     row.appendChild(mainCard);
 
     // Flecha
