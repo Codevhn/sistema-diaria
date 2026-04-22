@@ -38,6 +38,16 @@
   <button id="btn-toggle-sidebar" class="menu-btn" aria-label="Mostrar/ocultar menú">☰</button>
   <aside class="sidebar expanded" id="sidebar">
     <div class="brand">LD v3.2</div>
+
+    <!-- Indicador de presencia en tiempo real -->
+    <div id="presence-bar" class="presence-bar" title="Usuarios conectados ahora">
+      <span class="presence-bar__dot"></span>
+      <span id="presence-count" class="presence-bar__count">…</span>
+      <span class="presence-bar__label">en línea</span>
+    </div>
+    <!-- Panel de usuarios (solo admin, se despliega al hacer clic) -->
+    <div id="presence-panel" class="presence-panel hidden"></div>
+
     <button data-view="login"><i>🔐 Acceso</i></button>
     <button data-view="day"><span class="sidebar-icon fa-solid fa-gauge"></span><i>Panel del día</i></button>
     <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
@@ -7745,6 +7755,78 @@ function buildVariantEntries(profile) {
       await waitForFirstPaint();
       hideBootLoader();
     }
+
+    // === Presencia en tiempo real ===
+    (async () => {
+      try {
+        const { supabase: _sb } = await import("./src/supabaseClient.js");
+        const { data: { session } } = await _sb.auth.getSession();
+        if (!session?.user) return;
+
+        const myEmail  = session.user.email;
+        const myRole   = await getMyRole();
+        const amAdmin  = myRole === "admin";
+
+        const presenceBar   = document.getElementById("presence-bar");
+        const presenceCount = document.getElementById("presence-count");
+        const presencePanel = document.getElementById("presence-panel");
+
+        const ROLE_COLOR = { admin: "#f2c44a", editor: "#5ec47e", lector: "#a89e88" };
+        const ROLE_LABEL = { admin: "Admin", editor: "Editor", lector: "Lector" };
+
+        function renderPresence(state) {
+          // state es { key: [{ email, role, online_at }] }
+          const users = Object.values(state).flat();
+          const count = users.length;
+
+          presenceCount.textContent = count;
+          presenceBar.classList.toggle("presence-bar--many", count > 1);
+
+          if (!amAdmin || !presencePanel) return;
+          presencePanel.innerHTML = users.map((u) => {
+            const c = ROLE_COLOR[u.role] || "#888";
+            const l = ROLE_LABEL[u.role] || u.role;
+            const isMe = u.email === myEmail;
+            return `
+              <div class="presence-user">
+                <span class="presence-user__dot" style="background:${c}"></span>
+                <span class="presence-user__email">${u.email}${isMe ? " <em>(tú)</em>" : ""}</span>
+                <span class="presence-user__role" style="color:${c}">${l}</span>
+              </div>`;
+          }).join("") || "<p class='presence-empty'>Solo tú</p>";
+        }
+
+        const channel = _sb.channel("ld-presence", {
+          config: { presence: { key: session.user.id } }
+        });
+
+        channel
+          .on("presence", { event: "sync" }, () => renderPresence(channel.presenceState()))
+          .on("presence", { event: "join" }, () => renderPresence(channel.presenceState()))
+          .on("presence", { event: "leave" }, () => renderPresence(channel.presenceState()))
+          .subscribe(async (status) => {
+            if (status === "SUBSCRIBED") {
+              await channel.track({ email: myEmail, role: myRole, online_at: new Date().toISOString() });
+            }
+          });
+
+        // Toggle del panel (solo admin)
+        if (amAdmin && presencePanel) {
+          presenceBar.style.cursor = "pointer";
+          presenceBar.title = "Ver usuarios conectados";
+          presenceBar.addEventListener("click", () => {
+            presencePanel.classList.toggle("hidden");
+          });
+          document.addEventListener("click", (e) => {
+            if (!presenceBar.contains(e.target) && !presencePanel.contains(e.target)) {
+              presencePanel.classList.add("hidden");
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("[presencia] Error al iniciar presencia:", err?.message);
+      }
+    })();
 
     // === Panel de gestión de usuarios (solo admin) ===
     async function renderAdminUsersPanel() {
