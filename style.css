@@ -3016,6 +3016,31 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   to   { opacity: 1; }
 }
 
+/* — imágenes de fondo dispersas — */
+.splash__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.splash__bg-img {
+  position: absolute;
+  left: var(--x, 10%);
+  top:  var(--y, 10%);
+  width:  var(--s, 140px);
+  height: var(--s, 140px);
+  object-fit: contain;
+  opacity: var(--o, 0.08);
+  transform: rotate(var(--r, 0deg));
+  filter: grayscale(20%) brightness(1.1);
+  animation: bg-img-float 6s ease-in-out infinite;
+  animation-delay: calc(var(--r, 0deg) * 50ms); /* desfase único por elemento */
+}
+@keyframes bg-img-float {
+  0%, 100% { transform: rotate(var(--r, 0deg)) translateY(0px);   }
+  50%       { transform: rotate(var(--r, 0deg)) translateY(-8px);  }
+}
+
 /* — contenedor central — */
 .splash {
   display: flex;
