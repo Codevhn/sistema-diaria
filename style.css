@@ -3331,6 +3331,12 @@ button.ghost:hover {
 .rel-row:hover {
   background: rgba(255,255,255,0.055);
 }
+.rel-row--highlight {
+  background: rgba(242,196,74,0.12);
+  outline: 1px solid rgba(242,196,74,0.4);
+  border-radius: var(--radius-md);
+  transition: background 1.6s ease, outline 1.6s ease;
+}
 .rel-row__arrow {
   font-size: 1.3rem;
   opacity: .5;

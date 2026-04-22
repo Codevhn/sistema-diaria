@@ -9,8 +9,10 @@ function createGuideCard(num, info, { compact = false } = {}) {
   const nStr = String(num).padStart(2, "0");
   const card = document.createElement("div");
   card.className = compact ? "guide-card guide-card--compact" : "guide-card";
+  card.dataset.num = nStr;
   card.style.borderColor = color;
-  card.title = `Energía por color • Familia: ${info.familia || "—"}`;
+  card.style.cursor = "pointer";
+  card.title = `${nStr} ${info.simbolo || ""} — clic para ver sus relativos`;
   card.innerHTML = `
     <div class="guide-num" style="color:${color}">${nStr}</div>
     <div class="guide-sym">${info.simbolo || "—"}</div>
@@ -27,6 +29,17 @@ function createGuideCard(num, info, { compact = false } = {}) {
   `;
   const img = card.querySelector("img.guide-img-photo");
   img.addEventListener("error", handleImgError, { once: true });
+
+  // Clic → scroll a la fila de relativos de este número
+  card.addEventListener("click", () => {
+    const relRow = document.querySelector(`.rel-row[data-num="${nStr}"]`);
+    if (relRow) {
+      relRow.scrollIntoView({ behavior: "smooth", block: "center" });
+      relRow.classList.add("rel-row--highlight");
+      setTimeout(() => relRow.classList.remove("rel-row--highlight"), 1800);
+    }
+  });
+
   return card;
 }
 
@@ -93,6 +106,7 @@ async function renderRelativosTable() {
 
     const row = document.createElement("div");
     row.className = "rel-row";
+    row.dataset.num = pad;
 
     // Número principal
     const mainCard = makeNumImg(pad, simbolo, false);
