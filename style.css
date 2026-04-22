@@ -2933,7 +2933,7 @@ button.ghost:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: ball-float 1.8s ease-in-out var(--d, 0s) infinite;
+  animation: ball-float 0.9s ease-in-out var(--d, 0s) infinite;
   flex-shrink: 0;
 }
 .splash__ball--lg {
@@ -3043,9 +3043,9 @@ button.ghost:hover {
 /* — texto de estado — */
 .splash__status {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: rgba(242,196,74,0.45);
-  letter-spacing: 0.1em;
+  font-size: 1rem;
+  color: rgba(242,196,74,0.75);
+  letter-spacing: 0.12em;
   animation: status-blink 2.2s ease-in-out infinite;
 }
 @keyframes status-blink {
