@@ -803,9 +803,38 @@
 
   <div id="toast-container" class="toast-container"></div>
   <div id="boot-loader" class="boot-loader hidden" aria-live="polite">
-    <div class="processing-box">
-      <div class="processing-spinner"></div>
-      <div class="processing-text">Cargando sistema…<br />Por favor espere</div>
+    <div class="splash">
+      <div class="splash__balls">
+        <div class="splash__ball" style="--d:0s">
+          <span class="splash__ball-shine"></span>
+          <span class="splash__ball-num">07</span>
+        </div>
+        <div class="splash__ball splash__ball--lg" style="--d:.18s">
+          <span class="splash__ball-shine"></span>
+          <span class="splash__ball-num">32</span>
+        </div>
+        <div class="splash__ball" style="--d:.36s">
+          <span class="splash__ball-shine"></span>
+          <span class="splash__ball-num">91</span>
+        </div>
+        <div class="splash__ball splash__ball--sm" style="--d:.54s">
+          <span class="splash__ball-shine"></span>
+          <span class="splash__ball-num">14</span>
+        </div>
+        <div class="splash__ball" style="--d:.72s">
+          <span class="splash__ball-shine"></span>
+          <span class="splash__ball-num">56</span>
+        </div>
+      </div>
+      <div class="splash__brand">
+        <span class="splash__brand-label">SISTEMA DE PREDICCIÓN</span>
+        <span class="splash__brand-name">La Diaria</span>
+        <span class="splash__brand-country">Honduras</span>
+      </div>
+      <div class="splash__bar-wrap">
+        <div class="splash__bar"></div>
+      </div>
+      <div class="splash__status">Iniciando sistema…</div>
     </div>
   </div>
   <div id="processing-modal" class="processing-modal hidden" aria-live="polite">

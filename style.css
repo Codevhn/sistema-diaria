@@ -2881,15 +2881,176 @@ button.ghost:hover {
     transform: rotate(360deg);
   }
 }
+/* ═══════════════════════════════════════════════════════
+   BOOT SPLASH SCREEN
+═══════════════════════════════════════════════════════ */
 .boot-loader {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(201, 168, 76, 0.08), rgba(3, 5, 14, 0.9));
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 30%, rgba(242,196,74,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 100% 100% at 50% 110%, rgba(242,196,74,0.05) 0%, transparent 60%),
+    #0a0a10;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9998;
-  backdrop-filter: blur(2px);
+  animation: splash-in .35s ease both;
+}
+@keyframes splash-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* — contenedor central — */
+.splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 0 24px;
+  max-width: 440px;
+  width: 100%;
+}
+
+/* — bolas — */
+.splash__balls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 14px;
+}
+.splash__ball {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fff7da 0%, #f2c44a 45%, #b8861c 100%);
+  box-shadow:
+    0 4px 18px rgba(242,196,74,0.45),
+    0 0 32px rgba(242,196,74,0.2),
+    inset 0 -3px 6px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ball-float 1.8s ease-in-out var(--d, 0s) infinite;
+  flex-shrink: 0;
+}
+.splash__ball--lg {
+  width: 72px;
+  height: 72px;
+}
+.splash__ball--sm {
+  width: 44px;
+  height: 44px;
+}
+.splash__ball-shine {
+  position: absolute;
+  top: 14%;
+  left: 22%;
+  width: 32%;
+  height: 18%;
+  background: rgba(255,255,255,0.55);
+  border-radius: 50%;
+  filter: blur(2px);
+  pointer-events: none;
+}
+.splash__ball--lg .splash__ball-shine {
+  width: 34%;
+  height: 20%;
+}
+.splash__ball-num {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 800;
+  color: #3a2600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  position: relative;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+}
+.splash__ball--lg .splash__ball-num {
+  font-size: 1.3rem;
+}
+.splash__ball--sm .splash__ball-num {
+  font-size: 0.82rem;
+}
+@keyframes ball-float {
+  0%, 100% { transform: translateY(0px);  }
+  45%       { transform: translateY(-10px); }
+  55%       { transform: translateY(-10px); }
+}
+
+/* — marca — */
+.splash__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.splash__brand-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  color: rgba(242,196,74,0.55);
+  text-transform: uppercase;
+}
+.splash__brand-name {
+  font-family: var(--font-mono);
+  font-size: clamp(2.4rem, 8vw, 3.6rem);
+  font-weight: 700;
+  color: #f2c44a;
+  line-height: 1;
+  text-shadow:
+    0 0 18px rgba(242,196,74,0.7),
+    0 0 48px rgba(242,196,74,0.3),
+    0 2px 4px rgba(0,0,0,0.6);
+  animation: name-pulse 3s ease-in-out infinite;
+}
+@keyframes name-pulse {
+  0%, 100% { text-shadow: 0 0 18px rgba(242,196,74,0.7), 0 0 48px rgba(242,196,74,0.3), 0 2px 4px rgba(0,0,0,0.6); }
+  50%       { text-shadow: 0 0 28px rgba(242,196,74,0.95), 0 0 72px rgba(242,196,74,0.45), 0 2px 4px rgba(0,0,0,0.6); }
+}
+.splash__brand-country {
+  font-size: 0.78rem;
+  color: rgba(248,244,234,0.4);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+/* — barra de progreso — */
+.splash__bar-wrap {
+  width: 100%;
+  max-width: 320px;
+  height: 3px;
+  background: rgba(242,196,74,0.12);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.splash__bar {
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, #f2c44a, transparent);
+  border-radius: 99px;
+  animation: bar-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes bar-shimmer {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(350%);  }
+}
+
+/* — texto de estado — */
+.splash__status {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: rgba(242,196,74,0.45);
+  letter-spacing: 0.1em;
+  animation: status-blink 2.2s ease-in-out infinite;
+}
+@keyframes status-blink {
+  0%, 100% { opacity: 0.45; }
+  50%       { opacity: 0.85; }
 }
 .symbol-tag {
   display: flex;
