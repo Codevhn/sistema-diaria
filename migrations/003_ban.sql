@@ -12,6 +12,6 @@ ALTER TABLE profiles
 --     cubre todos los campos incluyendo banned)
 
 -- Verificar:
-SELECT email, role, banned FROM profiles
+SELECT profiles.email, profiles.role, profiles.banned FROM profiles
 JOIN auth.users ON auth.users.id = profiles.user_id
 ORDER BY profiles.created_at;

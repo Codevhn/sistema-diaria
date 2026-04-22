@@ -7,6 +7,6 @@ ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS nombre TEXT;
 
 -- Verificar:
-SELECT email, nombre, role, banned FROM profiles
+SELECT profiles.email, profiles.nombre, profiles.role, profiles.banned FROM profiles
 JOIN auth.users ON auth.users.id = profiles.user_id
 ORDER BY profiles.created_at;
