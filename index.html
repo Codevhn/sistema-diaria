@@ -18,12 +18,15 @@
   </style>
   <script type="module">
     import { requireAuthOrRedirect } from "./src/auth.js";
+    import { applyRoleToDOM } from "./src/roles.js";
     const user = await requireAuthOrRedirect("./login.html");
     if (!user) {
       throw new Error("Redirigiendo a login por sesión inválida.");
     }
     document.documentElement.classList.remove("auth-locked");
     window.__LD_AUTH_UNLOCKED__ = true;
+    // Aplicar rol al DOM para que el CSS oculte/muestre según permisos
+    await applyRoleToDOM();
   </script>
 
 </head>
@@ -44,8 +47,8 @@
         class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
     <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
     <button data-view="guide"><span class="sidebar-icon fa-solid fa-book"></span><i>Guía de los Sueños</i></button>
-    <button data-view="config"><span class="sidebar-icon fa-solid fa-gear"></span><i>Configuración</i></button>
-    <button data-view="maint"><span
+    <button data-view="config" class="requires-admin"><span class="sidebar-icon fa-solid fa-gear"></span><i>Configuración</i></button>
+    <button data-view="maint" class="requires-admin"><span
         class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
     <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
     <button data-view="wiki"><span class="sidebar-icon fa-solid fa-circle-question"></span><i>Guía del sistema</i></button>
@@ -638,6 +641,23 @@
           </div>
         </div>
       </div>
+
+      <!-- Panel de gestión de usuarios — solo admin -->
+      <div class="card admin-panel" style="margin-top:16px;">
+        <div class="card-head">
+          <span>👥 Gestión de usuarios</span>
+          <span class="admin-panel__badge">Solo admin</span>
+        </div>
+        <div class="card-body">
+          <p class="hint" style="margin-bottom:12px;">
+            Aquí puedes ver todos los usuarios registrados y cambiar su rol.
+            Para <strong>invitar a alguien nuevo</strong>: entra al dashboard de Supabase → Authentication → Users → Invite user. Luego asígnale el rol aquí.
+          </p>
+          <div id="admin-users-list" class="admin-users-list">
+            <p class="hint">Cargando usuarios…</p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- MANTENIMIENTO -->
@@ -899,6 +919,7 @@
 
     import { evaluarMotorPega3 } from "./src/pega3-engine.js";
     import { loadUserPreferences, saveUserPreferences } from "./src/user-preferences.js";
+    import { getMyRole, getAllProfiles, updateUserRole, roleLabel, roleColor, VALID_ROLES } from "./src/roles.js";
     import { computeDecemberStrategy } from "./src/december-strategy.js";
     import {
       createMode,
@@ -7721,6 +7742,83 @@ function buildVariantEntries(profile) {
       await waitForFirstPaint();
       hideBootLoader();
     }
+
+    // === Panel de gestión de usuarios (solo admin) ===
+    async function renderAdminUsersPanel() {
+      const container = document.getElementById("admin-users-list");
+      if (!container) return;
+      const myRole = await getMyRole();
+      if (myRole !== "admin") {
+        container.innerHTML = "<p class='hint'>⛔ Solo el administrador puede ver esto.</p>";
+        return;
+      }
+      container.innerHTML = "<p class='hint'>Cargando…</p>";
+      try {
+        const { data: { session } } = await (await import("./src/supabaseClient.js")).supabase.auth.getSession();
+        const myId = session?.user?.id;
+        const profiles = await getAllProfiles();
+        if (!profiles.length) {
+          container.innerHTML = "<p class='hint'>No hay usuarios registrados.</p>";
+          return;
+        }
+        container.innerHTML = "";
+        profiles.forEach((p) => {
+          const isMe = p.user_id === myId;
+          const row = document.createElement("div");
+          row.className = "admin-user-row";
+          row.innerHTML = `
+            <div class="admin-user-info">
+              <span class="admin-user-email">${p.email}</span>
+              ${isMe ? '<span class="admin-user-you">Tú</span>' : ""}
+            </div>
+            <div class="admin-user-controls">
+              <select class="admin-role-select" data-uid="${p.user_id}" ${isMe ? "disabled title='No puedes cambiar tu propio rol'" : ""}>
+                ${VALID_ROLES.map((r) => `<option value="${r}" ${r === p.role ? "selected" : ""}>${roleLabel(r)}</option>`).join("")}
+              </select>
+              <span class="admin-role-badge" style="background:${roleColor(p.role)}22;color:${roleColor(p.role)};border-color:${roleColor(p.role)}55">${roleLabel(p.role)}</span>
+              <button class="admin-role-save btn-outline" data-uid="${p.user_id}" ${isMe ? "disabled" : ""}>Guardar</button>
+            </div>
+          `;
+          // Color del badge se actualiza al cambiar el select
+          const sel = row.querySelector(".admin-role-select");
+          const badge = row.querySelector(".admin-role-badge");
+          sel?.addEventListener("change", () => {
+            const r = sel.value;
+            badge.textContent = roleLabel(r);
+            badge.style.background = `${roleColor(r)}22`;
+            badge.style.color = roleColor(r);
+            badge.style.borderColor = `${roleColor(r)}55`;
+          });
+          // Guardar rol
+          const saveBtn = row.querySelector(".admin-role-save");
+          saveBtn?.addEventListener("click", async () => {
+            const newRole = sel?.value;
+            if (!newRole) return;
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Guardando…";
+            try {
+              await updateUserRole(p.user_id, newRole);
+              saveBtn.textContent = "✓ Guardado";
+              saveBtn.style.color = "var(--color-success)";
+              setTimeout(() => { saveBtn.textContent = "Guardar"; saveBtn.style.color = ""; saveBtn.disabled = false; }, 2000);
+            } catch (err) {
+              saveBtn.textContent = "Error";
+              saveBtn.style.color = "var(--color-danger)";
+              showToast(`No se pudo guardar el rol: ${err.message}`, { variant: "danger" });
+              setTimeout(() => { saveBtn.textContent = "Guardar"; saveBtn.style.color = ""; saveBtn.disabled = false; }, 2500);
+            }
+          });
+          container.appendChild(row);
+        });
+      } catch (err) {
+        container.innerHTML = `<p class='hint'>⚠ Error al cargar usuarios: ${err.message}</p>`;
+      }
+    }
+
+    // Cargar panel cuando se abre Configuración
+    document.querySelector('[data-view="config"]')?.addEventListener("click", () => {
+      setTimeout(renderAdminUsersPanel, 80);
+    });
 
     // === Migración Dexie → Supabase (solo interfaz) ===
     const dexieMigrationBtn = document.getElementById("btn-migrar-dexie");

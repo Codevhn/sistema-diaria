@@ -2838,6 +2838,12 @@ button.ghost:hover {
 .boot-loader.hidden {
   display: none !important;
 }
+
+/* ── Visibilidad basada en rol ─────────────────────────────────────── */
+/* El <html> tiene data-role="admin|editor|lector" al iniciar */
+html[data-role="lector"]  .requires-write  { display: none !important; }
+html[data-role="lector"]  .requires-admin  { display: none !important; }
+html[data-role="editor"]  .requires-admin  { display: none !important; }
 .processing-modal {
   position: fixed;
   inset: 0;
@@ -10528,4 +10534,99 @@ body.login-page {
   margin-left: 1px;
   vertical-align: super;
   line-height: 0;
+}
+
+/* === PANEL ADMIN — GESTIÓN DE USUARIOS === */
+.admin-panel .card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.admin-panel__badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #f2c44a;
+  background: rgba(242,196,74,0.1);
+  border: 1px solid rgba(242,196,74,0.3);
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.admin-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+.admin-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 160px;
+}
+.admin-user-email {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--color-text);
+  word-break: break-all;
+}
+.admin-user-you {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  background: rgba(242,196,74,0.1);
+  border: 1px solid rgba(242,196,74,0.25);
+  padding: 1px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.admin-user-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.admin-role-select {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.admin-role-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.admin-role-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+.admin-role-save {
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+.admin-role-save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

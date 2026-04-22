@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient.js";
+import { clearRoleCache } from "./roles.js";
 
 const INACTIVITY_LIMIT_MS = 60 * 60 * 1000;
 const SESSION_RETRY_ATTEMPTS = 5;
@@ -67,6 +68,7 @@ export async function logout() {
   if (error) {
     throw new Error(error.message || "Error al cerrar sesión");
   }
+  clearRoleCache();
   clearSupabaseSessionStorage();
   stopSessionInactivityTimer();
   return true;
