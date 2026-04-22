@@ -1,0 +1,12 @@
+-- ══════════════════════════════════════════════════════════════════
+-- Migración 004: Campo nombre (display name) en profiles
+-- Ejecutar en: Supabase → SQL Editor
+-- ══════════════════════════════════════════════════════════════════
+
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS nombre TEXT;
+
+-- Verificar:
+SELECT email, nombre, role, banned FROM profiles
+JOIN auth.users ON auth.users.id = profiles.user_id
+ORDER BY profiles.created_at;

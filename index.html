@@ -932,7 +932,7 @@
 
     import { evaluarMotorPega3 } from "./src/pega3-engine.js";
     import { loadUserPreferences, saveUserPreferences } from "./src/user-preferences.js";
-    import { getMyRole, getAllProfiles, updateUserRole, setBanStatus, roleLabel, roleColor, VALID_ROLES } from "./src/roles.js";
+    import { getMyRole, getAllProfiles, updateUserRole, updateUserName, setBanStatus, roleLabel, roleColor, VALID_ROLES } from "./src/roles.js";
     import { computeDecemberStrategy } from "./src/december-strategy.js";
     import {
       createMode,
@@ -7763,9 +7763,11 @@ function buildVariantEntries(profile) {
         const { data: { session } } = await _sb.auth.getSession();
         if (!session?.user) return;
 
-        const myEmail  = session.user.email;
-        const myRole   = await getMyRole();
-        const amAdmin  = myRole === "admin";
+        const myEmail   = session.user.email;
+        const myProfile = await (await import("./src/roles.js")).getMyProfile();
+        const myRole    = myProfile?.role ?? "lector";
+        const myNombre  = myProfile?.nombre || myEmail.split("@")[0];
+        const amAdmin   = myRole === "admin";
 
         const presenceBar   = document.getElementById("presence-bar");
         const presenceCount = document.getElementById("presence-count");
@@ -7775,7 +7777,6 @@ function buildVariantEntries(profile) {
         const ROLE_LABEL = { admin: "Admin", editor: "Editor", lector: "Lector" };
 
         function renderPresence(state) {
-          // state es { key: [{ email, role, online_at }] }
           const users = Object.values(state).flat();
           const count = users.length;
 
@@ -7787,10 +7788,11 @@ function buildVariantEntries(profile) {
             const c = ROLE_COLOR[u.role] || "#888";
             const l = ROLE_LABEL[u.role] || u.role;
             const isMe = u.email === myEmail;
+            const displayName = u.nombre || u.email.split("@")[0];
             return `
               <div class="presence-user">
                 <span class="presence-user__dot" style="background:${c}"></span>
-                <span class="presence-user__email">${u.email}${isMe ? " <em>(tú)</em>" : ""}</span>
+                <span class="presence-user__name">${displayName}${isMe ? ' <em>(tú)</em>' : ""}</span>
                 <span class="presence-user__role" style="color:${c}">${l}</span>
               </div>`;
           }).join("") || "<p class='presence-empty'>Solo tú</p>";
@@ -7806,7 +7808,7 @@ function buildVariantEntries(profile) {
           .on("presence", { event: "leave" }, () => renderPresence(channel.presenceState()))
           .subscribe(async (status) => {
             if (status === "SUBSCRIBED") {
-              await channel.track({ email: myEmail, role: myRole, online_at: new Date().toISOString() });
+              await channel.track({ email: myEmail, nombre: myNombre, role: myRole, online_at: new Date().toISOString() });
             }
           });
 
@@ -7858,12 +7860,16 @@ function buildVariantEntries(profile) {
               ${isMe ? '<span class="admin-user-you">Tú</span>' : ""}
               ${isBanned ? '<span class="admin-user-banned-tag">BANEADO</span>' : ""}
             </div>
+            <div class="admin-user-name-row">
+              <input class="admin-name-input" type="text" placeholder="Nombre de usuario…" value="${p.nombre || ""}" maxlength="40" />
+              <button class="admin-name-save btn-outline" data-uid="${p.user_id}">Guardar nombre</button>
+            </div>
             <div class="admin-user-controls">
               <select class="admin-role-select" data-uid="${p.user_id}" ${isMe || isBanned ? "disabled" : ""}>
                 ${VALID_ROLES.map((r) => `<option value="${r}" ${r === p.role ? "selected" : ""}>${roleLabel(r)}</option>`).join("")}
               </select>
               <span class="admin-role-badge" style="background:${roleColor(p.role)}22;color:${roleColor(p.role)};border-color:${roleColor(p.role)}55">${roleLabel(p.role)}</span>
-              <button class="admin-role-save btn-outline" data-uid="${p.user_id}" ${isMe || isBanned ? "disabled" : ""}>Guardar</button>
+              <button class="admin-role-save btn-outline" data-uid="${p.user_id}" ${isMe || isBanned ? "disabled" : ""}>Guardar rol</button>
               ${!isMe ? `<button class="admin-ban-btn ${isBanned ? "admin-ban-btn--unban" : "admin-ban-btn--ban"}" data-uid="${p.user_id}" data-banned="${isBanned}">${isBanned ? "✅ Desbanear" : "🚫 Banear"}</button>` : ""}
             </div>
           `;
@@ -7896,6 +7902,26 @@ function buildVariantEntries(profile) {
               setTimeout(() => { saveBtn.textContent = "Guardar"; saveBtn.style.color = ""; saveBtn.disabled = false; }, 2500);
             }
           });
+          // Guardar nombre
+          const nameInput = row.querySelector(".admin-name-input");
+          const nameSaveBtn = row.querySelector(".admin-name-save");
+          nameSaveBtn?.addEventListener("click", async () => {
+            const newName = nameInput?.value?.trim() ?? "";
+            nameSaveBtn.disabled = true;
+            nameSaveBtn.textContent = "Guardando…";
+            try {
+              await updateUserName(p.user_id, newName);
+              nameSaveBtn.textContent = "✓ Guardado";
+              nameSaveBtn.style.color = "var(--color-success)";
+              setTimeout(() => { nameSaveBtn.textContent = "Guardar nombre"; nameSaveBtn.style.color = ""; nameSaveBtn.disabled = false; }, 2000);
+            } catch (err) {
+              nameSaveBtn.textContent = "Error";
+              nameSaveBtn.style.color = "var(--color-danger)";
+              showToast(`No se pudo guardar el nombre: ${err.message}`, { variant: "danger" });
+              setTimeout(() => { nameSaveBtn.textContent = "Guardar nombre"; nameSaveBtn.style.color = ""; nameSaveBtn.disabled = false; }, 2500);
+            }
+          });
+
           // Banear / Desbanear
           const banBtn = row.querySelector(".admin-ban-btn");
           banBtn?.addEventListener("click", async () => {

@@ -34,11 +34,11 @@ export async function getMyProfile() {
     if (!session?.user) return null;
     const { data, error } = await supabase
       .from("profiles")
-      .select("role, banned")
+      .select("role, banned, nombre")
       .eq("user_id", session.user.id)
       .single();
     if (error) throw error;
-    _roleCache = data ?? { role: "lector", banned: false };
+    _roleCache = data ?? { role: "lector", banned: false, nombre: null };
   } catch (err) {
     console.warn("[roles] No se pudo leer perfil:", err?.message);
     _roleCache = { role: "lector", banned: false };
@@ -87,10 +87,18 @@ export async function canDelete() { return (await getMyRole()) === "admin"; }
 export async function getAllProfiles() {
   const { data, error } = await supabase
     .from("profiles")
-    .select("user_id, email, role, banned, created_at")
+    .select("user_id, email, nombre, role, banned, created_at")
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data ?? [];
+}
+
+export async function updateUserName(userId, nombre) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ nombre: nombre.trim() || null, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+  if (error) throw error;
 }
 
 // ─── Panel admin: cambiar rol ─────────────────────────────────────────────────

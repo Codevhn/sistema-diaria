@@ -199,15 +199,16 @@ body::after {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.presence-user__email {
-  font-size: 0.72rem;
+.presence-user__name {
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--color-text);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.presence-user__email em {
+.presence-user__name em {
   font-style: normal;
   color: var(--color-muted);
   font-size: 0.65rem;
@@ -10699,11 +10700,40 @@ body.login-page {
   border-radius: 10px;
   white-space: nowrap;
 }
+.admin-user-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+.admin-name-input {
+  flex: 1;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 4px 8px;
+  min-width: 0;
+}
+.admin-name-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+.admin-name-save {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
 .admin-user-controls {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  width: 100%;
+  margin-top: 6px;
 }
 .admin-role-select {
   background: var(--color-surface-2);
