@@ -938,6 +938,8 @@
     import { initSuperPremioPicker } from "./src/superpremio-picker.js";
     import { initNotifications } from "./src/notifications.js";
     import { detectarAnomalias, renderAnomaliasHTML } from "./src/anomaly-engine.js";
+    import { detectarContexto, renderContextoHTML } from "./src/context-engine.js";
+    import { computeFeedback, renderFeedbackHTML } from "./src/feedback-engine.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -5624,6 +5626,20 @@
           console.warn("convergencia falló:", err?.message || err);
         }
 
+        // ── Régimen actual (etiquetado de contexto) ──────────────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const contextos = detectarContexto(allDraws, { pais: pais || null });
+          const ctxHtml = renderContextoHTML(contextos);
+          if (ctxHtml) {
+            const ctxWrap = document.createElement("div");
+            ctxWrap.innerHTML = ctxHtml;
+            if (ctxWrap.firstElementChild) frag.appendChild(ctxWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("contexto falló:", err?.message || err);
+        }
+
         // ── Detector de anomalías estadísticas ───────────────────────────────────
         try {
           const allDraws = await DB.listDraws();
@@ -5721,6 +5737,17 @@
         // ── Motor de señales unificado ───────────────────────────────────────
         try {
           const pais = last.pais || "";
+
+          // Feedback adaptativo: ajusta topN según rendimiento reciente
+          const feedback = await computeFeedback().catch(() => null);
+          const adaptiveTopN = feedback?.adaptiveTopN ?? 10;
+          const fbHtml = feedback ? renderFeedbackHTML(feedback) : "";
+          if (fbHtml) {
+            const fbWrap = document.createElement("div");
+            fbWrap.innerHTML = fbHtml;
+            if (fbWrap.firstElementChild) frag.appendChild(fbWrap.firstElementChild);
+          }
+
           const repetidosPostEvento = recoveryMode.activo && recoveryMode.ultimoEvento
             ? detectarNumerosRepetidosPostEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
             : [];
@@ -5731,7 +5758,7 @@
             ejecutarMotorSeñales({
               pais,
               turno: nextHorario,
-              topN: 8,
+              topN: adaptiveTopN,
               recuperacion: recoveryMode.activo ? {
                 activo: true,
                 repetidosPostEvento,

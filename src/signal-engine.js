@@ -44,6 +44,7 @@ const ELIM_RECIENTE_DIAS     = 1;    // Cayó hace ≤1 día → eliminado (salv
 const ELIM_FAMILIA_TURNOS    = 2;    // Misma familia en últimos N turnos → penalizado
 const MARKOV_MIN_SOPORTE     = 3;    // Mínimo de transiciones para confiar
 const MARKOV2_MIN_SOPORTE    = 2;
+const MARKOV_DECAY_PER_DAY   = 0.97; // Decaimiento diario — vida media ≈ 23 días
 const REZAGO_MIN_APARICIONES = 4;    // Mínimo de apariciones para calcular ciclo
 const TOP_CANDIDATES         = 10;   // Cuántos candidatos devolver
 
@@ -93,7 +94,8 @@ function isDiciembre(fecha) {
  * @returns {Map<number, Map<number, number>>} transitions[from][to] = count
  */
 export function buildMarkov1(draws) {
-  const matrix = new Map(); // from → Map(to → count)
+  const matrix = new Map(); // from → Map(to → {count, wsum})
+  const now = Date.now();
 
   for (let i = 0; i < draws.length - 1; i++) {
     const cur  = draws[i];
@@ -104,12 +106,18 @@ export function buildMarkov1(draws) {
     const dayDiff = Math.round((next.fechaDate - cur.fechaDate) / DAY_MS);
     if (dayDiff < 0 || dayDiff > 2) continue;
 
+    const ageInDays = Math.max(0, (now - cur.fechaDate) / DAY_MS);
+    const weight    = Math.pow(MARKOV_DECAY_PER_DAY, ageInDays);
+
     const from = cur.numero;
     const to   = next.numero;
 
     if (!matrix.has(from)) matrix.set(from, new Map());
-    const row = matrix.get(from);
-    row.set(to, (row.get(to) || 0) + 1);
+    const row  = matrix.get(from);
+    const cell = row.get(to) || { count: 0, wsum: 0 };
+    cell.count++;
+    cell.wsum += weight;
+    row.set(to, cell);
   }
 
   return matrix;
@@ -122,12 +130,13 @@ export function buildMarkov1(draws) {
 export function normalizeMarkov1(matrix) {
   const result = new Map();
   matrix.forEach((row, from) => {
-    const total = Array.from(row.values()).reduce((s, c) => s + c, 0);
-    if (total < MARKOV_MIN_SOPORTE) return;
+    const totalCount = Array.from(row.values()).reduce((s, c) => s + c.count, 0);
+    const totalWsum  = Array.from(row.values()).reduce((s, c) => s + c.wsum,  0);
+    if (totalCount < MARKOV_MIN_SOPORTE) return;
     const top = Array.from(row.entries())
-      .map(([to, count]) => ({ numero: to, count, prob: count / total }))
+      .map(([to, cell]) => ({ numero: to, count: cell.count, prob: cell.wsum / totalWsum }))
       .sort((a, b) => b.prob - a.prob);
-    result.set(from, { total, top });
+    result.set(from, { total: totalCount, top });
   });
   return result;
 }
@@ -139,7 +148,8 @@ export function normalizeMarkov1(matrix) {
  * @returns {Map<string, Map<number, number>>} transitions["A:B"][to] = count
  */
 export function buildMarkov2(draws) {
-  const matrix = new Map();
+  const matrix = new Map(); // key → Map(to → {count, wsum})
+  const now = Date.now();
 
   for (let i = 0; i < draws.length - 2; i++) {
     const a = draws[i];
@@ -154,10 +164,16 @@ export function buildMarkov2(draws) {
     if (dayDiff1 < 0 || dayDiff1 > 2) continue;
     if (dayDiff2 < 0 || dayDiff2 > 2) continue;
 
+    const ageInDays = Math.max(0, (now - a.fechaDate) / DAY_MS);
+    const weight    = Math.pow(MARKOV_DECAY_PER_DAY, ageInDays);
+
     const key = `${a.numero}:${b.numero}`;
     if (!matrix.has(key)) matrix.set(key, new Map());
-    const row = matrix.get(key);
-    row.set(c.numero, (row.get(c.numero) || 0) + 1);
+    const row  = matrix.get(key);
+    const cell = row.get(c.numero) || { count: 0, wsum: 0 };
+    cell.count++;
+    cell.wsum += weight;
+    row.set(c.numero, cell);
   }
 
   return matrix;
@@ -166,12 +182,13 @@ export function buildMarkov2(draws) {
 export function normalizeMarkov2(matrix) {
   const result = new Map();
   matrix.forEach((row, key) => {
-    const total = Array.from(row.values()).reduce((s, c) => s + c, 0);
-    if (total < MARKOV2_MIN_SOPORTE) return;
+    const totalCount = Array.from(row.values()).reduce((s, c) => s + c.count, 0);
+    const totalWsum  = Array.from(row.values()).reduce((s, c) => s + c.wsum,  0);
+    if (totalCount < MARKOV2_MIN_SOPORTE) return;
     const top = Array.from(row.entries())
-      .map(([to, count]) => ({ numero: to, count, prob: count / total }))
+      .map(([to, cell]) => ({ numero: to, count: cell.count, prob: cell.wsum / totalWsum }))
       .sort((a, b) => b.prob - a.prob);
-    result.set(key, { total, top });
+    result.set(key, { total: totalCount, top });
   });
   return result;
 }

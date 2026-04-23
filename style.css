@@ -10830,6 +10830,109 @@ body.login-page {
   border-color: rgba(94,196,126,0.35);
 }
 
+/* ── Feedback / Motor Adaptativo ────────────────────────────────────────────── */
+.fb-wrap {
+  margin: 0 0 18px;
+  background: var(--color-card-bg, #1e1e2e);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.fb-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.fb-title { font-size: 1rem; font-weight: 700; color: var(--color-text); }
+.fb-subtitle { font-size: 0.78rem; color: var(--color-muted); }
+.fb-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.fb-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.fb-metric__val { font-size: 1rem; font-weight: 700; color: var(--color-text); }
+.fb-metric__lbl { font-size: 0.68rem; color: var(--color-muted); }
+.fb-verdict {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.fb-verdict__label { font-size: 0.82rem; font-weight: 700; }
+.fb-verdict__sub { font-size: 0.70rem; color: var(--color-muted); }
+.fb-alert {
+  font-size: 0.76rem;
+  color: #e88c38;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  background: rgba(232,140,56,0.08);
+  border-radius: 6px;
+  border-left: 3px solid #e88c38;
+}
+
+/* ── Context / Régimen Actual ───────────────────────────────────────────────── */
+.ctx-wrap { margin: 0 0 18px; }
+.ctx-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+.ctx-head__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.ctx-head__sub {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+.ctx-list { display: flex; flex-direction: column; gap: 8px; }
+.ctx-item {
+  background: var(--color-card-bg, #1e1e2e);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.ctx-item__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ctx-icon { font-size: 1.2rem; flex-shrink: 0; }
+.ctx-titulo {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text);
+  flex: 1;
+}
+.ctx-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.ctx-cuerpo {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+.ctx-cuerpo strong { color: var(--color-text); }
+.ctx-implicacion {
+  font-size: 0.74rem;
+  color: var(--color-muted);
+  font-style: italic;
+  margin: 0;
+}
+
 /* ── Anomaly Detector ───────────────────────────────────────────────────────── */
 .anom-wrap { margin: 0 0 18px; }
 .anom-head {
