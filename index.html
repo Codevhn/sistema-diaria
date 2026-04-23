@@ -937,6 +937,7 @@
     import { getVencidos, renderRelativosHTML, backtestRelativos, getRelativosEnAlerta, renderRelativosAlertaHTML, backtestConvergencia, getConvergenciaActiva, renderConvergenciaHTML } from "./src/relativos-engine.js";
     import { initSuperPremioPicker } from "./src/superpremio-picker.js";
     import { initNotifications } from "./src/notifications.js";
+    import { detectarAnomalias, renderAnomaliasHTML } from "./src/anomaly-engine.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -5621,6 +5622,17 @@
           if (convWrap.firstElementChild) frag.appendChild(convWrap.firstElementChild);
         } catch (err) {
           console.warn("convergencia falló:", err?.message || err);
+        }
+
+        // ── Detector de anomalías estadísticas ───────────────────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const anomalias = await detectarAnomalias(allDraws, { recentN: 35, pais: pais || null });
+          const anomWrap = document.createElement("div");
+          anomWrap.innerHTML = renderAnomaliasHTML(anomalias, 35);
+          if (anomWrap.firstElementChild) frag.appendChild(anomWrap.firstElementChild);
+        } catch (err) {
+          console.warn("anomalias falló:", err?.message || err);
         }
 
         // ── Relativos vencidos: pares (A→B) donde B está tardando más de lo normal ──
