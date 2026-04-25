@@ -3,6 +3,7 @@
  *
  * El botón solo se habilita los miércoles y sábados (días de sorteo).
  * Incluye botón de activación de notificaciones del navegador.
+ * Guarda hasta HISTORY_MAX generaciones anteriores en localStorage.
  */
 
 import {
@@ -13,8 +14,42 @@ import {
   notifySuperPremioIfNeeded,
 } from "./notifications.js";
 
-const SP_NUMS = Array.from({ length: 33 }, (_, i) => i + 1); // 1..33
-const PAD = (n) => String(n).padStart(2, "0");
+const SP_NUMS      = Array.from({ length: 33 }, (_, i) => i + 1); // 1..33
+const PAD          = (n) => String(n).padStart(2, "0");
+const HISTORY_KEY  = "sp_picker_history";
+const HISTORY_MAX  = 8;
+
+// ─── Historial en localStorage ────────────────────────────────────────────────
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveHistory(entries) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(entries)); } catch {}
+}
+
+/** Añade una entrada al historial (ring buffer de HISTORY_MAX) */
+function pushHistory(nums, label) {
+  const history = loadHistory();
+  history.unshift({ nums, label, ts: Date.now() });
+  if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
+  saveHistory(history);
+  return history;
+}
+
+/** Formatea timestamp como "Mié 23-abr 10:30" */
+function fmtTs(ts) {
+  const d = new Date(ts);
+  const dias  = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${dias[d.getDay()]} ${d.getDate()}-${meses[d.getMonth()]} ${hh}:${mm}`;
+}
 
 // ─── Algoritmo de selección ponderada ────────────────────────────────────────
 
@@ -49,7 +84,7 @@ function weightedSample(freq, count = 6) {
   return selected.sort((a, b) => a - b);
 }
 
-// ─── Renderizado ─────────────────────────────────────────────────────────────
+// ─── Renderizado: bolas grandes (generación actual) ───────────────────────────
 
 function buildBall(num, freq, maxFreq, guia) {
   const pad = PAD(num);
@@ -113,6 +148,43 @@ function renderResults(nums, freq, guia) {
   return out;
 }
 
+// ─── Renderizado: historial compacto ─────────────────────────────────────────
+
+function renderHistory(historyArea, guia) {
+  const history = loadHistory();
+  if (!history.length) { historyArea.innerHTML = ""; return; }
+
+  const rows = history.map((entry, idx) => {
+    const chips = entry.nums.map((n) => {
+      const pad = PAD(n);
+      const sim = guia[pad]?.simbolo || "";
+      return `<span class="sp-hist-chip" title="${pad} ${sim}">${pad}${sim ? `<small>${sim}</small>` : ""}</span>`;
+    }).join("");
+
+    const isCurrent = idx === 0;
+    return `
+      <div class="sp-hist-row${isCurrent ? " sp-hist-row--current" : ""}">
+        <span class="sp-hist-label">${isCurrent ? "🕐 Última" : fmtTs(entry.ts)}</span>
+        <div class="sp-hist-chips">${chips}</div>
+        <span class="sp-hist-combo">${entry.nums.map(PAD).join("·")}</span>
+      </div>`;
+  }).join("");
+
+  historyArea.innerHTML = `
+    <div class="sp-history">
+      <div class="sp-history__head">
+        <span class="sp-history__title">📋 Historial de combinaciones</span>
+        <button class="sp-history__clear" title="Borrar historial">✕ Limpiar</button>
+      </div>
+      <div class="sp-history__rows">${rows}</div>
+    </div>`;
+
+  historyArea.querySelector(".sp-history__clear")?.addEventListener("click", () => {
+    saveHistory([]);
+    historyArea.innerHTML = "";
+  });
+}
+
 // ─── Banner de notificaciones ─────────────────────────────────────────────────
 
 function buildNotifBanner() {
@@ -133,7 +205,6 @@ function buildNotifBanner() {
       banner.innerHTML = `<span class="sp-notif-banner__text muted">🔕 Notificaciones bloqueadas en tu navegador. Actívalas desde la configuración del sitio.</span>`;
       return;
     }
-    // "default" — aún no pidió permiso
     banner.innerHTML = `
       <span class="sp-notif-banner__text">🔔 ¿Querés que te avisemos cada día de sorteo?</span>
       <button class="sp-notif-banner__btn">Activar recordatorios</button>`;
@@ -194,15 +265,23 @@ export function initSuperPremioPicker(draws, guia = {}) {
   }
   pickerWrap.appendChild(btn);
 
-  // ── Área de resultado ───────────────────────────────────────────────────────
+  // ── Área de resultado (generación actual) ──────────────────────────────────
   const resultArea = document.createElement("div");
   resultArea.className = "sp-picker__result";
   pickerWrap.appendChild(resultArea);
+
+  // ── Área de historial ───────────────────────────────────────────────────────
+  const historyArea = document.createElement("div");
+  historyArea.className = "sp-picker__history";
+  pickerWrap.appendChild(historyArea);
 
   // ── Banner de notificaciones ────────────────────────────────────────────────
   pickerWrap.appendChild(buildNotifBanner());
 
   panel.appendChild(pickerWrap);
+
+  // ── Cargar historial previo al iniciar ──────────────────────────────────────
+  renderHistory(historyArea, guia);
 
   // ── Evento del botón ────────────────────────────────────────────────────────
   if (hoyEsSorteo) {
@@ -213,8 +292,16 @@ export function initSuperPremioPicker(draws, guia = {}) {
 
       setTimeout(() => {
         const nums = weightedSample(freq, 6);
+
+        // Guardar en historial antes de renderizar
+        pushHistory(nums, fmtTs(Date.now()));
+
         const resultEl = renderResults(nums, freq, guia);
         resultArea.appendChild(resultEl);
+
+        // Actualizar historial compacto
+        renderHistory(historyArea, guia);
+
         btn.disabled = false;
         btn.innerHTML = "🎲 Volver a generar";
       }, 400);

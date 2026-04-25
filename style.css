@@ -10199,6 +10199,104 @@ body.login-page {
   margin-top: 4px;
 }
 
+/* ── SP Picker Historial compacto ────────────────── */
+.sp-picker__history { margin-top: 14px; }
+
+.sp-history {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.sp-history__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.sp-history__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sp-history__clear {
+  font-size: 0.70rem;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.sp-history__clear:hover { opacity: 1; color: var(--color-danger, #e05252); }
+
+.sp-history__rows { display: flex; flex-direction: column; }
+
+.sp-hist-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s;
+}
+.sp-hist-row:last-child { border-bottom: none; }
+.sp-hist-row:hover { background: rgba(255,255,255,0.03); }
+.sp-hist-row--current { background: rgba(201,168,76,0.06); }
+
+.sp-hist-label {
+  font-size: 0.70rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+.sp-hist-row--current .sp-hist-label { color: var(--color-accent); font-weight: 700; }
+
+.sp-hist-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.sp-hist-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: default;
+}
+.sp-hist-row--current .sp-hist-chip {
+  background: rgba(201,168,76,0.12);
+  border-color: rgba(201,168,76,0.3);
+  color: var(--color-accent);
+}
+.sp-hist-chip small {
+  font-size: 0.62rem;
+  opacity: 0.7;
+  font-weight: 400;
+}
+.sp-hist-combo {
+  font-size: 0.68rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: monospace;
+  letter-spacing: 0.04em;
+}
+.sp-hist-row--current .sp-hist-combo { color: var(--color-accent); opacity: 0.7; }
+
 /* ═══════════════════════════════════════════════════
    LOADER LA DIARIA — slot machine + ring girando
    ═══════════════════════════════════════════════════ */
