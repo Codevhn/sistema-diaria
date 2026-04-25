@@ -66,46 +66,25 @@ export function renderFeedbackHTML(fb) {
 
   const { adaptiveTopN, lift, trend, verdict, stats, recentDrop } = fb;
 
-  const trendIcon  = { subiendo: "📈", estable: "➡️", bajando: "📉", insuficiente: "⏳", desconocida: "❓" }[trend] || "➡️";
-  const verdictCls = { fuerte: "fb-verdict--fuerte", estable: "fb-verdict--estable", débil: "fb-verdict--debil" }[verdict] || "fb-verdict--estable";
+  const trendIcon    = { subiendo: "📈", estable: "➡️", bajando: "📉" }[trend] || "➡️";
   const verdictColor = { fuerte: "#5ec47e", estable: "#a89e88", débil: "#e05252" }[verdict] || "#a89e88";
 
-  const fmtLift = lift !== null ? lift.toFixed(2) : "—";
-  const fmtRate = stats.recent?.hitRate != null ? `${(stats.recent.hitRate * 100).toFixed(1)}%` : "—";
-
   const adaptMsg =
-    verdict === "fuerte"  ? `Pool ajustado a ${adaptiveTopN} candidatos — señal precisa` :
-    verdict === "débil"   ? `Pool ampliado a ${adaptiveTopN} candidatos — buscando rango más ancho` :
-                            `Pool estándar de ${adaptiveTopN} candidatos`;
+    verdict === "fuerte" ? `Pool reducido a ${adaptiveTopN} — señal precisa` :
+    verdict === "débil"  ? `Pool ampliado a ${adaptiveTopN} — buscando rango más ancho` :
+                           `Pool estándar de ${adaptiveTopN} candidatos`;
 
-  const dropAlert = recentDrop
-    ? `<p class="fb-alert">⚠️ Giro detectado: el motor tenía buen historial (lift ${stats.lift.toFixed(2)}×) pero los últimos ${stats.recent.n} sorteos bajaron. El sistema amplió el pool automáticamente.</p>`
+  const dropNote = recentDrop
+    ? ` · ⚠️ caída brusca vs historial`
     : "";
 
   return `
-    <div class="fb-wrap">
-      <div class="fb-head">
-        <span class="fb-title">⚙️ Motor adaptativo</span>
-        <span class="fb-subtitle">Ajuste automático basado en rendimiento real · últimos ${stats.recent.n} sorteos resueltos</span>
-      </div>
-      <div class="fb-row">
-        <div class="fb-metric">
-          <span class="fb-metric__val">${fmtLift}×</span>
-          <span class="fb-metric__lbl">lift reciente</span>
-        </div>
-        <div class="fb-metric">
-          <span class="fb-metric__val">${fmtRate}</span>
-          <span class="fb-metric__lbl">hit rate</span>
-        </div>
-        <div class="fb-metric">
-          <span class="fb-metric__val">${trendIcon} ${stats.recent.hits}/${stats.recent.n}</span>
-          <span class="fb-metric__lbl">aciertos recientes</span>
-        </div>
-        <div class="fb-verdict ${verdictCls}" style="color:${verdictColor}">
-          <span class="fb-verdict__label">Señal ${verdict}</span>
-          <span class="fb-verdict__sub">${adaptMsg}</span>
-        </div>
-      </div>
-      ${dropAlert}
+    <div class="fb-badge">
+      <span class="fb-badge__icon">⚙️</span>
+      <span class="fb-badge__text">
+        Motor adaptativo ${trendIcon}
+        <strong style="color:${verdictColor}">${adaptMsg}</strong>${dropNote}
+        <small>· detalle en "Validación en vivo"</small>
+      </span>
     </div>`;
 }

@@ -940,6 +940,7 @@
     import { detectarAnomalias, renderAnomaliasHTML } from "./src/anomaly-engine.js";
     import { detectarContexto, renderContextoHTML } from "./src/context-engine.js";
     import { computeFeedback, renderFeedbackHTML } from "./src/feedback-engine.js";
+    import { analizarPostRepeticion, renderPostRepeticionHTML } from "./src/post-repeticion-engine.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -5638,6 +5639,20 @@
           }
         } catch (err) {
           console.warn("contexto falló:", err?.message || err);
+        }
+
+        // ── Post-Repetición: candidatos estratégicos tras un repetido ────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const prResult = analizarPostRepeticion(allDraws, { pais: pais || null });
+          const prHtml   = renderPostRepeticionHTML(prResult, GUIA);
+          if (prHtml) {
+            const prWrap = document.createElement("div");
+            prWrap.innerHTML = prHtml;
+            if (prWrap.firstElementChild) frag.appendChild(prWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("post-repeticion falló:", err?.message || err);
         }
 
         // ── Detector de anomalías estadísticas ───────────────────────────────────

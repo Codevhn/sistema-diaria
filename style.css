@@ -10928,48 +10928,125 @@ body.login-page {
   border-color: rgba(94,196,126,0.35);
 }
 
-/* ── Feedback / Motor Adaptativo ────────────────────────────────────────────── */
-.fb-wrap {
+/* ── Feedback / Motor Adaptativo (badge compacto) ───────────────────────────── */
+.fb-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 14px;
+  padding: 7px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+.fb-badge__icon { font-size: 0.9rem; flex-shrink: 0; }
+.fb-badge__text { line-height: 1.4; }
+.fb-badge__text strong { margin: 0 2px; }
+.fb-badge__text small  { opacity: 0.6; margin-left: 4px; }
+
+/* ── Post-Repetición ─────────────────────────────────────────────────────────── */
+.pr-wrap {
   margin: 0 0 18px;
   background: var(--color-card-bg, #1e1e2e);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px;
-  padding: 12px 14px;
+  padding: 14px 16px;
 }
-.fb-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
-.fb-title { font-size: 1rem; font-weight: 700; color: var(--color-text); }
-.fb-subtitle { font-size: 0.78rem; color: var(--color-muted); }
-.fb-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+.pr-wrap--activo {
+  border-color: rgba(232,140,56,0.35);
+  background: rgba(232,140,56,0.04);
 }
-.fb-metric {
+.pr-head {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  gap: 4px;
+  margin-bottom: 10px;
 }
-.fb-metric__val { font-size: 1rem; font-weight: 700; color: var(--color-text); }
-.fb-metric__lbl { font-size: 0.68rem; color: var(--color-muted); }
-.fb-verdict {
-  margin-left: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+.pr-head__left { display: flex; align-items: center; gap: 8px; }
+.pr-title { font-size: 1rem; font-weight: 700; color: var(--color-text); }
+.pr-subtitle { font-size: 0.76rem; color: var(--color-muted); }
+
+.pr-badge {
+  font-size: 0.70rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
 }
-.fb-verdict__label { font-size: 0.82rem; font-weight: 700; }
-.fb-verdict__sub { font-size: 0.70rem; color: var(--color-muted); }
-.fb-alert {
+.pr-badge--activo  { color: #e88c38; border-color: rgba(232,140,56,0.4); background: rgba(232,140,56,0.1); }
+.pr-badge--latente { color: var(--color-muted); border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); }
+
+.pr-ultimo {
   font-size: 0.76rem;
-  color: #e88c38;
-  margin: 8px 0 0;
+  color: var(--color-muted);
+  margin: 0 0 8px;
+}
+.pr-ultimo strong { color: var(--color-text); }
+
+.pr-desc {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+.pr-desc strong { color: var(--color-text); }
+
+.pr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.pr-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
   padding: 6px 10px;
-  background: rgba(232,140,56,0.08);
-  border-radius: 6px;
-  border-left: 3px solid #e88c38;
+  border-radius: 8px;
+  border: 1px solid;
+  min-width: 48px;
+  cursor: default;
+  transition: transform 0.12s;
+}
+.pr-chip:hover { transform: translateY(-2px); }
+.pr-chip--strong {
+  background: rgba(224,82,82,0.1);
+  border-color: rgba(224,82,82,0.35);
+}
+.pr-chip--med {
+  background: rgba(232,140,56,0.1);
+  border-color: rgba(232,140,56,0.35);
+}
+.pr-chip--mild {
+  background: rgba(242,196,74,0.08);
+  border-color: rgba(242,196,74,0.25);
+}
+.pr-chip__num {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--color-text);
+  line-height: 1;
+}
+.pr-chip__sym {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  line-height: 1;
+}
+.pr-chip__ratio {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-top: 2px;
+}
+.pr-hint {
+  font-size: 0.70rem;
+  color: var(--color-muted);
+  margin: 0;
+  font-style: italic;
 }
 
 /* ── Context / Régimen Actual ───────────────────────────────────────────────── */
