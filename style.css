@@ -10235,67 +10235,78 @@ body.login-page {
 }
 .sp-history__clear:hover { opacity: 1; color: var(--color-danger, #e05252); }
 
-.sp-history__rows { display: flex; flex-direction: column; }
+.sp-history__entries { display: flex; flex-direction: column; }
 
-.sp-hist-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  transition: background 0.15s;
+.sp-hist-entry {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
-.sp-hist-row:last-child { border-bottom: none; }
-.sp-hist-row:hover { background: rgba(255,255,255,0.03); }
-.sp-hist-row--current { background: rgba(201,168,76,0.06); }
+.sp-hist-entry:last-child { border-bottom: none; }
+.sp-hist-entry--current { background: rgba(201,168,76,0.05); }
 
-.sp-hist-label {
-  font-size: 0.70rem;
+.sp-hist-entry__label {
+  font-size: 0.72rem;
   color: var(--color-muted);
-  white-space: nowrap;
-  min-width: 100px;
-  flex-shrink: 0;
+  margin-bottom: 8px;
+  font-weight: 600;
 }
-.sp-hist-row--current .sp-hist-label { color: var(--color-accent); font-weight: 700; }
-
-.sp-hist-chips {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  flex: 1;
-}
-.sp-hist-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 5px;
-  padding: 2px 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-text);
-  cursor: default;
-}
-.sp-hist-row--current .sp-hist-chip {
-  background: rgba(201,168,76,0.12);
-  border-color: rgba(201,168,76,0.3);
+.sp-hist-entry--current .sp-hist-entry__label {
   color: var(--color-accent);
 }
-.sp-hist-chip small {
-  font-size: 0.62rem;
-  opacity: 0.7;
-  font-weight: 400;
+
+.sp-hist-cards {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.sp-hist-combo {
-  font-size: 0.68rem;
+
+.sp-hist-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 8px 6px 6px;
+  width: 64px;
+  cursor: default;
+  transition: transform 0.12s, background 0.12s;
+}
+.sp-hist-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.09); }
+.sp-hist-card--current {
+  background: rgba(201,168,76,0.1);
+  border-color: rgba(201,168,76,0.3);
+}
+
+.sp-hist-card__img-wrap {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
+}
+.sp-hist-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.sp-hist-card__num {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: var(--color-text);
+  line-height: 1;
+}
+.sp-hist-card--current .sp-hist-card__num { color: var(--color-accent); }
+.sp-hist-card__sym {
+  font-size: 0.65rem;
   color: var(--color-muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-family: monospace;
-  letter-spacing: 0.04em;
+  line-height: 1;
+  text-align: center;
 }
-.sp-hist-row--current .sp-hist-combo { color: var(--color-accent); opacity: 0.7; }
 
 /* ═══════════════════════════════════════════════════
    LOADER LA DIARIA — slot machine + ring girando

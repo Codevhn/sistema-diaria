@@ -148,25 +148,35 @@ function renderResults(nums, freq, guia) {
   return out;
 }
 
-// ─── Renderizado: historial compacto ─────────────────────────────────────────
+// ─── Renderizado: historial con imágenes ─────────────────────────────────────
 
 function renderHistory(historyArea, guia) {
   const history = loadHistory();
   if (!history.length) { historyArea.innerHTML = ""; return; }
 
-  const rows = history.map((entry, idx) => {
-    const chips = entry.nums.map((n) => {
+  const entries = history.map((entry, idx) => {
+    const isCurrent = idx === 0;
+
+    const cards = entry.nums.map((n) => {
       const pad = PAD(n);
       const sim = guia[pad]?.simbolo || "";
-      return `<span class="sp-hist-chip" title="${pad} ${sim}">${pad}${sim ? `<small>${sim}</small>` : ""}</span>`;
+      return `
+        <div class="sp-hist-card${isCurrent ? " sp-hist-card--current" : ""}">
+          <div class="sp-hist-card__img-wrap">
+            <img class="sp-hist-card__img" src="data/img/${pad}.png" alt="${pad}"
+              onerror="this.src='data/img/${pad}.jpg';this.onerror=()=>this.style.display='none'">
+          </div>
+          <span class="sp-hist-card__num">${pad}</span>
+          ${sim ? `<span class="sp-hist-card__sym">${sim}</span>` : ""}
+        </div>`;
     }).join("");
 
-    const isCurrent = idx === 0;
     return `
-      <div class="sp-hist-row${isCurrent ? " sp-hist-row--current" : ""}">
-        <span class="sp-hist-label">${isCurrent ? "🕐 Última" : fmtTs(entry.ts)}</span>
-        <div class="sp-hist-chips">${chips}</div>
-        <span class="sp-hist-combo">${entry.nums.map(PAD).join("·")}</span>
+      <div class="sp-hist-entry${isCurrent ? " sp-hist-entry--current" : ""}">
+        <div class="sp-hist-entry__label">
+          ${isCurrent ? "🕐 Última generación" : fmtTs(entry.ts)}
+        </div>
+        <div class="sp-hist-cards">${cards}</div>
       </div>`;
   }).join("");
 
@@ -176,7 +186,7 @@ function renderHistory(historyArea, guia) {
         <span class="sp-history__title">📋 Historial de combinaciones</span>
         <button class="sp-history__clear" title="Borrar historial">✕ Limpiar</button>
       </div>
-      <div class="sp-history__rows">${rows}</div>
+      <div class="sp-history__entries">${entries}</div>
     </div>`;
 
   historyArea.querySelector(".sp-history__clear")?.addEventListener("click", () => {
