@@ -7188,25 +7188,44 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   color: var(--color-accent);
 }
 
+/* ── Pega3 viewport-fit layout ───────────────────────────────────────────────── */
+.pega3-view {
+  padding: 10px 14px !important;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 .pega3-grid {
   display: grid;
-  gap: 1.25rem;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 10px;
+  grid-template-columns: 260px 1fr 1fr;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
-
 .pega3-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  min-height: 0;
+  overflow: hidden;
 }
+.pega3-card .card-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 10px 12px;
+}
+.pega3-card--form  { /* col 1 */ }
+.pega3-card--trio-dia { /* col 2 */ }
+.pega3-card--insights { /* col 3 */ }
 
-.pega3-card--form {
-  grid-column: 1 / -1;
+.pega3-form-actions {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
 }
-
-.pega3-card--insights {
-  grid-column: span 1;
-}
+.pega3-form-actions .btn-primary,
+.pega3-form-actions .btn-outline { flex: 1; padding: 6px 8px; font-size: 0.82rem; }
 
 .pega3-form {
   display: grid;
@@ -7356,9 +7375,12 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   align-items: center;
 }
 
-.pega3-generator__head h4 {
+.pega3-generator__head h4,
+.pega3-gen-label {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 .pega3-generator__output {
@@ -7379,6 +7401,95 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+/* ── Trío del Día ──────────────────────────────────────────────────────────── */
+.p3t-bases { margin-bottom: 12px; }
+.p3t-base-label {
+  font-size: 0.74rem;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+}
+.p3t-base-label strong { color: var(--color-text); }
+.p3t-base-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.p3t-base-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.p3t-base-chip small { font-size: 0.62rem; color: var(--color-muted); font-weight: 400; }
+.p3t-arrow { color: var(--color-muted); font-size: 1rem; }
+
+.p3t-result { }
+.p3t-result-label {
+  font-size: 0.74rem;
+  color: var(--color-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.p3t-trio {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.p3t-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 70px;
+}
+.p3t-slot__from {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.p3t-slot__from small { font-size: 0.60rem; }
+.p3t-slot__arrow { font-size: 0.72rem; color: var(--color-muted); }
+.p3t-slot__to {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--color-accent);
+  line-height: 1;
+}
+.p3t-slot__tipo {
+  font-size: 0.60rem;
+  color: var(--color-muted);
+  text-align: center;
+  margin-top: 2px;
+}
+.p3t-combo {
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
+  background: rgba(201,168,76,0.06);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
 }
 
 .pega3-generator__summary strong {

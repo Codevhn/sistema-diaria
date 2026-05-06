@@ -267,15 +267,12 @@
     </section>
 
     <!-- PEGA3 -->
-    <section id="view-pega3" class="view hidden">
-      <h2>Pega3 · módulo independiente</h2>
-      <p class="hint">
-        Este módulo opera con su propio motor estadístico y base histórica para descubrir patrones reales del juego Pega3.
-        Los datos y sesgos mostrados aquí no afectan el sistema de La Diaria.
-      </p>
+    <section id="view-pega3" class="view hidden pega3-view">
       <div class="pega3-grid">
+
+        <!-- Col 1: Registrar sorteo -->
         <article class="card pega3-card pega3-card--form">
-          <div class="card-head">Registrar sorteo Pega3</div>
+          <div class="card-head">📝 Registrar sorteo</div>
           <div class="card-body pega3-form">
             <div class="pega3-context">
               <label class="pega3-context__field">
@@ -297,66 +294,65 @@
                 </select>
               </label>
             </div>
-            <div class="pega3-context-actions">
-              <button type="button" id="pega3-context-sync" class="btn-ghost small">Detectar fecha y turno actuales</button>
-            </div>
-            <p class="hint small">Usa el botón para autocompletar o ajusta manualmente para cargar sorteos históricos. Cada vez que guardes un sorteo, el turno avanzará automáticamente (11AM → 3PM → 9PM).</p>
+            <button type="button" id="pega3-context-sync" class="btn-ghost small" style="margin-bottom:8px">↻ Detectar turno actual</button>
             <div id="pega3-form-status" class="pega3-form-status hint small" aria-live="polite"></div>
             <div class="pega3-slot-grid">
               <div class="slot pega3-slot">
-                <div class="slot-header">
-                  <div>
-                    <div class="slot-title">Primer par</div>
-                    <p class="pega3-slot-hint">Posición inicial</p>
-                  </div>
-                </div>
+                <div class="slot-header"><div class="slot-title">Par 1</div></div>
                 <div class="slot-controls">
                   <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-1" placeholder="00" class="pega3-slot-input" />
                 </div>
               </div>
               <div class="slot pega3-slot">
-                <div class="slot-header">
-                  <div>
-                    <div class="slot-title">Segundo par</div>
-                    <p class="pega3-slot-hint">Posición central</p>
-                  </div>
-                </div>
+                <div class="slot-header"><div class="slot-title">Par 2</div></div>
                 <div class="slot-controls">
                   <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-2" placeholder="00" class="pega3-slot-input" />
                 </div>
               </div>
               <div class="slot pega3-slot">
-                <div class="slot-header">
-                  <div>
-                    <div class="slot-title">Tercer par</div>
-                    <p class="pega3-slot-hint">Posición final</p>
-                  </div>
-                </div>
+                <div class="slot-header"><div class="slot-title">Par 3</div></div>
                 <div class="slot-controls">
                   <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pega3-par-3" placeholder="00" class="pega3-slot-input" />
                 </div>
               </div>
             </div>
+            <div class="pega3-form-actions">
+              <button id="pega3-btn-registrar" class="btn-primary">Guardar</button>
+              <button id="pega3-btn-cargar" class="btn-outline">Actualizar historial</button>
+            </div>
+            <!-- Generador manual (pares manuales) -->
             <div class="pega3-generator" aria-live="polite">
               <div class="pega3-generator__head">
-                <div>
-                  <h4>Trío aleatorio desde conversiones</h4>
-                  <p class="hint small">Usa tus tres pares como base y deja que el sistema combine conversiones simples, ajustes y compuestas para proponerte un trío diferente.</p>
-                </div>
-                <button type="button" id="pega3-btn-generar-trio" class="btn-outline small">Obtener trío</button>
+                <span class="pega3-gen-label">Trío desde mis pares</span>
+                <button type="button" id="pega3-btn-generar-trio" class="btn-outline small">Obtener</button>
               </div>
               <div id="pega3-generator-output" class="pega3-generator__output">
-                <p class="hint small">Ingresa los tres pares para desbloquear una propuesta.</p>
+                <p class="hint small">Ingresa los tres pares.</p>
               </div>
             </div>
-            <button id="pega3-btn-registrar" class="btn-primary">Guardar sorteo</button>
-            <button id="pega3-btn-cargar" class="btn-outline">Actualizar historial</button>
-            <p class="hint small">La tabla Pega3 se mantiene separada; puedes registrar históricos sin afectar La Diaria.</p>
           </div>
         </article>
+
+        <!-- Col 2: Trío del día (nueva función) -->
+        <article class="card pega3-card pega3-card--trio-dia">
+          <div class="card-head">🎲 Trío del día</div>
+          <div class="card-body">
+            <p class="hint small" style="margin-bottom:10px">
+              Toma los 3 últimos sorteos de La Diaria y aplica conversiones, equivalencias y espejos para sugerir un trío para el siguiente turno.
+            </p>
+            <div id="p3-trio-base" class="p3t-bases"></div>
+            <div id="p3-trio-result" class="p3t-result"></div>
+            <button id="p3-btn-trio-dia" class="btn-primary" style="margin-top:10px;width:100%">🎲 Generar trío</button>
+            <p class="hint small" id="p3-trio-hint" style="margin-top:6px;text-align:center"></p>
+          </div>
         </article>
+
+        <!-- Col 3: Historial + análisis -->
         <article class="card pega3-card pega3-card--insights">
-          <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span>Historial Pega3</span><input id="pega3-hist-search" type="text" placeholder="Fecha o n�mero2026" class="pega3-hist-search" /></div>
+          <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <span>Historial Pega3</span>
+            <input id="pega3-hist-search" type="text" placeholder="Fecha o número" class="pega3-hist-search" />
+          </div>
           <div id="pega3-historial" class="pega3-historial">
             <p class="hint">Registra sorteos para comenzar el análisis.</p>
           </div>
@@ -367,27 +363,28 @@
           </div>
           <div class="pega3-analisis">
             <div class="pega3-analisis__head">
-              <h4>Motor analítico Pega3</h4>
-              <button id="pega3-btn-analizar" class="btn-outline small">Analizar patrones</button>
+              <h4>Motor analítico</h4>
+              <button id="pega3-btn-analizar" class="btn-outline small">Analizar</button>
             </div>
             <div class="pega3-analisis__grid">
               <section>
                 <h5>Resumen</h5>
                 <div id="pega3-resumen" class="pega3-panel">
-                  <p class="hint">Cuando existan datos suficientes, aquí verás frecuencias, sesgos y co-ocurrencias descubiertas.</p>
+                  <p class="hint">Registra sorteos para comenzar.</p>
                 </div>
               </section>
               <section>
-                <h5>Sesgos detectados</h5>
+                <h5>Sesgos</h5>
                 <div id="pega3-sesgos" class="pega3-panel"></div>
               </section>
               <section>
-                <h5>Selección recomendada</h5>
+                <h5>Selección</h5>
                 <div id="pega3-seleccion" class="pega3-panel"></div>
               </section>
             </div>
           </div>
         </article>
+
       </div>
     </section>
 
@@ -6804,6 +6801,106 @@
     pega3GeneratorBtn?.addEventListener("click", () => generatePega3ConversionTrio());
     pega3ParInputs.forEach((input) => {
       input?.addEventListener("input", () => resetPega3GeneratorOutput("Vuelve a generar el trío para reflejar los cambios."));
+    });
+
+    // ── Trío del Día ────────────────────────────────────────────────────────────
+    const HORARIO_ORDER_P3 = { "11AM": 0, "3PM": 1, "9PM": 2 };
+    const TIPO_LABELS = {
+      simple:        "Conv. simple",
+      compound:      "Conv. compuesta",
+      compound_mirror:"Espejo compuesta",
+      equiv_directa: "Equivalencia",
+      equiv_espejo:  "Equiv. espejo",
+      mirror:        "Espejo",
+      encadenado:    "Encadenado",
+    };
+
+    function getLastDayDraws() {
+      const draws = (drawsCache || [])
+        .filter(d => !d.esTest && d.numero && d.fecha)
+        .sort((a, b) => {
+          if (b.fecha !== a.fecha) return b.fecha.localeCompare(a.fecha);
+          return (HORARIO_ORDER_P3[b.horario] ?? 9) - (HORARIO_ORDER_P3[a.horario] ?? 9);
+        });
+      if (!draws.length) return { fecha: null, draws: [] };
+      // Try to get a day with 3 draws; if last day has fewer, look back up to 3 days
+      let fecha = draws[0].fecha;
+      let dayDraws = draws.filter(d => d.fecha === fecha)
+        .sort((a, b) => (HORARIO_ORDER_P3[a.horario] ?? 9) - (HORARIO_ORDER_P3[b.horario] ?? 9));
+      if (dayDraws.length < 3) {
+        const prevDay = draws.find(d => d.fecha < fecha);
+        if (prevDay) {
+          const prevFecha = prevDay.fecha;
+          const prevDraws = draws.filter(d => d.fecha === prevFecha)
+            .sort((a, b) => (HORARIO_ORDER_P3[a.horario] ?? 9) - (HORARIO_ORDER_P3[b.horario] ?? 9));
+          if (prevDraws.length >= dayDraws.length) { fecha = prevFecha; dayDraws = prevDraws; }
+        }
+      }
+      return { fecha, draws: dayDraws.slice(0, 3) };
+    }
+
+    function renderTrioDelDia() {
+      const baseEl   = document.getElementById("p3-trio-base");
+      const resultEl = document.getElementById("p3-trio-result");
+      const hintEl   = document.getElementById("p3-trio-hint");
+      if (!baseEl || !resultEl) return;
+
+      const { fecha, draws } = getLastDayDraws();
+      if (!draws.length) {
+        baseEl.innerHTML = `<p class="hint small">No hay sorteos registrados aún.</p>`;
+        resultEl.innerHTML = "";
+        return;
+      }
+
+      // Show base numbers
+      baseEl.innerHTML = `
+        <div class="p3t-base-label">Base: sorteos del <strong>${fecha}</strong></div>
+        <div class="p3t-base-chips">
+          ${draws.map(d => {
+            const pad = String(parseInt(d.numero,10)).padStart(2,"0");
+            return `<span class="p3t-base-chip"><small>${d.horario}</small>${pad}</span>`;
+          }).join('<span class="p3t-arrow">→</span>')}
+        </div>`;
+
+      // Generate trio: pick random variant per position
+      const trio = draws.map(d => {
+        const num = parseInt(d.numero, 10);
+        const pool = buildPega3ConversionPool(num);
+        // Also add equivalencias from conversion-engine
+        const equivs = getEquivalencias(num).map(n => ({ numero: n, label: "Equivalencia" }));
+        const mirror  = getMirror(num);
+        const mirrorEntry = mirror !== null && mirror !== num ? [{ numero: mirror, label: "Espejo" }] : [];
+        const full = [...pool, ...equivs, ...mirrorEntry].filter(e => e.numero !== num);
+        const deduped = Array.from(new Map(full.map(e => [e.numero, e])).values());
+        const picked  = deduped.length ? deduped[Math.floor(Math.random() * deduped.length)] : { numero: num, label: "Base" };
+        return { original: num, turno: d.horario, picked };
+      });
+
+      const padN = n => String(n).padStart(2,"0");
+      resultEl.innerHTML = `
+        <div class="p3t-result-label">Trío sugerido</div>
+        <div class="p3t-trio">
+          ${trio.map(t => `
+            <div class="p3t-slot">
+              <div class="p3t-slot__from">${padN(t.original)}<small>${t.turno}</small></div>
+              <div class="p3t-slot__arrow">↓</div>
+              <div class="p3t-slot__to">${padN(t.picked.numero)}</div>
+              <div class="p3t-slot__tipo">${t.picked.label}</div>
+            </div>`).join("")}
+        </div>
+        <div class="p3t-combo">${trio.map(t => padN(t.picked.numero)).join(" – ")}</div>`;
+
+      if (hintEl) hintEl.textContent = `Toca "Generar trío" para obtener otra combinación.`;
+    }
+
+    document.getElementById("p3-btn-trio-dia")?.addEventListener("click", renderTrioDelDia);
+
+    // Mostrar bases al cargar la vista Pega3
+    document.querySelector('[data-view="pega3"]')?.addEventListener("click", () => {
+      setTimeout(() => {
+        const baseEl = document.getElementById("p3-trio-base");
+        if (baseEl && !baseEl.innerHTML.trim()) renderTrioDelDia();
+      }, 80);
     });
 
     async function jumpToDayView(fecha, pais) {
