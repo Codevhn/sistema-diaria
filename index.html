@@ -5509,6 +5509,12 @@
         return card;
       }
 
+      // Calcula la semana del mes (1-based) para una fecha "YYYY-MM-DD"
+      function weekOfMonth(fecha) {
+        const d = new Date(`${fecha}T12:00:00`);
+        return Math.ceil(d.getDate() / 7);
+      }
+
       function buildContent(mode) {
         const draws = filterDraws(mode);
         const content = document.createElement("div");
@@ -5519,30 +5525,86 @@
           return content;
         }
 
-        // Agrupar por fecha
-        const byDate = new Map();
-        draws.forEach(d => {
-          const list = byDate.get(d.fecha) || [];
-          list.push(d);
-          byDate.set(d.fecha, list);
-        });
+        if (mode === "mes") {
+          // Agrupar por semana del mes
+          const byWeek = new Map();
+          draws.forEach(d => {
+            const wk = weekOfMonth(d.fecha);
+            const list = byWeek.get(wk) || [];
+            list.push(d);
+            byWeek.set(wk, list);
+          });
 
-        byDate.forEach((dayDraws, fecha) => {
-          const group = document.createElement("div");
-          group.className = "vc-group";
+          // Ordenar semanas desc
+          const weeks = [...byWeek.keys()].sort((a, b) => b - a);
+          weeks.forEach(wk => {
+            const weekDraws = byWeek.get(wk);
+            // Rango de días de esa semana
+            const days = [...new Set(weekDraws.map(d => d.fecha))].sort();
+            const first = fmtFecha(days[0]);
+            const last  = days.length > 1 ? fmtFecha(days[days.length - 1]) : null;
+            const rangeLabel = last ? `Semana ${wk} · ${first} – ${last}` : `Semana ${wk} · ${first}`;
 
-          const label = document.createElement("div");
-          label.className = "vc-group__label";
-          label.textContent = fmtFecha(fecha);
-          group.appendChild(label);
+            const group = document.createElement("div");
+            group.className = "vc-group";
 
-          const row = document.createElement("div");
-          row.className = "vc-group__row";
-          dayDraws.forEach(d => row.appendChild(buildDrawCard(d)));
-          group.appendChild(row);
+            const label = document.createElement("div");
+            label.className = "vc-group__label";
+            label.textContent = rangeLabel;
+            group.appendChild(label);
 
-          content.appendChild(group);
-        });
+            // Dentro de cada semana, agrupar por día
+            const byDate = new Map();
+            weekDraws.forEach(d => {
+              const list = byDate.get(d.fecha) || [];
+              list.push(d);
+              byDate.set(d.fecha, list);
+            });
+
+            const inner = document.createElement("div");
+            inner.className = "vc-week-inner";
+            byDate.forEach((dayDraws, fecha) => {
+              const dayWrap = document.createElement("div");
+              dayWrap.className = "vc-week-day";
+              const dayLabel = document.createElement("span");
+              dayLabel.className = "vc-week-day__label";
+              dayLabel.textContent = fmtFecha(fecha);
+              dayWrap.appendChild(dayLabel);
+              const row = document.createElement("div");
+              row.className = "vc-group__row";
+              dayDraws.forEach(d => row.appendChild(buildDrawCard(d)));
+              dayWrap.appendChild(row);
+              inner.appendChild(dayWrap);
+            });
+            group.appendChild(inner);
+            content.appendChild(group);
+          });
+        } else {
+          // Hoy / Semana — agrupar por fecha
+          const byDate = new Map();
+          draws.forEach(d => {
+            const list = byDate.get(d.fecha) || [];
+            list.push(d);
+            byDate.set(d.fecha, list);
+          });
+
+          byDate.forEach((dayDraws, fecha) => {
+            const group = document.createElement("div");
+            group.className = "vc-group";
+
+            const label = document.createElement("div");
+            label.className = "vc-group__label";
+            label.textContent = fmtFecha(fecha);
+            group.appendChild(label);
+
+            const row = document.createElement("div");
+            row.className = "vc-group__row";
+            dayDraws.forEach(d => row.appendChild(buildDrawCard(d)));
+            group.appendChild(row);
+
+            content.appendChild(group);
+          });
+        }
 
         return content;
       }
@@ -6032,12 +6094,13 @@
             if (motor.eliminados?.length) {
               const recElim = motor.eliminados.filter((e) => e.regla === "reciente").slice(0, 6);
               const sobElim = motor.eliminados.filter((e) => e.regla === "sobrecalentado").slice(0, 4);
-              if (recElim.length) frag.appendChild(buildRezagoSection(recElim, "elim", "✕ Excluidos — cayeron hace poco (baja probabilidad de repetición inmediata)"));
+              if (recElim.length) {
+                frag.appendChild(buildRezagoSection(recElim, "elim", "✕ Excluidos — cayeron hace poco (baja probabilidad de repetición inmediata)"));
+                // ── Ver todos los caídos (colapsable) — justo bajo los Excluidos ──
+                frag.appendChild(buildVerCaidosPanel(sorted, GUIA));
+              }
               if (sobElim.length) frag.appendChild(buildRezagoSection(sobElim, "warn", "⚠ Sobrecalentados — el sistema los evita porque el jugador los espera"));
             }
-
-            // ── Ver todos los caídos (colapsable) ──
-            frag.appendChild(buildVerCaidosPanel(sorted, GUIA));
           }
 
           // ── Calendario adversarial: bloqueos y boosts activos hoy (independiente de candidatos) ──
