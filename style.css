@@ -7201,8 +7201,7 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   max-height: 380px;
   overflow-y: auto;
 }
-.pega3-card--trio-dia { /* columna izquierda en fila 2 */ }
-.pega3-card--insights { /* columna derecha en fila 2 */ }
+.pega3-card--insights { /* fila 2, columna única o derecha */ }
 
 .pega3-form-actions {
   display: flex;
@@ -7388,94 +7387,6 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   gap: 0.5rem;
 }
 
-/* ── Trío del Día ──────────────────────────────────────────────────────────── */
-.p3t-bases { margin-bottom: 12px; }
-.p3t-base-label {
-  font-size: 0.74rem;
-  color: var(--color-muted);
-  margin-bottom: 6px;
-}
-.p3t-base-label strong { color: var(--color-text); }
-.p3t-base-chips {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.p3t-base-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 8px;
-  padding: 4px 10px;
-  font-size: 1rem;
-  font-weight: 900;
-  color: var(--color-text);
-  line-height: 1.2;
-}
-.p3t-base-chip small { font-size: 0.62rem; color: var(--color-muted); font-weight: 400; }
-.p3t-arrow { color: var(--color-muted); font-size: 1rem; }
-
-.p3t-result { }
-.p3t-result-label {
-  font-size: 0.74rem;
-  color: var(--color-muted);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.p3t-trio {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 10px;
-}
-.p3t-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: rgba(201,168,76,0.08);
-  border: 1px solid rgba(201,168,76,0.25);
-  border-radius: 10px;
-  padding: 10px 14px;
-  min-width: 70px;
-}
-.p3t-slot__from {
-  font-size: 0.78rem;
-  color: var(--color-muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-}
-.p3t-slot__from small { font-size: 0.60rem; }
-.p3t-slot__arrow { font-size: 0.72rem; color: var(--color-muted); }
-.p3t-slot__to {
-  font-size: 1.6rem;
-  font-weight: 900;
-  color: var(--color-accent);
-  line-height: 1;
-}
-.p3t-slot__tipo {
-  font-size: 0.60rem;
-  color: var(--color-muted);
-  text-align: center;
-  margin-top: 2px;
-}
-.p3t-combo {
-  text-align: center;
-  font-size: 1.3rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: var(--color-accent);
-  background: rgba(201,168,76,0.06);
-  border: 1px solid rgba(201,168,76,0.2);
-  border-radius: 8px;
-  padding: 8px 16px;
-}
 
 .pega3-generator__summary strong {
   font-size: 1.25rem;
