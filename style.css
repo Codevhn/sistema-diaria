@@ -11346,3 +11346,22 @@ body.login-page {
   color: var(--color-accent);
   letter-spacing: 0.04em;
 }
+
+/* ── Ver Caídos — vista semanal dentro de Mes ───────────────────────────── */
+.vc-week-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+.vc-week-day {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.vc-week-day__label {
+  font-size: 0.68rem;
+  color: rgba(168,158,136,0.7);
+  letter-spacing: 0.04em;
+  padding-left: 2px;
+}
