@@ -5448,6 +5448,162 @@
     }
 
     /**
+     * Panel colapsable "Ver todos los caídos" — agrupa draws por día.
+     * Tabs: Hoy | Semana | Mes
+     * @param {Array}  sortedDraws — sorteos ordenados asc (el array `sorted` de renderPulso)
+     * @param {object} guia        — GUIA (para símbolo)
+     */
+    function buildVerCaidosPanel(sortedDraws, guia) {
+      const today = new Date().toISOString().slice(0, 10);
+      const msDay = 86400000;
+      const startOfWeek = new Date(Date.now() - 6 * msDay).toISOString().slice(0, 10);
+      const startOfMonth = today.slice(0, 7); // "YYYY-MM"
+
+      const HORARIO_ORD = { "11AM": 0, "3PM": 1, "9PM": 2 };
+      const DOW_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+      const MES_ES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+      function fmtFecha(f) {
+        const d = new Date(`${f}T12:00:00`);
+        return `${DOW_ES[d.getDay()]} ${d.getDate()}-${MES_ES[d.getMonth()]}`;
+      }
+
+      function filterDraws(mode) {
+        return [...sortedDraws]
+          .filter(d => {
+            if (!d.fecha || !d.numero) return false;
+            if (mode === "hoy")   return d.fecha === today;
+            if (mode === "semana") return d.fecha >= startOfWeek;
+            if (mode === "mes")   return d.fecha.startsWith(startOfMonth);
+            return true; // "todos"
+          })
+          .sort((a, b) => {
+            const dd = b.fecha.localeCompare(a.fecha);
+            if (dd !== 0) return dd;
+            return (HORARIO_ORD[b.horario] ?? 9) - (HORARIO_ORD[a.horario] ?? 9);
+          });
+      }
+
+      function buildDrawCard(d) {
+        const pad = String(parseInt(d.numero, 10)).padStart(2, "0");
+        const sym = guia?.[pad]?.simbolo || "";
+        const card = document.createElement("div");
+        card.className = "vc-card";
+        const img = numImg(pad, sym);
+        img.className = "vc-card__img";
+        card.appendChild(img);
+        const num = document.createElement("span");
+        num.className = "vc-card__num";
+        num.textContent = pad;
+        card.appendChild(num);
+        if (sym) {
+          const s = document.createElement("span");
+          s.className = "vc-card__sym";
+          s.textContent = sym;
+          card.appendChild(s);
+        }
+        const h = document.createElement("span");
+        h.className = "vc-card__hora";
+        h.textContent = d.horario || "";
+        card.appendChild(h);
+        return card;
+      }
+
+      function buildContent(mode) {
+        const draws = filterDraws(mode);
+        const content = document.createElement("div");
+        content.className = "vc-content";
+
+        if (!draws.length) {
+          content.innerHTML = `<p class="hint small" style="padding:10px 0">Sin sorteos en este período.</p>`;
+          return content;
+        }
+
+        // Agrupar por fecha
+        const byDate = new Map();
+        draws.forEach(d => {
+          const list = byDate.get(d.fecha) || [];
+          list.push(d);
+          byDate.set(d.fecha, list);
+        });
+
+        byDate.forEach((dayDraws, fecha) => {
+          const group = document.createElement("div");
+          group.className = "vc-group";
+
+          const label = document.createElement("div");
+          label.className = "vc-group__label";
+          label.textContent = fmtFecha(fecha);
+          group.appendChild(label);
+
+          const row = document.createElement("div");
+          row.className = "vc-group__row";
+          dayDraws.forEach(d => row.appendChild(buildDrawCard(d)));
+          group.appendChild(row);
+
+          content.appendChild(group);
+        });
+
+        return content;
+      }
+
+      // ── Estructura principal ──
+      const wrap = document.createElement("div");
+      wrap.className = "vc-wrap";
+
+      const toggle = document.createElement("button");
+      toggle.className = "vc-toggle";
+      toggle.innerHTML = `<span class="vc-toggle__icon">▸</span> Ver todos los caídos`;
+      wrap.appendChild(toggle);
+
+      const panel = document.createElement("div");
+      panel.className = "vc-panel hidden";
+      wrap.appendChild(panel);
+
+      // Tabs
+      const tabs = document.createElement("div");
+      tabs.className = "vc-tabs";
+      const TABS = [
+        { id: "hoy",    label: "Hoy" },
+        { id: "semana", label: "Semana" },
+        { id: "mes",    label: "Mes" },
+      ];
+      let activeMode = "hoy";
+      let activeContent = null;
+
+      function switchTab(mode) {
+        activeMode = mode;
+        tabs.querySelectorAll(".vc-tab").forEach(b =>
+          b.classList.toggle("vc-tab--active", b.dataset.mode === mode));
+        if (activeContent) activeContent.remove();
+        activeContent = buildContent(mode);
+        panel.appendChild(activeContent);
+      }
+
+      TABS.forEach(({ id, label }) => {
+        const btn = document.createElement("button");
+        btn.className = "vc-tab";
+        btn.dataset.mode = id;
+        btn.textContent = label;
+        btn.addEventListener("click", () => switchTab(id));
+        tabs.appendChild(btn);
+      });
+
+      panel.appendChild(tabs);
+
+      // Toggle open/close
+      let open = false;
+      toggle.addEventListener("click", () => {
+        open = !open;
+        panel.classList.toggle("hidden", !open);
+        toggle.querySelector(".vc-toggle__icon").textContent = open ? "▾" : "▸";
+        if (open && !activeContent) switchTab(activeMode);
+      });
+
+      return wrap;
+    }
+
+    /**
      * Construye una sección de cards para vencidos / en ventana / eliminados.
      * @param {Array}  items   — array de {pad, simbolo, diasDesdeUltima, cicloPromedio, zScore, razon}
      * @param {string} variant — "warn" | "ok" | "elim"
@@ -5879,6 +6035,9 @@
               if (recElim.length) frag.appendChild(buildRezagoSection(recElim, "elim", "✕ Excluidos — cayeron hace poco (baja probabilidad de repetición inmediata)"));
               if (sobElim.length) frag.appendChild(buildRezagoSection(sobElim, "warn", "⚠ Sobrecalentados — el sistema los evita porque el jugador los espera"));
             }
+
+            // ── Ver todos los caídos (colapsable) ──
+            frag.appendChild(buildVerCaidosPanel(sorted, GUIA));
           }
 
           // ── Calendario adversarial: bloqueos y boosts activos hoy (independiente de candidatos) ──
