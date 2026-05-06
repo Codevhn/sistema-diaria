@@ -12,8 +12,8 @@
 
 const WINDOW_SIZE  = 3;   // sorteos a comparar
 const LOOKAHEAD    = 3;   // sorteos a recoger tras cada match
-const TOP_MATCHES  = 12;  // mejores ventanas a considerar
-const MIN_SCORE    = 18;  // score mínimo para match relevante (max por par ≈ 12)
+const TOP_MATCHES  = 15;  // mejores ventanas a considerar
+const MIN_SCORE    = 10;  // score mínimo para match relevante (max por par ≈ 12)
 const MAX_CANDS    = 10;  // candidatos a devolver
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -138,7 +138,9 @@ export function analizarDejaVu(draws, guia = {}, { windowSize = WINDOW_SIZE, pai
 // ─── Render HTML ──────────────────────────────────────────────────────────────
 
 export function renderDejaVuHTML(resultado, guia = {}) {
-  if (!resultado || !resultado.candidatos.length) return '';
+  if (!resultado || !resultado.candidatos.length) {
+    return `<div class="dv-wrap"><p class="dv-hint">🔁 Déjà Vu — historial insuficiente para detectar secuencias similares aún.</p></div>`;
+  }
 
   const { current, matches, candidatos, totalMatches, windowSize } = resultado;
   const p = n => String(n).padStart(2, '0');

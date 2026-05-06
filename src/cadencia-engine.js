@@ -17,7 +17,7 @@
  *   reciente     → gap < 0.7·media (cayó hace poco)
  */
 
-const MIN_CYCLES = 6;       // mínimo de intervalos para confiar en el ciclo
+const MIN_CYCLES = 4;       // mínimo de intervalos para confiar en el ciclo
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -163,7 +163,9 @@ export function analizarCadencias(draws, guia = {}, { pais = null } = {}) {
 // ─── Render HTML ──────────────────────────────────────────────────────────────
 
 export function renderCadenciasHTML(resultado) {
-  if (!resultado || !resultado.cadencias.length) return '';
+  if (!resultado || !resultado.cadencias.length) {
+    return `<div class="cad-wrap"><p class="cad-hint">⏱ Cadencias — historial insuficiente para calcular ritmos aún.</p></div>`;
+  }
 
   const { cadencias } = resultado;
 
