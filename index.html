@@ -533,6 +533,29 @@
         </div>
         <div id="t-output"></div>
       </div>
+
+      <!-- Modo Consulta histórica -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-head">🔍 Consulta histórica — ¿qué pasó antes y después?</div>
+        <div class="card-body" style="padding:14px 16px">
+          <p class="hint small" style="margin-bottom:12px">
+            Ingresá un número y el sistema te muestra cada vez que cayó, qué lo antecedió
+            y qué vino después — para que puedas detectar patrones reales.
+          </p>
+          <div class="cq-controls">
+            <input id="cq-numero" type="tel" inputmode="numeric" maxlength="2"
+              placeholder="00–99" class="cq-input" />
+            <select id="cq-horario" class="cq-select">
+              <option value="">Todos los turnos</option>
+              <option value="11AM">11 AM</option>
+              <option value="3PM">3 PM</option>
+              <option value="9PM">9 PM</option>
+            </select>
+            <button id="cq-btn" class="btn-primary">Consultar</button>
+          </div>
+          <div id="cq-output" style="margin-top:14px"></div>
+        </div>
+      </div>
     </section>
 
     <!-- GEOMETRÍA -->
@@ -945,6 +968,9 @@
     import { detectarContexto, renderContextoHTML } from "./src/context-engine.js";
     import { computeFeedback, renderFeedbackHTML } from "./src/feedback-engine.js";
     import { analizarPostRepeticion, renderPostRepeticionHTML } from "./src/post-repeticion-engine.js";
+    import { analizarDejaVu, renderDejaVuHTML } from "./src/dejavu-engine.js";
+    import { analizarCadencias, renderCadenciasHTML } from "./src/cadencia-engine.js";
+    import { consultarNumero, renderConsultaHTML } from "./src/consulta-engine.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -5877,6 +5903,34 @@
           console.warn("post-repeticion falló:", err?.message || err);
         }
 
+        // ── Déjà Vu: secuencias similares en el historial ──────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const dvResult = analizarDejaVu(allDraws, GUIA, { pais: pais || null });
+          const dvHtml   = renderDejaVuHTML(dvResult, GUIA);
+          if (dvHtml) {
+            const dvWrap = document.createElement("div");
+            dvWrap.innerHTML = dvHtml;
+            if (dvWrap.firstElementChild) frag.appendChild(dvWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("dejavu falló:", err?.message || err);
+        }
+
+        // ── Cadencias: ritmos activos por categoría ──────────────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const cadResult = analizarCadencias(allDraws, GUIA, { pais: pais || null });
+          const cadHtml   = renderCadenciasHTML(cadResult);
+          if (cadHtml) {
+            const cadWrap = document.createElement("div");
+            cadWrap.innerHTML = cadHtml;
+            if (cadWrap.firstElementChild) frag.appendChild(cadWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("cadencias falló:", err?.message || err);
+        }
+
         // ── Detector de anomalías estadísticas ───────────────────────────────────
         try {
           const allDraws = await DB.listDraws();
@@ -7625,6 +7679,34 @@ function buildVariantEntries(profile) {
       const raw = document.getElementById("t-numero")?.value.trim() ?? "";
       const numero = parseInt(raw, 10);
       mostrarTransformaciones(numero);
+    });
+
+    // ── Modo Consulta histórica ──────────────────────────────────────────────
+    async function ejecutarConsulta() {
+      const raw     = document.getElementById("cq-numero")?.value.trim() ?? "";
+      const horario = document.getElementById("cq-horario")?.value || null;
+      const output  = document.getElementById("cq-output");
+      if (!output) return;
+
+      const num = parseInt(raw, 10);
+      if (isNaN(num) || num < 0 || num > 99) {
+        output.innerHTML = `<p class="hint small">Ingresá un número entre 00 y 99.</p>`;
+        return;
+      }
+
+      output.innerHTML = `<p class="hint small">Consultando historial…</p>`;
+      try {
+        const draws   = await getCachedDraws({ excludeTest: true });
+        const result  = consultarNumero(num, draws, GUIA, { horario });
+        output.innerHTML = renderConsultaHTML(result, GUIA);
+      } catch (err) {
+        output.innerHTML = `<p class="hint small">Error: ${err.message}</p>`;
+      }
+    }
+
+    document.getElementById("cq-btn")?.addEventListener("click", ejecutarConsulta);
+    document.getElementById("cq-numero")?.addEventListener("keydown", e => {
+      if (e.key === "Enter") ejecutarConsulta();
     });
 
     const btnGeometria = document.getElementById("g-generar");
