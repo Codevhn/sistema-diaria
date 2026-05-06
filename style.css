@@ -7184,36 +7184,25 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   color: var(--color-accent);
 }
 
-/* ── Pega3 viewport-fit layout ───────────────────────────────────────────────── */
-.pega3-view {
-  padding: 10px 14px !important;
-  height: calc(100vh - 60px);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+/* ── Pega3 layout ─────────────────────────────────────────────────────────── */
 .pega3-grid {
   display: grid;
-  gap: 10px;
-  grid-template-columns: 260px 1fr 1fr;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
 }
 .pega3-card {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
 }
-.pega3-card .card-body {
+.pega3-card--form {
+  grid-column: 1 / -1; /* ancho completo — fila 1 */
+}
+.pega3-card--insights .pega3-historial {
+  max-height: 380px;
   overflow-y: auto;
-  flex: 1;
-  padding: 10px 12px;
 }
-.pega3-card--form  { /* col 1 */ }
-.pega3-card--trio-dia { /* col 2 */ }
-.pega3-card--insights { /* col 3 */ }
+.pega3-card--trio-dia { /* columna izquierda en fila 2 */ }
+.pega3-card--insights { /* columna derecha en fila 2 */ }
 
 .pega3-form-actions {
   display: flex;
