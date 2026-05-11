@@ -11654,3 +11654,116 @@ details[open] .cq-episodes__toggle::before { content: "▾ "; }
 .rec-card__num  { font-size: 0.95rem; font-weight: 900; color: var(--color-text); }
 .rec-card__sym  { font-size: 0.60rem; color: var(--color-muted); }
 .rec-card__hora { font-size: 0.60rem; color: var(--color-accent); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUSENCIAS Y DOBLE APARICIÓN (DAPA)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.aus-wrap {
+  border: 2px solid rgba(201,168,76,0.4);
+  border-radius: var(--radius-md);
+  background: rgba(201,168,76,0.05);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.aus-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; gap: 6px; margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(201,168,76,0.2);
+}
+.aus-title { font-size: 0.9rem; font-weight: 700; color: var(--color-accent); }
+.aus-sub   { font-size: 0.72rem; color: var(--color-muted); }
+.aus-hint  { font-size: 0.73rem; color: var(--color-muted); margin: 4px 0 8px; }
+.aus-hint strong { color: var(--color-text); }
+
+.aus-section { margin-bottom: 16px; }
+.aus-section:last-child { margin-bottom: 0; }
+.aus-section__title {
+  font-size: 0.8rem; font-weight: 700; color: var(--color-text);
+  margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+}
+.aus-section__badge {
+  font-size: 0.65rem; font-weight: 400;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--color-border);
+  border-radius: 20px; padding: 1px 8px; color: var(--color-muted);
+}
+.aus-section--alerta {
+  border: 1px solid rgba(224,82,82,0.4);
+  border-radius: 10px;
+  background: rgba(224,82,82,0.05);
+  padding: 10px 12px;
+}
+
+/* Alerta activa DAPA */
+.aus-alert {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(224,82,82,0.3);
+  border-radius: 9px; padding: 10px 12px; margin-bottom: 8px;
+}
+.aus-alert:last-child { margin-bottom: 0; }
+.aus-alert__img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; display: block; }
+.aus-alert__img-wrap { flex-shrink: 0; }
+.aus-alert__body { display: flex; flex-direction: column; gap: 3px; }
+.aus-alert__num  { font-size: 1.2rem; font-weight: 900; color: var(--color-text); line-height: 1; }
+.aus-alert__sym  { font-size: 0.7rem; color: var(--color-muted); }
+.aus-alert__desc { font-size: 0.75rem; color: var(--color-text); }
+.aus-alert__desc strong { color: var(--color-accent); }
+.aus-alert__rep  { font-size: 0.72rem; font-weight: 700; margin-top: 3px; }
+.aus-alert__rep--si   { color: #52e07a; }
+.aus-alert__rep--pend { color: #e0a852; }
+
+/* Dobles recientes */
+.aus-dbls { display: flex; flex-direction: column; gap: 7px; }
+.aus-dbl-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--color-border);
+  border-radius: 8px; padding: 7px 10px;
+}
+.aus-dbl-img  { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; }
+.aus-dbl-num  { font-size: 0.95rem; font-weight: 900; color: var(--color-text); min-width: 24px; }
+.aus-dbl-sym  { font-size: 0.65rem; color: var(--color-muted); }
+.aus-dbl-fecha{ font-size: 0.72rem; color: var(--color-muted); }
+.aus-dbl-veces{ font-size: 0.72rem; color: var(--color-text); }
+.aus-dbl-aus  { font-size: 0.68rem; color: var(--color-muted);
+  background: rgba(255,255,255,0.05); border-radius: 20px; padding: 1px 7px; }
+.aus-dbl-aus--larga { color: #e05252; background: rgba(224,82,82,0.1); }
+.aus-dbl-rep  { font-size: 0.68rem; border-radius: 20px; padding: 1px 7px; }
+.aus-dbl-rep--si   { color: #52e07a; background: rgba(82,224,122,0.1); }
+.aus-dbl-rep--pend { color: #e0a852; background: rgba(224,168,82,0.1); }
+
+/* Cards en ausencia */
+.aus-cards { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.aus-card {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--color-border);
+  border-radius: 9px; padding: 8px 10px; min-width: 58px;
+}
+.aus-card--mid      { border-color: rgba(201,168,76,0.3); }
+.aus-card--high     { border-color: rgba(224,140,52,0.5); background: rgba(224,140,52,0.08); }
+.aus-card--critical { border-color: rgba(224,82,82,0.5); background: rgba(224,82,82,0.08);
+  box-shadow: 0 0 10px rgba(224,82,82,0.12); }
+.aus-card__img   { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; }
+.aus-card__num   { font-size: 1rem; font-weight: 900; color: var(--color-text); line-height: 1; }
+.aus-card__sym   { font-size: 0.6rem; color: var(--color-muted); }
+.aus-card__extra { font-size: 0.65rem; color: var(--color-accent); font-weight: 700; }
+
+/* Validación histórica */
+.aus-valid { margin-top: 10px; }
+.aus-valid__toggle {
+  font-size: 0.75rem; color: var(--color-muted); cursor: pointer;
+  list-style: none; padding: 6px 0;
+}
+.aus-valid__toggle::-webkit-details-marker { display: none; }
+.aus-valid__toggle::before { content: '▶ '; font-size: 0.6rem; }
+details[open] .aus-valid__toggle::before { content: '▼ '; }
+.aus-valid__body { padding: 8px 0 0; }
+.aus-dist { display: flex; align-items: flex-end; gap: 6px; height: 56px; padding-top: 4px; }
+.aus-dist-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.aus-dist-bar {
+  width: 20px; background: var(--color-accent);
+  border-radius: 3px 3px 0 0; min-height: 2px;
+  transition: height 0.3s;
+}
+.aus-dist-lbl { font-size: 0.6rem; color: var(--color-muted); }

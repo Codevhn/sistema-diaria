@@ -971,6 +971,7 @@
     import { analizarDejaVu, renderDejaVuHTML } from "./src/dejavu-engine.js";
     import { analizarCadencias, renderCadenciasHTML } from "./src/cadencia-engine.js";
     import { consultarNumero, renderConsultaHTML } from "./src/consulta-engine.js";
+    import { analizarAusencias, renderAusenciasHTML } from "./src/ausencia-engine.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -5929,6 +5930,20 @@
           }
         } catch (err) {
           console.warn("cadencias falló:", err?.message || err);
+        }
+
+        // ── Ausencias y doble aparición (DAPA) ──────────────────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const ausResult = analizarAusencias(allDraws, GUIA, { pais: pais || null });
+          const ausHtml   = renderAusenciasHTML(ausResult, GUIA);
+          if (ausHtml) {
+            const ausWrap = document.createElement("div");
+            ausWrap.innerHTML = ausHtml;
+            if (ausWrap.firstElementChild) frag.appendChild(ausWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("ausencias falló:", err?.message || err);
         }
 
         // ── Detector de anomalías estadísticas ───────────────────────────────────
