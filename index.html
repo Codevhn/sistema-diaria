@@ -5832,6 +5832,24 @@
         recRow.className = "pulso-rec-row";
         frag.appendChild(recRow);
 
+        // Fila 3: panel de Líneas (decenas) — visible de inmediato al abrir Escenarios
+        const linRow = document.createElement("div");
+        frag.appendChild(linRow);
+        (async () => {
+          try {
+            const allDraws = await DB.listDraws();
+            const linResult = analizarLineas(allDraws, GUIA, { pais: pais || null });
+            const linHtml   = renderLineasHTML(linResult, GUIA);
+            if (linHtml) {
+              const linWrap = document.createElement("div");
+              linWrap.innerHTML = linHtml;
+              if (linWrap.firstElementChild) linRow.appendChild(linWrap.firstElementChild);
+            }
+          } catch (err) {
+            console.warn("lineas falló:", err?.message || err);
+          }
+        })();
+
         // Tarjeta del último sorteo
         const lastCard = document.createElement("div");
         lastCard.className = "pulso-last";
@@ -5941,20 +5959,6 @@
           }
         } catch (err) {
           console.warn("cadencias falló:", err?.message || err);
-        }
-
-        // ── Líneas (grupos de 10 por decena) ────────────────────────────────────
-        try {
-          const allDraws = await DB.listDraws();
-          const linResult = analizarLineas(allDraws, GUIA, { pais: pais || null });
-          const linHtml   = renderLineasHTML(linResult, GUIA);
-          if (linHtml) {
-            const linWrap = document.createElement("div");
-            linWrap.innerHTML = linHtml;
-            if (linWrap.firstElementChild) frag.appendChild(linWrap.firstElementChild);
-          }
-        } catch (err) {
-          console.warn("lineas falló:", err?.message || err);
         }
 
         // ── Ausencias y doble aparición (DAPA) ──────────────────────────────────
