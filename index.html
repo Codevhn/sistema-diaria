@@ -6443,33 +6443,146 @@
           }
         } catch (_) { /* constelaciones opcionales */ }
 
-        // ── Modo Recuperación (Super Premio) ─────────────────────────────────
+        // ── Modo Recuperación (Super Premio) — panel completo ────────────────
         try {
           const spFechas = await listSpFromDb();
           const rec = detectarModoRecuperacion(spFechas);
           if (rec && rec.activo) {
-            const diasDesde = rec.diasTranscurridos;
-            const fecha = rec.ultimoEvento;
-            const hist2 = sorted.filter(d => !d.esTest);
-            const reps = detectarNumerosRepetidosPostEvento(fecha, hist2);
-            const recSec = document.createElement("div");
-            recSec.className = "pulso-group sp-recovery-banner";
+            const diasDesde   = rec.diasTranscurridos;
+            const spFecha     = rec.ultimoEvento;
+            const hist2       = sorted.filter(d => !d.esTest);
+            const PAD2        = n => String(n).padStart(2,"0");
+            const DOW_REC     = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+            const MES_REC     = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+            // ── 1. Sorteos caídos desde el SP (por día, con imagen) ──────────
+            const endRecTime = new Date(spFecha).getTime() + SP_RECOVERY_DAYS * 86_400_000;
+            const endRecDate = new Date(endRecTime).toISOString().slice(0,10);
+            const drawsPost  = hist2
+              .filter(d => d.fecha > spFecha && d.fecha <= endRecDate)
+              .sort((a,b) => {
+                if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
+                const ord = {"11AM":0,"3PM":1,"9PM":2};
+                return (ord[a.horario]??9)-(ord[b.horario]??9);
+              });
+
+            // Agrupar por día
+            const byDay = new Map();
+            drawsPost.forEach(d => {
+              const list = byDay.get(d.fecha) || [];
+              list.push(d);
+              byDay.set(d.fecha, list);
+            });
+
+            const caídosHtml = drawsPost.length === 0
+              ? `<p class="rec-hint">Aún no hay sorteos registrados desde el pago del Super Premio.</p>`
+              : [...byDay.entries()].map(([fecha, dayDraws]) => {
+                  const dt  = new Date(`${fecha}T12:00:00`);
+                  const lbl = `${DOW_REC[dt.getDay()]} ${dt.getDate()}-${MES_REC[dt.getMonth()]}`;
+                  const chips = dayDraws.map(d => {
+                    const pd  = PAD2(parseInt(d.numero,10));
+                    const sym = GUIA?.[pd]?.simbolo || "";
+                    return `
+                      <div class="rec-card">
+                        <img class="rec-card__img" src="data/img/${pd}.png" alt="${pd}"
+                          onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
+                        <span class="rec-card__num">${pd}</span>
+                        ${sym ? `<span class="rec-card__sym">${sym}</span>` : ""}
+                        <span class="rec-card__hora">${d.horario}</span>
+                      </div>`;
+                  }).join("");
+                  return `
+                    <div class="rec-day">
+                      <span class="rec-day__label">${lbl}</span>
+                      <div class="rec-day__row">${chips}</div>
+                    </div>`;
+                }).join("");
+
+            // ── 2. Candidatos históricos: qué números cayeron en recuperaciones
+            //       anteriores y AÚN NO han caído en esta ─────────────────────
+            const numsCaidosAhora = new Set(drawsPost.map(d => parseInt(d.numero,10)));
+            const spHistoricas    = spFechas.filter(f => f !== spFecha).sort();
+
+            // Frecuencia de cada número en recuperaciones históricas
+            const histFreq = new Map();
+            let totalHistSP = 0;
+            spHistoricas.forEach(spH => {
+              const endH = new Date(new Date(spH).getTime() + SP_RECOVERY_DAYS * 86_400_000).toISOString().slice(0,10);
+              const wDraws = hist2.filter(d => d.fecha > spH && d.fecha <= endH);
+              totalHistSP++;
+              const seen = new Set(wDraws.map(d => parseInt(d.numero,10)));
+              seen.forEach(n => histFreq.set(n, (histFreq.get(n)||0) + 1));
+            });
+
+            // Candidatos = frecuentes en historial de SP pero que aún no cayeron ahora
+            const candidatos = [...histFreq.entries()]
+              .filter(([n]) => !numsCaidosAhora.has(n))
+              .sort((a,b) => b[1]-a[1])
+              .slice(0, 12);
+
+            const candidatosHtml = totalHistSP === 0
+              ? `<p class="rec-hint">No hay recuperaciones anteriores registradas para comparar.</p>`
+              : candidatos.length === 0
+              ? `<p class="rec-hint">✅ Todos los candidatos históricos ya han aparecido en esta recuperación.</p>`
+              : candidatos.map(([n, hits]) => {
+                  const pd   = PAD2(n);
+                  const sym  = GUIA?.[pd]?.simbolo || "";
+                  const pct  = Math.round((hits / totalHistSP) * 100);
+                  const str  = pct >= 60 ? "rec-cand--strong" : pct >= 35 ? "rec-cand--med" : "";
+                  return `
+                    <div class="rec-cand ${str}" title="Cayó en ${hits} de ${totalHistSP} recuperaciones anteriores">
+                      <img class="rec-cand__img" src="data/img/${pd}.png" alt="${pd}"
+                        onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
+                      <span class="rec-cand__num">${pd}</span>
+                      ${sym ? `<span class="rec-cand__sym">${sym}</span>` : ""}
+                      <span class="rec-cand__pct">${pct}%</span>
+                    </div>`;
+                }).join("");
+
+            // ── 3. Números que ya repitieron (ya existía) ────────────────────
+            const reps = detectarNumerosRepetidosPostEvento(spFecha, hist2);
             const repsHtml = reps.length
-              ? `<div class="sp-analysis-chips" style="margin-top:6px">
-                  ${reps.map(({ numero, veces }) => {
-                    const pad = String(numero).padStart(2,"0");
-                    const sim = GUIA?.[pad]?.simbolo || "";
-                    return `<span class="sp-rep-chip sp-rep-chip--active">${pad} <small>${sim}</small> <em>${veces}×</em></span>`;
-                  }).join("")}
-                </div>`
-              : `<p class="sp-recovery-desc" style="margin:4px 0 0">Aún no hay repeticiones registradas desde ese pago.</p>`;
+              ? reps.map(({numero, veces}) => {
+                  const pd  = PAD2(numero);
+                  const sym = GUIA?.[pd]?.simbolo || "";
+                  return `
+                    <div class="rec-card rec-card--rep">
+                      <img class="rec-card__img" src="data/img/${pd}.png" alt="${pd}"
+                        onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
+                      <span class="rec-card__num">${pd}</span>
+                      ${sym ? `<span class="rec-card__sym">${sym}</span>` : ""}
+                      <span class="rec-card__hora">${veces}×</span>
+                    </div>`;
+                }).join("")
+              : `<p class="rec-hint">Sin repeticiones todavía.</p>`;
+
+            // ── Render del panel ─────────────────────────────────────────────
+            const recSec = document.createElement("div");
+            recSec.className = "rec-panel";
             recSec.innerHTML = `
-              <div class="pulso-group__head">
-                <span class="pulso-group__label">⚡ Modo Recuperación activo — día ${diasDesde} de ${SP_RECOVERY_DAYS}</span>
-                <span class="pulso-group__freq">pago: ${fecha} · ${rec.diasRestantes}d restantes</span>
+              <div class="rec-panel__head">
+                <span class="rec-panel__title">⚡ Modo Recuperación — Día ${diasDesde} de ${SP_RECOVERY_DAYS}</span>
+                <span class="rec-panel__meta">SP pagado el ${spFecha} · ${rec.diasRestantes} días restantes</span>
               </div>
-              <p class="sp-recovery-desc" style="margin:4px 0 2px">La Diaria pagó super premio hace ${diasDesde} día${diasDesde !== 1 ? "s" : ""}. Números repitiendo desde ese pago:</p>
-              ${repsHtml}
+
+              <div class="rec-section">
+                <div class="rec-section__title">
+                  🎯 Candidatos históricos aún sin caer
+                  ${totalHistSP > 0 ? `<span class="rec-section__badge">Basado en ${totalHistSP} SP anteriores</span>` : ""}
+                </div>
+                <p class="rec-hint">Números que históricamente aparecen en período de recuperación pero <strong>todavía no han caído</strong> en este ciclo.</p>
+                <div class="rec-cands">${candidatosHtml}</div>
+              </div>
+
+              <div class="rec-section">
+                <div class="rec-section__title">📅 Caídos desde el SP <span class="rec-section__badge">${drawsPost.length} sorteos</span></div>
+                <div class="rec-days">${caídosHtml}</div>
+              </div>
+
+              <div class="rec-section">
+                <div class="rec-section__title">🔁 Repitiendo en este período</div>
+                <div class="rec-day__row" style="margin-top:6px">${repsHtml}</div>
+              </div>
             `;
             frag.prepend(recSec);
           }
