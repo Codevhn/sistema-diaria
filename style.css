@@ -3608,24 +3608,29 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   font-size: 1.05rem;
   letter-spacing: .04em;
 }
+
+/* Grid multi-columna: 4 entradas por fila en pantallas anchas */
 .guide-relativos {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 6px;
   margin-top: 16px;
 }
+
+/* Cada entrada: número principal → relativos */
 .rel-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: var(--radius-md);
-  padding: 10px 14px;
-  min-height: 88px;
+  padding: 7px 10px;
+  min-height: 0;
+  transition: background .12s;
 }
 .rel-row:hover {
-  background: rgba(255,255,255,0.055);
+  background: rgba(255,255,255,0.06);
 }
 .rel-row--highlight {
   background: rgba(242,196,74,0.12);
@@ -3634,43 +3639,67 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   transition: background 1.6s ease, outline 1.6s ease;
 }
 .rel-row__arrow {
-  font-size: 1.3rem;
-  opacity: .5;
+  font-size: 1rem;
+  opacity: .4;
   flex-shrink: 0;
-  padding: 0 4px;
+  padding: 0 2px;
 }
 .rel-row__rels {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 5px;
   align-items: center;
 }
 
-/* Tarjeta de número en la tabla de relativos */
+/* ── Número principal (más grande) ── */
+.rel-row__main {
+  flex-shrink: 0;
+}
+.rel-row__main.rel-num-card {
+  min-width: 0;
+  padding: 5px 7px 4px;
+}
+.rel-row__main .rel-num-card__img-wrap {
+  width: 36px;
+  height: 36px;
+}
+.rel-row__main .rel-num-card__num {
+  font-size: .88rem;
+}
+.rel-row__main .rel-num-card__sym {
+  font-size: .62rem;
+  max-width: 48px;
+}
+
+/* ── Tarjeta de número base ── */
 .rel-num-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  border: 1.5px solid rgba(255,255,255,0.18);
+  gap: 2px;
+  border: 1.5px solid rgba(255,255,255,0.15);
   border-radius: var(--radius-md);
-  padding: 8px 10px 6px;
+  padding: 6px 8px 5px;
   background: rgba(255,255,255,0.04);
-  min-width: 72px;
+  min-width: 58px;
   text-align: center;
-  transition: transform .15s, box-shadow .15s;
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s;
 }
 .rel-num-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  box-shadow: 0 5px 14px rgba(0,0,0,0.4);
 }
+
+/* ── Relativos (más pequeños) ── */
 .rel-num-card--sm {
-  min-width: 58px;
-  padding: 6px 8px 5px;
+  min-width: 50px;
+  padding: 5px 6px 4px;
+  border-color: rgba(255,255,255,0.10);
 }
 .rel-num-card__img-wrap {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   overflow: hidden;
   background: rgba(255,255,255,0.06);
@@ -3680,8 +3709,8 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   flex-shrink: 0;
 }
 .rel-num-card--sm .rel-num-card__img-wrap {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
 }
 .rel-num-card__img {
   width: 100%;
@@ -3689,29 +3718,25 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   object-fit: cover;
 }
 .rel-num-card__num {
-  font-size: .95rem;
+  font-size: .88rem;
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: .03em;
   line-height: 1;
 }
 .rel-num-card--sm .rel-num-card__num {
-  font-size: .82rem;
+  font-size: .78rem;
 }
 .rel-num-card__sym {
-  font-size: .72rem;
-  opacity: .75;
+  font-size: .65rem;
+  opacity: .70;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 68px;
+  max-width: 56px;
 }
 .rel-num-card--sm .rel-num-card__sym {
-  font-size: .65rem;
-  max-width: 54px;
-}
-.rel-row__main {
-  flex-shrink: 0;
-  min-width: 80px;
+  font-size: .58rem;
+  max-width: 46px;
 }
 
 .legend {
