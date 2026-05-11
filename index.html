@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La Diaria — v3.2 Responsive</title>
   <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./src/mac-theme.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -35,7 +36,20 @@
 </head>
 
 <body class="layout">
-  <button id="btn-toggle-sidebar" class="menu-btn" aria-label="Mostrar/ocultar menú">☰</button>
+  <!-- macOS window title bar -->
+  <div class="mac-titlebar">
+    <div class="mac-titlebar__lights">
+      <span class="mac-light mac-light--red"    title="Cerrar"></span>
+      <span class="mac-light mac-light--yellow" title="Minimizar"></span>
+      <span class="mac-light mac-light--green"  title="Maximizar"></span>
+    </div>
+    <span class="mac-titlebar__title">La Diaria — Sistema de análisis</span>
+    <div class="mac-titlebar__right">
+      <button class="mac-titlebar__icon-btn" id="btn-toggle-sidebar" aria-label="Mostrar/ocultar menú">
+        <i class="fa-solid fa-sidebar"></i>
+      </button>
+    </div>
+  </div>
   <aside class="sidebar expanded" id="sidebar">
     <div class="brand">LD v3.2</div>
 

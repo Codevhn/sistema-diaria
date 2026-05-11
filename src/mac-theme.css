@@ -1,0 +1,518 @@
+/**
+ * mac-theme.css — Apariencia macOS Dark Mode para Sistema Diaria
+ *
+ * Cubre: colores, tipografía SF Pro, sidebar vibrancy,
+ * frosted-glass panels, tráfico semáforos, botones, inputs,
+ * scrollbar fina, animaciones suaves.
+ */
+
+/* ─── Fuente SF Pro (sistema Apple; fallback elegante en otros SO) ─── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════════
+   VARIABLES — macOS dark mode palette
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  /* Fondo y superficies */
+  --color-bg:            #1c1c1e;
+  --color-surface:       rgba(44, 44, 46, 0.92);
+  --color-surface-2:     rgba(58, 58, 60, 0.88);
+  --color-surface-3:     rgba(72, 72, 74, 0.80);
+
+  /* Bordes */
+  --color-border:        rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Texto */
+  --color-text:          #f5f5f7;
+  --color-muted:         rgba(235, 235, 245, 0.55);
+
+  /* Acento macOS azul sistema */
+  --color-accent:        #0a84ff;
+  --color-accent-hover:  #409cff;
+  --color-accent-glow:   rgba(10, 132, 255, 0.28);
+
+  /* Radios — macOS usa esquinas generosas */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+
+  /* Tipografía */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+               "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "Menlo", "Monaco", "Fira Code", "Courier New", monospace;
+
+  /* Sombras macOS */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.3), 0 1px 1px rgba(0,0,0,0.2);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
+  --shadow-lg:  0 12px 40px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.35);
+  --shadow-panel: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.45);
+
+  /* Blur vibrancy */
+  --blur-sidebar: blur(32px) saturate(200%);
+  --blur-panel:   blur(20px) saturate(160%);
+  --blur-modal:   blur(40px) saturate(200%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+body {
+  background: var(--color-bg);
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BARRA DE TÍTULO — ventana macOS
+   ═══════════════════════════════════════════════════════════════════ */
+.mac-titlebar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 40px;
+  background: rgba(28, 28, 30, 0.88);
+  backdrop-filter: var(--blur-sidebar);
+  -webkit-backdrop-filter: var(--blur-sidebar);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 1200;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.mac-titlebar__lights {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+.mac-light {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  cursor: default;
+  transition: filter 0.15s;
+}
+.mac-light--red    { background: #ff5f57; box-shadow: 0 0 0 1px rgba(0,0,0,0.15) inset; }
+.mac-light--yellow { background: #febc2e; box-shadow: 0 0 0 1px rgba(0,0,0,0.12) inset; }
+.mac-light--green  { background: #28c840; box-shadow: 0 0 0 1px rgba(0,0,0,0.12) inset; }
+.mac-light:hover   { filter: brightness(1.1); }
+.mac-titlebar__title {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.75);
+  letter-spacing: 0.01em;
+}
+.mac-titlebar__right {
+  width: 60px; /* equilibra el lado izquierdo */
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.mac-titlebar__icon-btn {
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,0.4); font-size: 14px; padding: 4px;
+  border-radius: 4px; transition: color 0.15s, background 0.15s;
+  -webkit-app-region: no-drag;
+}
+.mac-titlebar__icon-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+/* Desplazar todo el contenido para dejar espacio a la titlebar */
+body { padding-top: 40px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   BARRA DE CUENTA REGRESIVA (debajo de la titlebar)
+   ═══════════════════════════════════════════════════════════════════ */
+.countdown-bar {
+  top: 40px !important;
+  background: rgba(28,28,30,0.80) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR — vibrancy macOS
+   ═══════════════════════════════════════════════════════════════════ */
+.sidebar {
+  background: rgba(30, 30, 32, 0.78) !important;
+  backdrop-filter: var(--blur-sidebar) !important;
+  -webkit-backdrop-filter: var(--blur-sidebar) !important;
+  border-right: 1px solid rgba(255,255,255,0.07) !important;
+  padding: 10px 8px !important;
+  width: 210px !important;
+}
+
+/* Botones del sidebar */
+.sidebar button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  padding: 7px 10px !important;
+  border-radius: 7px !important;
+  border: none !important;
+  background: transparent !important;
+  color: rgba(235,235,245,0.75) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  transition: background 0.12s, color 0.12s !important;
+  text-align: left !important;
+  letter-spacing: 0.01em !important;
+}
+.sidebar button:hover {
+  background: rgba(255,255,255,0.08) !important;
+  color: #f5f5f7 !important;
+}
+.sidebar button.active,
+.sidebar button[aria-current="page"] {
+  background: rgba(10, 132, 255, 0.22) !important;
+  color: #0a84ff !important;
+  font-weight: 600 !important;
+}
+.sidebar-icon {
+  font-size: 14px !important;
+  width: 18px !important;
+  text-align: center !important;
+  opacity: 0.8;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ÁREA PRINCIPAL
+   ═══════════════════════════════════════════════════════════════════ */
+.content {
+  background: var(--color-bg) !important;
+}
+
+/* Encabezados de sección */
+h1, h2 {
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+  color: var(--color-text) !important;
+}
+h2 { font-size: 1.5rem !important; }
+h3 { font-size: 1rem !important; font-weight: 600 !important; letter-spacing: -0.01em !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CARDS / PANELES — frosted glass
+   ═══════════════════════════════════════════════════════════════════ */
+.card,
+.pulso-group,
+.hit-tracker,
+.rec-panel,
+.lin-card,
+.aus-wrap,
+.cad-wrap,
+.dv-wrap,
+.vc-panel,
+.pega3-card,
+[class*="-panel"],
+[class*="-card"]:not(.mac-light):not(.suerte-num-card):not(.suerte-linea-card) {
+  background: var(--color-surface) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOTONES — macOS style
+   ═══════════════════════════════════════════════════════════════════ */
+button:not(.sidebar button):not(.mac-light):not(.mac-titlebar__icon-btn),
+.btn,
+[class*="btn"]:not(.mac-light):not(.suerte-btn) {
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: background 0.12s, box-shadow 0.12s, transform 0.08s !important;
+}
+
+/* Botón primario */
+.btn-primary,
+button[class*="--primary"],
+.suerte-btn:not(.suerte-btn--disabled) {
+  background: var(--color-accent) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 1px 4px rgba(10,132,255,0.4) !important;
+}
+.btn-primary:hover,
+.suerte-btn:not(.suerte-btn--disabled):hover {
+  background: var(--color-accent-hover) !important;
+  box-shadow: 0 2px 12px rgba(10,132,255,0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Botón secundario / ghost */
+.btn-ghost,
+button[class*="--ghost"] {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.12) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   INPUTS / SELECTS
+   ═══════════════════════════════════════════════════════════════════ */
+input[type="text"],
+input[type="number"],
+input[type="search"],
+input[type="date"],
+select,
+textarea {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  padding: 7px 11px !important;
+  outline: none !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px rgba(10,132,255,0.22) !important;
+  background: rgba(255,255,255,0.08) !important;
+}
+select option { background: #2c2c2e; color: #f5f5f7; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CHIPS / BADGES — macOS pill style
+   ═══════════════════════════════════════════════════════════════════ */
+[class*="-badge"],
+[class*="-pill"],
+[class*="-chip"]:not(.ht-chip) {
+  border-radius: 20px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ACENTO — reemplazar dorado por azul macOS en elementos clave
+   ═══════════════════════════════════════════════════════════════════ */
+.pulso-last__num,
+.suerte-linea-card__num,
+.suerte-num-card__num,
+.rec-panel__title,
+.lin-card__gap-txt strong,
+[class*="__num"][class*="pulso"] {
+  color: var(--color-accent) !important;
+}
+
+/* Barra de progreso */
+[class*="__bar-fill"],
+[class*="-bar-fill"] {
+  background: var(--color-accent) !important;
+}
+
+/* Links y acciones */
+a { color: var(--color-accent) !important; }
+a:hover { color: var(--color-accent-hover) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TABLA / DIVISORES
+   ═══════════════════════════════════════════════════════════════════ */
+hr,
+[class*="__divider"],
+[class*="-separator"] {
+  border-color: var(--color-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODALES / OVERLAYS — frosted glass
+   ═══════════════════════════════════════════════════════════════════ */
+.modal,
+[class*="-modal"],
+[class*="-overlay"],
+[class*="-popup"] {
+  background: rgba(28,28,30,0.85) !important;
+  backdrop-filter: var(--blur-modal) !important;
+  -webkit-backdrop-filter: var(--blur-modal) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLLBAR — delgada macOS
+   ═══════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.30); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PANEL DEL ÚLTIMO SORTEO — tarjeta macOS
+   ═══════════════════════════════════════════════════════════════════ */
+.pulso-last {
+  background: rgba(44,44,46,0.90) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HIT-TRACKER — fondo macOS
+   ═══════════════════════════════════════════════════════════════════ */
+.hit-tracker {
+  background: rgba(44,44,46,0.88) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+}
+.hit-tracker--hot     { border-color: rgba(48,209,88,0.45) !important; }
+.hit-tracker--ok      { border-color: rgba(10,132,255,0.45) !important; }
+.hit-tracker--neutral { border-color: rgba(255,159,10,0.35) !important; }
+.hit-tracker--bad     { border-color: rgba(255,69,58,0.40) !important; }
+.hit-tracker--hot     .hit-tracker__verdict { color: #30d158 !important; background: rgba(48,209,88,0.15) !important; }
+.hit-tracker--ok      .hit-tracker__verdict { color: #0a84ff !important; background: rgba(10,132,255,0.15) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODO RECUPERACIÓN — rojo macOS (systemRed)
+   ═══════════════════════════════════════════════════════════════════ */
+.rec-panel {
+  border-color: rgba(255,69,58,0.45) !important;
+  background: rgba(255,69,58,0.07) !important;
+}
+.rec-panel__title { color: #ff453a !important; }
+.pulso-rec-row .rec-panel__head { border-bottom-color: rgba(255,69,58,0.2) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ALERTAS DE AUSENCIA — naranja macOS (systemOrange)
+   ═══════════════════════════════════════════════════════════════════ */
+.aus-wrap   { border-color: rgba(255,159,10,0.35) !important; background: rgba(255,159,10,0.06) !important; }
+.aus-title  { color: #ff9f0a !important; }
+.aus-section--alerta { border-color: rgba(255,69,58,0.4) !important; background: rgba(255,69,58,0.06) !important; }
+.aus-alert__rep--si   { color: #30d158 !important; }
+.aus-alert__rep--pend { color: #ff9f0a !important; }
+.aus-card--critical   { border-color: rgba(255,69,58,0.5) !important; background: rgba(255,69,58,0.08) !important; }
+.aus-card--high       { border-color: rgba(255,159,10,0.5) !important; background: rgba(255,159,10,0.08) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LÍNEAS — colores macOS
+   ═══════════════════════════════════════════════════════════════════ */
+.lin-card--vencida  { border-color: rgba(255,69,58,0.40)  !important; background: rgba(255,69,58,0.05)  !important; }
+.lin-card--ventana  { border-color: rgba(48,209,88,0.35)  !important; background: rgba(48,209,88,0.05)  !important; }
+.lin-card--aprox    { border-color: rgba(255,159,10,0.40) !important; background: rgba(255,159,10,0.05) !important; }
+.lin-num--hot    { border-color: rgba(48,209,88,0.55)  !important; background: rgba(48,209,88,0.09)  !important; }
+.lin-num--hot    .lin-num__n { color: #30d158 !important; }
+.lin-num--warm   { border-color: rgba(10,132,255,0.45)  !important; background: rgba(10,132,255,0.07)  !important; }
+.lin-num--warm   .lin-num__n { color: #0a84ff !important; }
+.lin-num--cold   .lin-num__n { color: #ff9f0a !important; }
+.lin-num--frozen .lin-num__n { color: #ff453a !important; }
+.lin-num--frozen { border-color: rgba(255,69,58,0.45) !important; background: rgba(255,69,58,0.07) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TIRADA DE SUERTE — acento macOS
+   ═══════════════════════════════════════════════════════════════════ */
+.suerte-step {
+  background: rgba(44,44,46,0.90) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+  border-color: rgba(255,255,255,0.09) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+.suerte-btn:not(.suerte-btn--disabled) {
+  background: var(--color-accent) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 12px rgba(10,132,255,0.4) !important;
+}
+.suerte-btn:not(.suerte-btn--disabled):hover {
+  background: var(--color-accent-hover) !important;
+  box-shadow: 0 4px 20px rgba(10,132,255,0.55) !important;
+}
+.suerte-linea-card__num { color: var(--color-accent) !important; }
+.suerte-num-card__num   { color: var(--color-accent) !important; }
+.suerte-hist-item__linea { color: var(--color-accent) !important; background: rgba(10,132,255,0.12) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   HINTS / PLACEHOLDERS
+   ═══════════════════════════════════════════════════════════════════ */
+.hint, [class*="-hint"], [class*="__hint"] {
+  color: var(--color-muted) !important;
+  font-size: 12px !important;
+}
+::placeholder { color: rgba(235,235,245,0.35) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ANIMACIONES — macOS usa spring suave
+   ═══════════════════════════════════════════════════════════════════ */
+* {
+  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+/* Excluir animaciones de rolling/flicker del override */
+.suerte-result--rolling * { transition: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MENU BUTTON (hamburguesa)
+   ═══════════════════════════════════════════════════════════════════ */
+.menu-btn {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 8px !important;
+  color: rgba(255,255,255,0.7) !important;
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 13px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background 0.12s !important;
+}
+.menu-btn:hover { background: rgba(255,255,255,0.13) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SECTIONS / VISTAS — padding ajustado macOS
+   ═══════════════════════════════════════════════════════════════════ */
+.view {
+  padding: 24px 28px !important;
+}
+@media (max-width: 700px) {
+  .view { padding: 16px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AJUSTE POSICIÓN — sidebar y countdown por debajo de la mac titlebar
+   ═══════════════════════════════════════════════════════════════════ */
+.sidebar {
+  top: 40px !important;
+  /* quitar brand text — ya aparece en la titlebar */
+}
+.sidebar .brand { display: none !important; }
+
+/* Cuenta regresiva (barra de sorteo) */
+.countdown-bar,
+[class*="countdown"],
+[class*="timer-bar"],
+[id*="countdown"] {
+  top: 40px !important;
+}
+
+/* Ocultar el botón hamburguesa original si quedara en otro lugar */
+button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
+  display: none !important;
+}
