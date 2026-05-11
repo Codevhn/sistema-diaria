@@ -56,6 +56,7 @@
     <button data-view="superpremio"><span class="sidebar-icon fa-solid fa-trophy"></span><i>Super Premio</i></button>
     <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
     <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
+    <button data-view="suerte"><span class="sidebar-icon fa-solid fa-shuffle"></span><i>Tirada de suerte</i></button>
     <button data-view="geometry"><span
         class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
     <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
@@ -513,6 +514,53 @@
       <div id="result-pulso"></div>
 
 
+    </section>
+
+    <!-- TIRADA DE SUERTE -->
+    <section id="view-suerte" class="view hidden">
+      <h2>🎲 Tirada de suerte</h2>
+      <p class="hint">El azar puro decide tu jugada. Usa <code>crypto.getRandomValues</code> — el generador criptográfico del navegador, sin sesgo matemático.</p>
+
+      <div class="suerte-panel">
+
+        <!-- PASO 1: línea -->
+        <div class="suerte-step" id="suerte-step-linea">
+          <div class="suerte-step__label">Paso 1 — ¿Qué línea?</div>
+          <div class="suerte-step__hint">Genera un número del 0 al 9 que indica la decena (línea 00, 10, 20 … 90)</div>
+          <div class="suerte-result" id="suerte-linea-result">
+            <span class="suerte-result__dash">—</span>
+          </div>
+          <button class="suerte-btn" id="suerte-btn-linea">
+            <span class="suerte-btn__icon">🎲</span>
+            <span class="suerte-btn__txt">Tirar línea</span>
+          </button>
+        </div>
+
+        <div class="suerte-divider">↓</div>
+
+        <!-- PASO 2: número -->
+        <div class="suerte-step suerte-step--locked" id="suerte-step-num">
+          <div class="suerte-step__label">Paso 2 — ¿Qué número?</div>
+          <div class="suerte-step__hint" id="suerte-num-hint">Primero tira la línea</div>
+          <div class="suerte-result" id="suerte-num-result">
+            <span class="suerte-result__dash">—</span>
+          </div>
+          <button class="suerte-btn suerte-btn--disabled" id="suerte-btn-num" disabled>
+            <span class="suerte-btn__icon">🎯</span>
+            <span class="suerte-btn__txt">Elegir número</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Historial de tiradas en esta sesión -->
+      <div class="suerte-hist-wrap" id="suerte-hist-wrap" style="display:none">
+        <div class="suerte-hist-head">
+          Tiradas de esta sesión
+          <button class="suerte-hist-clear" id="suerte-hist-clear">Limpiar</button>
+        </div>
+        <div class="suerte-hist" id="suerte-hist"></div>
+      </div>
     </section>
 
     <!-- TRANSFORMACIONES -->
@@ -8174,6 +8222,7 @@ function buildVariantEntries(profile) {
       modes: "view-modes",
       wiki:  "view-wiki",
       superpremio: "view-superpremio",
+      suerte: "view-suerte",
     };
     const sidebarButtons = document.querySelectorAll(".sidebar button");
     sidebarButtons.forEach((b) => {
@@ -8206,9 +8255,152 @@ function buildVariantEntries(profile) {
           renderMemoryBoard();
           renderGapPanel();
         }
+        if (id === "view-suerte") initSuerte();
         if (window.innerWidth <= 768) closeSidebarMobile();
       };
     });
+
+    // ════════════════════════════════════════════════════════════════
+    // TIRADA DE SUERTE — generador sin sesgo con crypto.getRandomValues
+    // ════════════════════════════════════════════════════════════════
+    function initSuerte() {
+      // ── Generador sin sesgo (rejection sampling) ─────────────────
+      function randInt(max) {
+        // Descarta valores que causarían sesgo de módulo
+        const limit = 256 - (256 % max);
+        let v;
+        do { v = crypto.getRandomValues(new Uint8Array(1))[0]; } while (v >= limit);
+        return v % max;
+      }
+
+      // ── Estado ───────────────────────────────────────────────────
+      let lineaActual = null;   // 0-9
+
+      // ── Referencias DOM ──────────────────────────────────────────
+      const stepNum   = document.getElementById("suerte-step-num");
+      const btnLinea  = document.getElementById("suerte-btn-linea");
+      const btnNum    = document.getElementById("suerte-btn-num");
+      const resLinea  = document.getElementById("suerte-linea-result");
+      const resNum    = document.getElementById("suerte-num-result");
+      const numHint   = document.getElementById("suerte-num-hint");
+      const histWrap  = document.getElementById("suerte-hist-wrap");
+      const histEl    = document.getElementById("suerte-hist");
+      const histClear = document.getElementById("suerte-hist-clear");
+      if (!btnLinea || !btnNum) return;
+
+      // ── Animación de dados ────────────────────────────────────────
+      function animarYMostrar(el, duración, fnValor, fnRender) {
+        el.classList.add("suerte-result--rolling");
+        let ticks = 0;
+        const total = Math.floor(duración / 60);
+        const iv = setInterval(() => {
+          el.innerHTML = `<span class="suerte-result__roll">${fnValor()}</span>`;
+          ticks++;
+          if (ticks >= total) {
+            clearInterval(iv);
+            el.classList.remove("suerte-result--rolling");
+            el.classList.add("suerte-result--done");
+            setTimeout(() => el.classList.remove("suerte-result--done"), 600);
+            fnRender(el);
+          }
+        }, 60);
+      }
+
+      // ── Render de resultado de línea ─────────────────────────────
+      function renderLinea(el, linea) {
+        const pad = n => String(n).padStart(2, "0");
+        el.innerHTML = `
+          <div class="suerte-linea-card">
+            <span class="suerte-linea-card__num">${linea}</span>
+            <span class="suerte-linea-card__range">Línea ${pad(linea * 10)} — del ${pad(linea*10)} al ${pad(linea*10+9)}</span>
+          </div>`;
+      }
+
+      // ── Render de resultado de número ────────────────────────────
+      function renderNumero(el, num) {
+        const pad = String(num).padStart(2, "0");
+        const info = GUIA?.[pad] || {};
+        const sym  = info.simbolo || "";
+        const fam  = info.familia || "";
+        el.innerHTML = `
+          <div class="suerte-num-card">
+            <img class="suerte-num-card__img" src="data/img/${pad}.png" alt="${pad}"
+              onerror="this.src='data/img/${pad}.jpg';this.onerror=()=>this.style.display='none'">
+            <span class="suerte-num-card__num">${pad}</span>
+            ${sym ? `<span class="suerte-num-card__sym">${sym}</span>` : ""}
+            ${fam ? `<span class="suerte-num-card__fam">${fam}</span>` : ""}
+          </div>`;
+      }
+
+      // ── Añadir al historial ───────────────────────────────────────
+      function agregarHistorial(linea, num) {
+        const pad  = String(num).padStart(2, "0");
+        const info = GUIA?.[pad] || {};
+        const sym  = info.simbolo || "";
+        const item = document.createElement("div");
+        item.className = "suerte-hist-item";
+        item.innerHTML = `
+          <img class="suerte-hist-item__img" src="data/img/${pad}.png" alt="${pad}"
+            onerror="this.src='data/img/${pad}.jpg';this.onerror=()=>this.style.display='none'">
+          <span class="suerte-hist-item__num">${pad}</span>
+          ${sym ? `<span class="suerte-hist-item__sym">${sym}</span>` : ""}
+          <span class="suerte-hist-item__linea">L${linea}</span>`;
+        histEl.prepend(item);
+        histWrap.style.display = "";
+      }
+
+      // ── Botón 1: tirar línea ──────────────────────────────────────
+      btnLinea.onclick = () => {
+        btnLinea.disabled = true;
+        lineaActual = null;
+        // Desbloquear paso 2 solo cuando termine
+        btnNum.disabled = true;
+        btnNum.classList.add("suerte-btn--disabled");
+        stepNum.classList.add("suerte-step--locked");
+        resNum.innerHTML = `<span class="suerte-result__dash">—</span>`;
+        numHint.textContent = "Primero tira la línea";
+
+        animarYMostrar(
+          resLinea, 900,
+          () => randInt(10),       // valor intermedio durante animación
+          el => {
+            lineaActual = randInt(10);
+            renderLinea(el, lineaActual);
+            numHint.textContent = `Rango: ${String(lineaActual*10).padStart(2,"0")} – ${String(lineaActual*10+9).padStart(2,"0")}`;
+            stepNum.classList.remove("suerte-step--locked");
+            btnNum.disabled = false;
+            btnNum.classList.remove("suerte-btn--disabled");
+            btnLinea.disabled = false;
+          }
+        );
+      };
+
+      // ── Botón 2: elegir número ────────────────────────────────────
+      btnNum.onclick = () => {
+        if (lineaActual === null) return;
+        btnNum.disabled = true;
+
+        const base = lineaActual * 10;
+        animarYMostrar(
+          resNum, 700,
+          () => base + randInt(10),  // valor intermedio durante animación
+          el => {
+            const num = base + randInt(10);
+            renderNumero(el, num);
+            agregarHistorial(lineaActual, num);
+            btnNum.disabled = false;
+          }
+        );
+      };
+
+      // ── Limpiar historial ─────────────────────────────────────────
+      if (histClear) {
+        histClear.onclick = () => {
+          histEl.innerHTML = "";
+          histWrap.style.display = "none";
+        };
+      }
+    }
 
     // ✅ Toggle de sidebar móvil
     if (toggleBtn && sidebar) {
