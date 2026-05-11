@@ -972,6 +972,7 @@
     import { analizarCadencias, renderCadenciasHTML } from "./src/cadencia-engine.js";
     import { consultarNumero, renderConsultaHTML } from "./src/consulta-engine.js";
     import { analizarAusencias, renderAusenciasHTML } from "./src/ausencia-engine.js";
+    import { analizarLineas, renderLineasHTML } from "./src/lineas-engine.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
@@ -5940,6 +5941,20 @@
           }
         } catch (err) {
           console.warn("cadencias falló:", err?.message || err);
+        }
+
+        // ── Líneas (grupos de 10 por decena) ────────────────────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const linResult = analizarLineas(allDraws, GUIA, { pais: pais || null });
+          const linHtml   = renderLineasHTML(linResult, GUIA);
+          if (linHtml) {
+            const linWrap = document.createElement("div");
+            linWrap.innerHTML = linHtml;
+            if (linWrap.firstElementChild) frag.appendChild(linWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("lineas falló:", err?.message || err);
         }
 
         // ── Ausencias y doble aparición (DAPA) ──────────────────────────────────
