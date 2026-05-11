@@ -5821,6 +5821,11 @@
         // ── render ────────────────────────────────────────────────────────────
         const frag = document.createDocumentFragment();
 
+        // Fila superior: último número + validación en vivo + recuperación (si activa)
+        const topRow = document.createElement("div");
+        topRow.className = "pulso-top-row";
+        frag.appendChild(topRow);
+
         // Tarjeta del último sorteo
         const lastCard = document.createElement("div");
         lastCard.className = "pulso-last";
@@ -5834,7 +5839,7 @@
             <span class="pulso-last__sub" style="opacity:0.6">Siguiente estimado: turno ${nextHorario}</span>
           </div>
         `;
-        frag.appendChild(lastCard);
+        topRow.appendChild(lastCard);
 
         // ── Hit-tracker live: cómo le está yendo el motor en producción real ──
         try {
@@ -5843,7 +5848,7 @@
           const hitStats = await computeHitTrackerStats({ topN: 8, recent: 30 });
           const hitWrap = document.createElement("div");
           hitWrap.innerHTML = renderHitTrackerHTML(hitStats, GUIA);
-          if (hitWrap.firstElementChild) frag.appendChild(hitWrap.firstElementChild);
+          if (hitWrap.firstElementChild) topRow.appendChild(hitWrap.firstElementChild);
         } catch (err) {
           console.warn("hit-tracker render falló:", err?.message || err);
         }
@@ -6599,7 +6604,7 @@
                 <div class="rec-day__row" style="margin-top:6px">${repsHtml}</div>
               </div>
             `;
-            frag.prepend(recSec);
+            topRow.appendChild(recSec);
           }
         } catch (_) { /* recovery opcional */ }
 
