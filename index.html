@@ -5821,10 +5821,15 @@
         // ── render ────────────────────────────────────────────────────────────
         const frag = document.createDocumentFragment();
 
-        // Fila superior: último número + validación en vivo + recuperación (si activa)
+        // Fila 1: último número (compacto) + validación en vivo (ancho)
         const topRow = document.createElement("div");
         topRow.className = "pulso-top-row";
         frag.appendChild(topRow);
+
+        // Fila 2: modo recuperación a todo ancho (se rellena si está activo)
+        const recRow = document.createElement("div");
+        recRow.className = "pulso-rec-row";
+        frag.appendChild(recRow);
 
         // Tarjeta del último sorteo
         const lastCard = document.createElement("div");
@@ -6585,26 +6590,28 @@
                 <span class="rec-panel__meta">SP pagado el ${spFecha} · ${rec.diasRestantes} días restantes</span>
               </div>
 
-              <div class="rec-section">
-                <div class="rec-section__title">
-                  🎯 Candidatos históricos aún sin caer
-                  ${totalHistSP > 0 ? `<span class="rec-section__badge">Basado en ${totalHistSP} SP anteriores</span>` : ""}
+              <div class="rec-panel__body">
+                <div class="rec-section">
+                  <div class="rec-section__title">
+                    🎯 Candidatos históricos aún sin caer
+                    ${totalHistSP > 0 ? `<span class="rec-section__badge">Basado en ${totalHistSP} SP anteriores</span>` : ""}
+                  </div>
+                  <p class="rec-hint">Números que históricamente aparecen en período de recuperación pero <strong>todavía no han caído</strong> en este ciclo.</p>
+                  <div class="rec-cands">${candidatosHtml}</div>
                 </div>
-                <p class="rec-hint">Números que históricamente aparecen en período de recuperación pero <strong>todavía no han caído</strong> en este ciclo.</p>
-                <div class="rec-cands">${candidatosHtml}</div>
-              </div>
 
-              <div class="rec-section">
-                <div class="rec-section__title">📅 Caídos desde el SP <span class="rec-section__badge">${drawsPost.length} sorteos</span></div>
-                <div class="rec-days">${caídosHtml}</div>
-              </div>
+                <div class="rec-section">
+                  <div class="rec-section__title">📅 Caídos desde el SP <span class="rec-section__badge">${drawsPost.length} sorteos</span></div>
+                  <div class="rec-days">${caídosHtml}</div>
+                </div>
 
-              <div class="rec-section">
-                <div class="rec-section__title">🔁 Repitiendo en este período</div>
-                <div class="rec-day__row" style="margin-top:6px">${repsHtml}</div>
+                <div class="rec-section">
+                  <div class="rec-section__title">🔁 Repitiendo en este período</div>
+                  <div class="rec-day__row" style="margin-top:6px">${repsHtml}</div>
+                </div>
               </div>
             `;
-            topRow.appendChild(recSec);
+            recRow.appendChild(recSec);
           }
         } catch (_) { /* recovery opcional */ }
 
