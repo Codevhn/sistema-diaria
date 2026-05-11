@@ -5832,23 +5832,9 @@
         recRow.className = "pulso-rec-row";
         frag.appendChild(recRow);
 
-        // Fila 3: panel de Líneas (decenas) — visible de inmediato al abrir Escenarios
+        // Fila 3: panel de Líneas — placeholder, se rellena más abajo cuando pais está disponible
         const linRow = document.createElement("div");
         frag.appendChild(linRow);
-        (async () => {
-          try {
-            const allDraws = await DB.listDraws();
-            const linResult = analizarLineas(allDraws, GUIA, { pais: pais || null });
-            const linHtml   = renderLineasHTML(linResult, GUIA);
-            if (linHtml) {
-              const linWrap = document.createElement("div");
-              linWrap.innerHTML = linHtml;
-              if (linWrap.firstElementChild) linRow.appendChild(linWrap.firstElementChild);
-            }
-          } catch (err) {
-            console.warn("lineas falló:", err?.message || err);
-          }
-        })();
 
         // Tarjeta del último sorteo
         const lastCard = document.createElement("div");
@@ -6072,6 +6058,18 @@
         // ── Motor de señales unificado ───────────────────────────────────────
         try {
           const pais = last.pais || "";
+
+          // ── Líneas: rellenar el placeholder creado al inicio del frag ──────
+          try {
+            const allDraws = await DB.listDraws();
+            const linResult = analizarLineas(allDraws, GUIA, { pais: pais || null });
+            const linHtml   = renderLineasHTML(linResult, GUIA);
+            if (linHtml) {
+              const linWrap = document.createElement("div");
+              linWrap.innerHTML = linHtml;
+              if (linWrap.firstElementChild) linRow.appendChild(linWrap.firstElementChild);
+            }
+          } catch (err) { console.warn("lineas falló:", err?.message || err); }
 
           // Feedback adaptativo: ajusta topN según rendimiento reciente
           const feedback = await computeFeedback().catch(() => null);
