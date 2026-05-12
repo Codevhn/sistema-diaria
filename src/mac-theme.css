@@ -1416,11 +1416,23 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
   border-radius: var(--radius-lg) !important;
 }
 
-/* Transformaciones */
+/* Transformaciones — contenedor principal y resultado sin fondo ni borde */
+#transform-panel {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+#t-output,
+.transform-output {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
 .transform-card {
-  background: var(--color-surface) !important;
-  border: 1px solid var(--color-border) !important;
-  border-radius: var(--radius-lg) !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Modos de juego */
@@ -1892,28 +1904,21 @@ html[data-theme="light"] .lin-card__bar {
   background: rgba(0,0,0,0.10) !important;
 }
 
-/* Fills con colores Mac system + glow sutil */
+/* Fills con colores Mac — altura explícita, hex directos para máxima compatibilidad */
 .lin-card__bar-fill {
-  height: 100% !important;
+  display: block !important;
+  height: 6px !important;
   border-radius: 99px !important;
-  transition: width 0.5s var(--ease-mac) !important;
+  transition: width 0.5s ease !important;
+  background: rgba(128,128,128,0.35) !important; /* fallback */
 }
-.lin-card--vencida  .lin-card__bar-fill {
-  background: var(--sys-red) !important;
-  box-shadow: 0 0 6px rgba(255,69,58,0.5) !important;
-}
-.lin-card--ventana  .lin-card__bar-fill {
-  background: var(--sys-green) !important;
-  box-shadow: 0 0 6px rgba(48,209,88,0.4) !important;
-}
-.lin-card--aprox    .lin-card__bar-fill {
-  background: var(--sys-orange) !important;
-  box-shadow: 0 0 6px rgba(255,159,10,0.4) !important;
-}
-.lin-card--reciente .lin-card__bar-fill {
-  background: rgba(128,128,128,0.4) !important;
-  box-shadow: none !important;
-}
+.lin-card--vencida  .lin-card__bar-fill { background: #ff3b30 !important; }
+.lin-card--ventana  .lin-card__bar-fill { background: #30d158 !important; }
+.lin-card--aprox    .lin-card__bar-fill { background: #ff9f0a !important; }
+.lin-card--reciente .lin-card__bar-fill { background: rgba(128,128,128,0.4) !important; }
+html[data-theme="dark"] .lin-card--vencida .lin-card__bar-fill { background: #ff453a !important; }
+html[data-theme="dark"] .lin-card--ventana .lin-card__bar-fill { background: #30d158 !important; }
+html[data-theme="dark"] .lin-card--aprox   .lin-card__bar-fill { background: #ff9f0a !important; }
 
 /* Texto meta */
 .lin-card__gap-txt {
