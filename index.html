@@ -45,11 +45,22 @@
     </div>
     <span class="mac-titlebar__title">La Diaria — Sistema de análisis</span>
     <div class="mac-titlebar__right">
-      <button class="mac-titlebar__icon-btn" id="btn-toggle-sidebar" aria-label="Mostrar/ocultar menú">
-        <i class="fa-solid fa-sidebar"></i>
+      <!-- Toggle modo claro / oscuro -->
+      <button class="mac-titlebar__icon-btn" id="btn-toggle-theme" aria-label="Cambiar tema" title="Cambiar tema">
+        <i class="fa-solid fa-moon" id="theme-icon"></i>
+      </button>
+      <!-- Toggle sidebar — siempre visible en la barra de título -->
+      <button class="mac-titlebar__icon-btn" id="btn-toggle-sidebar" aria-label="Mostrar/ocultar menú" title="Mostrar/ocultar menú">
+        <i class="fa-solid fa-bars"></i>
       </button>
     </div>
   </div>
+
+  <!-- Tab flotante: aparece solo cuando el sidebar está colapsado -->
+  <button class="mac-sidebar-reveal" id="btn-reveal-sidebar" aria-label="Mostrar menú" title="Mostrar menú">
+    <i class="fa-solid fa-chevron-right"></i>
+  </button>
+
   <aside class="sidebar expanded" id="sidebar">
     <div class="brand">LD v3.2</div>
 
@@ -8414,6 +8425,41 @@ function buildVariantEntries(profile) {
           histWrap.style.display = "none";
         };
       }
+    }
+
+    // ✅ Modo claro / oscuro macOS
+    (function initTheme() {
+      const saved = localStorage.getItem("ld-theme") || "dark";
+      document.documentElement.setAttribute("data-theme", saved);
+      const themeIcon = document.getElementById("theme-icon");
+      if (themeIcon) themeIcon.className = saved === "light" ? "fa-solid fa-sun" : "fa-solid fa-moon";
+
+      const themeBtn = document.getElementById("btn-toggle-theme");
+      if (themeBtn) {
+        themeBtn.addEventListener("click", () => {
+          const current = document.documentElement.getAttribute("data-theme") || "dark";
+          const next = current === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          localStorage.setItem("ld-theme", next);
+          const icon = document.getElementById("theme-icon");
+          if (icon) icon.className = next === "light" ? "fa-solid fa-sun" : "fa-solid fa-moon";
+          themeBtn.classList.toggle("active", next === "light");
+        });
+        // Marcar activo si ya está en light
+        if (saved === "light") themeBtn.classList.add("active");
+      }
+    })();
+
+    // ✅ Tab flotante para revelar sidebar
+    const revealBtn = document.getElementById("btn-reveal-sidebar");
+    if (revealBtn && sidebar) {
+      revealBtn.addEventListener("click", () => {
+        document.body.classList.remove("sidebar-collapsed");
+        if (toggleBtn) {
+          toggleBtn.classList.add("sidebar-open");
+          toggleBtn.setAttribute("aria-expanded", "true");
+        }
+      });
     }
 
     // ✅ Toggle de sidebar móvil
