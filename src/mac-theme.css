@@ -524,7 +524,7 @@ h3 { font-size: 1rem !important; font-weight: 600 !important; letter-spacing: -0
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CARDS / PANELES — frosted glass
+   CARDS / PANELES — Mac style: sin borde visible, solo sombra + bg
    ═══════════════════════════════════════════════════════════════════ */
 .card,
 .pulso-group,
@@ -543,30 +543,57 @@ h3 { font-size: 1rem !important; font-weight: 600 !important; letter-spacing: -0
   background: var(--color-surface) !important;
   backdrop-filter: var(--blur-panel) !important;
   -webkit-backdrop-filter: var(--blur-panel) !important;
-  border: 1px solid var(--color-border) !important;
+  border: none !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: var(--shadow-panel) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Sombras Mac por modo — light usa sombra suave, dark usa blur */
+html[data-theme="dark"] {
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3);
+}
+html[data-theme="light"],
+html:not([data-theme]) {
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.07), 0 4px 20px rgba(0,0,0,0.08);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    SLOTS DE ENTRADA (Panel del día)
    ═══════════════════════════════════════════════════════════════════ */
 .slot {
-  background: var(--slot-bg) !important;
+  background: var(--color-surface) !important;
   backdrop-filter: var(--blur-panel) !important;
   -webkit-backdrop-filter: var(--blur-panel) !important;
-  border: 1px solid var(--color-border) !important;
-  border-top: 2px solid var(--color-accent) !important;
+  border: none !important;
+  border-top: 2.5px solid var(--color-accent) !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: var(--shadow-panel) !important;
+  box-shadow: var(--shadow-card) !important;
   --slot-accent: var(--slot-gradient) !important;
 }
 .slot::before {
-  background: linear-gradient(135deg, var(--slot-gradient), transparent 60%) !important;
+  background: linear-gradient(160deg, var(--color-accent-tint), transparent 55%) !important;
   opacity: 1 !important;
 }
 .slot:hover {
-  box-shadow: 0 0 0 1px var(--slot-border), 0 0 20px var(--slot-hover-glow) !important;
+  box-shadow: var(--shadow-card), 0 0 0 1.5px var(--color-accent) !important;
+}
+
+/* Input dentro del slot — quitar borde dorado */
+.slot-controls > input,
+.slot input[type="text"],
+.slot input[type="number"],
+.slot input {
+  border: 1px solid var(--color-border-strong) !important;
+  border-bottom: 1px solid var(--color-border-strong) !important;
+  background: var(--input-bg) !important;
+  color: var(--color-text) !important;
+  border-radius: var(--radius-md) !important;
+}
+.slot-controls > input:focus,
+.slot input:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-glow) !important;
+  outline: none !important;
 }
 .slot-title {
   color: var(--color-text) !important;
@@ -578,24 +605,54 @@ h3 { font-size: 1rem !important; font-weight: 600 !important; letter-spacing: -0
   font-size: 11px !important;
 }
 
-/* ─── Ball (número ingresado) ──────────────────────────────────── */
+/* ─── Ball (número ingresado) — rediseño Mac ───────────────────── */
+/* Eliminar animación de pulso dorado */
+.ball { animation: none !important; }
+
 .ball {
-  background: var(--ball-bg) !important;
-  border: 1.5px solid var(--ball-border) !important;
-  border-radius: var(--radius-md) !important;
-  color: var(--ball-text) !important;
-  font-family: var(--font-mono) !important;
-  font-weight: 700 !important;
-  font-size: 1.5rem !important;
-  letter-spacing: 0.04em !important;
-  box-shadow: var(--shadow-sm) !important;
-  transition: all 0.18s var(--ease-mac) !important;
+  width: 120px !important;
+  height: 120px !important;
+  border-radius: var(--radius-xl) !important;  /* cuadrado redondeado, no círculo */
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  box-shadow: var(--shadow-md) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-sans) !important;
+  transition: all 0.2s var(--ease-mac) !important;
 }
-.ball:not(:empty):not([class*="--"]) {
+
+/* Número dentro de la bola */
+.ball-number {
   color: var(--color-accent) !important;
-  border-color: var(--color-accent) !important;
-  background: var(--color-accent-tint) !important;
-  box-shadow: 0 0 0 1px var(--color-accent), var(--shadow-sm) !important;
+  text-shadow: none !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 700 !important;
+}
+
+/* Símbolo/texto debajo del número */
+.ball-symbol {
+  color: var(--color-muted) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+/* .sym (texto símbolo en el slot) */
+.sym {
+  color: var(--color-muted) !important;
+  text-shadow: none !important;
+  font-size: 13px !important;
+}
+
+/* Ball vacía (--) */
+.ball[data-pending="true"] {
+  border: 1px dashed var(--color-border-strong) !important;
+  box-shadow: none !important;
+  background: var(--color-surface) !important;
+}
+
+/* Bola con número confirmado */
+.ball:not([data-pending="true"]) .ball-number:not(:empty) {
+  color: var(--color-accent) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1037,10 +1094,69 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
    Estos cubren rgba(201,168,76,…) que no usan variables CSS.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Sidebar shadow dorada → Mac */
+/* Sidebar */
 .sidebar {
-  box-shadow: 0 16px 36px rgba(0,0,0,0.35) !important;
+  box-shadow: 2px 0 20px rgba(0,0,0,0.18) !important;
 }
+
+/* ── Todos los cards internos sin borde visible ── */
+.day-card, .hypo-card, .pair-card, .constellation-card,
+.tracking-card, .pega3-card, .pega3-entry,
+.cad-card, .cad-wrap, .aus-wrap, .lin-card,
+.geo-card, .memory-card, .transform-card,
+.wiki-wrap, .wiki-section, .config-section, .maint-section {
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Tabla interna sin border */
+.table-wrap {
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Guide cards sin borde */
+.guide-card {
+  border: none !important;
+}
+.guide-card:hover {
+  box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-lg) !important;
+}
+
+/* Rel-row sin borde */
+.rel-row {
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Rec-panel — solo tint de color en bg, sin borde */
+.rec-panel {
+  border: none !important;
+  border-top: 2.5px solid var(--sys-red) !important;
+}
+
+/* Aus-wrap sin borde */
+.aus-wrap {
+  border: none !important;
+  border-top: 2.5px solid var(--sys-orange) !important;
+}
+
+/* Lin-card — solo indicador de estado en top */
+.lin-card--vencida  { border: none !important; border-top: 2.5px solid var(--sys-red)    !important; }
+.lin-card--ventana  { border: none !important; border-top: 2.5px solid var(--sys-green)  !important; }
+.lin-card--aprox    { border: none !important; border-top: 2.5px solid var(--sys-orange) !important; }
+.lin-card--reciente { border: none !important; border-top: 2.5px solid rgba(128,128,128,0.4) !important; }
+
+/* Hit-tracker sin borde en modo claro */
+.hit-tracker {
+  border: none !important;
+  border-left: 3px solid transparent !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.hit-tracker--hot     { border-left-color: var(--sys-green)  !important; }
+.hit-tracker--ok      { border-left-color: var(--sys-blue)   !important; }
+.hit-tracker--neutral { border-left-color: var(--sys-orange) !important; }
+.hit-tracker--bad     { border-left-color: var(--sys-red)    !important; }
 
 /* Botón slot hover dorado → azul */
 .slot:hover {
