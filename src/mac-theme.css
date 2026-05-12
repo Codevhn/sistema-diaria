@@ -18,7 +18,7 @@
                "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "SF Mono", "Menlo", "Monaco", "Fira Code", "Courier New", monospace;
 
-  /* Radios macOS */
+  /* Radios macOS — sobreescribe los originales de style.css */
   --radius-sm:  6px;
   --radius-md:  10px;
   --radius-lg:  14px;
@@ -26,6 +26,76 @@
 
   /* Easing macOS spring */
   --ease-mac: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PISAR VARIABLES LEGACY — style.css usa dorado/bg oscuro puro.
+   Las redefinimos aquí para que TODOS los usos de --gold, --bg2,
+   --border, --neon-glow, --analysis-accent etc. hereden Mac.
+   ═══════════════════════════════════════════════════════════════════ */
+html,
+html[data-theme="dark"] {
+  /* Legacy dorado → azul macOS */
+  --gold:           #0a84ff;
+  --gold-light:     #409cff;
+  --clr-gold:       #0a84ff;
+  --color-accent:   #0a84ff;
+  --color-accent-soft: rgba(10, 132, 255, 0.12);
+
+  /* Legacy fondos → Mac dark */
+  --bg2:   #1c1c1e;
+  --text:  #f5f5f7;
+
+  /* Legacy border dorado → Mac sutil */
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* Neon glow → azul */
+  --neon-glow:      0 0 10px rgba(10,132,255,0.45), 0 0 28px rgba(10,132,255,0.18);
+  --neon-glow-soft: 0 0 6px rgba(10,132,255,0.25);
+
+  /* Análisis */
+  --analysis-accent: rgba(10, 132, 255, 0.55);
+
+  /* Charts */
+  --color-chart-up:   #30d158;
+  --color-chart-down: #ff453a;
+
+  /* Success / warning / danger en Mac */
+  --color-success: #30d158;
+  --color-warning: #ff9f0a;
+  --color-danger:  #ff453a;
+}
+
+html[data-theme="light"] {
+  /* Legacy dorado → azul macOS light */
+  --gold:           #007aff;
+  --gold-light:     #409cff;
+  --clr-gold:       #007aff;
+  --color-accent:   #007aff;
+  --color-accent-soft: rgba(0, 122, 255, 0.10);
+
+  /* Legacy fondos → Mac light */
+  --bg2:   #f2f2f7;
+  --text:  #1c1c1e;
+
+  /* Legacy border → Mac sutil */
+  --border: rgba(0, 0, 0, 0.08);
+
+  /* Neon glow → azul light */
+  --neon-glow:      0 0 10px rgba(0,122,255,0.35), 0 0 28px rgba(0,122,255,0.12);
+  --neon-glow-soft: 0 0 6px rgba(0,122,255,0.20);
+
+  /* Análisis */
+  --analysis-accent: rgba(0, 122, 255, 0.45);
+
+  /* Charts */
+  --color-chart-up:   #34c759;
+  --color-chart-down: #ff3b30;
+
+  /* Success / warning / danger en Mac light */
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+  --color-danger:  #ff3b30;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -935,6 +1005,202 @@ hr, [class*="__divider"], [class*="-separator"] {
    ═══════════════════════════════════════════════════════════════════ */
 button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
   display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   OVERRIDES DIRECTOS — colores hard-coded en style.css (dorado)
+   Estos cubren rgba(201,168,76,…) que no usan variables CSS.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Sidebar shadow dorada → Mac */
+.sidebar {
+  box-shadow: 0 16px 36px rgba(0,0,0,0.35) !important;
+}
+
+/* Botón slot hover dorado → azul */
+.slot:hover {
+  box-shadow: 0 0 0 1px rgba(10,132,255,0.45), 0 0 20px rgba(10,132,255,0.18) !important;
+}
+
+/* Presencia online */
+.presence-bar {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-muted) !important;
+}
+.presence-bar__dot {
+  background: var(--sys-green) !important;
+  box-shadow: 0 0 6px var(--sys-green) !important;
+}
+
+/* Tracking cards */
+.tracking-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+.tracking-card--active {
+  border-color: rgba(10,132,255,0.45) !important;
+  background: rgba(10,132,255,0.06) !important;
+}
+.tracking-card--today {
+  animation: trackingGlowMac 2.2s ease-in-out infinite !important;
+  border-color: rgba(48,209,88,0.55) !important;
+}
+@keyframes trackingGlowMac {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(48,209,88,0.3), var(--shadow-panel); }
+  50%       { box-shadow: 0 0 0 1px rgba(48,209,88,0.6), 0 0 20px rgba(48,209,88,0.2); }
+}
+
+/* Panel del día — cards internas */
+.day-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+.day-card--intel {
+  border-color: rgba(10,132,255,0.18) !important;
+  background: rgba(10,132,255,0.05) !important;
+}
+
+/* Hipótesis — borders dorados */
+.hypo-card, .pair-card, .constellation-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+.hypo-card--hit, .pair-card--hit {
+  border-color: rgba(48,209,88,0.45) !important;
+  background: rgba(48,209,88,0.05) !important;
+}
+.hypo-card--miss, .pair-card--miss {
+  border-color: rgba(255,69,58,0.40) !important;
+  background: rgba(255,69,58,0.05) !important;
+}
+.hypo-card--pending, .pair-card--pending {
+  border-color: rgba(255,159,10,0.40) !important;
+}
+
+/* Pega3 */
+.pega3-card,
+.pega3-entry {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+.pega3-entry[style*="--pega3-entry-border"] {
+  border-color: var(--pega3-entry-border) !important;
+  background: var(--pega3-entry-bg) !important;
+}
+
+/* Símbolos de los números (sym) en slot */
+.sym {
+  color: var(--color-muted) !important;
+  font-size: 1.2rem !important;
+}
+
+/* Indicador pending del día */
+.day-pending-indicator {
+  color: var(--color-muted) !important;
+  font-size: 12px !important;
+}
+
+/* Countdown banner texto */
+.countdown-label { color: var(--color-muted) !important; }
+.countdown-target { color: var(--color-text) !important; font-weight: 600 !important; }
+.countdown-timer  { color: var(--color-accent) !important; font-family: var(--font-mono) !important; }
+
+/* Panel "local mode" banner */
+.local-mode-banner {
+  background: rgba(255,159,10,0.10) !important;
+  border: 1px solid rgba(255,159,10,0.35) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--sys-orange) !important;
+}
+
+/* Wiki / guía del sistema */
+.wiki-wrap, .wiki-section {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Geometría — cruceta/triángulo */
+.geo-card, .geo-panel {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+
+/* Memory view */
+.memory-card, .memory-panel {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Transformaciones */
+.transform-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Modos de juego */
+.mode-item {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+.mode-item--active {
+  border-color: rgba(10,132,255,0.45) !important;
+  background: rgba(10,132,255,0.07) !important;
+}
+
+/* Config / Mantenimiento */
+.config-section, .maint-section {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Toast notifications */
+.toast, [class*="toast"] {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  color: var(--color-text) !important;
+}
+[class*="toast--success"], [class*="toast--ok"] {
+  border-color: rgba(48,209,88,0.45) !important;
+}
+[class*="toast--danger"], [class*="toast--error"] {
+  border-color: rgba(255,69,58,0.45) !important;
+}
+[class*="toast--warning"] {
+  border-color: rgba(255,159,10,0.40) !important;
+}
+
+/* Cadencias */
+.cad-wrap, .cad-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+
+/* Variante claro — pisar rgba dorado en modo light */
+html[data-theme="light"] .slot:hover {
+  box-shadow: 0 0 0 1px rgba(0,122,255,0.40), 0 0 16px rgba(0,122,255,0.14) !important;
+}
+html[data-theme="light"] .guide-card:hover {
+  box-shadow: 0 0 0 2px rgba(0,122,255,0.20), var(--shadow-lg) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
