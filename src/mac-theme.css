@@ -1892,6 +1892,108 @@ html[data-theme="light"] .lin-card__bar {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   REZAGO / ESCENARIOS — cards sin borde, estilo Mac
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Sección contenedora — sin borde, solo shadow + tint bg */
+.rezago-section {
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+  background: var(--color-surface) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Tint de fondo por variante — sin borde */
+.rezago-section--warn    { background: rgba(255,159,10,0.06)  !important; }
+.rezago-section--ok      { background: rgba(48,209,88,0.05)   !important; }
+.rezago-section--elim    { background: var(--color-surface-2) !important; }
+.rezago-section--cal-block  { background: rgba(255,69,58,0.05)   !important; }
+.rezago-section--cal-boost  { background: rgba(10,132,255,0.05)  !important; }
+.rezago-section--cal-prox   { background: rgba(10,132,255,0.04)  !important; }
+.rezago-section--pop-hot    { background: rgba(255,159,10,0.05)  !important; }
+.rezago-section--pop-cool   { background: rgba(48,209,88,0.04)   !important; }
+.rezago-section--pop-cadena { background: rgba(255,159,10,0.04)  !important; }
+.rezago-section--variante-seed { background: rgba(94,92,230,0.07) !important; }
+.rezago-section--variante   { background: rgba(94,92,230,0.05)   !important; }
+.rezago-section--cluster-hit { background: rgba(48,209,88,0.06) !important; }
+.rezago-section--cluster    { background: rgba(48,209,88,0.04)   !important; }
+.rezago-section--recup-pre  { background: rgba(48,209,88,0.05)   !important; }
+.rezago-section--recup-rep  { background: rgba(255,69,58,0.05)   !important; }
+
+/* Head — colores Mac system */
+.rezago-section__head { color: var(--color-muted) !important; }
+.rezago-section--warn    .rezago-section__head { color: var(--sys-orange) !important; }
+.rezago-section--ok      .rezago-section__head { color: var(--sys-green)  !important; }
+.rezago-section--cal-block .rezago-section__head,
+.rezago-section--recup-rep .rezago-section__head { color: var(--sys-red) !important; }
+.rezago-section--cal-boost .rezago-section__head,
+.rezago-section--cal-prox  .rezago-section__head { color: var(--sys-blue) !important; }
+.rezago-section--pop-hot   .rezago-section__head,
+.rezago-section--pop-cadena .rezago-section__head { color: var(--sys-orange) !important; }
+.rezago-section--pop-cool  .rezago-section__head,
+.rezago-section--cluster-hit .rezago-section__head,
+.rezago-section--cluster   .rezago-section__head,
+.rezago-section--recup-pre .rezago-section__head { color: var(--sys-green) !important; }
+.rezago-section--variante-seed .rezago-section__head,
+.rezago-section--variante  .rezago-section__head { color: var(--sys-purple, #bf5af2) !important; }
+
+/* Card individual — sin borde, solo sombra sutil */
+.rezago-card {
+  border: none !important;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.12)) !important;
+  background: var(--color-surface-2) !important;
+}
+
+/* Variantes de card: solo tint suave en bg, sin borde */
+.rezago-card--warn       { background: rgba(255,159,10,0.10) !important; }
+.rezago-card--ok         { background: rgba(48,209,88,0.09)  !important; }
+.rezago-card--elim       { background: var(--color-surface-2) !important; opacity: 0.55 !important; }
+.rezago-card--cal-block  { background: rgba(255,69,58,0.10)  !important; }
+.rezago-card--cal-boost  { background: rgba(10,132,255,0.09) !important; }
+.rezago-card--pop-hot    { background: rgba(255,159,10,0.10) !important; }
+.rezago-card--pop-cool   { background: rgba(48,209,88,0.09)  !important; }
+.rezago-card--variante-seed { background: rgba(94,92,230,0.12) !important; }
+.rezago-card--variante   { background: rgba(94,92,230,0.09)  !important; }
+.rezago-card--cluster-hit { background: rgba(48,209,88,0.10) !important; }
+.rezago-card--cluster    { background: rgba(48,209,88,0.07)  !important; }
+.rezago-card--recup-pre  { background: rgba(48,209,88,0.09)  !important; }
+.rezago-card--recup-rep  { background: rgba(255,69,58,0.10)  !important; }
+
+/* Número — acento Mac por variante */
+.rezago-card__num { color: var(--color-accent) !important; font-weight: 800 !important; }
+.rezago-card--warn .rezago-card__num,
+.rezago-card--pop-hot .rezago-card__num,
+.rezago-card--pop-cadena .rezago-card__num { color: var(--sys-orange) !important; }
+.rezago-card--cal-block .rezago-card__num,
+.rezago-card--recup-rep .rezago-card__num  { color: var(--sys-red) !important; }
+.rezago-card--ok .rezago-card__num,
+.rezago-card--pop-cool .rezago-card__num,
+.rezago-card--cluster .rezago-card__num,
+.rezago-card--cluster-hit .rezago-card__num,
+.rezago-card--recup-pre .rezago-card__num  { color: var(--sys-green) !important; }
+.rezago-card--cal-boost .rezago-card__num  { color: var(--sys-blue)  !important; }
+.rezago-card--variante-seed .rezago-card__num,
+.rezago-card--variante .rezago-card__num   { color: var(--sys-purple, #bf5af2) !important; }
+.rezago-card--elim .rezago-card__num       { color: var(--color-muted) !important; }
+
+/* Badge sin borde */
+.rezago-card__badge { border: none !important; }
+
+/* Imagen del símbolo — tamaño limpio */
+.rezago-card__img {
+  border-radius: 8px !important;
+  background: none !important;
+}
+
+/* Modo claro — sombras suaves */
+html[data-theme="light"] .rezago-card {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 2px 10px rgba(0,0,0,0.05) !important;
+}
+html[data-theme="light"] .rezago-section {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 18px rgba(0,0,0,0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    ANIMACIONES — macOS spring
    ═══════════════════════════════════════════════════════════════════ */
 * {
