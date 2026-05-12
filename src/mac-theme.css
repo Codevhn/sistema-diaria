@@ -697,28 +697,64 @@ html:not([data-theme]) {
   background: var(--color-accent-tint) !important;
 }
 
-/* ─── HOY pill macOS ──────────────────────────────────────────── */
+/* ─── SEÑALIZACIÓN "HOY" — rediseño Mac completo ──────────────── */
+
+/* Pill HOY — badge sólido systemRed, sin animación, limpio */
 .history-pill--today {
   color: #fff !important;
-  background: linear-gradient(120deg, var(--sys-red), #ff1744 60%) !important;
-  border-color: rgba(255, 69, 58, 0.7) !important;
-  box-shadow: 0 0 14px rgba(255, 59, 48, 0.45) !important;
-  animation: hoyPulseMac 2.4s ease-in-out infinite !important;
+  background: var(--sys-red) !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 2px 8px !important;
+  font-size: 0.60rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  box-shadow: none !important;
+  animation: none !important;
 }
-@keyframes hoyPulseMac {
-  0%, 100% { box-shadow: 0 0 8px rgba(255,59,48,0.35); }
-  50%       { box-shadow: 0 0 18px rgba(255,59,48,0.65); }
-}
+/* Dot dentro del pill HOY — heredado pero lo simplificamos */
+.history-pill--today .history-pill__dot { display: none !important; }
+
+/* Fila HOY — Mac style: fondo con tint muy suave + número en negrita */
 .table-wrap tbody tr.history-row--today {
-  background: linear-gradient(90deg, rgba(255,59,48,0.09), transparent) !important;
-  box-shadow: inset 3px 0 0 var(--sys-red) !important;
+  background: none !important;
+  box-shadow: none !important;
+  position: relative !important;
 }
+.table-wrap tbody tr.history-row--today::before { display: none !important; }
 .table-wrap tbody tr.history-row--today td {
   background: transparent !important;
+  border-bottom: 1px solid var(--table-border) !important;
 }
+/* Separador visual elegante entre rows de hoy y el resto */
+.table-wrap tbody tr.history-row--today td:first-child {
+  padding-left: 20px !important;
+  position: relative !important;
+}
+.table-wrap tbody tr.history-row--today td:first-child::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background: var(--sys-red) !important;
+}
+/* Número resaltado en rojo */
+.table-wrap tbody tr.history-row--today .history-number {
+  color: var(--sys-red) !important;
+  font-weight: 800 !important;
+}
+
+/* Tracked rows */
 .table-wrap tbody tr.history-row--tracked {
-  background: linear-gradient(90deg, rgba(10,132,255,0.07), transparent) !important;
-  box-shadow: inset 3px 0 0 var(--sys-blue) !important;
+  background: linear-gradient(90deg, rgba(10,132,255,0.05), transparent) !important;
+  box-shadow: none !important;
+}
+.table-wrap tbody tr.history-row--tracked td:first-child::before {
+  background: var(--sys-blue) !important;
 }
 
 /* ─── history pills ────────────────────────────────────────────── */
@@ -1015,15 +1051,74 @@ html[data-theme="light"] .rec-panel {
   background: var(--color-accent-hover) !important;
   box-shadow: 0 4px 20px var(--color-accent-glow) !important;
 }
+/* Tarjetas de resultado — sin borde, solo layout */
 .suerte-linea-card,
 .suerte-num-card {
-  background: var(--color-surface-2) !important;
-  border: 1px solid var(--color-border) !important;
-  border-radius: var(--radius-lg) !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 .suerte-linea-card__num,
 .suerte-num-card__num   { color: var(--color-accent) !important; }
-.suerte-hist-item__linea { color: var(--color-accent) !important; background: var(--color-accent-tint) !important; }
+
+/* Chip de rango (Línea 10 — del 10 al 19) — sin borde */
+.suerte-linea-card__range {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: 20px !important;
+  color: var(--color-muted) !important;
+  font-size: 0.75rem !important;
+  padding: 3px 12px !important;
+}
+
+/* Símbolo y familia — texto limpio sin borde */
+.suerte-num-card__sym {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: var(--color-text) !important;
+}
+.suerte-num-card__fam {
+  font-size: 0.72rem !important;
+  color: var(--color-muted) !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Imagen del número */
+.suerte-num-card__img {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Historial de tiradas — items limpios sin borde */
+.suerte-hist-item {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: 8px 10px !important;
+}
+.suerte-hist-item__num  { color: var(--color-text) !important; }
+.suerte-hist-item__linea {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+  border: none !important;
+  border-radius: 20px !important;
+  padding: 1px 6px !important;
+}
+
+/* Botón Limpiar — texto simple, sin borde */
+.suerte-hist-clear {
+  border: none !important;
+  background: none !important;
+  color: var(--color-muted) !important;
+  font-size: 11px !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  opacity: 0.65 !important;
+}
+.suerte-hist-clear:hover { opacity: 1 !important; color: var(--sys-red) !important; }
 
 /* ═══════════════════════════════════════════════════════════════════
    BARRA DE ACENTO — reemplazar dorado por systemBlue
@@ -1427,6 +1522,16 @@ html[data-theme="light"] .guide-card:hover {
   opacity: 0.7 !important;
 }
 .suerte-hist-clear:hover { opacity: 1 !important; color: var(--sys-red) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SUPER PREMIO — padding interno
+   ═══════════════════════════════════════════════════════════════════ */
+.day-card__body {
+  padding: 16px !important;
+}
+.day-card__head {
+  padding: 16px 16px 12px !important;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    HISTORIAL DE SORTEOS — panel-meta Mac info row
