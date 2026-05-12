@@ -1867,28 +1867,29 @@ html[data-theme="dark"] .diaria-loader__ball {
    BARRAS DE PROGRESO — Líneas panel (rediseño Mac prominente)
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Meta: texto + barra en columna full-width */
+/* Meta: fila horizontal — texto a la izquierda, barra ocupa el resto */
 .lin-card__meta {
   display: flex !important;
-  flex-direction: column !important;
-  gap: 6px !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
   width: 100% !important;
 }
 
-/* Track — visible en ambos modos con contraste */
+/* Track — ocupa el espacio restante, visible en ambos modos */
 .lin-card__bar {
-  width: 100% !important;
-  flex: none !important;
+  flex: 1 !important;
   height: 6px !important;
   border-radius: 99px !important;
   overflow: hidden !important;
   background: rgba(128,128,128,0.15) !important;
+  min-width: 40px !important;
 }
 html[data-theme="dark"] .lin-card__bar {
-  background: rgba(255,255,255,0.10) !important;
+  background: rgba(255,255,255,0.12) !important;
 }
 html[data-theme="light"] .lin-card__bar {
-  background: rgba(0,0,0,0.08) !important;
+  background: rgba(0,0,0,0.10) !important;
 }
 
 /* Fills con colores Mac system + glow sutil */
