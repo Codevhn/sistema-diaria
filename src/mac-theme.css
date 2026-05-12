@@ -1345,6 +1345,70 @@ html[data-theme="light"] .guide-card:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   LOADER "ANALIZANDO SORTEOS" — Mac style
+   ═══════════════════════════════════════════════════════════════════ */
+.diaria-loader__ring {
+  border-top-color: var(--color-accent) !important;
+  border-right-color: var(--color-accent-glow) !important;
+  box-shadow: 0 0 18px var(--color-accent-glow) !important;
+}
+.diaria-loader__ring--inner {
+  border-bottom-color: var(--color-accent) !important;
+  border-left-color: var(--color-accent-glow) !important;
+  box-shadow: none !important;
+}
+.diaria-loader__text {
+  color: var(--color-accent) !important;
+}
+.diaria-loader__text > span {
+  text-shadow: 0 0 8px var(--color-accent-glow) !important;
+}
+.diaria-loader__sub {
+  color: var(--color-muted) !important;
+}
+/* Bola del loader — en claro, reducir el glow dorado */
+html[data-theme="light"] .diaria-loader__ball {
+  border-color: var(--color-accent) !important;
+  box-shadow:
+    inset 0 -10px 22px rgba(0,0,0,0.4),
+    inset 0 6px 18px rgba(10,132,255,0.15),
+    0 0 22px rgba(0,122,255,0.25),
+    0 6px 16px rgba(0,0,0,0.15) !important;
+  color: var(--color-accent) !important;
+  text-shadow: 0 0 10px var(--color-accent-glow) !important;
+}
+html[data-theme="dark"] .diaria-loader__ball {
+  border-color: var(--color-accent) !important;
+  box-shadow:
+    inset 0 -10px 22px rgba(0,0,0,0.7),
+    inset 0 6px 18px rgba(10,132,255,0.18),
+    0 0 28px rgba(10,132,255,0.35),
+    0 8px 22px rgba(0,0,0,0.7) !important;
+  color: var(--color-accent) !important;
+  text-shadow: 0 0 12px var(--color-accent-glow) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BARRAS DE PROGRESO — Líneas panel
+   ═══════════════════════════════════════════════════════════════════ */
+/* Track visible en ambos modos */
+.lin-card__bar {
+  background: var(--color-surface-3) !important;
+  height: 5px !important;
+  border-radius: 3px !important;
+}
+/* Fills con colores Mac system */
+.lin-card--vencida  .lin-card__bar-fill { background: var(--sys-red)    !important; }
+.lin-card--ventana  .lin-card__bar-fill { background: var(--sys-green)  !important; }
+.lin-card--aprox    .lin-card__bar-fill { background: var(--sys-orange) !important; }
+.lin-card--reciente .lin-card__bar-fill { background: rgba(128,128,128,0.35) !important; }
+.lin-card__bar-fill { border-radius: 3px !important; }
+
+/* Meta text de la barra */
+.lin-card__gap-txt { font-size: 12px !important; color: var(--color-muted) !important; }
+.lin-card__gap-txt strong { color: var(--color-text) !important; font-weight: 700 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
    ANIMACIONES — macOS spring
    ═══════════════════════════════════════════════════════════════════ */
 * {
