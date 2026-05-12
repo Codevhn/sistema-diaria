@@ -1828,24 +1828,68 @@ html[data-theme="dark"] .diaria-loader__ball {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   BARRAS DE PROGRESO — Líneas panel
+   BARRAS DE PROGRESO — Líneas panel (rediseño Mac prominente)
    ═══════════════════════════════════════════════════════════════════ */
-/* Track visible en ambos modos */
-.lin-card__bar {
-  background: var(--color-surface-3) !important;
-  height: 5px !important;
-  border-radius: 3px !important;
-}
-/* Fills con colores Mac system */
-.lin-card--vencida  .lin-card__bar-fill { background: var(--sys-red)    !important; }
-.lin-card--ventana  .lin-card__bar-fill { background: var(--sys-green)  !important; }
-.lin-card--aprox    .lin-card__bar-fill { background: var(--sys-orange) !important; }
-.lin-card--reciente .lin-card__bar-fill { background: rgba(128,128,128,0.35) !important; }
-.lin-card__bar-fill { border-radius: 3px !important; }
 
-/* Meta text de la barra */
-.lin-card__gap-txt { font-size: 12px !important; color: var(--color-muted) !important; }
-.lin-card__gap-txt strong { color: var(--color-text) !important; font-weight: 700 !important; }
+/* Meta: texto + barra en columna full-width */
+.lin-card__meta {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
+
+/* Track — visible en ambos modos con contraste */
+.lin-card__bar {
+  width: 100% !important;
+  flex: none !important;
+  height: 6px !important;
+  border-radius: 99px !important;
+  overflow: hidden !important;
+  background: rgba(128,128,128,0.15) !important;
+}
+html[data-theme="dark"] .lin-card__bar {
+  background: rgba(255,255,255,0.10) !important;
+}
+html[data-theme="light"] .lin-card__bar {
+  background: rgba(0,0,0,0.08) !important;
+}
+
+/* Fills con colores Mac system + glow sutil */
+.lin-card__bar-fill {
+  height: 100% !important;
+  border-radius: 99px !important;
+  transition: width 0.5s var(--ease-mac) !important;
+}
+.lin-card--vencida  .lin-card__bar-fill {
+  background: var(--sys-red) !important;
+  box-shadow: 0 0 6px rgba(255,69,58,0.5) !important;
+}
+.lin-card--ventana  .lin-card__bar-fill {
+  background: var(--sys-green) !important;
+  box-shadow: 0 0 6px rgba(48,209,88,0.4) !important;
+}
+.lin-card--aprox    .lin-card__bar-fill {
+  background: var(--sys-orange) !important;
+  box-shadow: 0 0 6px rgba(255,159,10,0.4) !important;
+}
+.lin-card--reciente .lin-card__bar-fill {
+  background: rgba(128,128,128,0.4) !important;
+  box-shadow: none !important;
+}
+
+/* Texto meta */
+.lin-card__gap-txt {
+  font-size: 11.5px !important;
+  color: var(--color-muted) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.lin-card__gap-txt strong {
+  color: var(--color-text) !important;
+  font-weight: 700 !important;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    ANIMACIONES — macOS spring
