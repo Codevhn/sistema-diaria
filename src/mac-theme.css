@@ -1416,7 +1416,11 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
   border-radius: var(--radius-lg) !important;
 }
 
-/* Transformaciones — contenedor principal y resultado sin fondo ni borde */
+/* ═══════════════════════════════════════════════════════════════════
+   TRANSFORMACIONES VISUALES
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Contenedor principal y output — transparentes */
 #transform-panel {
   background: none !important;
   border: none !important;
@@ -1424,15 +1428,75 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
   padding: 0 !important;
 }
 #t-output,
-.transform-output {
-  background: none !important;
-  border: none !important;
-  box-shadow: none !important;
-}
+.transform-output,
 .transform-card {
   background: none !important;
   border: none !important;
   box-shadow: none !important;
+}
+
+/* Input de número base — ancho limpio */
+.transform-controls {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 12px !important;
+  margin-bottom: 20px !important;
+}
+.transform-controls label {
+  flex: 1 !important;
+}
+.transform-controls input {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  border-radius: var(--radius-lg) !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: var(--color-text) !important;
+  text-align: center !important;
+  letter-spacing: 0.12em !important;
+  padding: 12px !important;
+}
+
+/* Chips de número — Mac card, sin borde dorado */
+.trans-chip {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.trans-chip strong {
+  color: var(--color-accent) !important;
+}
+/* Separador de la fila BASE — neutro, no dorado */
+#t-output .trans-row--base {
+  border-bottom: 1px solid var(--color-border) !important;
+}
+/* Nota final — separador neutro */
+.trans-note {
+  border-top: 1px solid var(--color-border) !important;
+  color: var(--color-muted) !important;
+}
+
+/* Consulta histórica — sin fondo blanco/borde */
+#view-transform .card {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+#view-transform .card-head {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 0 10px !important;
+}
+#view-transform .card-body {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
 /* Modos de juego */
