@@ -1345,6 +1345,244 @@ html[data-theme="light"] .guide-card:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   TIRADA DE SUERTE — cards flotantes sin contenedor externo
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* El panel grid no tiene fondo ni borde — los steps flotan solos */
+.suerte-panel {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  gap: 20px !important;
+  max-width: 920px !important;
+  margin: 28px 0 0 !important;
+  align-items: stretch !important;
+}
+
+/* Cada step es una Mac card independiente */
+.suerte-step {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-card) !important;
+  padding: 32px 28px !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+}
+.suerte-step--locked {
+  opacity: 0.38 !important;
+  filter: grayscale(0.5) !important;
+}
+
+/* Divisor — flecha horizontal Mac */
+.suerte-divider {
+  color: var(--color-muted) !important;
+  font-size: 1.4rem !important;
+  opacity: 0.5 !important;
+  padding: 0 4px !important;
+  align-self: center !important;
+}
+
+/* Label del paso — estilo SF caption */
+.suerte-step__label {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+}
+.suerte-step__hint {
+  font-size: 0.80rem !important;
+  color: var(--color-muted) !important;
+  line-height: 1.45 !important;
+}
+
+/* Historial de tiradas */
+.suerte-hist-wrap {
+  margin-top: 32px !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.suerte-hist-head {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+.suerte-hist-clear {
+  font-size: 11px !important;
+  color: var(--color-muted) !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  opacity: 0.7 !important;
+}
+.suerte-hist-clear:hover { opacity: 1 !important; color: var(--sys-red) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   HISTORIAL DE SORTEOS — panel-meta Mac info row
+   ═══════════════════════════════════════════════════════════════════ */
+.panel-meta {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  color: var(--color-muted) !important;
+  background: var(--color-surface-2) !important;
+  border-radius: 20px !important;
+  padding: 4px 12px !important;
+  margin-bottom: 12px !important;
+  width: auto !important;
+}
+.panel-meta strong { color: var(--color-accent) !important; font-weight: 700 !important; }
+
+/* Controles del historial */
+.day-card__controls {
+  background: var(--color-surface-2) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 14px !important;
+  gap: 12px !important;
+  border: none !important;
+}
+.day-card__controls label {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+}
+.day-card__controls input,
+.day-card__controls select {
+  background: var(--input-bg) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-text) !important;
+  font-size: 13px !important;
+  margin-top: 4px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SUPER PREMIO — secciones internas Mac
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* "Próximo sorteo:" info row */
+.sp-next-row,
+[class*="sp-next"],
+.day-card__body > p:first-child,
+.sp-info-row {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+  color: var(--color-muted) !important;
+  margin-bottom: 8px !important;
+}
+
+/* Sección historial de combinaciones interna */
+.sp-history {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 16px !important;
+  margin-top: 4px !important;
+}
+.sp-history__head {
+  border-bottom: 1px solid var(--color-border) !important;
+  padding-bottom: 10px !important;
+  margin-bottom: 12px !important;
+}
+.sp-history__title {
+  font-size: 0.70rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+}
+.sp-hist-entry {
+  border-bottom: 1px solid var(--color-border) !important;
+  padding: 10px 0 !important;
+}
+.sp-hist-entry:last-child { border-bottom: none !important; }
+.sp-hist-entry--current {
+  background: var(--color-accent-tint) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 10px 12px !important;
+}
+.sp-hist-card {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.sp-hist-card--current {
+  background: var(--color-accent-tint) !important;
+  box-shadow: 0 0 0 1.5px var(--color-accent), var(--shadow-sm) !important;
+}
+.sp-hist-card__num { color: var(--color-accent) !important; }
+
+/* Botón notificaciones SP */
+.sp-notify-row,
+[class*="sp-notify"] {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 16px !important;
+  font-size: 13px !important;
+  color: var(--color-muted) !important;
+  margin-top: 8px !important;
+}
+
+/* Análisis SP */
+.sp-analysis-box {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 14px !important;
+}
+.sp-rep-chip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+}
+.sp-rep-chip--active {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+}
+.sp-year-btn, .sp-year-tab {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-muted) !important;
+  border-radius: var(--radius-md) !important;
+}
+.sp-year-btn--active, .sp-year-tab--active {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+.sp-date-chip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+}
+.sp-date-chip--marked {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+}
+.sp-modo-badge--on  { background: rgba(255,59,48,0.12) !important; color: var(--sys-red)   !important; border-color: rgba(255,59,48,0.3) !important; }
+.sp-modo-badge--off { background: var(--color-surface-2) !important; color: var(--color-muted) !important; border-color: var(--color-border) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
    LOADER "ANALIZANDO SORTEOS" — Mac style
    ═══════════════════════════════════════════════════════════════════ */
 .diaria-loader__ring {
