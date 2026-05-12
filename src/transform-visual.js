@@ -137,6 +137,6 @@ export function mostrarTransformaciones(numero) {
   note.innerHTML = `${CONVERSION_MAP_NOTE}. La conversión simple aplica el mapa a un solo dígito y la compuesta a ambos, considerando también el espejo. Las equivalencias usan el mapa 0↔5, 1↔6, 2↔7, 3↔8, 4↔9 (directa y espejo).`;
   desc.appendChild(note);
 
-  cont.classList.add("transform-output");
+  cont.classList.remove("transform-output"); // mac-theme maneja el estilo
   cont.appendChild(desc);
 }
