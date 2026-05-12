@@ -1302,24 +1302,60 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
   background: rgba(10,132,255,0.05) !important;
 }
 
-/* Hipótesis — borders dorados */
-.hypo-card, .pair-card, .constellation-card {
+/* Hipótesis */
+.hypo-card, .constellation-card {
   background: var(--color-surface) !important;
-  border: 1px solid var(--color-border) !important;
+  border: none !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: var(--shadow-panel) !important;
+  box-shadow: var(--shadow-card) !important;
 }
-.hypo-card--hit, .pair-card--hit {
-  border-color: rgba(48,209,88,0.45) !important;
-  background: rgba(48,209,88,0.05) !important;
+.hypo-card--hit  { background: rgba(48,209,88,0.05)  !important; border-top: 2px solid var(--sys-green)  !important; }
+.hypo-card--miss { background: rgba(255,69,58,0.05)  !important; border-top: 2px solid var(--sys-red)    !important; }
+.hypo-card--pending { background: rgba(255,159,10,0.05) !important; border-top: 2px solid var(--sys-orange) !important; }
+
+/* Pares registrados — fila horizontal compacta, sin borde */
+.pair-card {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 16px !important;
+  gap: 12px !important;
 }
-.hypo-card--miss, .pair-card--miss {
-  border-color: rgba(255,69,58,0.40) !important;
-  background: rgba(255,69,58,0.05) !important;
+/* El bloque de números ocupa el espacio restante */
+.pair-card__nums {
+  flex: 1 !important;
+  flex-wrap: nowrap !important;
 }
-.hypo-card--pending, .pair-card--pending {
-  border-color: rgba(255,159,10,0.40) !important;
+/* El botón eliminar ya no va al final — inline */
+.pair-card__del {
+  align-self: center !important;
+  margin-top: 0 !important;
+  flex-shrink: 0 !important;
+  background: none !important;
+  border: none !important;
+  color: var(--color-muted) !important;
+  font-size: 0.72rem !important;
+  cursor: pointer !important;
+  opacity: 0.6 !important;
+  padding: 4px 8px !important;
+  border-radius: var(--radius-md) !important;
+  transition: opacity 0.15s, color 0.15s !important;
 }
+.pair-card__del:hover {
+  opacity: 1 !important;
+  color: var(--sys-red) !important;
+}
+/* Líneas extra opcionales también en inline */
+.pair-card__windows, .pair-card__nota {
+  display: none !important;
+}
+.pair-card--hit  { background: rgba(48,209,88,0.05)  !important; }
+.pair-card--miss { background: rgba(255,69,58,0.05)  !important; }
+.pair-card--pending { background: rgba(255,159,10,0.05) !important; }
 
 /* Pega3 */
 .pega3-card,
@@ -1937,27 +1973,35 @@ html[data-theme="light"] .lin-card__bar {
 .rezago-section--variante-seed .rezago-section__head,
 .rezago-section--variante  .rezago-section__head { color: var(--sys-purple, #bf5af2) !important; }
 
-/* Card individual — sin borde, solo sombra sutil */
+/* Card individual — completamente transparente, sin borde ni sombra
+   flota sobre el fondo tintado de la sección padre */
 .rezago-card {
   border: none !important;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.12)) !important;
-  background: var(--color-surface-2) !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
-/* Variantes de card: solo tint suave en bg, sin borde */
-.rezago-card--warn       { background: rgba(255,159,10,0.10) !important; }
-.rezago-card--ok         { background: rgba(48,209,88,0.09)  !important; }
-.rezago-card--elim       { background: var(--color-surface-2) !important; opacity: 0.55 !important; }
-.rezago-card--cal-block  { background: rgba(255,69,58,0.10)  !important; }
-.rezago-card--cal-boost  { background: rgba(10,132,255,0.09) !important; }
-.rezago-card--pop-hot    { background: rgba(255,159,10,0.10) !important; }
-.rezago-card--pop-cool   { background: rgba(48,209,88,0.09)  !important; }
-.rezago-card--variante-seed { background: rgba(94,92,230,0.12) !important; }
-.rezago-card--variante   { background: rgba(94,92,230,0.09)  !important; }
-.rezago-card--cluster-hit { background: rgba(48,209,88,0.10) !important; }
-.rezago-card--cluster    { background: rgba(48,209,88,0.07)  !important; }
-.rezago-card--recup-pre  { background: rgba(48,209,88,0.09)  !important; }
-.rezago-card--recup-rep  { background: rgba(255,69,58,0.10)  !important; }
+/* Todas las variantes: sin fondo propio */
+.rezago-card--warn,
+.rezago-card--ok,
+.rezago-card--elim,
+.rezago-card--cal-block,
+.rezago-card--cal-boost,
+.rezago-card--cal-prox,
+.rezago-card--pop-hot,
+.rezago-card--pop-cool,
+.rezago-card--pop-cadena,
+.rezago-card--variante-seed,
+.rezago-card--variante,
+.rezago-card--cluster-hit,
+.rezago-card--cluster,
+.rezago-card--recup-pre,
+.rezago-card--recup-rep {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.rezago-card--elim { opacity: 0.5 !important; }
 
 /* Número — acento Mac por variante */
 .rezago-card__num { color: var(--color-accent) !important; font-weight: 800 !important; }
@@ -1985,10 +2029,7 @@ html[data-theme="light"] .lin-card__bar {
   background: none !important;
 }
 
-/* Modo claro — sombras suaves */
-html[data-theme="light"] .rezago-card {
-  box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 2px 10px rgba(0,0,0,0.05) !important;
-}
+/* Modo claro — sombra sutil en sección */
 html[data-theme="light"] .rezago-section {
   box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 18px rgba(0,0,0,0.06) !important;
 }
