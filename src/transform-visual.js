@@ -16,14 +16,15 @@ function ajusteNumero(n) {
   return (100 - n) % 100;
 }
 
+/** Fuerza estilos transparentes via JS (anula cualquier CSS externo) */
+function clearBg(el) {
+  el.style.setProperty("background", "none", "important");
+  el.style.setProperty("border", "none", "important");
+  el.style.setProperty("box-shadow", "none", "important");
+}
+
 /**
- * Crea una rezago-card para un número, usando el mismo estilo del sitio:
- * imagen + número + símbolo (con fallback .png → .jpg → ocultar).
- *
- * @param {number} num
- * @param {object} [opts]
- * @param {string} [opts.variant] - sufijo para clase (ej: "variante-seed")
- * @param {string} [opts.tag]     - texto del badge inferior (ej: "BASE")
+ * Crea una card de número sin fondo ni borde — estilo mac-theme.
  */
 function buildNumCard(num, { variant = null, tag = null } = {}) {
   const pad = padNumber(num);
@@ -31,6 +32,7 @@ function buildNumCard(num, { variant = null, tag = null } = {}) {
   const card = document.createElement("div");
   card.className = "rezago-card";
   if (variant) card.classList.add(`rezago-card--${variant}`);
+  clearBg(card); // forzar transparente siempre
 
   const img = document.createElement("img");
   img.className = "rezago-card__img";
@@ -108,9 +110,10 @@ export function mostrarTransformaciones(numero) {
   const compositeConversions = getCompositeConversions(numero);
   const equivalencias = getEquivalencias(numero);
 
-  // Wrapper principal
+  // Wrapper principal — sin fondo ni borde
   const desc = document.createElement("div");
   desc.className = "desc trans-desc trans-desc--cards";
+  clearBg(desc);
 
   // Base — destacada
   const baseRow = document.createElement("div");
@@ -134,9 +137,13 @@ export function mostrarTransformaciones(numero) {
   // Nota explicativa
   const note = document.createElement("p");
   note.className = "trans-note";
+  note.style.setProperty("font-size", "13px", "important");
+  note.style.setProperty("line-height", "1.55", "important");
   note.innerHTML = `${CONVERSION_MAP_NOTE}. La conversión simple aplica el mapa a un solo dígito y la compuesta a ambos, considerando también el espejo. Las equivalencias usan el mapa 0↔5, 1↔6, 2↔7, 3↔8, 4↔9 (directa y espejo).`;
   desc.appendChild(note);
 
-  cont.classList.remove("transform-output"); // mac-theme maneja el estilo
+  // Limpiar clases y estilos del contenedor — nunca mostrar fondo blanco
+  cont.className = "";
+  clearBg(cont);
   cont.appendChild(desc);
 }
