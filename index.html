@@ -5786,6 +5786,10 @@
       items.forEach((item) => {
         const card = document.createElement("div");
         card.className = `rezago-card rezago-card--${variant}`;
+        // Forzar transparente — anula cualquier CSS externo
+        card.style.setProperty("background", "none", "important");
+        card.style.setProperty("border", "none", "important");
+        card.style.setProperty("box-shadow", "none", "important");
 
         card.appendChild(numImg(item.pad, item.simbolo));
 
