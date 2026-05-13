@@ -2117,15 +2117,13 @@ html[data-theme="dark"] .lin-card--aprox   .lin-card__bar-fill { background: #ff
 .rezago-section--variante-seed .rezago-section__head,
 .rezago-section--variante  .rezago-section__head { color: var(--sys-purple, #bf5af2) !important; }
 
-/* Card individual — completamente transparente, sin borde ni sombra
-   flota sobre el fondo tintado de la sección padre */
+/* Card individual — solo quitar fondo blanco, el borde se mantiene */
 .rezago-card {
-  border: none !important;
-  box-shadow: none !important;
   background: transparent !important;
+  box-shadow: none !important;
 }
 
-/* Todas las variantes: sin fondo propio */
+/* Todas las variantes: solo sin fondo — borde de color se conserva */
 .rezago-card--warn,
 .rezago-card--ok,
 .rezago-card--elim,
@@ -2142,8 +2140,6 @@ html[data-theme="dark"] .lin-card--aprox   .lin-card__bar-fill { background: #ff
 .rezago-card--recup-pre,
 .rezago-card--recup-rep {
   background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
 }
 .rezago-card--elim { opacity: 0.5 !important; }
 
@@ -2210,22 +2206,13 @@ html[data-theme="light"] .rezago-section {
   color: var(--color-muted) !important;
 }
 
-/* Chips individuales — Mac card flotante, sin borde dorado */
+/* Chips individuales — solo quitar fondo blanco, borde original se conserva */
 .pulso-chip {
-  background: var(--color-surface-2) !important;
-  border: none !important;
+  background: transparent !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.10)) !important;
   padding: 12px 14px !important;
   gap: 4px !important;
   min-width: 70px !important;
-}
-html[data-theme="light"] .pulso-chip {
-  background: rgba(255,255,255,0.95) !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 3px 12px rgba(0,0,0,0.06) !important;
-}
-.pulso-chip:hover {
-  box-shadow: 0 0 0 1.5px var(--color-accent), var(--shadow-card) !important;
 }
 
 /* Número del chip — más grande */
@@ -2256,6 +2243,12 @@ html[data-theme="light"] .pulso-chip {
 .pulso-chips {
   gap: 10px !important;
   flex-wrap: wrap !important;
+}
+
+/* Margen entre secciones (Zona fría, Variante, etc.) */
+.rezago-section,
+.pulso-group {
+  margin-bottom: 20px !important;
 }
 
 /* Rezago section — label de sección más grande */
