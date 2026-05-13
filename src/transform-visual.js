@@ -134,13 +134,7 @@ export function mostrarTransformaciones(numero) {
   desc.appendChild(buildRow("Conversión compuesta", compositeConversions, "variante"));
   desc.appendChild(buildRow("Equivalencias", equivalencias, "pop-cool"));
 
-  // Nota explicativa
-  const note = document.createElement("p");
-  note.className = "trans-note";
-  note.style.setProperty("font-size", "13px", "important");
-  note.style.setProperty("line-height", "1.55", "important");
-  note.innerHTML = `${CONVERSION_MAP_NOTE}. La conversión simple aplica el mapa a un solo dígito y la compuesta a ambos, considerando también el espejo. Las equivalencias usan el mapa 0↔5, 1↔6, 2↔7, 3↔8, 4↔9 (directa y espejo).`;
-  desc.appendChild(note);
+  // Nota técnica eliminada — innecesaria para el usuario final
 
   // Limpiar clases y estilos del contenedor — nunca mostrar fondo blanco
   cont.className = "";
