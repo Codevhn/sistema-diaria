@@ -2169,6 +2169,13 @@ html[data-theme="dark"] .lin-card--aprox   .lin-card__bar-fill { background: #ff
   background: none !important;
 }
 
+/* Imagen dentro de los chips del motor unificado — más grande */
+.pulso-chip .rezago-card__img {
+  width: 64px !important;
+  height: 64px !important;
+  object-fit: contain !important;
+}
+
 /* Modo claro — sombra sutil en sección */
 html[data-theme="light"] .rezago-section {
   box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 18px rgba(0,0,0,0.06) !important;
@@ -2224,7 +2231,7 @@ html[data-theme="light"] .rezago-section {
 
 /* Símbolo — más legible */
 .pulso-chip__sym {
-  font-size: 0.78rem !important;
+  font-size: 0.92rem !important;
   color: var(--color-muted) !important;
 }
 
