@@ -8197,24 +8197,36 @@ function buildVariantEntries(profile) {
     logoutBtn?.addEventListener("click", cerrarSesion);
 
     const syncRemoteBtn = document.getElementById("btn-sync-remote");
-    syncRemoteBtn?.addEventListener("click", async () => {
+
+    async function runRemoteSync({ silent = false } = {}) {
       const btn = syncRemoteBtn;
-      const original = btn.textContent;
-      btn.textContent = "↻ Actualizando…";
-      btn.disabled = true;
+      if (btn) { btn.disabled = true; }
       try {
+        const prevCount = (pendingDayQueue || []).length;
         pendingDayQueue = await loadPendingDayQueue();
         updatePendingIndicator();
         await refreshSlots({ forceReload: true });
         await handleDrawsMutated();
-        showToast("Datos actualizados desde Supabase.", { variant: "success" });
+        if (!silent) {
+          const newCount = (pendingDayQueue || []).length;
+          const diff = newCount - prevCount;
+          if (diff > 0) {
+            showToast(`Sincronizado — ${diff} sorteo${diff > 1 ? "s" : ""} nuevo${diff > 1 ? "s" : ""} encontrado${diff > 1 ? "s" : ""}.`, { variant: "success" });
+          } else {
+            showToast("Sistema al día — sin nuevos sorteos.", { variant: "info" });
+          }
+        }
       } catch (err) {
-        showToast("No se pudo actualizar: " + err.message, { variant: "danger" });
+        if (!silent) showToast("No se pudo sincronizar: " + err.message, { variant: "danger" });
       } finally {
-        btn.textContent = original;
-        btn.disabled = false;
+        if (btn) { btn.disabled = false; }
       }
-    });
+    }
+
+    syncRemoteBtn?.addEventListener("click", () => runRemoteSync());
+
+    // Auto-sync al iniciar: espera a que todo se asiente y consulta Supabase
+    setTimeout(() => runRemoteSync(), 1500);
 
     const closeSidebarMobile = () => {
       if (!sidebar) return;
