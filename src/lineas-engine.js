@@ -152,7 +152,7 @@ export function renderLineasHTML(resultado, guia = {}) {
     return `<div class="lin-wrap"><p class="lin-empty">Historial insuficiente para analizar líneas.</p></div>`;
   }
 
-  const { lineas } = resultado;
+  const lineas = [...resultado.lineas].sort((a, b) => a.linea - b.linea);
 
   const STATUS = {
     vencida:       { icon: '🔴', label: 'Vencida',        cls: 'lin-card--vencida'  },
