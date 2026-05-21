@@ -2298,4 +2298,118 @@ html[data-theme="light"] .rezago-section {
 * {
   transition-timing-function: var(--ease-mac) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — pantallas ≤ 768px
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Sidebar: fondo sólido oscuro + texto siempre legible ───────── */
+  /* En mobile style.css fuerza bg #161618 (oscuro); mac-theme modo claro
+     pondría texto oscuro → invisible. Forzamos texto claro siempre. */
+  .sidebar {
+    background: #1c1c1e !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .sidebar button {
+    color: rgba(235, 235, 245, 0.85) !important;
+    font-size: 0.82rem !important;
+  }
+  .sidebar button i {
+    display: inline !important;
+    color: rgba(235, 235, 245, 0.85) !important;
+  }
+  .sidebar button.active,
+  .sidebar button[aria-current="page"] {
+    color: #0a84ff !important;
+    background: rgba(10, 132, 255, 0.22) !important;
+  }
+  .sidebar .brand {
+    color: rgba(235, 235, 245, 0.45) !important;
+  }
+  .presence-bar,
+  .presence-bar__label,
+  .presence-bar__count {
+    color: rgba(235, 235, 245, 0.55) !important;
+  }
+  .sidebar-icon {
+    color: rgba(235, 235, 245, 0.7) !important;
+  }
+
+  /* ── Content: padding lateral reducido ──────────────────────────── */
+  .content {
+    padding: 68px 10px 24px !important;
+  }
+
+  /* ── Mac titlebar: título compacto ──────────────────────────────── */
+  .mac-titlebar__title {
+    font-size: 0.70rem !important;
+    max-width: 130px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* ── Cards: padding reducido ─────────────────────────────────────── */
+  .card,
+  .pulso-group {
+    padding: 12px 10px !important;
+  }
+
+  /* ── Tablas: scroll horizontal en lugar de desbordarse ───────────── */
+  .table-wrap,
+  #all-out,
+  #dup-out,
+  #history-coverage {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* ── Chips del motor: más compactos ──────────────────────────────── */
+  .pulso-chips {
+    gap: 6px !important;
+  }
+  .pulso-chip {
+    min-width: 56px !important;
+    padding: 8px 8px !important;
+  }
+  .pulso-chip__num {
+    font-size: 1.15rem !important;
+  }
+  .pulso-chip__sym {
+    font-size: 0.72rem !important;
+  }
+  .pulso-chip .rezago-card__img {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  /* ── Splash: imágenes de fondo escaladas al 45% ──────────────────── */
+  .splash__bg-img {
+    width:  calc(var(--s, 140px) * 0.45) !important;
+    height: calc(var(--s, 140px) * 0.45) !important;
+  }
+
+  /* ── Líneas: grid de una columna ─────────────────────────────────── */
+  .lin-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Rezago cards: grid más pequeño ──────────────────────────────── */
+  .rezago-grid {
+    gap: 6px !important;
+  }
+  .rezago-card {
+    min-width: 80px !important;
+    padding: 8px 6px !important;
+  }
+
+  /* ── Countdown banner: compacto ──────────────────────────────────── */
+  .countdown-banner {
+    font-size: 0.75rem !important;
+    padding: 6px 10px !important;
+    gap: 8px !important;
+  }
+}
 .suerte-result--rolling * { transition: none !important; }
