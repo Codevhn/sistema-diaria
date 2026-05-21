@@ -6,3 +6,2296 @@
  * Uso:  html[data-theme="dark"]  → modo oscuro (default)
  *       html[data-theme="light"] → modo claro macOS
  */
+
+/* ─── Fuente Inter (proxy SF Pro en Windows/Linux) ─── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOKENS COMPARTIDOS (independientes del modo)
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+               "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "Menlo", "Monaco", "Fira Code", "Courier New", monospace;
+
+  /* Radios macOS — sobreescribe los originales de style.css */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+
+  /* Easing macOS spring */
+  --ease-mac: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PISAR VARIABLES LEGACY — style.css usa dorado/bg oscuro puro.
+   Las redefinimos aquí para que TODOS los usos de --gold, --bg2,
+   --border, --neon-glow, --analysis-accent etc. hereden Mac.
+   ═══════════════════════════════════════════════════════════════════ */
+html,
+html[data-theme="dark"] {
+  /* Legacy dorado → azul macOS */
+  --gold:           #0a84ff;
+  --gold-light:     #409cff;
+  --clr-gold:       #0a84ff;
+  --color-accent:   #0a84ff;
+  --color-accent-soft: rgba(10, 132, 255, 0.12);
+
+  /* Legacy fondos → Mac dark */
+  --bg2:   #1c1c1e;
+  --text:  #f5f5f7;
+
+  /* Legacy border dorado → Mac sutil */
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* Neon glow → azul */
+  --neon-glow:      0 0 10px rgba(10,132,255,0.45), 0 0 28px rgba(10,132,255,0.18);
+  --neon-glow-soft: 0 0 6px rgba(10,132,255,0.25);
+
+  /* Análisis */
+  --analysis-accent: rgba(10, 132, 255, 0.55);
+
+  /* Charts */
+  --color-chart-up:   #30d158;
+  --color-chart-down: #ff453a;
+
+  /* Success / warning / danger en Mac */
+  --color-success: #30d158;
+  --color-warning: #ff9f0a;
+  --color-danger:  #ff453a;
+}
+
+html[data-theme="light"] {
+  /* Legacy dorado → azul macOS light */
+  --gold:           #007aff;
+  --gold-light:     #409cff;
+  --clr-gold:       #007aff;
+  --color-accent:   #007aff;
+  --color-accent-soft: rgba(0, 122, 255, 0.10);
+
+  /* Legacy fondos → Mac light */
+  --bg2:   #f2f2f7;
+  --text:  #1c1c1e;
+
+  /* Legacy border → Mac sutil */
+  --border: rgba(0, 0, 0, 0.08);
+
+  /* Neon glow → azul light */
+  --neon-glow:      0 0 10px rgba(0,122,255,0.35), 0 0 28px rgba(0,122,255,0.12);
+  --neon-glow-soft: 0 0 6px rgba(0,122,255,0.20);
+
+  /* Análisis */
+  --analysis-accent: rgba(0, 122, 255, 0.45);
+
+  /* Charts */
+  --color-chart-up:   #34c759;
+  --color-chart-down: #ff3b30;
+
+  /* Success / warning / danger en Mac light */
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+  --color-danger:  #ff3b30;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODO OSCURO — Dark (predeterminado)
+   ═══════════════════════════════════════════════════════════════════ */
+html,
+html[data-theme="dark"] {
+  --color-bg:            #1c1c1e;
+  --color-surface:       rgba(44, 44, 46, 0.95);
+  --color-surface-2:     rgba(58, 58, 60, 0.90);
+  --color-surface-3:     rgba(72, 72, 74, 0.85);
+
+  --color-border:        rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.10);
+
+  --color-text:          #f5f5f7;
+  --color-muted:         rgba(235, 235, 245, 0.55);
+  --color-placeholder:   rgba(235, 235, 245, 0.35);
+
+  --color-accent:        #0a84ff;
+  --color-accent-hover:  #409cff;
+  --color-accent-glow:   rgba(10, 132, 255, 0.28);
+  --color-accent-tint:   rgba(10, 132, 255, 0.15);
+
+  /* Semáforos macOS Dark */
+  --sys-red:    #ff453a;
+  --sys-orange: #ff9f0a;
+  --sys-yellow: #ffd60a;
+  --sys-green:  #30d158;
+  --sys-blue:   #0a84ff;
+  --sys-purple: #bf5af2;
+  --sys-mint:   #63e6e2;
+
+  /* Titlebar */
+  --titlebar-bg: rgba(28, 28, 30, 0.88);
+  --titlebar-text: rgba(255, 255, 255, 0.75);
+  --titlebar-btn: rgba(255, 255, 255, 0.45);
+  --titlebar-btn-hover-bg: rgba(255, 255, 255, 0.12);
+
+  /* Sidebar vibrancy */
+  --sidebar-bg: rgba(30, 30, 32, 0.78);
+  --sidebar-btn-active-bg: rgba(10, 132, 255, 0.22);
+  --sidebar-btn-active-color: #0a84ff;
+  --sidebar-btn-hover-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-btn-color: rgba(235, 235, 245, 0.75);
+
+  /* Input */
+  --input-bg:         rgba(255, 255, 255, 0.06);
+  --input-border:     rgba(255, 255, 255, 0.12);
+  --input-bg-focus:   rgba(255, 255, 255, 0.09);
+
+  /* Sombras */
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.35), 0 1px 1px rgba(0,0,0,0.25);
+  --shadow-md:    0 4px 16px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.3);
+  --shadow-lg:    0 12px 40px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35);
+  --shadow-panel: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.45);
+
+  /* Blur vibrancy */
+  --blur-sidebar: blur(32px) saturate(200%);
+  --blur-panel:   blur(20px) saturate(160%);
+  --blur-modal:   blur(40px) saturate(200%);
+
+  /* Tabla */
+  --table-row-even: rgba(255,255,255,0.03);
+  --table-border:   rgba(255,255,255,0.06);
+  --table-head-bg:  rgba(44, 44, 46, 0.80);
+
+  /* Slot */
+  --slot-bg:        rgba(44, 44, 46, 0.88);
+  --slot-border:    rgba(10, 132, 255, 0.55);
+  --slot-gradient:  rgba(10, 132, 255, 0.08);
+  --slot-hover-glow: rgba(10, 132, 255, 0.25);
+
+  /* Ball */
+  --ball-bg:        rgba(58, 58, 60, 0.85);
+  --ball-border:    rgba(255,255,255,0.10);
+  --ball-text:      #f5f5f7;
+
+  /* Guide */
+  --guide-card-bg:    rgba(44, 44, 46, 0.88);
+  --guide-card-border: rgba(255,255,255,0.09);
+  --guide-card-hover: rgba(10,132,255,0.35);
+  --guide-num-color:  #f5f5f7;
+  --guide-sym-color:  rgba(235,235,245,0.65);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODO CLARO — Light (macOS Ventura/Sonoma)
+   ═══════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] {
+  --color-bg:            #f2f2f7;
+  --color-surface:       rgba(255, 255, 255, 0.92);
+  --color-surface-2:     rgba(242, 242, 247, 0.95);
+  --color-surface-3:     rgba(229, 229, 234, 0.90);
+
+  --color-border:        rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.14);
+
+  --color-text:          #1c1c1e;
+  --color-muted:         rgba(60, 60, 67, 0.60);
+  --color-placeholder:   rgba(60, 60, 67, 0.40);
+
+  --color-accent:        #007aff;
+  --color-accent-hover:  #0066d6;
+  --color-accent-glow:   rgba(0, 122, 255, 0.22);
+  --color-accent-tint:   rgba(0, 122, 255, 0.10);
+
+  /* Semáforos macOS Light */
+  --sys-red:    #ff3b30;
+  --sys-orange: #ff9500;
+  --sys-yellow: #ffcc00;
+  --sys-green:  #34c759;
+  --sys-blue:   #007aff;
+  --sys-purple: #af52de;
+  --sys-mint:   #00c7be;
+
+  /* Titlebar */
+  --titlebar-bg: rgba(242, 242, 247, 0.88);
+  --titlebar-text: rgba(0, 0, 0, 0.75);
+  --titlebar-btn: rgba(0, 0, 0, 0.45);
+  --titlebar-btn-hover-bg: rgba(0, 0, 0, 0.06);
+
+  /* Sidebar */
+  --sidebar-bg: rgba(242, 242, 247, 0.82);
+  --sidebar-btn-active-bg: rgba(0, 122, 255, 0.14);
+  --sidebar-btn-active-color: #007aff;
+  --sidebar-btn-hover-bg: rgba(0, 0, 0, 0.06);
+  --sidebar-btn-color: rgba(60, 60, 67, 0.80);
+
+  /* Input */
+  --input-bg:       rgba(0, 0, 0, 0.05);
+  --input-border:   rgba(0, 0, 0, 0.12);
+  --input-bg-focus: rgba(0, 0, 0, 0.07);
+
+  /* Sombras */
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.10), 0 1px 1px rgba(0,0,0,0.06);
+  --shadow-md:    0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-lg:    0 12px 40px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-panel: 0 0 0 1px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.10);
+
+  /* Blur */
+  --blur-sidebar: blur(32px) saturate(180%);
+  --blur-panel:   blur(20px) saturate(150%);
+  --blur-modal:   blur(40px) saturate(180%);
+
+  /* Tabla */
+  --table-row-even: rgba(0,0,0,0.025);
+  --table-border:   rgba(0,0,0,0.06);
+  --table-head-bg:  rgba(242, 242, 247, 0.90);
+
+  /* Slot */
+  --slot-bg:        rgba(255, 255, 255, 0.90);
+  --slot-border:    rgba(0, 122, 255, 0.45);
+  --slot-gradient:  rgba(0, 122, 255, 0.05);
+  --slot-hover-glow: rgba(0, 122, 255, 0.18);
+
+  /* Ball */
+  --ball-bg:        rgba(229, 229, 234, 0.90);
+  --ball-border:    rgba(0,0,0,0.10);
+  --ball-text:      #1c1c1e;
+
+  /* Guide */
+  --guide-card-bg:    rgba(255, 255, 255, 0.90);
+  --guide-card-border: rgba(0,0,0,0.08);
+  --guide-card-hover: rgba(0,122,255,0.25);
+  --guide-num-color:  #1c1c1e;
+  --guide-sym-color:  rgba(60,60,67,0.60);
+
+  /* Semáforos titlebar light */
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--color-bg) !important;
+  font-family: var(--font-sans) !important;
+  color: var(--color-text) !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  padding-top: 40px !important;
+  transition: background 0.25s var(--ease-mac), color 0.25s var(--ease-mac) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TITLEBAR macOS
+   ═══════════════════════════════════════════════════════════════════ */
+.mac-titlebar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 40px;
+  background: var(--titlebar-bg);
+  backdrop-filter: var(--blur-sidebar);
+  -webkit-backdrop-filter: var(--blur-sidebar);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 1200;
+  user-select: none;
+  gap: 0;
+}
+.mac-titlebar__lights {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 60px;
+}
+.mac-light {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  cursor: default;
+  transition: filter 0.15s;
+  flex-shrink: 0;
+}
+.mac-light--red    { background: #ff5f57; box-shadow: 0 0 0 1px rgba(0,0,0,0.15) inset; }
+.mac-light--yellow { background: #febc2e; box-shadow: 0 0 0 1px rgba(0,0,0,0.12) inset; }
+.mac-light--green  { background: #28c840; box-shadow: 0 0 0 1px rgba(0,0,0,0.12) inset; }
+.mac-light:hover   { filter: brightness(1.12); }
+
+.mac-titlebar__title {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--titlebar-text);
+  letter-spacing: 0.01em;
+}
+.mac-titlebar__right {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 60px;
+}
+
+/* Botones de la barra de título */
+.mac-titlebar__icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--titlebar-btn);
+  font-size: 14px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mac-titlebar__icon-btn:hover {
+  color: var(--color-text);
+  background: var(--titlebar-btn-hover-bg);
+}
+.mac-titlebar__icon-btn.active {
+  color: var(--color-accent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR — vibrancy macOS
+   ═══════════════════════════════════════════════════════════════════ */
+.sidebar {
+  background: var(--sidebar-bg) !important;
+  backdrop-filter: var(--blur-sidebar) !important;
+  -webkit-backdrop-filter: var(--blur-sidebar) !important;
+  border-right: 1px solid var(--color-border) !important;
+  padding: 10px 6px !important;
+  width: 220px !important;
+  top: 40px !important;
+  transition: transform 0.28s var(--ease-mac), box-shadow 0.28s var(--ease-mac) !important;
+}
+.sidebar .brand { display: none !important; }
+
+/* Botones del sidebar */
+.sidebar button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  padding: 6px 10px !important;
+  border-radius: 7px !important;
+  border: none !important;
+  border-left: none !important;
+  background: transparent !important;
+  color: var(--sidebar-btn-color) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  transition: background 0.12s, color 0.12s !important;
+}
+.sidebar button:hover {
+  background: var(--sidebar-btn-hover-bg) !important;
+  color: var(--color-text) !important;
+  border-color: transparent !important;
+}
+.sidebar button.active,
+.sidebar button[aria-current="page"] {
+  background: var(--sidebar-btn-active-bg) !important;
+  color: var(--sidebar-btn-active-color) !important;
+  font-weight: 600 !important;
+}
+
+/* Texto del botón — sin truncar, sin mayúsculas */
+.sidebar button i {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  font-style: normal !important;
+  color: inherit !important;
+  flex: 1 1 auto !important;
+  line-height: 1.3 !important;
+}
+
+/* Ícono — sin caja ni borde, solo el icono limpio */
+.sidebar-icon,
+.sidebar button .sidebar-icon {
+  font-size: 14px !important;
+  width: 20px !important;
+  height: auto !important;
+  min-width: 20px !important;
+  text-align: center !important;
+  opacity: 0.80 !important;
+  flex-shrink: 0 !important;
+  border: none !important;
+  background: none !important;
+  border-radius: 0 !important;
+  color: inherit !important;
+}
+
+/* ── Tab flotante para revelar sidebar cuando está colapsado ─────── */
+.mac-sidebar-reveal {
+  position: fixed;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%) translateX(-100%);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 56px;
+  background: var(--color-surface);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--color-border);
+  border-left: none;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.28s var(--ease-mac), opacity 0.22s var(--ease-mac) !important;
+  color: var(--color-accent);
+  font-size: 10px;
+}
+body.sidebar-collapsed .mac-sidebar-reveal {
+  transform: translateY(-50%) translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.mac-sidebar-reveal:hover {
+  background: var(--color-accent) !important;
+  color: #fff !important;
+  width: 28px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   COUNTDOWN BAR
+   ═══════════════════════════════════════════════════════════════════ */
+.countdown-bar,
+[class*="countdown"],
+[class*="timer-bar"],
+[id*="countdown"] {
+  top: 40px !important;
+  background: rgba(28,28,30,0.80) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] .countdown-bar,
+html[data-theme="light"] [class*="countdown"] {
+  background: rgba(242,242,247,0.85) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ÁREA PRINCIPAL
+   ═══════════════════════════════════════════════════════════════════ */
+.content {
+  background: var(--color-bg) !important;
+}
+.view {
+  padding: 24px 28px !important;
+}
+@media (max-width: 700px) {
+  .view { padding: 16px !important; }
+}
+
+h1, h2 {
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+  color: var(--color-text) !important;
+}
+h2 { font-size: 1.5rem !important; }
+h3 { font-size: 1rem !important; font-weight: 600 !important; letter-spacing: -0.01em !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   STICKY HEADER / BOTONES HEADER
+   ═══════════════════════════════════════════════════════════════════ */
+.sticky-header {
+  background: var(--color-bg) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CARDS / PANELES — Mac style: sin borde visible, solo sombra + bg
+   ═══════════════════════════════════════════════════════════════════ */
+.card,
+.pulso-group,
+.hit-tracker,
+.rec-panel,
+.lin-card,
+.aus-wrap,
+.cad-wrap,
+.dv-wrap,
+.vc-panel,
+.pega3-card,
+.day-card,
+.suerte-step,
+[class*="-panel"]:not(.mac-titlebar__right):not(.presence-panel),
+[class*="-card"]:not(.mac-light):not(.suerte-num-card):not(.suerte-linea-card):not(.guide-card) {
+  background: var(--color-surface) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Sombras Mac por modo — light usa sombra suave, dark usa blur */
+html[data-theme="dark"] {
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3);
+}
+html[data-theme="light"],
+html:not([data-theme]) {
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.07), 0 4px 20px rgba(0,0,0,0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SLOTS DE ENTRADA (Panel del día)
+   ═══════════════════════════════════════════════════════════════════ */
+.slot {
+  background: var(--color-surface) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+  border: none !important;
+  border-top: 2.5px solid var(--color-accent) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+  --slot-accent: var(--slot-gradient) !important;
+}
+.slot::before {
+  background: linear-gradient(160deg, var(--color-accent-tint), transparent 55%) !important;
+  opacity: 1 !important;
+}
+.slot:hover {
+  box-shadow: var(--shadow-card), 0 0 0 1.5px var(--color-accent) !important;
+}
+
+/* Input dentro del slot — quitar borde dorado */
+.slot-controls > input,
+.slot input[type="text"],
+.slot input[type="number"],
+.slot input {
+  border: 1px solid var(--color-border-strong) !important;
+  border-bottom: 1px solid var(--color-border-strong) !important;
+  background: var(--input-bg) !important;
+  color: var(--color-text) !important;
+  border-radius: var(--radius-md) !important;
+}
+.slot-controls > input:focus,
+.slot input:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-glow) !important;
+  outline: none !important;
+}
+.slot-title {
+  color: var(--color-text) !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 600 !important;
+}
+.slot-flag {
+  color: var(--color-muted) !important;
+  font-size: 11px !important;
+}
+
+/* ─── Ball (número ingresado) — rediseño Mac ───────────────────── */
+/* Eliminar animación de pulso dorado */
+.ball { animation: none !important; }
+
+.ball {
+  width: 120px !important;
+  height: 120px !important;
+  border-radius: var(--radius-xl) !important;  /* cuadrado redondeado, no círculo */
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  box-shadow: var(--shadow-md) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-sans) !important;
+  transition: all 0.2s var(--ease-mac) !important;
+}
+
+/* Número dentro de la bola */
+.ball-number {
+  color: var(--color-accent) !important;
+  text-shadow: none !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 700 !important;
+}
+
+/* Símbolo/texto debajo del número */
+.ball-symbol {
+  color: var(--color-muted) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+/* .sym (texto símbolo en el slot) */
+.sym {
+  color: var(--color-muted) !important;
+  text-shadow: none !important;
+  font-size: 13px !important;
+}
+
+/* Ball vacía (--) */
+.ball[data-pending="true"] {
+  border: 1px dashed var(--color-border-strong) !important;
+  box-shadow: none !important;
+  background: var(--color-surface) !important;
+}
+
+/* Bola con número confirmado */
+.ball:not([data-pending="true"]) .ball-number:not(:empty) {
+  color: var(--color-accent) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TABLA DE HISTORIAL
+   ═══════════════════════════════════════════════════════════════════ */
+.table-wrap {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+  overflow: hidden !important;
+}
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  font-family: var(--font-sans);
+}
+.table-wrap th {
+  background: var(--table-head-bg) !important;
+  color: var(--color-muted) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  padding: 10px 12px !important;
+}
+.table-wrap td {
+  padding: 10px 12px !important;
+  border-bottom: 1px solid var(--table-border) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-sans) !important;
+}
+.table-wrap tbody tr:nth-child(even) {
+  background: var(--table-row-even) !important;
+}
+.table-wrap tbody tr:last-child td {
+  border-bottom: none !important;
+}
+.table-wrap tbody tr:hover td {
+  background: var(--color-accent-tint) !important;
+}
+
+/* ─── SEÑALIZACIÓN "HOY" — rediseño Mac completo ──────────────── */
+
+/* Pill HOY — badge sólido systemRed, sin animación, limpio */
+.history-pill--today {
+  color: #fff !important;
+  background: var(--sys-red) !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 2px 8px !important;
+  font-size: 0.60rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+/* Dot dentro del pill HOY — heredado pero lo simplificamos */
+.history-pill--today .history-pill__dot { display: none !important; }
+
+/* Fila HOY — Mac style: fondo con tint muy suave + número en negrita */
+.table-wrap tbody tr.history-row--today {
+  background: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+.table-wrap tbody tr.history-row--today::before { display: none !important; }
+.table-wrap tbody tr.history-row--today td {
+  background: transparent !important;
+  border-bottom: 1px solid var(--table-border) !important;
+}
+/* Separador visual elegante entre rows de hoy y el resto */
+.table-wrap tbody tr.history-row--today td:first-child {
+  padding-left: 20px !important;
+  position: relative !important;
+}
+.table-wrap tbody tr.history-row--today td:first-child::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background: var(--sys-red) !important;
+}
+/* Número resaltado en rojo */
+.table-wrap tbody tr.history-row--today .history-number {
+  color: var(--sys-red) !important;
+  font-weight: 800 !important;
+}
+
+/* Tracked rows */
+.table-wrap tbody tr.history-row--tracked {
+  background: linear-gradient(90deg, rgba(10,132,255,0.05), transparent) !important;
+  box-shadow: none !important;
+}
+.table-wrap tbody tr.history-row--tracked td:first-child::before {
+  background: var(--sys-blue) !important;
+}
+
+/* ─── history pills ────────────────────────────────────────────── */
+.history-pill {
+  border-radius: 20px !important;
+  font-size: 0.63rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  border: 1px solid var(--color-border-strong) !important;
+  background: var(--color-surface-2) !important;
+  color: var(--color-muted) !important;
+}
+.history-pill--recent {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DAY-CARD interior
+   ═══════════════════════════════════════════════════════════════════ */
+.day-card__head h3 { color: var(--color-text) !important; }
+.day-card__head p  { color: var(--color-muted) !important; }
+.day-card--intel {
+  border-color: rgba(10,132,255,0.20) !important;
+  background: linear-gradient(135deg, rgba(10,132,255,0.07), transparent) !important;
+}
+.day-intel-main {
+  background: var(--color-surface-2) !important;
+  border-color: rgba(10,132,255,0.18) !important;
+}
+.day-intel-number { color: var(--color-accent) !important; }
+.day-intel-label  { color: var(--color-muted) !important; }
+.day-intel-reason { color: var(--color-text) !important; }
+.day-intel-list li {
+  background: var(--color-surface-2) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GUÍA DE LOS SUEÑOS — sincronización Mac
+   ═══════════════════════════════════════════════════════════════════ */
+.guide-grid {
+  /* usa auto-fill interno */
+}
+.guide-card {
+  background: var(--guide-card-bg) !important;
+  border: 1px solid var(--guide-card-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+  transition: transform 0.18s var(--ease-mac), box-shadow 0.18s var(--ease-mac), border-color 0.18s !important;
+}
+.guide-card:hover {
+  border-color: var(--color-accent) !important;
+  transform: scale(1.035) !important;
+  box-shadow: 0 0 0 2px var(--color-accent-glow), var(--shadow-lg) !important;
+}
+.guide-num {
+  color: var(--guide-num-color) !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 900 !important;
+}
+.guide-card:hover .guide-num {
+  color: var(--color-accent) !important;
+  text-shadow: 0 0 12px var(--color-accent-glow) !important;
+  transform: scale(1.1) !important;
+}
+.guide-sym {
+  color: var(--guide-sym-color) !important;
+  font-family: var(--font-sans) !important;
+}
+.guide-img {
+  border: 2px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--color-surface-2) !important;
+}
+.guide-card:hover .guide-img {
+  border-color: var(--color-accent) !important;
+}
+
+/* Familia y Polaridad chips */
+.guide-family-tag,
+.guide-polar,
+[class*="guide-fam"],
+[class*="guide-elem"] {
+  border-radius: 20px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Tabla de relativos */
+.guide-relativos-wrap {
+  border-top: 1px solid var(--color-border) !important;
+}
+.guide-relativos-head h3 {
+  color: var(--color-text) !important;
+}
+.rel-row {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.rel-row:hover {
+  border-color: var(--color-accent) !important;
+  background: var(--color-surface-2) !important;
+}
+.rel-num-card {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* Búsqueda en guía */
+#guide-search {
+  background: var(--input-bg) !important;
+  border: 1px solid var(--input-border) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-sans) !important;
+  padding: 7px 12px !important;
+}
+#guide-search:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-glow) !important;
+  background: var(--input-bg-focus) !important;
+  outline: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOTONES — macOS style global
+   ═══════════════════════════════════════════════════════════════════ */
+button:not(.sidebar button):not(.mac-light):not(.mac-titlebar__icon-btn):not(.mac-sidebar-reveal),
+.btn,
+[class*="btn"]:not(.mac-light) {
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: background 0.12s, box-shadow 0.12s, transform 0.08s !important;
+}
+.btn-primary,
+button.btn-primary {
+  background: var(--color-accent) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 1px 4px var(--color-accent-glow) !important;
+}
+.btn-primary:hover {
+  background: var(--color-accent-hover) !important;
+  box-shadow: 0 2px 12px var(--color-accent-glow) !important;
+  transform: translateY(-1px) !important;
+}
+.btn-outline,
+button.btn-outline,
+button.ghost,
+button.btn-ghost {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  color: var(--color-text) !important;
+}
+.btn-outline:hover,
+button.ghost:hover,
+button.btn-ghost:hover {
+  background: var(--color-surface-3) !important;
+  border-color: var(--color-accent) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INPUTS / SELECTS — macOS
+   ═══════════════════════════════════════════════════════════════════ */
+input[type="text"],
+input[type="number"],
+input[type="search"],
+input[type="date"],
+select,
+textarea {
+  background: var(--input-bg) !important;
+  border: 1px solid var(--input-border) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  padding: 7px 11px !important;
+  outline: none !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-glow) !important;
+  background: var(--input-bg-focus) !important;
+}
+select option {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+::placeholder { color: var(--color-placeholder) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   HIT-TRACKER
+   ═══════════════════════════════════════════════════════════════════ */
+.hit-tracker {
+  background: var(--color-surface) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+}
+.hit-tracker--hot     { border-color: rgba(48, 209, 88, 0.45)  !important; }
+.hit-tracker--ok      { border-color: rgba(10, 132, 255, 0.45) !important; }
+.hit-tracker--neutral { border-color: rgba(255, 159, 10, 0.35) !important; }
+.hit-tracker--bad     { border-color: rgba(255, 69, 58, 0.40)  !important; }
+.hit-tracker--hot     .hit-tracker__verdict { color: var(--sys-green) !important; background: rgba(48,209,88,0.14)  !important; }
+.hit-tracker--ok      .hit-tracker__verdict { color: var(--sys-blue)  !important; background: rgba(10,132,255,0.14) !important; }
+.hit-tracker--neutral .hit-tracker__verdict { color: var(--sys-orange)!important; background: rgba(255,159,10,0.12) !important; }
+.hit-tracker--bad     .hit-tracker__verdict { color: var(--sys-red)   !important; background: rgba(255,69,58,0.12)  !important; }
+
+/* cht chips */
+.ht-chip {
+  border-radius: 20px !important;
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-muted) !important;
+}
+.ht-chip--hit {
+  background: rgba(48,209,88,0.14)  !important;
+  border-color: rgba(48,209,88,0.40) !important;
+  color: var(--sys-green) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODO RECUPERACIÓN
+   ═══════════════════════════════════════════════════════════════════ */
+.rec-panel {
+  border-color: rgba(255, 69, 58, 0.45) !important;
+  background: rgba(255, 69, 58, 0.06) !important;
+}
+.rec-panel__title { color: var(--sys-red) !important; }
+.pulso-rec-row .rec-panel__head { border-bottom-color: rgba(255,69,58,0.18) !important; }
+
+html[data-theme="light"] .rec-panel {
+  border-color: rgba(255,59,48,0.40) !important;
+  background: rgba(255,59,48,0.05) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AUSENCIAS
+   ═══════════════════════════════════════════════════════════════════ */
+.aus-wrap   { border-color: rgba(255,159,10,0.35) !important; background: rgba(255,159,10,0.05) !important; }
+.aus-title  { color: var(--sys-orange) !important; }
+.aus-section--alerta { border-color: rgba(255,69,58,0.4) !important; background: rgba(255,69,58,0.05) !important; }
+.aus-alert__rep--si   { color: var(--sys-green)  !important; }
+.aus-alert__rep--pend { color: var(--sys-orange) !important; }
+.aus-card--critical   { border-color: rgba(255,69,58,0.5)  !important; background: rgba(255,69,58,0.07) !important; }
+.aus-card--high       { border-color: rgba(255,159,10,0.5) !important; background: rgba(255,159,10,0.07) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LÍNEAS
+   ═══════════════════════════════════════════════════════════════════ */
+.lin-card--vencida  { border-color: rgba(255,69,58,0.40)  !important; background: rgba(255,69,58,0.05)  !important; }
+.lin-card--ventana  { border-color: rgba(48,209,88,0.35)  !important; background: rgba(48,209,88,0.05)  !important; }
+.lin-card--aprox    { border-color: rgba(255,159,10,0.40) !important; background: rgba(255,159,10,0.05) !important; }
+.lin-card__label    { color: var(--color-text) !important; }
+.lin-card__range    { color: var(--color-muted) !important; }
+.lin-card__gap-txt  { color: var(--color-muted) !important; }
+.lin-card__gap-txt strong { color: var(--color-accent) !important; }
+.lin-num--hot    { border-color: rgba(48,209,88,0.55) !important; background: rgba(48,209,88,0.08)  !important; }
+.lin-num--hot    .lin-num__n { color: var(--sys-green)  !important; }
+.lin-num--warm   { border-color: rgba(10,132,255,0.45) !important; background: rgba(10,132,255,0.07) !important; }
+.lin-num--warm   .lin-num__n { color: var(--sys-blue)   !important; }
+.lin-num--cold   .lin-num__n { color: var(--sys-orange) !important; }
+.lin-num--frozen { border-color: rgba(255,69,58,0.45) !important; background: rgba(255,69,58,0.07) !important; }
+.lin-num--frozen .lin-num__n { color: var(--sys-red)    !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TIRADA DE SUERTE
+   ═══════════════════════════════════════════════════════════════════ */
+.suerte-step {
+  background: var(--color-surface) !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+  border-color: var(--color-border) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+.suerte-btn:not(.suerte-btn--disabled) {
+  background: var(--color-accent) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 12px var(--color-accent-glow) !important;
+}
+.suerte-btn:not(.suerte-btn--disabled):hover {
+  background: var(--color-accent-hover) !important;
+  box-shadow: 0 4px 20px var(--color-accent-glow) !important;
+}
+/* Tarjetas de resultado — sin borde, solo layout */
+.suerte-linea-card,
+.suerte-num-card {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.suerte-linea-card__num,
+.suerte-num-card__num   { color: var(--color-accent) !important; }
+
+/* Chip de rango (Línea 10 — del 10 al 19) — sin borde */
+.suerte-linea-card__range {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: 20px !important;
+  color: var(--color-muted) !important;
+  font-size: 0.75rem !important;
+  padding: 3px 12px !important;
+}
+
+/* Símbolo y familia — texto limpio sin borde */
+.suerte-num-card__sym {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: var(--color-text) !important;
+}
+.suerte-num-card__fam {
+  font-size: 0.72rem !important;
+  color: var(--color-muted) !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Imagen del número */
+.suerte-num-card__img {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Historial de tiradas — items limpios sin borde */
+.suerte-hist-item {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: 8px 10px !important;
+}
+.suerte-hist-item__num  { color: var(--color-text) !important; }
+.suerte-hist-item__linea {
+  color: var(--color-accent) !important;
+  background: var(--color-accent-tint) !important;
+  border: none !important;
+  border-radius: 20px !important;
+  padding: 1px 6px !important;
+}
+
+/* Botón Limpiar — texto simple, sin borde */
+.suerte-hist-clear {
+  border: none !important;
+  background: none !important;
+  color: var(--color-muted) !important;
+  font-size: 11px !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  opacity: 0.65 !important;
+}
+.suerte-hist-clear:hover { opacity: 1 !important; color: var(--sys-red) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   BARRA DE ACENTO — reemplazar dorado por systemBlue
+   ═══════════════════════════════════════════════════════════════════ */
+.pulso-last__num { color: var(--color-accent) !important; }
+[class*="__bar-fill"], [class*="-bar-fill"] { background: var(--color-accent) !important; }
+a { color: var(--color-accent) !important; }
+a:hover { color: var(--color-accent-hover) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODALES / OVERLAYS
+   ═══════════════════════════════════════════════════════════════════ */
+.modal,
+[class*="-modal"],
+[class*="-overlay"],
+[class*="-popup"] {
+  background: var(--color-surface) !important;
+  backdrop-filter: var(--blur-modal) !important;
+  -webkit-backdrop-filter: var(--blur-modal) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HINTS / BADGES / PILLS
+   ═══════════════════════════════════════════════════════════════════ */
+.hint, [class*="-hint"], [class*="__hint"] {
+  color: var(--color-muted) !important;
+  font-size: 12px !important;
+}
+[class*="-badge"], [class*="-pill"]:not(.history-pill):not(.history-pill--today),
+[class*="-chip"]:not(.ht-chip) {
+  border-radius: 20px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIVISORES / BORDES
+   ═══════════════════════════════════════════════════════════════════ */
+hr, [class*="__divider"], [class*="-separator"] {
+  border-color: var(--color-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLLBAR — delgada macOS
+   ═══════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(128,128,128,0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.42); }
+* { scrollbar-width: thin; scrollbar-color: rgba(128,128,128,0.25) transparent; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MENU BTN ORIGINAL (oculto — usamos titlebar)
+   ═══════════════════════════════════════════════════════════════════ */
+button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   OVERRIDES DIRECTOS — colores hard-coded en style.css (dorado)
+   Estos cubren rgba(201,168,76,…) que no usan variables CSS.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Sidebar */
+.sidebar {
+  box-shadow: 2px 0 20px rgba(0,0,0,0.18) !important;
+}
+
+/* ── Todos los cards internos sin borde visible ── */
+.day-card, .hypo-card, .pair-card, .constellation-card,
+.tracking-card, .pega3-card, .pega3-entry,
+.cad-card, .cad-wrap, .aus-wrap, .lin-card,
+.geo-card, .memory-card, .transform-card,
+.wiki-wrap, .wiki-section, .config-section, .maint-section {
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Tabla interna sin border */
+.table-wrap {
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Guide cards sin borde */
+.guide-card {
+  border: none !important;
+}
+.guide-card:hover {
+  box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-lg) !important;
+}
+
+/* Rel-row sin borde */
+.rel-row {
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Rec-panel — solo tint de color en bg, sin borde */
+.rec-panel {
+  border: none !important;
+  border-top: 2.5px solid var(--sys-red) !important;
+}
+
+/* Aus-wrap sin borde */
+.aus-wrap {
+  border: none !important;
+  border-top: 2.5px solid var(--sys-orange) !important;
+}
+
+/* Lin-card — solo indicador de estado en top */
+.lin-card--vencida  { border: none !important; border-top: 2.5px solid var(--sys-red)    !important; }
+.lin-card--ventana  { border: none !important; border-top: 2.5px solid var(--sys-green)  !important; }
+.lin-card--aprox    { border: none !important; border-top: 2.5px solid var(--sys-orange) !important; }
+.lin-card--reciente { border: none !important; border-top: 2.5px solid rgba(128,128,128,0.4) !important; }
+
+/* Hit-tracker sin borde en modo claro */
+.hit-tracker {
+  border: none !important;
+  border-left: 3px solid transparent !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.hit-tracker--hot     { border-left-color: var(--sys-green)  !important; }
+.hit-tracker--ok      { border-left-color: var(--sys-blue)   !important; }
+.hit-tracker--neutral { border-left-color: var(--sys-orange) !important; }
+.hit-tracker--bad     { border-left-color: var(--sys-red)    !important; }
+
+/* Botón slot hover dorado → azul */
+.slot:hover {
+  box-shadow: 0 0 0 1px rgba(10,132,255,0.45), 0 0 20px rgba(10,132,255,0.18) !important;
+}
+
+/* Presencia online */
+.presence-bar {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-muted) !important;
+}
+.presence-bar__dot {
+  background: var(--sys-green) !important;
+  box-shadow: 0 0 6px var(--sys-green) !important;
+}
+
+/* Tracking cards */
+.tracking-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+.tracking-card--active {
+  border-color: rgba(10,132,255,0.45) !important;
+  background: rgba(10,132,255,0.06) !important;
+}
+.tracking-card--today {
+  animation: trackingGlowMac 2.2s ease-in-out infinite !important;
+  border-color: rgba(48,209,88,0.55) !important;
+}
+@keyframes trackingGlowMac {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(48,209,88,0.3), var(--shadow-panel); }
+  50%       { box-shadow: 0 0 0 1px rgba(48,209,88,0.6), 0 0 20px rgba(48,209,88,0.2); }
+}
+
+/* Panel del día — cards internas */
+.day-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+.day-card--intel {
+  border-color: rgba(10,132,255,0.18) !important;
+  background: rgba(10,132,255,0.05) !important;
+}
+
+/* Hipótesis */
+.hypo-card, .constellation-card {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.hypo-card--hit  { background: rgba(48,209,88,0.05)  !important; border-top: 2px solid var(--sys-green)  !important; }
+.hypo-card--miss { background: rgba(255,69,58,0.05)  !important; border-top: 2px solid var(--sys-red)    !important; }
+.hypo-card--pending { background: rgba(255,159,10,0.05) !important; border-top: 2px solid var(--sys-orange) !important; }
+
+/* Pares registrados — fila horizontal compacta, sin borde */
+.pair-card {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 16px !important;
+  gap: 12px !important;
+}
+/* El bloque de números ocupa el espacio restante */
+.pair-card__nums {
+  flex: 1 !important;
+  flex-wrap: nowrap !important;
+}
+/* El botón eliminar ya no va al final — inline */
+.pair-card__del {
+  align-self: center !important;
+  margin-top: 0 !important;
+  flex-shrink: 0 !important;
+  background: none !important;
+  border: none !important;
+  color: var(--color-muted) !important;
+  font-size: 0.72rem !important;
+  cursor: pointer !important;
+  opacity: 0.6 !important;
+  padding: 4px 8px !important;
+  border-radius: var(--radius-md) !important;
+  transition: opacity 0.15s, color 0.15s !important;
+}
+.pair-card__del:hover {
+  opacity: 1 !important;
+  color: var(--sys-red) !important;
+}
+/* Líneas extra opcionales también en inline */
+.pair-card__windows, .pair-card__nota {
+  display: none !important;
+}
+.pair-card--hit  { background: rgba(48,209,88,0.05)  !important; }
+.pair-card--miss { background: rgba(255,69,58,0.05)  !important; }
+.pair-card--pending { background: rgba(255,159,10,0.05) !important; }
+
+/* Pega3 */
+.pega3-card,
+.pega3-entry {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+.pega3-entry[style*="--pega3-entry-border"] {
+  border-color: var(--pega3-entry-border) !important;
+  background: var(--pega3-entry-bg) !important;
+}
+
+/* Símbolos de los números (sym) en slot */
+.sym {
+  color: var(--color-muted) !important;
+  font-size: 1.2rem !important;
+}
+
+/* Indicador pending del día */
+.day-pending-indicator {
+  color: var(--color-muted) !important;
+  font-size: 12px !important;
+}
+
+/* Countdown banner texto */
+.countdown-label { color: var(--color-muted) !important; }
+.countdown-target { color: var(--color-text) !important; font-weight: 600 !important; }
+.countdown-timer  { color: var(--color-accent) !important; font-family: var(--font-mono) !important; }
+
+/* Panel "local mode" banner */
+.local-mode-banner {
+  background: rgba(255,159,10,0.10) !important;
+  border: 1px solid rgba(255,159,10,0.35) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--sys-orange) !important;
+}
+
+/* Wiki / guía del sistema */
+.wiki-wrap, .wiki-section {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Geometría — cruceta/triángulo */
+.geo-card, .geo-panel {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+
+/* Memory view */
+.memory-card, .memory-panel {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TRANSFORMACIONES VISUALES
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Eliminar gradiente dorado del card::before en el panel de transformaciones */
+#transform-panel::before,
+#transform-panel:hover::before {
+  display: none !important;
+  opacity: 0 !important;
+  background: none !important;
+}
+
+/* Contenedor principal — sin fondo, sin borde, sin gradiente */
+html[data-theme] #transform-panel,
+html[data-theme] #transform-panel.card {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+html[data-theme] #t-output,
+html[data-theme] #t-output.transform-output {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+.transform-output,
+.transform-card {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Input de número base — compacto, no ocupa todo el ancho */
+.transform-controls {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-bottom: 24px !important;
+}
+.transform-controls label {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  flex: 0 0 auto !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+}
+.transform-controls input {
+  width: 110px !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  border-radius: var(--radius-lg) !important;
+  font-size: 1.6rem !important;
+  font-weight: 800 !important;
+  color: var(--color-text) !important;
+  text-align: center !important;
+  letter-spacing: 0.10em !important;
+  padding: 10px 8px !important;
+}
+.transform-controls input:focus {
+  outline: none !important;
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-glow) !important;
+}
+
+/* Chips de número — Mac card, sin borde dorado */
+.trans-chip {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.trans-chip strong {
+  color: var(--color-accent) !important;
+}
+/* Separador de la fila BASE — neutro, no dorado */
+#t-output .trans-row--base {
+  border-bottom: 1px solid var(--color-border) !important;
+}
+/* Labels de sección (BASE, INVERTIDO…) — más grandes y legibles */
+#t-output .trans-row b {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  color: var(--color-text) !important;
+}
+/* Nota final — separador neutro, fuente legible */
+.trans-note {
+  border-top: 1px solid var(--color-border) !important;
+  color: var(--color-muted) !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+  opacity: 1 !important;
+  padding-top: 14px !important;
+  margin-top: 12px !important;
+}
+
+/* Consulta histórica — sin fondo blanco/borde */
+html[data-theme] #view-transform .card {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+#view-transform .card-head {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 0 12px !important;
+  margin-bottom: 4px !important;
+}
+#view-transform .card-body {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Controles de Consulta histórica — Mac style */
+.cq-controls {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+.cq-input,
+.cq-select {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  border-radius: var(--radius-lg) !important;
+  color: var(--color-text) !important;
+  font-size: 14px !important;
+  padding: 10px 14px !important;
+  outline: none !important;
+  transition: border-color 0.15s !important;
+}
+.cq-input:focus,
+.cq-select:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-glow) !important;
+}
+.cq-input { width: 90px !important; text-align: center !important; font-weight: 700 !important; }
+.cq-select { min-width: 150px !important; }
+html[data-theme="light"] .cq-input,
+html[data-theme="light"] .cq-select {
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}
+
+/* Modos de juego */
+.mode-item {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+.mode-item--active {
+  border-color: rgba(10,132,255,0.45) !important;
+  background: rgba(10,132,255,0.07) !important;
+}
+
+/* Config / Mantenimiento */
+.config-section, .maint-section {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Toast notifications */
+.toast, [class*="toast"] {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  color: var(--color-text) !important;
+}
+[class*="toast--success"], [class*="toast--ok"] {
+  border-color: rgba(48,209,88,0.45) !important;
+}
+[class*="toast--danger"], [class*="toast--error"] {
+  border-color: rgba(255,69,58,0.45) !important;
+}
+[class*="toast--warning"] {
+  border-color: rgba(255,159,10,0.40) !important;
+}
+
+/* Cadencias */
+.cad-wrap, .cad-card {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+
+/* Variante claro — pisar rgba dorado en modo light */
+html[data-theme="light"] .slot:hover {
+  box-shadow: 0 0 0 1px rgba(0,122,255,0.40), 0 0 16px rgba(0,122,255,0.14) !important;
+}
+html[data-theme="light"] .guide-card:hover {
+  box-shadow: 0 0 0 2px rgba(0,122,255,0.20), var(--shadow-lg) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TIRADA DE SUERTE — cards flotantes sin contenedor externo
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* El panel grid no tiene fondo ni borde — los steps flotan solos */
+.suerte-panel {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  gap: 20px !important;
+  max-width: 920px !important;
+  margin: 28px 0 0 !important;
+  align-items: stretch !important;
+}
+
+/* Cada step es una Mac card independiente */
+.suerte-step {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-card) !important;
+  padding: 32px 28px !important;
+  backdrop-filter: var(--blur-panel) !important;
+  -webkit-backdrop-filter: var(--blur-panel) !important;
+}
+.suerte-step--locked {
+  opacity: 0.38 !important;
+  filter: grayscale(0.5) !important;
+}
+
+/* Divisor — flecha horizontal Mac */
+.suerte-divider {
+  color: var(--color-muted) !important;
+  font-size: 1.4rem !important;
+  opacity: 0.5 !important;
+  padding: 0 4px !important;
+  align-self: center !important;
+}
+
+/* Label del paso — estilo SF caption */
+.suerte-step__label {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+}
+.suerte-step__hint {
+  font-size: 0.80rem !important;
+  color: var(--color-muted) !important;
+  line-height: 1.45 !important;
+}
+
+/* Historial de tiradas */
+.suerte-hist-wrap {
+  margin-top: 32px !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.suerte-hist-head {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+.suerte-hist-clear {
+  font-size: 11px !important;
+  color: var(--color-muted) !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  opacity: 0.7 !important;
+}
+.suerte-hist-clear:hover { opacity: 1 !important; color: var(--sys-red) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SUPER PREMIO — padding interno
+   ═══════════════════════════════════════════════════════════════════ */
+.day-card__body {
+  padding: 16px !important;
+}
+.day-card__head {
+  padding: 16px 16px 12px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HISTORIAL DE SORTEOS — panel-meta Mac info row
+   ═══════════════════════════════════════════════════════════════════ */
+.panel-meta {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  color: var(--color-muted) !important;
+  background: var(--color-surface-2) !important;
+  border-radius: 20px !important;
+  padding: 4px 12px !important;
+  margin-bottom: 12px !important;
+  width: auto !important;
+}
+.panel-meta strong { color: var(--color-accent) !important; font-weight: 700 !important; }
+
+/* Controles del historial */
+.day-card__controls {
+  background: var(--color-surface-2) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 14px !important;
+  gap: 12px !important;
+  border: none !important;
+}
+.day-card__controls label {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+}
+.day-card__controls input,
+.day-card__controls select {
+  background: var(--input-bg) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-text) !important;
+  font-size: 13px !important;
+  margin-top: 4px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SUPER PREMIO — secciones internas Mac
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* "Próximo sorteo:" info row */
+.sp-next-row,
+[class*="sp-next"],
+.day-card__body > p:first-child,
+.sp-info-row {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+  color: var(--color-muted) !important;
+  margin-bottom: 8px !important;
+}
+
+/* Sección historial de combinaciones interna */
+.sp-history {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 16px !important;
+  margin-top: 4px !important;
+}
+.sp-history__head {
+  border-bottom: 1px solid var(--color-border) !important;
+  padding-bottom: 10px !important;
+  margin-bottom: 12px !important;
+}
+.sp-history__title {
+  font-size: 0.70rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase !important;
+  color: var(--color-muted) !important;
+}
+.sp-hist-entry {
+  border-bottom: 1px solid var(--color-border) !important;
+  padding: 10px 0 !important;
+}
+.sp-hist-entry:last-child { border-bottom: none !important; }
+.sp-hist-entry--current {
+  background: var(--color-accent-tint) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 10px 12px !important;
+}
+.sp-hist-card {
+  background: var(--color-surface) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.sp-hist-card--current {
+  background: var(--color-accent-tint) !important;
+  box-shadow: 0 0 0 1.5px var(--color-accent), var(--shadow-sm) !important;
+}
+.sp-hist-card__num { color: var(--color-accent) !important; }
+
+/* Botón notificaciones SP */
+.sp-notify-row,
+[class*="sp-notify"] {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 16px !important;
+  font-size: 13px !important;
+  color: var(--color-muted) !important;
+  margin-top: 8px !important;
+}
+
+/* Análisis SP */
+.sp-analysis-box {
+  background: var(--color-surface-2) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 14px !important;
+}
+.sp-rep-chip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+}
+.sp-rep-chip--active {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+}
+.sp-year-btn, .sp-year-tab {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-muted) !important;
+  border-radius: var(--radius-md) !important;
+}
+.sp-year-btn--active, .sp-year-tab--active {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+.sp-date-chip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+}
+.sp-date-chip--marked {
+  background: var(--color-accent-tint) !important;
+  border-color: var(--color-accent) !important;
+}
+.sp-modo-badge--on  { background: rgba(255,59,48,0.12) !important; color: var(--sys-red)   !important; border-color: rgba(255,59,48,0.3) !important; }
+.sp-modo-badge--off { background: var(--color-surface-2) !important; color: var(--color-muted) !important; border-color: var(--color-border) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SPLASH / BOOT LOADER — Mac dark style
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Fondo — Mac #1c1c1e con vibrancy sutil */
+.boot-loader {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 30%, rgba(10,132,255,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 100% 80% at 50% 110%, rgba(10,132,255,0.03) 0%, transparent 60%),
+    #1c1c1e !important;
+}
+
+/* Imágenes de fondo — más tenues, tono Mac */
+.splash__bg-img {
+  opacity: calc(var(--o, 0.08) * 0.65) !important;
+  filter: grayscale(40%) brightness(0.85) !important;
+}
+
+/* Bolas — Mac blue en lugar de dorado */
+.splash__ball {
+  background: radial-gradient(circle at 38% 35%,
+    rgba(100,180,255,0.9) 0%,
+    #0a84ff 45%,
+    #005ecb 100%) !important;
+  box-shadow:
+    0 4px 18px rgba(10,132,255,0.45),
+    0 0 32px rgba(10,132,255,0.18),
+    inset 0 -3px 6px rgba(0,0,0,0.25) !important;
+}
+
+/* Número dentro de la bola */
+.splash__ball-num {
+  color: #fff !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4) !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 800 !important;
+}
+
+/* Brillo interno de la bola */
+.splash__ball-shine {
+  background: rgba(255,255,255,0.45) !important;
+}
+
+/* Marca — tipografía Mac */
+.splash__brand-label {
+  font-family: var(--font-sans) !important;
+  color: rgba(10,132,255,0.65) !important;
+  letter-spacing: 0.28em !important;
+  font-size: 0.58rem !important;
+  font-weight: 600 !important;
+}
+.splash__brand-name {
+  font-family: var(--font-sans) !important;
+  font-weight: 700 !important;
+  color: #f5f5f7 !important;
+  letter-spacing: -0.02em !important;
+  text-shadow:
+    0 0 40px rgba(10,132,255,0.35),
+    0 2px 8px rgba(0,0,0,0.5) !important;
+  animation: name-pulse-mac 3s ease-in-out infinite !important;
+}
+@keyframes name-pulse-mac {
+  0%, 100% { text-shadow: 0 0 30px rgba(10,132,255,0.3), 0 2px 8px rgba(0,0,0,0.5); }
+  50%       { text-shadow: 0 0 55px rgba(10,132,255,0.55), 0 2px 8px rgba(0,0,0,0.5); }
+}
+.splash__brand-country {
+  font-family: var(--font-sans) !important;
+  color: rgba(235,235,245,0.35) !important;
+  letter-spacing: 0.18em !important;
+  font-size: 0.70rem !important;
+}
+
+/* Barra de progreso — azul Mac */
+.splash__bar-wrap {
+  background: rgba(10,132,255,0.12) !important;
+  height: 2px !important;
+  max-width: 280px !important;
+}
+.splash__bar {
+  background: linear-gradient(90deg, transparent, #0a84ff, rgba(10,132,255,0.4), transparent) !important;
+}
+
+/* Texto de estado */
+.splash__status {
+  font-family: var(--font-sans) !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
+  color: rgba(235,235,245,0.45) !important;
+  animation: status-blink-mac 2.2s ease-in-out infinite !important;
+}
+@keyframes status-blink-mac {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.75; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LOADER "ANALIZANDO SORTEOS" — Mac style
+   ═══════════════════════════════════════════════════════════════════ */
+.diaria-loader__ring {
+  border-top-color: var(--color-accent) !important;
+  border-right-color: var(--color-accent-glow) !important;
+  box-shadow: 0 0 18px var(--color-accent-glow) !important;
+}
+.diaria-loader__ring--inner {
+  border-bottom-color: var(--color-accent) !important;
+  border-left-color: var(--color-accent-glow) !important;
+  box-shadow: none !important;
+}
+.diaria-loader__text {
+  color: var(--color-accent) !important;
+}
+.diaria-loader__text > span {
+  text-shadow: 0 0 8px var(--color-accent-glow) !important;
+}
+.diaria-loader__sub {
+  color: var(--color-muted) !important;
+}
+/* Bola del loader — en claro, reducir el glow dorado */
+html[data-theme="light"] .diaria-loader__ball {
+  border-color: var(--color-accent) !important;
+  box-shadow:
+    inset 0 -10px 22px rgba(0,0,0,0.4),
+    inset 0 6px 18px rgba(10,132,255,0.15),
+    0 0 22px rgba(0,122,255,0.25),
+    0 6px 16px rgba(0,0,0,0.15) !important;
+  color: var(--color-accent) !important;
+  text-shadow: 0 0 10px var(--color-accent-glow) !important;
+}
+html[data-theme="dark"] .diaria-loader__ball {
+  border-color: var(--color-accent) !important;
+  box-shadow:
+    inset 0 -10px 22px rgba(0,0,0,0.7),
+    inset 0 6px 18px rgba(10,132,255,0.18),
+    0 0 28px rgba(10,132,255,0.35),
+    0 8px 22px rgba(0,0,0,0.7) !important;
+  color: var(--color-accent) !important;
+  text-shadow: 0 0 12px var(--color-accent-glow) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BARRAS DE PROGRESO — Líneas panel (rediseño Mac prominente)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Meta: fila horizontal — texto a la izquierda, barra ocupa el resto */
+.lin-card__meta {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+/* Track — ocupa el espacio restante, visible en ambos modos */
+.lin-card__bar {
+  flex: 1 !important;
+  height: 6px !important;
+  border-radius: 99px !important;
+  overflow: hidden !important;
+  background: rgba(128,128,128,0.15) !important;
+  min-width: 40px !important;
+}
+html[data-theme="dark"] .lin-card__bar {
+  background: rgba(255,255,255,0.12) !important;
+}
+html[data-theme="light"] .lin-card__bar {
+  background: rgba(0,0,0,0.10) !important;
+}
+
+/* Fills con colores Mac — altura explícita, hex directos para máxima compatibilidad */
+.lin-card__bar-fill {
+  display: block !important;
+  height: 6px !important;
+  border-radius: 99px !important;
+  transition: width 0.5s ease !important;
+  background: rgba(128,128,128,0.35) !important; /* fallback */
+}
+.lin-card--vencida  .lin-card__bar-fill { background: #ff3b30 !important; }
+.lin-card--ventana  .lin-card__bar-fill { background: #30d158 !important; }
+.lin-card--aprox    .lin-card__bar-fill { background: #ff9f0a !important; }
+.lin-card--reciente .lin-card__bar-fill { background: rgba(128,128,128,0.4) !important; }
+html[data-theme="dark"] .lin-card--vencida .lin-card__bar-fill { background: #ff453a !important; }
+html[data-theme="dark"] .lin-card--ventana .lin-card__bar-fill { background: #30d158 !important; }
+html[data-theme="dark"] .lin-card--aprox   .lin-card__bar-fill { background: #ff9f0a !important; }
+
+/* Texto meta */
+.lin-card__gap-txt {
+  font-size: 11.5px !important;
+  color: var(--color-muted) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.lin-card__gap-txt strong {
+  color: var(--color-text) !important;
+  font-weight: 700 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REZAGO / ESCENARIOS — cards sin borde, estilo Mac
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Sección contenedora — sin borde, solo shadow + tint bg */
+.rezago-section {
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+  background: var(--color-surface) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Tint de fondo por variante — sin borde */
+.rezago-section--warn    { background: rgba(255,159,10,0.06)  !important; }
+.rezago-section--ok      { background: rgba(48,209,88,0.05)   !important; }
+.rezago-section--elim    { background: var(--color-surface-2) !important; }
+.rezago-section--cal-block  { background: rgba(255,69,58,0.05)   !important; }
+.rezago-section--cal-boost  { background: rgba(10,132,255,0.05)  !important; }
+.rezago-section--cal-prox   { background: rgba(10,132,255,0.04)  !important; }
+.rezago-section--pop-hot    { background: rgba(255,159,10,0.05)  !important; }
+.rezago-section--pop-cool   { background: rgba(48,209,88,0.04)   !important; }
+.rezago-section--pop-cadena { background: rgba(255,159,10,0.04)  !important; }
+.rezago-section--variante-seed { background: rgba(94,92,230,0.07) !important; }
+.rezago-section--variante   { background: rgba(94,92,230,0.05)   !important; }
+.rezago-section--cluster-hit { background: rgba(48,209,88,0.06) !important; }
+.rezago-section--cluster    { background: rgba(48,209,88,0.04)   !important; }
+.rezago-section--recup-pre  { background: rgba(48,209,88,0.05)   !important; }
+.rezago-section--recup-rep  { background: rgba(255,69,58,0.05)   !important; }
+
+/* Head — colores Mac system */
+.rezago-section__head { color: var(--color-muted) !important; }
+.rezago-section--warn    .rezago-section__head { color: var(--sys-orange) !important; }
+.rezago-section--ok      .rezago-section__head { color: var(--sys-green)  !important; }
+.rezago-section--cal-block .rezago-section__head,
+.rezago-section--recup-rep .rezago-section__head { color: var(--sys-red) !important; }
+.rezago-section--cal-boost .rezago-section__head,
+.rezago-section--cal-prox  .rezago-section__head { color: var(--sys-blue) !important; }
+.rezago-section--pop-hot   .rezago-section__head,
+.rezago-section--pop-cadena .rezago-section__head { color: var(--sys-orange) !important; }
+.rezago-section--pop-cool  .rezago-section__head,
+.rezago-section--cluster-hit .rezago-section__head,
+.rezago-section--cluster   .rezago-section__head,
+.rezago-section--recup-pre .rezago-section__head { color: var(--sys-green) !important; }
+.rezago-section--variante-seed .rezago-section__head,
+.rezago-section--variante  .rezago-section__head { color: var(--sys-purple, #bf5af2) !important; }
+
+/* Card individual — solo quitar fondo blanco, el borde se mantiene */
+.rezago-card {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Todas las variantes: solo sin fondo — borde de color se conserva */
+.rezago-card--warn,
+.rezago-card--ok,
+.rezago-card--elim,
+.rezago-card--cal-block,
+.rezago-card--cal-boost,
+.rezago-card--cal-prox,
+.rezago-card--pop-hot,
+.rezago-card--pop-cool,
+.rezago-card--pop-cadena,
+.rezago-card--variante-seed,
+.rezago-card--variante,
+.rezago-card--cluster-hit,
+.rezago-card--cluster,
+.rezago-card--recup-pre,
+.rezago-card--recup-rep {
+  background: transparent !important;
+}
+.rezago-card--elim { opacity: 0.5 !important; }
+
+/* Número — acento Mac por variante */
+.rezago-card__num { color: var(--color-accent) !important; font-weight: 800 !important; }
+.rezago-card--warn .rezago-card__num,
+.rezago-card--pop-hot .rezago-card__num,
+.rezago-card--pop-cadena .rezago-card__num { color: var(--sys-orange) !important; }
+.rezago-card--cal-block .rezago-card__num,
+.rezago-card--recup-rep .rezago-card__num  { color: var(--sys-red) !important; }
+.rezago-card--ok .rezago-card__num,
+.rezago-card--pop-cool .rezago-card__num,
+.rezago-card--cluster .rezago-card__num,
+.rezago-card--cluster-hit .rezago-card__num,
+.rezago-card--recup-pre .rezago-card__num  { color: var(--sys-green) !important; }
+.rezago-card--cal-boost .rezago-card__num  { color: var(--sys-blue)  !important; }
+.rezago-card--variante-seed .rezago-card__num,
+.rezago-card--variante .rezago-card__num   { color: var(--sys-purple, #bf5af2) !important; }
+.rezago-card--elim .rezago-card__num       { color: var(--color-muted) !important; }
+
+/* Badge sin borde */
+.rezago-card__badge { border: none !important; }
+
+/* Imagen del símbolo — tamaño limpio */
+.rezago-card__img {
+  border-radius: 8px !important;
+  background: none !important;
+}
+
+/* Imagen dentro de los chips del motor unificado — más grande */
+.pulso-chip .rezago-card__img {
+  width: 64px !important;
+  height: 64px !important;
+  object-fit: contain !important;
+}
+
+/* Modo claro — sombra sutil en sección */
+html[data-theme="light"] .rezago-section {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 18px rgba(0,0,0,0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PULSO — MARKOV / MOTOR UNIFICADO — Mac style
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Contenedor del grupo — sin borde visible, solo shadow */
+.pulso-group {
+  background: var(--color-surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-card) !important;
+  border-radius: var(--radius-xl) !important;
+  padding: 18px 20px !important;
+}
+
+/* Header del grupo — label más grande */
+.pulso-group__label {
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  color: var(--color-text) !important;
+  text-transform: uppercase !important;
+}
+
+/* "transiciones históricas" / "datos sólidos" — más visible */
+.pulso-group__freq {
+  font-size: 0.80rem !important;
+  color: var(--color-accent) !important;
+  font-weight: 500 !important;
+}
+.pulso-group__freq--low {
+  color: var(--color-muted) !important;
+}
+
+/* Chips individuales — solo quitar fondo blanco, borde original se conserva */
+.pulso-chip {
+  background: transparent !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 12px 14px !important;
+  gap: 4px !important;
+  min-width: 70px !important;
+}
+
+/* Número del chip — más grande */
+.pulso-chip__num {
+  font-size: 1.55rem !important;
+  font-weight: 800 !important;
+  color: var(--color-accent) !important;
+}
+
+/* Símbolo — más legible */
+.pulso-chip__sym {
+  font-size: 0.92rem !important;
+  color: var(--color-muted) !important;
+}
+
+/* Porcentaje y tipo de señal */
+.pulso-chip__pct {
+  font-size: 0.80rem !important;
+  font-weight: 700 !important;
+}
+.pulso-chip__type {
+  font-size: 0.65rem !important;
+  letter-spacing: 0.06em !important;
+  color: var(--color-muted) !important;
+}
+
+/* Grid de chips — más separación */
+.pulso-chips {
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+/* Margen entre secciones (Zona fría, Variante, etc.) */
+.rezago-section,
+.pulso-group {
+  margin-bottom: 20px !important;
+}
+
+/* Rezago section — label de sección más grande */
+.rezago-section__head {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  margin-bottom: 14px !important;
+}
+
+/* Rezago card — texto interno más legible */
+.rezago-card__dias {
+  font-size: 0.80rem !important;
+  line-height: 1.45 !important;
+  text-align: center !important;
+}
+.rezago-card__num {
+  font-size: 1.45rem !important;
+  font-weight: 800 !important;
+}
+.rezago-card__sim {
+  font-size: 0.80rem !important;
+}
+.rezago-card__badge {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+}
+.rezago-card {
+  padding: 12px 10px !important;
+  gap: 5px !important;
+  min-width: 100px !important;
+}
+.rezago-grid {
+  gap: 12px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ANIMACIONES — macOS spring
+   ═══════════════════════════════════════════════════════════════════ */
+* {
+  transition-timing-function: var(--ease-mac) !important;
+}
+.suerte-result--rolling * { transition: none !important; }
