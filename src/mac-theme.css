@@ -1526,11 +1526,11 @@ html[data-theme] #view-transform .card {
   box-shadow: none !important;
 }
 #view-transform .card-head {
-  font-size: 0.68rem !important;
+  font-size: 0.95rem !important;
   font-weight: 700 !important;
-  letter-spacing: 0.10em !important;
-  text-transform: uppercase !important;
-  color: var(--color-muted) !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+  color: var(--color-text) !important;
   background: none !important;
   border: none !important;
   padding: 0 0 12px !important;
@@ -1540,6 +1540,136 @@ html[data-theme] #view-transform .card {
   background: none !important;
   border: none !important;
   padding: 0 !important;
+}
+#view-transform .card-body .hint {
+  color: var(--color-text) !important;
+  opacity: 0.75 !important;
+}
+
+/* Consulta histórica: cabecera del número consultado */
+.cq-header__img-wrap {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 10px !important;
+  padding: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html[data-theme="light"] .cq-header__img-wrap {
+  border-color: rgba(0,0,0,0.18) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.09) !important;
+}
+.cq-header__img {
+  border-radius: 8px !important;
+  border: none !important;
+}
+.cq-header__sym {
+  color: var(--color-text) !important;
+  opacity: 0.8 !important;
+}
+
+/* Consulta histórica: chips más grandes, border sutil */
+.cq-chip {
+  padding: 10px 12px !important;
+  min-width: 64px !important;
+  border-radius: 8px !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+}
+html[data-theme="light"] .cq-chip {
+  border-color: rgba(0,0,0,0.20) !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10) !important;
+}
+.cq-chip__img {
+  width: 56px !important;
+  height: 56px !important;
+  object-fit: contain !important;
+  border-radius: 6px !important;
+}
+.cq-chip__num {
+  font-size: 1.1rem !important;
+  font-weight: 900 !important;
+}
+.cq-chip__sym {
+  font-size: 0.80rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.75 !important;
+}
+.cq-seg-chip__pct {
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+}
+.cq-section__title {
+  font-size: 0.82rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.80 !important;
+  font-weight: 600 !important;
+}
+
+/* Consulta histórica: episodios con chips de imagen */
+.cq-episodes__toggle {
+  font-size: 0.90rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.82 !important;
+}
+.cq-ep-seq {
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+.cq-ep-chip {
+  padding: 6px 8px !important;
+  min-width: 52px !important;
+  border-radius: 8px !important;
+}
+.cq-ep-chip .cq-chip__img {
+  width: 42px !important;
+  height: 42px !important;
+}
+.cq-ep-chip .cq-chip__num {
+  font-size: 0.95rem !important;
+}
+.cq-ep-chip--before {
+  opacity: 0.6 !important;
+}
+.cq-ep-chip--target {
+  background: rgba(201,168,76,0.15) !important;
+  border-color: rgba(201,168,76,0.45) !important;
+  opacity: 1 !important;
+}
+.cq-ep-chip--after {
+  background: rgba(94,196,126,0.08) !important;
+  border-color: rgba(94,196,126,0.30) !important;
+}
+.cq-ep-hor {
+  font-size: 0.60rem !important;
+  color: var(--color-muted) !important;
+  text-align: center !important;
+  line-height: 1 !important;
+}
+
+/* Transformaciones: separación visual entre secciones */
+.trans-chip {
+  border: 1px solid var(--color-border) !important;
+}
+html[data-theme="light"] .trans-chip {
+  border-color: rgba(0,0,0,0.14) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+}
+#t-output .trans-desc--cards .trans-row {
+  padding-bottom: 10px !important;
+  margin-bottom: 4px !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+#t-output .trans-desc--cards .trans-row:last-child {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+.trans-chip small {
+  color: var(--color-text) !important;
+  opacity: 0.75 !important;
 }
 
 /* Controles de Consulta histórica — Mac style */
