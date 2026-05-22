@@ -199,27 +199,19 @@ export function renderConsultaHTML(resultado, guia = {}) {
       </div>
     </div>` : '';
 
-  const epChip = (d, cls) => {
-    const npd = pad(d.num);
-    const sym = guia[npd]?.simbolo || '';
-    return `<span class="cq-chip cq-ep-chip ${cls}" title="${d.horario}">
-      <img class="cq-chip__img" src="data/img/${npd}.png" alt="${npd}"
-        onerror="this.src='data/img/${npd}.jpg';this.onerror=()=>this.style.display='none'">
-      <span class="cq-chip__num">${npd}</span>
-      ${sym ? `<span class="cq-chip__sym">${sym}</span>` : ''}
-      <span class="cq-ep-hor">${d.horario}</span>
-    </span>`;
-  };
-
   // Episodios históricos
   const epHTML = episodes.length ? `
     <details class="cq-episodes">
       <summary class="cq-episodes__toggle">Ver episodios históricos (${episodes.length})</summary>
       <div class="cq-episodes__list">
         ${episodes.map(ep => {
-          const beforeChips = ep.before.map(d => epChip(d, 'cq-ep-chip--before')).join('');
-          const targetChip  = numChip(target, guia, 'cq-ep-chip--target');
-          const afterChips  = ep.after.map(d => epChip(d, 'cq-ep-chip--after')).join('');
+          const beforeChips = ep.before.map(d =>
+            `<span class="cq-ep-num cq-ep-num--before">${pad(d.num)}<small>${d.horario}</small></span>`
+          ).join('');
+          const targetChip = `<span class="cq-ep-num cq-ep-num--target">${pd}</span>`;
+          const afterChips = ep.after.map(d =>
+            `<span class="cq-ep-num cq-ep-num--after">${pad(d.num)}<small>${d.horario}</small></span>`
+          ).join('');
           return `
             <div class="cq-episode">
               <span class="cq-ep-date">${ep.draw.fecha} ${ep.draw.horario}</span>
