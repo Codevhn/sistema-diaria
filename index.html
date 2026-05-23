@@ -10401,6 +10401,353 @@ function buildVariantEntries(profile) {
           <p>Sin backtesting, ambos estaríamos adivinando si el sistema funciona. Con backtesting, sabemos. El motor cambia constantemente: cada vez que agreguemos una técnica nueva, hay que volver a correr el backtest y verificar que el lift no bajó. Si bajó, esa técnica nueva está metiendo ruido y se descarta.</p>
         `,
       },
+      // ── Estadística y verificación ──────────────────────────────────────────
+      {
+        id: "hipotesis-vs-afirmacion",
+        categoria: "Estadística y verificación",
+        titulo: "Hipótesis vs. afirmación — por qué el sistema no te cree",
+        contenido: `
+          <h2>Hipótesis vs. afirmación</h2>
+          <p class="wiki-lead">El sistema trata todo lo que el jugador o el analista afirman como una <strong>hipótesis a falsificar</strong>, no como una verdad. Esta es la regla más importante del Verificador estadístico.</p>
+
+          <h3>¿Por qué no creerte?</h3>
+          <p>Las observaciones humanas sobre La Diaria llegan de dos fuentes problemáticas:</p>
+          <div class="wiki-example">
+            <strong>1. Ingreso manual de datos</strong> — quien carga los sorteos uno a uno desarrolla inevitablemente la sensación de ver patrones que el azar normal produciría de todas formas.<br><br>
+            <strong>2. Boca a boca entre jugadores</strong> — los "pronosticadores" con años de experiencia comparten observaciones que se viralizan, pero ninguna ha sido verificada estadísticamente con todos los datos.
+          </div>
+          <p>Ambas fuentes producen <em>sesgo de confirmación</em>: recordamos los casos donde el patrón se cumplió y olvidamos los que no.</p>
+
+          <h3>Lo que hace el sistema</h3>
+          <p>Convierte la afirmación en una hipótesis estadística, aplica una prueba objetiva (chi-cuadrado, correlación de Pearson, entropía), y devuelve un veredicto con evidencia:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>CONFIRMADO</strong><span>La prueba estadística supera el umbral de significancia. El patrón es real en los datos.</span></div>
+            <div class="wiki-state wiki-state--warn"><strong>TENDENCIA</strong><span>Hay una señal pero los datos aún no son suficientes para confirmar con certeza.</span></div>
+            <div class="wiki-state wiki-state--muted"><strong>SIN EFECTO</strong><span>Los datos no muestran evidencia del patrón. La percepción es probablemente sesgo.</span></div>
+          </div>
+
+          <h3>Principio general</h3>
+          <p>Si el sistema devuelve "Sin efecto", no significa que el jugador esté equivocado — significa que los datos actuales no tienen suficiente evidencia. Se necesitan más datos o la afirmación simplemente no es cierta.</p>
+        `,
+      },
+      {
+        id: "chi-cuadrado",
+        categoria: "Estadística y verificación",
+        titulo: "Chi-cuadrado (χ²) — ¿La distribución es uniforme?",
+        contenido: `
+          <h2>Chi-cuadrado (χ²)</h2>
+          <p class="wiki-lead">Prueba si una distribución de frecuencias se aleja significativamente de lo que esperaría el azar puro. Es la herramienta principal del Verificador estadístico.</p>
+
+          <h3>El concepto en simple</h3>
+          <p>Si La Diaria fuera completamente aleatoria, cada uno de los 100 números debería aparecer con la misma frecuencia. El χ² mide qué tan lejos está la distribución real de esa uniformidad perfecta.</p>
+
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> En 300 sorteos de diciembre, el número 07 apareció 12 veces y el 54 apareció 0 veces. Lo esperado por azar sería 3 veces cada uno.<br>
+            Esas desviaciones se suman (al cuadrado, normalizadas) para todos los 100 números → ese total es el χ².
+          </div>
+
+          <h3>Cómo interpretar el valor</h3>
+          <p>El χ² tiene 99 grados de libertad (100 números − 1). Los umbrales para este sistema son:</p>
+          <div class="wiki-example">
+            χ² &gt; 123.2 → <strong>p &lt; 0.05</strong> — resultado improbable por azar (1 en 20)<br>
+            χ² &gt; 135.8 → <strong>p &lt; 0.01</strong> — muy improbable por azar (1 en 100)<br>
+            χ² &gt; 149.5 → <strong>p &lt; 0.001</strong> — extremadamente improbable (1 en 1000)
+          </div>
+          <p>Si el χ² está por debajo de estos umbrales, la distribución es estadísticamente compatible con el azar — no hay evidencia de patrón real.</p>
+
+          <h3>Limitación importante</h3>
+          <p>El χ² necesita suficientes datos. Con menos de ~50 sorteos en el período analizado, los resultados no son confiables aunque el número parezca alto.</p>
+        `,
+      },
+      {
+        id: "p-valor",
+        categoria: "Estadística y verificación",
+        titulo: "p-valor — ¿Qué tan improbable es esto por azar?",
+        contenido: `
+          <h2>p-valor (nivel de significancia)</h2>
+          <p class="wiki-lead">El p-valor responde: <em>"Si La Diaria fuera completamente aleatoria, ¿qué tan probable sería observar esta distribución tan extrema?"</em></p>
+
+          <h3>Cómo leerlo</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>p &lt; 0.05</strong><span>Hay menos de 5% de probabilidad de que sea azar. Resultado significativo. El patrón probablemente es real.</span></div>
+            <div class="wiki-state wiki-state--warn"><strong>p &lt; 0.10</strong><span>Hay menos de 10% de probabilidad de que sea azar. Tendencia, pero no conclusiva.</span></div>
+            <div class="wiki-state wiki-state--muted"><strong>p &gt; 0.10</strong><span>Más de 10% de probabilidad de que sea azar. No hay evidencia estadística del patrón.</span></div>
+          </div>
+
+          <h3>El error común</h3>
+          <p>Un p-valor bajo NO dice "el patrón es grande o importante". Solo dice que el patrón es estadísticamente real, no producto del azar. Un patrón puede ser real pero pequeño (inútil para jugar) o puede ser grande pero con pocos datos (no confiable).</p>
+
+          <h3>En el sistema</h3>
+          <p>El Verificador estadístico muestra el p-valor calculado a partir del chi-cuadrado con 99 grados de libertad. Los valores críticos están tabulados — no se calculan exactamente sino que se clasifican en categorías (p&lt;0.001, p&lt;0.01, p&lt;0.05, etc.).</p>
+        `,
+      },
+      {
+        id: "entropia-shannon",
+        categoria: "Estadística y verificación",
+        titulo: "Entropía de Shannon — ¿Qué tan predecible es un período?",
+        contenido: `
+          <h2>Entropía de Shannon normalizada</h2>
+          <p class="wiki-lead">Mide el <em>desorden</em> o <em>imprevisibilidad</em> de una distribución. Es la base del <strong>Índice ROBOTELSA</strong> que identifica meses o períodos donde La Diaria se vuelve más adversarial.</p>
+
+          <h3>La intuición</h3>
+          <p>Imagina dos casos extremos:</p>
+          <div class="wiki-example">
+            <strong>Entropía = 0 (mínima):</strong> Un solo número cae en todos los sorteos. Distribución completamente concentrada. Máxima predecibilidad (pero también máxima anomalía).<br><br>
+            <strong>Entropía = 1 (máxima):</strong> Todos los 100 números aparecen exactamente con la misma frecuencia. Distribución perfectamente uniforme. Azar puro — imposible predecir.
+          </div>
+          <p>En la práctica, los valores de La Diaria oscilan entre 0.90 y 0.99. Las diferencias pequeñas entre meses son significativas.</p>
+
+          <h3>Fórmula</h3>
+          <p>H = −Σ p·log₂(p) / log₂(100)</p>
+          <p>Donde p es la frecuencia relativa de cada número. El resultado se normaliza dividiéndolo por log₂(100) para que quede en el rango [0, 1].</p>
+
+          <h3>Cómo usarlo</h3>
+          <p>En el Índice ROBOTELSA, meses con entropía <em>más baja que el promedio</em> son períodos donde pocos números concentran los sorteos — más fácil de analizar. Meses con entropía <em>más alta</em> son caóticos — el sistema parece dispersar los resultados intencionalmente.</p>
+        `,
+      },
+      {
+        id: "z-score",
+        categoria: "Estadística y verificación",
+        titulo: "Z-score — ¿Qué tan anómala es la frecuencia de un número?",
+        contenido: `
+          <h2>Z-score por número</h2>
+          <p class="wiki-lead">Mide en unidades de desviación estándar qué tan lejos está la frecuencia real de un número respecto de lo esperado por azar.</p>
+
+          <h3>Fórmula</h3>
+          <p>z = (observado − esperado) / √esperado</p>
+          <p>Donde "esperado" es total_sorteos / 100 (distribución uniforme sobre 100 números).</p>
+
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> En 500 sorteos de enero, el número 33 apareció 12 veces.<br>
+            Esperado = 500 / 100 = 5<br>
+            z = (12 − 5) / √5 = 7 / 2.24 = <strong>+3.1</strong><br>
+            Eso significa que el 33 apareció 3.1 desviaciones estándar por encima de lo normal en enero.
+          </div>
+
+          <h3>Umbrales de interpretación</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>|z| ≥ 2.0</strong><span>Sobre-representado o sub-representado de forma notable. Vale la pena considerar.</span></div>
+            <div class="wiki-state wiki-state--warn"><strong>1.3 ≤ |z| &lt; 2.0</strong><span>Anomalía leve. Tendencia a vigilar pero no estadísticamente fuerte.</span></div>
+            <div class="wiki-state wiki-state--muted"><strong>|z| &lt; 1.3</strong><span>Dentro del rango normal del azar. Sin señal relevante.</span></div>
+          </div>
+
+          <h3>En el sistema</h3>
+          <p>El Verificador estacional muestra los números con mayor |z| por mes. En el mapa de calor, chips en rojo son números con z alto (sobre-representados ese mes); chips en azul tienen z bajo (sub-representados).</p>
+        `,
+      },
+      {
+        id: "pearson-r",
+        categoria: "Estadística y verificación",
+        titulo: "Correlación de Pearson (r) — ¿Dos períodos se parecen?",
+        contenido: `
+          <h2>Correlación de Pearson entre distribuciones</h2>
+          <p class="wiki-lead">Mide qué tan similares son las distribuciones de frecuencias de dos períodos distintos. Se usa para detectar si La Diaria "cambia de sistema" de un año a otro.</p>
+
+          <h3>Cómo funciona aquí</h3>
+          <p>Para cada número (0–99), se calcula su frecuencia relativa en el período A y en el período B. Pearson mide la correlación entre esos 100 pares de valores.</p>
+
+          <div class="wiki-example">
+            <strong>r cercano a 1:</strong> Las distribuciones son casi idénticas. Los mismos números son frecuentes en ambos años.<br><br>
+            <strong>r cercano a 0:</strong> Las distribuciones son independientes. Los patrones de un año no se repiten en el otro.<br><br>
+            <strong>r negativo:</strong> Lo que era frecuente en un año tiende a ser raro en el otro (inversión de patrones).
+          </div>
+
+          <h3>Interpretación en el Verificador</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>r promedio &lt; 0.25</strong><span>Baja correlación entre años consecutivos → La Diaria cambia significativamente de año en año. Hipótesis CONFIRMADA.</span></div>
+            <div class="wiki-state wiki-state--warn"><strong>0.25 ≤ r &lt; 0.55</strong><span>Correlación moderada → hay cambios pero también continuidad. Hipótesis en TENDENCIA.</span></div>
+            <div class="wiki-state wiki-state--muted"><strong>r ≥ 0.55</strong><span>Alta correlación → los patrones son relativamente estables entre años. Hipótesis SIN EFECTO.</span></div>
+          </div>
+        `,
+      },
+      {
+        id: "robotelsa",
+        categoria: "Estadística y verificación",
+        titulo: "ROBOTELSA — el sobrenombre de diciembre y recuperaciones",
+        contenido: `
+          <h2>ROBOTELSA</h2>
+          <p class="wiki-lead">Sobrenombre popular que los jugadores de La Diaria le dan a LOTELHSA durante diciembre y los períodos de recuperación post-Super Premio, cuando incluso los pronosticadores con años de experiencia fallan consistentemente.</p>
+
+          <h3>El origen</h3>
+          <p>La combinación de "ROBO" + "LOTELHSA" refleja la percepción de que en ciertos períodos el sistema parece actuar de forma mecánica y adversarial: evitando los números más esperados, repitiendo combinaciones inusuales, y comportándose de una forma que "ningún humano predice".</p>
+
+          <h3>¿Es real o sesgo?</h3>
+          <p>Aquí entra el Verificador estadístico. La percepción del ROBOTELSA se viraliza por boca a boca y es amplificada por el sesgo de confirmación: recordamos los meses de diciembre malos y olvidamos los normales. El sistema verifica con chi-cuadrado si la distribución de diciembre realmente difiere de los demás meses.</p>
+
+          <h3>Índice ROBOTELSA</h3>
+          <p>El sistema calcula una medida objetiva del "efecto ROBOTELSA" usando ventanas deslizantes de 30 sorteos y calculando la entropía de Shannon de cada ventana. Un índice bajo (entropía baja) indica que el período es más predecible; un índice alto indica dispersión caótica — el comportamiento adversarial percibido por los jugadores.</p>
+
+          <h3>Dónde verlo</h3>
+          <p>En el panel <strong>Verificador estadístico → Índice ROBOTELSA</strong>. Las barras muestran la entropía promedio por mes. Los meses por encima del promedio global (línea punteada) son los más "robóticos" según los datos.</p>
+        `,
+      },
+      {
+        id: "indice-robotelsa",
+        categoria: "Estadística y verificación",
+        titulo: "Índice ROBOTELSA — entropía mensual por ventana deslizante",
+        contenido: `
+          <h2>Índice ROBOTELSA (técnico)</h2>
+          <p class="wiki-lead">Métrica cuantitativa que calcula la entropía de Shannon en ventanas deslizantes de 30 sorteos y agrupa los resultados por mes del año.</p>
+
+          <h3>Cómo se calcula</h3>
+          <ol>
+            <li>Se ordenan todos los sorteos cronológicamente.</li>
+            <li>Se avanzan ventanas de 30 sorteos en pasos de ~7 sorteos (1/4 de la ventana).</li>
+            <li>Para cada ventana se calcula la entropía normalizada de Shannon.</li>
+            <li>Cada entropía se asigna al mes del último sorteo de esa ventana.</li>
+            <li>Se promedian todas las entropías de cada mes → valor del índice por mes.</li>
+          </ol>
+
+          <h3>El índice relativo</h3>
+          <p>El valor que se muestra en el panel es la <em>desviación porcentual respecto al promedio global</em>:</p>
+          <div class="wiki-example">
+            Si el promedio global es 0.9500 y diciembre tiene 0.9617, el índice relativo de diciembre es:<br>
+            (0.9617 − 0.9500) / 0.9500 × 100 = <strong>+1.2%</strong><br>
+            Diciembre está 1.2% por encima del promedio global → más caótico.
+          </div>
+
+          <h3>Interpretación</h3>
+          <p>Un índice positivo significa que ese mes tiende a ser más disperso/caótico que el promedio anual. Un índice negativo significa que ese mes tiende a concentrarse en menos números — más predecible, o al menos más estructurado.</p>
+        `,
+      },
+      {
+        id: "pool-historico",
+        categoria: "Estadística y verificación",
+        titulo: "Pool histórico — candidatos de recuperación basados en SP anteriores",
+        contenido: `
+          <h2>Pool histórico de recuperación</h2>
+          <p class="wiki-lead">Conjunto de números que aparecieron en períodos de recuperación de Super Premios anteriores. Sirve como "universo de candidatos" para el ciclo de recuperación actual.</p>
+
+          <h3>Construcción del pool</h3>
+          <p>Para cada Super Premio registrado en el historial (excepto el actual):</p>
+          <ol>
+            <li>Se toman los sorteos de los 14 días siguientes al pago del SP.</li>
+            <li>Se extraen todos los números únicos que cayeron en esa ventana.</li>
+            <li>La unión de todos esos números forma el pool histórico.</li>
+          </ol>
+          <p>Típicamente el pool contiene entre 60 y 80 números únicos sobre 100 posibles.</p>
+
+          <h3>Candidatos aún sin caer</h3>
+          <p>De ese pool, el panel muestra los números que <em>todavía no han aparecido</em> en el ciclo de recuperación actual. Son candidatos porque el historial sugiere que suelen aparecer en este tipo de períodos.</p>
+
+          <h3>Importante</h3>
+          <p>El pool es grande por construcción — no es una lista de 10 números seleccionados. La utilidad está en los <strong>candidatos que no han caído aún</strong> y en el <strong>hit-tracker</strong> que valida si el pool está siendo efectivo en el ciclo actual.</p>
+        `,
+      },
+      {
+        id: "hit-tracker",
+        categoria: "Estadística y verificación",
+        titulo: "Hit-tracker — validación estadística del pool de candidatos",
+        contenido: `
+          <h2>Hit-tracker</h2>
+          <p class="wiki-lead">Mide qué tan efectivo está siendo el pool histórico en el ciclo de recuperación actual, comparándolo contra la <strong>línea base de azar</strong>.</p>
+
+          <h3>Qué mide</h3>
+          <p>Para cada día del período de recuperación actual:</p>
+          <ul>
+            <li>¿El número que cayó ese día estaba en el pool histórico?</li>
+            <li>Suma los días con al menos un hit.</li>
+            <li>Divide entre el total de días del período → <strong>tasa de acierto actual</strong>.</li>
+          </ul>
+
+          <h3>Línea base de azar</h3>
+          <p>Si el pool tiene N números, la probabilidad de que al menos uno de los 2 sorteos diarios (sin reposición) sea del pool es:</p>
+          <div class="wiki-example">
+            P(≥1 hit) = 1 − ((100−N) × (99−N)) / (100 × 99)
+          </div>
+          <p>Esta es la línea base: lo que conseguiría una estrategia aleatoria con ese pool del mismo tamaño. Si el hit-tracker supera esta línea, el pool tiene valor predictivo real.</p>
+
+          <h3>Ciclos históricos</h3>
+          <p>El tracker también calcula retroactivamente la tasa de acierto para cada SP anterior, mostrando la consistencia del pool a través del tiempo. Si la tasa histórica promedio está sistemáticamente por encima de la línea base, el pool tiene evidencia estadística de utilidad.</p>
+
+          <h3>Cómo leerlo en el panel</h3>
+          <p>Las barras de cada ciclo muestran la tasa de acierto (azul) vs la línea base de azar (gris punteada). La barra se vuelve verde cuando supera la línea base. El promedio histórico aparece como un badge arriba del tracker.</p>
+        `,
+      },
+      {
+        id: "linea-base-azar",
+        categoria: "Estadística y verificación",
+        titulo: "Línea base de azar — referencia para evaluar el pool",
+        contenido: `
+          <h2>Línea base de azar</h2>
+          <p class="wiki-lead">La probabilidad teórica mínima que tendría cualquier pool del mismo tamaño <em>elegido al azar</em>. Es el umbral que debe superar el pool histórico para tener valor real.</p>
+
+          <h3>La pregunta que responde</h3>
+          <p><em>"Si yo eligiera N números al azar entre 100, ¿cuántos días esperaría que alguno de ellos cayera en los 2 sorteos del día?"</em></p>
+
+          <h3>Fórmula</h3>
+          <div class="wiki-example">
+            P(al menos 1 hit en 2 sorteos sin reposición) = 1 − ((100−N) × (99−N)) / (100 × 99)
+          </div>
+          <p>Donde N es el tamaño del pool.</p>
+
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> Si el pool tiene 70 números:<br>
+            P(hit) = 1 − (30 × 29) / (100 × 99) = 1 − 870/9900 = 1 − 0.088 = <strong>91.2%</strong><br>
+            Con 70 números, hasta el azar puro acertaría el 91% de los días. Para que el pool sea útil, su tasa real debe superar notablemente ese umbral.
+          </div>
+
+          <h3>Por qué importa</h3>
+          <p>Sin esta referencia, un pool de 80 números con 85% de acierto parecería impresionante — pero el azar puro con 80 números aleatorios lograría ~93%. La línea base convierte porcentajes absolutos en información útil.</p>
+        `,
+      },
+      {
+        id: "candidatos-estacionales",
+        categoria: "Estadística y verificación",
+        titulo: "Candidatos estacionales — números recurrentes en el mismo mes",
+        contenido: `
+          <h2>Candidatos estacionales</h2>
+          <p class="wiki-lead">Números que aparecen en el mismo mes calendario en <strong>al menos 2 años distintos</strong> del historial. Son candidatos con señal de estacionalidad.</p>
+
+          <h3>La lógica detrás</h3>
+          <p>Si el número 45 aparece todos los meses de marzo sin importar el año, eso podría ser coincidencia o podría ser un patrón real. El Verificador año-vs-año detecta estos números y los separa de los que solo aparecen de forma aislada.</p>
+
+          <h3>Cómo se identifican</h3>
+          <ol>
+            <li>Se agrupan los sorteos por mes y por año.</li>
+            <li>Para el mes seleccionado, se construye la frecuencia de cada número por año.</li>
+            <li>Los números presentes en ≥2 años distintos son "recurrentes" (candidatos estacionales).</li>
+            <li>Se ordenan por número de años en que aparecieron, luego por frecuencia total.</li>
+          </ol>
+
+          <h3>Dónde verlos</h3>
+          <p>En <strong>Verificador estadístico → Año vs. Año</strong>. Selecciona el mes que te interesa y verás la tabla comparativa por año más el panel de candidatos estacionales con chips marcados en color.</p>
+
+          <h3>Caveat</h3>
+          <p>Un candidato estacional recurrente en 2 de 3 años disponibles puede ser azar puro. Con 5+ años de historial, la señal se vuelve mucho más sólida. El panel muestra cuántos años lo respaldan para que puedas evaluarlo.</p>
+        `,
+      },
+      {
+        id: "verificador-estadistico",
+        categoria: "Estadística y verificación",
+        titulo: "Verificador estadístico — el panel de hipótesis",
+        contenido: `
+          <h2>Verificador estadístico</h2>
+          <p class="wiki-lead">Panel dedicado a verificar con evidencia estadística las afirmaciones más comunes sobre el comportamiento de La Diaria, en lugar de asumir que son verdad.</p>
+
+          <h3>Las 3 hipótesis que verifica</h3>
+          <div class="wiki-example">
+            <strong>1. "Diciembre es diferente — el mes del ROBOTELSA"</strong><br>
+            Prueba: chi-cuadrado de los sorteos de diciembre vs distribución uniforme.<br><br>
+            <strong>2. "Los períodos post-SP usan una distribución diferente"</strong><br>
+            Prueba: chi-cuadrado de períodos de recuperación + correlación de Pearson entre recuperación y período normal.<br><br>
+            <strong>3. "La Diaria cambia su sistema de año en año"</strong><br>
+            Prueba: correlación de Pearson promedio entre años consecutivos.
+          </div>
+
+          <h3>Los 4 sub-paneles</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>Verificación de afirmaciones</strong><span>Veredicto (CONFIRMADO / TENDENCIA / SIN EFECTO) con evidencia y números sobre/bajo-representados.</span></div>
+            <div class="wiki-state wiki-state--ok"><strong>Mapa estacional</strong><span>Chi-cuadrado y entropía mes a mes. Cada mes coloreado según su nivel de atipicidad.</span></div>
+            <div class="wiki-state wiki-state--ok"><strong>Índice ROBOTELSA</strong><span>Entropía de Shannon por mes en ventanas deslizantes de 30 sorteos.</span></div>
+            <div class="wiki-state wiki-state--ok"><strong>Año vs. Año</strong><span>Comparación por mes entre diferentes años. Candidatos estacionales recurrentes.</span></div>
+          </div>
+
+          <h3>Principio fundamental</h3>
+          <p>El Verificador está diseñado para ser escéptico por defecto. Si los datos no son suficientes o no muestran evidencia clara, devuelve "Sin efecto" o "Datos insuficientes" — nunca inventa un patrón para satisfacer una expectativa.</p>
+        `,
+      },
+      // ── Referencia ───────────────────────────────────────────────────────────
       {
         id: "guia-suenos",
         categoria: "Referencia",
