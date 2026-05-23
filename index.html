@@ -6750,12 +6750,12 @@
                   ${hitsEsteCiclo.map(n => {
                     const pd  = PAD2(n);
                     const sym = GUIA?.[pd]?.simbolo || "";
-                    return \`<div class="rec-ht__hit-chip">
-                      <img class="rec-ht__hit-img" src="data/img/\${pd}.png" alt="\${pd}"
-                        onerror="this.src='data/img/\${pd}.jpg';this.onerror=()=>this.style.display='none'">
-                      <span class="rec-ht__hit-num">\${pd}</span>
-                      \${sym ? \`<span class="rec-ht__hit-sym">\${sym}</span>\` : ""}
-                    </div>\`;
+                    return `<div class="rec-ht__hit-chip">
+                      <img class="rec-ht__hit-img" src="data/img/${pd}.png" alt="${pd}"
+                        onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
+                      <span class="rec-ht__hit-num">${pd}</span>
+                      ${sym ? `<span class="rec-ht__hit-sym">${sym}</span>` : ""}
+                    </div>`;
                   }).join("")}
                 </div>` : ""}
               </div>`;
