@@ -82,6 +82,7 @@
     <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
     <button data-view="analysis"><span
         class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
+    <button data-view="temporal"><span class="sidebar-icon fa-solid fa-flask"></span><i>Verificador</i></button>
     <button data-view="superpremio"><span class="sidebar-icon fa-solid fa-trophy"></span><i>Super Premio</i></button>
     <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
     <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
@@ -419,6 +420,59 @@
           </div>
         </article>
 
+      </div>
+    </section>
+
+    <!-- VERIFICADOR ESTADÍSTICO -->
+    <section id="view-temporal" class="view hidden">
+      <div class="vt-header">
+        <h2 style="margin:0">🔬 Verificador estadístico</h2>
+        <p class="vt-subtitle">Las afirmaciones —propias o ajenas— se tratan como hipótesis, no como verdades. El sistema las contrasta con los datos reales usando chi-cuadrado y entropía de Shannon. Un veredicto <em>Sin efecto</em> no significa que la afirmación sea falsa: puede haber muestra insuficiente.</p>
+      </div>
+
+      <!-- Afirmaciones -->
+      <div class="vt-section">
+        <div class="vt-section__head">Verificación de afirmaciones</div>
+        <div id="vt-claims-out" class="vt-claims-grid">
+          <p class="hint">Cargando análisis…</p>
+        </div>
+      </div>
+
+      <!-- Mapa estacional -->
+      <div class="vt-section">
+        <div class="vt-section__head">Mapa estacional — distribución por mes</div>
+        <p class="vt-hint">Chi-cuadrado de uniformidad para cada mes. Verde = distribución normal. Naranja/rojo = mes con comportamiento atípico estadísticamente.</p>
+        <div id="vt-seasonal-out" class="vt-seasonal-grid">
+          <p class="hint">Cargando…</p>
+        </div>
+      </div>
+
+      <!-- Índice ROBOTELSA -->
+      <div class="vt-section">
+        <div class="vt-section__head">Índice ROBOTELSA — entropía por mes</div>
+        <p class="vt-hint">Entropía de Shannon en ventanas de 30 sorteos, promediada por mes. Valor alto = más impredecible (caótico). Valor bajo = más predecible (patterned). La línea naranja es el promedio global.</p>
+        <div id="vt-robotelsa-out" class="vt-robotelsa-wrap">
+          <p class="hint">Cargando…</p>
+        </div>
+      </div>
+
+      <!-- Año vs año -->
+      <div class="vt-section">
+        <div class="vt-section__head">Comparación año a año</div>
+        <p class="vt-hint">Selecciona un mes y observa qué números aparecieron en ese mismo mes en cada año registrado. Los marcados en verde han aparecido en ≥2 años distintos.</p>
+        <div class="vt-aya-controls">
+          <select id="vt-aya-mes" class="cq-select">
+            <option value="0">Enero</option><option value="1">Febrero</option>
+            <option value="2">Marzo</option><option value="3">Abril</option>
+            <option value="4">Mayo</option><option value="5">Junio</option>
+            <option value="6">Julio</option><option value="7">Agosto</option>
+            <option value="8">Septiembre</option><option value="9">Octubre</option>
+            <option value="10">Noviembre</option><option value="11" selected>Diciembre</option>
+          </select>
+        </div>
+        <div id="vt-aya-out" class="vt-aya-wrap">
+          <p class="hint">Selecciona un mes.</p>
+        </div>
       </div>
     </section>
 
@@ -1052,6 +1106,7 @@
     import { analizarDejaVu, renderDejaVuHTML } from "./src/dejavu-engine.js";
     import { analizarCadencias, renderCadenciasHTML } from "./src/cadencia-engine.js";
     import { consultarNumero, renderConsultaHTML } from "./src/consulta-engine.js";
+    import { verificarAfirmaciones, verificarEstacionalidad, indexRobotelsa, compararAnioAnio } from "./src/temporal-engine.js";
     import { analizarAusencias, renderAusenciasHTML } from "./src/ausencia-engine.js";
     import { analizarLineas, renderLineasHTML } from "./src/lineas-engine.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
@@ -8357,6 +8412,7 @@ function buildVariantEntries(profile) {
       day: "view-day",
       hypo: "view-hypo",
       analysis: "view-analysis",
+      temporal: "view-temporal",
       transform: "view-transform",
       pega3: "view-pega3",
       geometry: "view-geometry",
@@ -8386,6 +8442,7 @@ function buildVariantEntries(profile) {
         if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
         if (id === "view-analysis") renderPulso();
         if (id === "view-superpremio") renderSuperPremioPanel();
+        if (id === "view-temporal") renderVerificador();
         if (id === "view-maint") {
           refreshDuplicados();
           getCachedDraws().then((draws) => renderHistoryCoverage(draws)).catch(() => {});
@@ -8404,6 +8461,192 @@ function buildVariantEntries(profile) {
         if (window.innerWidth <= 768) closeSidebarMobile();
       };
     });
+
+    // ════════════════════════════════════════════════════════════════
+    // VERIFICADOR ESTADÍSTICO — renderVerificador
+    // ════════════════════════════════════════════════════════════════
+    async function renderVerificador() {
+      const PAD2 = n => String(n).padStart(2, "0");
+      const draws = (await getCachedDraws({ excludeTest: true })).filter(d => !d.esTest);
+      const spFechas = await listSpFromDb().catch(() => []);
+
+      // ── Helpers de render ─────────────────────────────────────────
+      function verdictBadge(v) {
+        const cfg = {
+          CONFIRMADO:  { cls: "vt-badge--ok",      label: "✓ Confirmado"         },
+          TENDENCIA:   { cls: "vt-badge--tend",     label: "⚠ Tendencia"          },
+          SIN_EFECTO:  { cls: "vt-badge--no",       label: "✗ Sin efecto"         },
+          insuficiente:{ cls: "vt-badge--ins",      label: "? Datos insuficientes" },
+        };
+        const c = cfg[v] || cfg.insuficiente;
+        return `<span class="vt-badge ${c.cls}">${c.label}</span>`;
+      }
+
+      function numChip(n, extra = "") {
+        const pd  = PAD2(n);
+        const sym = GUIA?.[pd]?.simbolo || "";
+        return `<span class="vt-num-chip ${extra}" title="${sym}">${pd}<small>${sym}</small></span>`;
+      }
+
+      // ── Panel 1: Afirmaciones ─────────────────────────────────────
+      const claims = verificarAfirmaciones(draws, spFechas);
+      const claimsEl = document.getElementById("vt-claims-out");
+
+      if (!claims.length) {
+        claimsEl.innerHTML = `<p class="hint">Datos insuficientes para verificar hipótesis.</p>`;
+      } else {
+        claimsEl.innerHTML = claims.map(c => {
+          let extra = "";
+          if (c.id === "diciembre" && (c.numsSobre?.length || c.numsBajo?.length)) {
+            extra = `
+              <div class="vt-claim__nums">
+                ${c.numsSobre?.length ? `<div class="vt-claim__nums-row">
+                  <span class="vt-nums-lbl vt-nums-lbl--sobre">↑ Sobre-representados</span>
+                  ${c.numsSobre.map(a => numChip(a.num, "vt-num-chip--sobre")).join("")}
+                </div>` : ""}
+                ${c.numsBajo?.length ? `<div class="vt-claim__nums-row">
+                  <span class="vt-nums-lbl vt-nums-lbl--bajo">↓ Bajo-representados</span>
+                  ${c.numsBajo.map(a => numChip(a.num, "vt-num-chip--bajo")).join("")}
+                </div>` : ""}
+              </div>`;
+          }
+          if (c.id === "anio_anio" && c.correlaciones?.length) {
+            extra = `<div class="vt-corr-row">
+              ${c.correlaciones.map(cr => `
+                <span class="vt-corr-chip ${cr.r < 0.3 ? "vt-corr-chip--low" : cr.r < 0.6 ? "vt-corr-chip--mid" : "vt-corr-chip--high"}">
+                  ${cr.pair}<br><strong>r=${cr.r}</strong>
+                </span>`).join("")}
+            </div>`;
+          }
+          return `
+          <div class="vt-claim ${c.verdict === "CONFIRMADO" ? "vt-claim--ok" : c.verdict === "TENDENCIA" ? "vt-claim--tend" : ""}">
+            <div class="vt-claim__head">
+              ${verdictBadge(c.verdict)}
+              <span class="vt-claim__hipotesis">${c.hipotesis}</span>
+            </div>
+            <p class="vt-claim__fuente">Fuente de la afirmación: ${c.fuente}</p>
+            <p class="vt-claim__muestra">Muestra: ${c.muestra}</p>
+            <p class="vt-claim__evidencia">${c.evidencia}</p>
+            ${extra}
+            <p class="vt-claim__conclusion">${c.conclusion}</p>
+          </div>`;
+        }).join("");
+      }
+
+      // ── Panel 2: Mapa estacional ──────────────────────────────────
+      const { months } = verificarEstacionalidad(draws);
+      const seasonEl   = document.getElementById("vt-seasonal-out");
+      seasonEl.innerHTML = months.map(mo => {
+        const lvlCls = {
+          atipico:      "vt-month--atipico",
+          tendencia:    "vt-month--tend",
+          normal:       "vt-month--normal",
+          insuficiente: "vt-month--ins"
+        }[mo.verdictLevel] || "";
+        const badgeTxt = {
+          atipico:      "Atípico",
+          tendencia:    "Tendencia",
+          normal:       "Normal",
+          insuficiente: "Pocos datos"
+        }[mo.verdictLevel] || "";
+
+        const sobreChips = mo.topOver.slice(0,4).map(a =>
+          `<span class="vt-sm-chip vt-sm-chip--sobre" title="z=${a.z}">${PAD2(a.num)}</span>`
+        ).join("");
+        const bajoChips = mo.topUnder.slice(0,4).map(a =>
+          `<span class="vt-sm-chip vt-sm-chip--bajo" title="z=${a.z}">${PAD2(a.num)}</span>`
+        ).join("");
+
+        return `
+        <div class="vt-month ${lvlCls}">
+          <div class="vt-month__name">${mo.nameFull}</div>
+          <div class="vt-month__badge">${badgeTxt}</div>
+          <div class="vt-month__meta">${mo.total} sorteos · χ²=${mo.chi}</div>
+          <div class="vt-month__pval">${mo.pLabel}</div>
+          ${sobreChips || bajoChips ? `
+          <div class="vt-month__chips">
+            ${sobreChips}${bajoChips}
+          </div>` : `<div class="vt-month__chips" style="opacity:.35">sin anomalías</div>`}
+        </div>`;
+      }).join("");
+
+      // ── Panel 3: Índice ROBOTELSA ─────────────────────────────────
+      const robo    = indexRobotelsa(draws);
+      const roboEl  = document.getElementById("vt-robotelsa-out");
+
+      if (!robo.globalAvg) {
+        roboEl.innerHTML = `<p class="hint">Datos insuficientes para calcular entropía.</p>`;
+      } else {
+        const maxH   = Math.max(...robo.monthAvg.filter(m=>m.avg!==null).map(m=>m.avg), 1);
+        const minH   = Math.min(...robo.monthAvg.filter(m=>m.avg!==null).map(m=>m.avg), 0);
+        const range  = Math.max(maxH - minH, 0.01);
+        const globalPct = ((robo.globalAvg - minH) / range * 100).toFixed(0);
+
+        roboEl.innerHTML = `
+          <div class="vt-robo-bars">
+            ${robo.monthAvg.map(m => {
+              if (m.avg === null) return `<div class="vt-robo-bar"><div class="vt-robo-fill vt-robo-fill--ins" style="height:20%"></div><span class="vt-robo-label">${m.name}</span></div>`;
+              const pct = ((m.avg - minH) / range * 100).toFixed(0);
+              const aboveGlobal = m.relToGlobal > 2;
+              const belowGlobal = m.relToGlobal < -2;
+              return `
+              <div class="vt-robo-bar" title="${m.name}: H=${m.avg} (${m.relToGlobal > 0 ? "+" : ""}${m.relToGlobal}% vs promedio) · ${m.samples} muestras">
+                <div class="vt-robo-fill ${aboveGlobal ? "vt-robo-fill--high" : belowGlobal ? "vt-robo-fill--low" : ""}" style="height:${pct}%"></div>
+                <span class="vt-robo-label">${m.name}</span>
+              </div>`;
+            }).join("")}
+            <div class="vt-robo-baseline" style="bottom:${globalPct}%" title="Promedio global H=${robo.globalAvg}"></div>
+          </div>
+          <div class="vt-robo-legend">
+            <span class="vt-robo-leg vt-robo-leg--high">Más impredecible (+2%)</span>
+            <span class="vt-robo-leg">Promedio (línea naranja)</span>
+            <span class="vt-robo-leg vt-robo-leg--low">Más predecible (−2%)</span>
+          </div>`;
+      }
+
+      // ── Panel 4: Año vs año ───────────────────────────────────────
+      const ayaSelect = document.getElementById("vt-aya-mes");
+      const ayaOut    = document.getElementById("vt-aya-out");
+
+      function renderAya(month) {
+        const data       = compararAnioAnio(draws, month);
+        const recurSet   = new Set(data.recurring.map(r => r.num));
+        if (!data.years.length) {
+          ayaOut.innerHTML = `<p class="hint">Sin datos para ${data.monthName}.</p>`;
+          return;
+        }
+        ayaOut.innerHTML = `
+          <div class="vt-aya-grid">
+            ${data.years.map(y => `
+            <div class="vt-aya-year">
+              <div class="vt-aya-year__head">${y.year} <span class="vt-aya-year__total">${y.total} sorteos</span></div>
+              <div class="vt-aya-year__chips">
+                ${y.top.map(t => `
+                  <span class="vt-sm-chip ${recurSet.has(t.num) ? "vt-sm-chip--recur" : ""}" title="${t.count}× en ${y.year}">
+                    ${PAD2(t.num)}<small>×${t.count}</small>
+                  </span>`).join("")}
+              </div>
+            </div>`).join("")}
+          </div>
+          ${data.recurring.length ? `
+          <div class="vt-aya-recur">
+            <div class="vt-aya-recur__head">🔁 Presentes en ≥2 años — candidatos estacionales</div>
+            <div class="vt-aya-recur__chips">
+              ${data.recurring.map(r => `
+                <span class="vt-aya-chip" title="${r.years.join(", ")}">
+                  <img class="vt-aya-img" src="data/img/${PAD2(r.num)}.png"
+                    onerror="this.src='data/img/${PAD2(r.num)}.jpg';this.onerror=()=>this.style.display='none'">
+                  <span class="vt-aya-num">${PAD2(r.num)}</span>
+                  <span class="vt-aya-sym">${GUIA?.[PAD2(r.num)]?.simbolo || ""}</span>
+                  <span class="vt-aya-yrs">${r.years.length} años</span>
+                </span>`).join("")}
+            </div>
+          </div>` : ""}`;
+      }
+
+      ayaSelect.onchange = () => renderAya(parseInt(ayaSelect.value, 10));
+      renderAya(parseInt(ayaSelect.value, 10));
+    }
 
     // ════════════════════════════════════════════════════════════════
     // TIRADA DE SUERTE — generador sin sesgo con crypto.getRandomValues
