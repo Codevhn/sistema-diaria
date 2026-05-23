@@ -2413,3 +2413,202 @@ html[data-theme="light"] .rezago-section {
   }
 }
 .suerte-result--rolling * { transition: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CONSULTA HISTÓRICA — Modo Recuperación (nuevos elementos)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Estado actual del número ────────────────────────────────────── */
+.cq-header__top-row {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-bottom: 4px !important;
+}
+.cq-estado {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  padding: 3px 9px !important;
+  border-radius: 20px !important;
+  letter-spacing: 0.03em !important;
+}
+.cq-estado--vencido    { background: rgba(255,69,58,0.15)  !important; color: #ff453a !important; border: 1px solid rgba(255,69,58,0.35) !important; }
+.cq-estado--ventana    { background: rgba(255,159,10,0.12) !important; color: #ff9f0a !important; border: 1px solid rgba(255,159,10,0.30) !important; }
+.cq-estado--normal     { background: rgba(48,209,88,0.10)  !important; color: #30d158 !important; border: 1px solid rgba(48,209,88,0.25) !important; }
+.cq-estado--reciente   { background: rgba(10,132,255,0.12) !important; color: #0a84ff !important; border: 1px solid rgba(10,132,255,0.30) !important; }
+.cq-estado--insuficiente { background: rgba(128,128,128,0.10) !important; color: var(--color-muted) !important; border: 1px solid rgba(128,128,128,0.20) !important; }
+.cq-estado--ausente    { background: rgba(128,128,128,0.08) !important; color: var(--color-muted) !important; border: 1px solid rgba(128,128,128,0.15) !important; }
+
+html[data-theme="light"] .cq-estado--vencido  { background: rgba(255,59,48,0.10)  !important; color: #d70015 !important; }
+html[data-theme="light"] .cq-estado--ventana  { background: rgba(255,149,0,0.10)  !important; color: #c76b00 !important; }
+html[data-theme="light"] .cq-estado--normal   { background: rgba(52,199,89,0.10)  !important; color: #248a3d !important; }
+html[data-theme="light"] .cq-estado--reciente { background: rgba(0,122,255,0.10)  !important; color: #0040dd !important; }
+
+/* ── Resumen de recuperación en cabecera ─────────────────────────── */
+.cq-recup-summary {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 6px !important;
+}
+.cq-recup-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  color: #ff453a !important;
+  background: rgba(255,69,58,0.10) !important;
+  border: 1px solid rgba(255,69,58,0.25) !important;
+  border-radius: 20px !important;
+  padding: 3px 10px !important;
+}
+html[data-theme="light"] .cq-recup-badge { color: #d70015 !important; background: rgba(255,59,48,0.08) !important; }
+.cq-recup-ciclo {
+  font-size: 0.68rem !important;
+  color: var(--color-muted) !important;
+}
+
+/* ── Auto-repetición ─────────────────────────────────────────────── */
+.cq-section--autorep { margin-bottom: 16px !important; }
+.cq-autorep-row {
+  display: flex !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  margin-top: 8px !important;
+}
+.cq-autorep-item {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  min-width: 80px !important;
+  flex: 1 !important;
+  max-width: 130px !important;
+}
+.cq-autorep-label {
+  font-size: 0.68rem !important;
+  color: var(--color-muted) !important;
+  font-weight: 500 !important;
+}
+.cq-autorep-pct {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  color: var(--color-text) !important;
+}
+.cq-autorep-item--hot .cq-autorep-pct { color: #ff453a !important; }
+html[data-theme="light"] .cq-autorep-item--hot .cq-autorep-pct { color: #d70015 !important; }
+.cq-autorep-bar {
+  height: 5px !important;
+  border-radius: 99px !important;
+  background: rgba(128,128,128,0.15) !important;
+  overflow: hidden !important;
+}
+html[data-theme="dark"]  .cq-autorep-bar { background: rgba(255,255,255,0.10) !important; }
+html[data-theme="light"] .cq-autorep-bar { background: rgba(0,0,0,0.08) !important; }
+.cq-autorep-fill {
+  height: 100% !important;
+  border-radius: 99px !important;
+  background: var(--color-accent) !important;
+  transition: width 0.4s ease !important;
+}
+.cq-autorep-item--hot .cq-autorep-fill { background: #ff453a !important; }
+html[data-theme="light"] .cq-autorep-item--hot .cq-autorep-fill { background: #d70015 !important; }
+
+/* ── Seguidores diferenciados ────────────────────────────────────── */
+.cq-section--dif { margin-top: 4px !important; }
+.cq-dif-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+  margin-top: 8px !important;
+}
+@media (max-width: 600px) {
+  .cq-dif-grid { grid-template-columns: 1fr !important; }
+}
+.cq-dif-col {
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+}
+.cq-dif-col--recup {
+  background: rgba(255,69,58,0.06) !important;
+  border: 1px solid rgba(255,69,58,0.20) !important;
+}
+.cq-dif-col--normal {
+  background: rgba(48,209,88,0.05) !important;
+  border: 1px solid rgba(48,209,88,0.18) !important;
+}
+html[data-theme="light"] .cq-dif-col--recup  { background: rgba(255,59,48,0.05) !important; border-color: rgba(255,59,48,0.18) !important; }
+html[data-theme="light"] .cq-dif-col--normal { background: rgba(52,199,89,0.05) !important; border-color: rgba(52,199,89,0.18) !important; }
+.cq-dif-col__head {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px !important;
+  color: var(--color-text) !important;
+}
+.cq-dif-col__head span { color: var(--color-muted) !important; font-weight: 400 !important; }
+.cq-chips-row--sm { gap: 6px !important; flex-wrap: wrap !important; }
+.cq-chip--sm .cq-chip__img { width: 32px !important; height: 32px !important; }
+.cq-chip--sm .cq-chip__num { font-size: 0.82rem !important; }
+.cq-seg-chip--sm { min-width: 48px !important; }
+
+/* ── Cadena de recuperación ──────────────────────────────────────── */
+.cq-section--cadena {
+  background: rgba(94,92,230,0.06) !important;
+  border: 1px solid rgba(94,92,230,0.20) !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+}
+html[data-theme="light"] .cq-section--cadena { background: rgba(94,92,230,0.04) !important; border-color: rgba(94,92,230,0.16) !important; }
+.cq-cadena-hint {
+  font-size: 0.72rem !important;
+  color: var(--color-muted) !important;
+  margin: 4px 0 10px !important;
+  line-height: 1.4 !important;
+}
+.cq-chip--cadena { border-color: rgba(94,92,230,0.35) !important; }
+.cq-seg-chip--cadena .cq-seg-chip__pct { color: rgba(94,92,230,0.9) !important; }
+html[data-theme="light"] .cq-seg-chip--cadena .cq-seg-chip__pct { color: #5856d6 !important; }
+
+/* ── Episodios con badge de recuperación ─────────────────────────── */
+.cq-ep-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 4px !important;
+}
+.cq-ep-recup-badge {
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  color: #ff453a !important;
+  background: rgba(255,69,58,0.12) !important;
+  border: 1px solid rgba(255,69,58,0.28) !important;
+  border-radius: 20px !important;
+  padding: 1px 7px !important;
+}
+.cq-ep-normal-badge {
+  font-size: 0.65rem !important;
+  color: var(--color-muted) !important;
+  background: rgba(128,128,128,0.08) !important;
+  border: 1px solid rgba(128,128,128,0.15) !important;
+  border-radius: 20px !important;
+  padding: 1px 7px !important;
+}
+html[data-theme="light"] .cq-ep-recup-badge { color: #d70015 !important; background: rgba(255,59,48,0.08) !important; }
+.cq-episode--recup {
+  border-left: 2px solid rgba(255,69,58,0.50) !important;
+  padding-left: 8px !important;
+  background: rgba(255,69,58,0.03) !important;
+  border-radius: 0 6px 6px 0 !important;
+}
+html[data-theme="light"] .cq-episode--recup { background: rgba(255,59,48,0.03) !important; }
+.cq-ep-num--recup {
+  background: rgba(255,69,58,0.18) !important;
+  border-color: rgba(255,69,58,0.45) !important;
+  color: #ff453a !important;
+}
+html[data-theme="light"] .cq-ep-num--recup { color: #d70015 !important; }

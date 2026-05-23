@@ -1100,7 +1100,7 @@
       setLocalDrawSnapshotMode,
     } from "./src/local-draw-cache.js";
     import { supabase } from "./src/supabaseClient.js";
-    import { ejecutarMotorSeñales, sucesoresMarkov, estadoRezago } from "./src/signal-engine.js";
+    import { ejecutarMotorSeñales, sucesoresMarkov, estadoRezago, calcularRezago } from "./src/signal-engine.js";
     import { logout as supabaseLogout, requireAuthOrRedirect } from "./src/auth.js";
     import { showBootLoader, hideBootLoader } from "./src/boot-loader.js";
     const bootOverlay = document.getElementById("boot-loader");
@@ -7936,8 +7936,9 @@ function buildVariantEntries(profile) {
 
       output.innerHTML = `<p class="hint small">Consultando historial…</p>`;
       try {
-        const draws   = await getCachedDraws({ excludeTest: true });
-        const result  = consultarNumero(num, draws, GUIA, { horario });
+        const draws      = await getCachedDraws({ excludeTest: true });
+        const rezagoMap  = calcularRezago(draws);
+        const result     = consultarNumero(num, draws, GUIA, { horario, rezagoMap });
         output.innerHTML = renderConsultaHTML(result, GUIA);
       } catch (err) {
         output.innerHTML = `<p class="hint small">Error: ${err.message}</p>`;
