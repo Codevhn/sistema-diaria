@@ -6664,6 +6664,102 @@
                     </div>`;
                 }).join("");
 
+            // ── Hit-Tracker: validación estadística del pool histórico ────────
+            const candPool      = new Set(histFreq.keys());
+            const hitsEsteCiclo = [...candPool].filter(n => numsCaidosAhora.has(n));
+            const diasConHit    = new Set(
+              drawsPost.filter(d => candPool.has(parseInt(d.numero,10))).map(d => d.fecha)
+            ).size;
+            const diasMonitor   = new Set(drawsPost.map(d => d.fecha)).size;
+            const NPool         = candPool.size;
+            // P(≥1 del pool en 2 sorteos sin reemplazo)
+            const baseRandom    = NPool > 0
+              ? Math.round((1 - ((100-NPool)*(99-NPool))/(100*99)) * 100) : 0;
+            const hitRateActual = diasMonitor > 0
+              ? Math.round(diasConHit / diasMonitor * 100) : 0;
+
+            // Retroactivo: para cada SP histórico, calcular pool que tenía y cuántos días hubo hit
+            const ciclosHist = [];
+            for (let _ci = 0; _ci < spHistoricas.length; _ci++) {
+              const spH     = spHistoricas[_ci];
+              const pastOfH = spFechas.filter(f => f < spH);
+              if (pastOfH.length < 1) continue;
+              const freqH = new Map();
+              pastOfH.forEach(sp2 => {
+                const end2 = new Date(new Date(sp2).getTime() + SP_RECOVERY_DAYS * 86_400_000).toISOString().slice(0,10);
+                hist2.filter(d => d.fecha > sp2 && d.fecha <= end2).forEach(d => {
+                  const n = parseInt(d.numero,10);
+                  freqH.set(n, (freqH.get(n)||0)+1);
+                });
+              });
+              const poolH = new Set(freqH.keys());
+              if (poolH.size === 0) continue;
+              const endH     = new Date(new Date(spH).getTime() + SP_RECOVERY_DAYS * 86_400_000).toISOString().slice(0,10);
+              const wH       = hist2.filter(d => d.fecha > spH && d.fecha <= endH);
+              const daysH    = new Set(wH.map(d => d.fecha));
+              const daysHitH = new Set(wH.filter(d => poolH.has(parseInt(d.numero,10))).map(d => d.fecha));
+              if (daysH.size > 0) ciclosHist.push({
+                sp: spH, poolSz: poolH.size,
+                dCon: daysHitH.size, dTotal: daysH.size,
+                rate: Math.round(daysHitH.size / daysH.size * 100)
+              });
+            }
+            const avgRate = ciclosHist.length > 0
+              ? Math.round(ciclosHist.reduce((s,c) => s + c.rate, 0) / ciclosHist.length) : null;
+
+            const hitTrackerHtml = `
+              <div class="rec-ht">
+                <div class="rec-ht__head">
+                  📊 Validación del pool
+                  ${hitsEsteCiclo.length > 0 ? `<span class="rec-ht__badge--hit">✓ ${hitsEsteCiclo.length} caíd${hitsEsteCiclo.length===1?"o":"os"} del pool este ciclo</span>` : ""}
+                  ${avgRate !== null ? `<span class="rec-ht__badge--avg${avgRate >= baseRandom ? " rec-ht__badge--avg-good" : ""}">${avgRate}% prom. histórico vs ${baseRandom}% azar</span>` : ""}
+                </div>
+                <div class="rec-ht__stats">
+                  <div class="rec-ht__stat">
+                    <span class="rec-ht__val${hitRateActual >= baseRandom ? " rec-ht__val--good" : ""}">${hitRateActual}%</span>
+                    <span class="rec-ht__lbl">${diasConHit}/${diasMonitor} días con hit</span>
+                  </div>
+                  <div class="rec-ht__stat">
+                    <span class="rec-ht__val rec-ht__val--base">${baseRandom}%</span>
+                    <span class="rec-ht__lbl">línea base (azar)</span>
+                  </div>
+                  <div class="rec-ht__stat">
+                    <span class="rec-ht__val">${hitsEsteCiclo.length}<small>/${NPool}</small></span>
+                    <span class="rec-ht__lbl">del pool cayeron</span>
+                  </div>
+                  ${avgRate !== null ? `<div class="rec-ht__stat${avgRate >= baseRandom ? " rec-ht__stat--good" : ""}">
+                    <span class="rec-ht__val${avgRate >= baseRandom ? " rec-ht__val--good" : ""}">${avgRate}%</span>
+                    <span class="rec-ht__lbl">${ciclosHist.length} ciclos previos</span>
+                  </div>` : ""}
+                </div>
+                ${ciclosHist.length > 0 ? `
+                <div class="rec-ht__cycles">
+                  ${ciclosHist.slice(-6).map(c => `
+                    <div class="rec-ht__cycle" title="SP ${c.sp} · pool ${c.poolSz} núms · ${c.dCon}/${c.dTotal} días con hit">
+                      <span class="rec-ht__cy-sp">${c.sp.slice(5)}</span>
+                      <div class="rec-ht__cy-track">
+                        <div class="rec-ht__cy-fill${c.rate >= baseRandom ? " rec-ht__cy-fill--good" : ""}" style="width:${Math.min(c.rate,100)}%"></div>
+                        <div class="rec-ht__cy-base" style="left:${Math.min(baseRandom,97)}%"></div>
+                      </div>
+                      <span class="rec-ht__cy-pct${c.rate >= baseRandom ? " rec-ht__cy-pct--good" : ""}">${c.rate}%</span>
+                    </div>`).join("")}
+                </div>` : ""}
+                ${hitsEsteCiclo.length > 0 ? `
+                <div class="rec-ht__hit-row">
+                  <span class="rec-ht__hit-lbl">Ya cayeron este ciclo:</span>
+                  ${hitsEsteCiclo.map(n => {
+                    const pd  = PAD2(n);
+                    const sym = GUIA?.[pd]?.simbolo || "";
+                    return \`<div class="rec-ht__hit-chip">
+                      <img class="rec-ht__hit-img" src="data/img/\${pd}.png" alt="\${pd}"
+                        onerror="this.src='data/img/\${pd}.jpg';this.onerror=()=>this.style.display='none'">
+                      <span class="rec-ht__hit-num">\${pd}</span>
+                      \${sym ? \`<span class="rec-ht__hit-sym">\${sym}</span>\` : ""}
+                    </div>\`;
+                  }).join("")}
+                </div>` : ""}
+              </div>`;
+
             // ── 3. Números que ya repitieron (ya existía) ────────────────────
             const reps = detectarNumerosRepetidosPostEvento(spFecha, hist2);
             const repsHtml = reps.length
@@ -6697,6 +6793,7 @@
                     ${totalHistSP > 0 ? `<span class="rec-section__badge">Basado en ${totalHistSP} SP anteriores</span>` : ""}
                   </div>
                   <p class="rec-hint">Números que históricamente aparecen en período de recuperación pero <strong>todavía no han caído</strong> en este ciclo.</p>
+                  ${hitTrackerHtml}
                   <div class="rec-cands">${candidatosHtml}</div>
                 </div>
 

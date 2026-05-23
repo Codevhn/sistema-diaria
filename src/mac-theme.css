@@ -2612,3 +2612,187 @@ html[data-theme="light"] .cq-episode--recup { background: rgba(255,59,48,0.03) !
   color: #ff453a !important;
 }
 html[data-theme="light"] .cq-ep-num--recup { color: #d70015 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   HIT-TRACKER — validación estadística del pool de candidatos
+   ═══════════════════════════════════════════════════════════════════ */
+.rec-ht {
+  background: rgba(10,132,255,0.05) !important;
+  border: 1px solid rgba(10,132,255,0.15) !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  margin: 10px 0 14px !important;
+}
+html[data-theme="light"] .rec-ht {
+  background: rgba(0,122,255,0.04) !important;
+  border-color: rgba(0,122,255,0.12) !important;
+}
+
+.rec-ht__head {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  color: var(--color-text) !important;
+  margin-bottom: 10px !important;
+}
+
+.rec-ht__badge--hit {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  color: #30d158 !important;
+  background: rgba(48,209,88,0.12) !important;
+  border: 1px solid rgba(48,209,88,0.28) !important;
+  border-radius: 20px !important;
+  padding: 2px 9px !important;
+}
+html[data-theme="light"] .rec-ht__badge--hit { color: #248a3d !important; }
+
+.rec-ht__badge--avg {
+  font-size: 0.68rem !important;
+  color: var(--color-muted) !important;
+  background: rgba(128,128,128,0.08) !important;
+  border: 1px solid rgba(128,128,128,0.15) !important;
+  border-radius: 20px !important;
+  padding: 2px 9px !important;
+}
+.rec-ht__badge--avg-good {
+  color: #0a84ff !important;
+  background: rgba(10,132,255,0.10) !important;
+  border-color: rgba(10,132,255,0.25) !important;
+}
+html[data-theme="light"] .rec-ht__badge--avg-good { color: #0040dd !important; }
+
+.rec-ht__stats {
+  display: flex !important;
+  gap: 20px !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 10px !important;
+}
+.rec-ht__stat {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 58px !important;
+}
+.rec-ht__val {
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  color: var(--color-text) !important;
+  line-height: 1.1 !important;
+}
+.rec-ht__val small {
+  font-size: 0.60em !important;
+  font-weight: 500 !important;
+  color: var(--color-muted) !important;
+}
+.rec-ht__val--good { color: #30d158 !important; }
+html[data-theme="light"] .rec-ht__val--good { color: #248a3d !important; }
+.rec-ht__val--base { color: var(--color-muted) !important; font-size: 1rem !important; }
+.rec-ht__stat--good .rec-ht__val { color: #30d158 !important; }
+html[data-theme="light"] .rec-ht__stat--good .rec-ht__val { color: #248a3d !important; }
+.rec-ht__lbl {
+  font-size: 0.63rem !important;
+  color: var(--color-muted) !important;
+  line-height: 1.3 !important;
+}
+
+/* Mini bar chart por ciclo */
+.rec-ht__cycles {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  margin: 4px 0 10px !important;
+}
+.rec-ht__cycle {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.rec-ht__cy-sp {
+  font-size: 0.62rem !important;
+  color: var(--color-muted) !important;
+  min-width: 38px !important;
+  text-align: right !important;
+  flex-shrink: 0 !important;
+}
+.rec-ht__cy-track {
+  flex: 1 !important;
+  height: 6px !important;
+  border-radius: 99px !important;
+  background: rgba(128,128,128,0.15) !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+html[data-theme="dark"]  .rec-ht__cy-track { background: rgba(255,255,255,0.10) !important; }
+html[data-theme="light"] .rec-ht__cy-track { background: rgba(0,0,0,0.08) !important; }
+.rec-ht__cy-fill {
+  height: 100% !important;
+  border-radius: 99px !important;
+  background: rgba(128,128,128,0.40) !important;
+  transition: width 0.5s ease !important;
+}
+.rec-ht__cy-fill--good { background: #30d158 !important; }
+html[data-theme="light"] .rec-ht__cy-fill--good { background: #248a3d !important; }
+.rec-ht__cy-base {
+  position: absolute !important;
+  top: -3px !important;
+  width: 2px !important;
+  height: 12px !important;
+  border-radius: 1px !important;
+  background: rgba(255,159,10,0.70) !important;
+  transform: translateX(-50%) !important;
+  pointer-events: none !important;
+}
+.rec-ht__cy-pct {
+  font-size: 0.63rem !important;
+  color: var(--color-muted) !important;
+  min-width: 28px !important;
+  flex-shrink: 0 !important;
+}
+.rec-ht__cy-pct--good { color: #30d158 !important; font-weight: 700 !important; }
+html[data-theme="light"] .rec-ht__cy-pct--good { color: #248a3d !important; }
+
+/* Números ya caídos del pool */
+.rec-ht__hit-row {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid rgba(48,209,88,0.20) !important;
+}
+html[data-theme="light"] .rec-ht__hit-row { border-top-color: rgba(52,199,89,0.20) !important; }
+.rec-ht__hit-lbl {
+  font-size: 0.65rem !important;
+  color: var(--color-muted) !important;
+  flex-shrink: 0 !important;
+}
+.rec-ht__hit-chip {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 2px !important;
+  min-width: 42px !important;
+}
+.rec-ht__hit-img {
+  width: 36px !important;
+  height: 36px !important;
+  object-fit: contain !important;
+  border-radius: 6px !important;
+  opacity: 0.85 !important;
+  filter: grayscale(20%) !important;
+}
+.rec-ht__hit-num {
+  font-size: 0.70rem !important;
+  font-weight: 700 !important;
+  color: #30d158 !important;
+}
+html[data-theme="light"] .rec-ht__hit-num { color: #248a3d !important; }
+.rec-ht__hit-sym {
+  font-size: 0.58rem !important;
+  color: var(--color-muted) !important;
+}
