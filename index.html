@@ -6794,8 +6794,8 @@
                     <span class="rec-ht__val rec-ht__val--base">${baseRandom}%</span>
                     <span class="rec-ht__lbl">línea base (azar)</span>
                   </div>
-                  <div class="rec-ht__stat">
-                    <span class="rec-ht__val">${hitsEsteCiclo.length}<small>/${NPool}</small></span>
+                  <div class="rec-ht__stat${hitsEsteCiclo.length > 0 ? " rec-ht__stat--good" : ""}">
+                    <span class="rec-ht__val${hitsEsteCiclo.length > 0 ? " rec-ht__val--good" : ""}">${hitsEsteCiclo.length}<small>/${NPool}</small></span>
                     <span class="rec-ht__lbl">del pool cayeron</span>
                   </div>
                   ${avgRate !== null ? `<div class="rec-ht__stat${avgRate >= baseRandom ? " rec-ht__stat--good" : ""}">
