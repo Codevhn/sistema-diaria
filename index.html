@@ -6736,7 +6736,13 @@
                 }).join("");
 
             // ── Hit-Tracker: validación estadística del pool histórico ────────
-            const candPool      = new Set(histFreq.keys());
+            // Solo números que aparecieron en ≥50% de los ciclos de recuperación anteriores.
+            // Un pool de 91/100 es ruido puro (99% azar). Con ≥50% el pool es pequeño
+            // y significativo: cada hit confirma un patrón real, no coincidencia.
+            const minCiclosPool = totalHistSP > 0 ? Math.max(1, Math.ceil(totalHistSP * 0.5)) : 1;
+            const candPool      = new Set(
+              [...histFreq.entries()].filter(([,v]) => v >= minCiclosPool).map(([k]) => k)
+            );
             const hitsEsteCiclo = [...candPool].filter(n => numsCaidosAhora.has(n));
             const diasConHit    = new Set(
               drawsPost.filter(d => candPool.has(parseInt(d.numero,10))).map(d => d.fecha)
@@ -6763,7 +6769,8 @@
                   freqH.set(n, (freqH.get(n)||0)+1);
                 });
               });
-              const poolH = new Set(freqH.keys());
+              const minH  = Math.max(1, Math.ceil(pastOfH.length * 0.5));
+              const poolH = new Set([...freqH.entries()].filter(([,v]) => v >= minH).map(([k]) => k));
               if (poolH.size === 0) continue;
               const endH     = new Date(new Date(spH).getTime() + SP_RECOVERY_DAYS * 86_400_000).toISOString().slice(0,10);
               const wH       = hist2.filter(d => d.fecha > spH && d.fecha <= endH);
@@ -6872,7 +6879,7 @@
                     🎯 Candidatos históricos aún sin caer
                     ${totalHistSP > 0 ? `<span class="rec-section__badge">Basado en ${totalHistSP} SP anteriores</span>` : ""}
                   </div>
-                  <p class="rec-hint">Números que históricamente aparecen en período de recuperación pero <strong>todavía no han caído</strong> en este ciclo.</p>
+                  <p class="rec-hint">Números que cayeron en <strong>al menos la mitad de los ciclos de recuperación anteriores</strong>. La validación del pool solo mide estos candidatos de alta frecuencia — los que tienen patrón real, no los que aparecieron por azar alguna vez.</p>
                   ${hitTrackerHtml}
                   <div class="rec-cands">${candidatosHtml}</div>
                 </div>
