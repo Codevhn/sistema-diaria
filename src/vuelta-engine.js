@@ -5,14 +5,17 @@
  * posterior del mismo día tira el mismo número con los dígitos invertidos
  * ("le da vuelta"), p.ej.: turno 1 = 76 Palomas → turno 3 = 67 Vaca.
  *
- * Este motor:
- *   1. Calcula la tasa histórica de vueltas por par de turnos
- *   2. Identifica los pares específicos (origen → vuelta) más frecuentes
- *   3. Detecta vueltas pendientes en el día actual
- *   4. Detecta si una vuelta ya se confirmó hoy
+ * IMPORTANTE: Los períodos de recuperación post-Super Premio son un modo de
+ * juego completamente distinto. Las estadísticas se calculan por separado
+ * para cada modo (normal vs recuperación) para evitar contaminar el análisis.
+ *
+ * Métodos exportados:
+ *   analizarVuelta(draws, { pais, spFechas }) — análisis completo del día actual
+ *   renderVueltaHTML(result, guia)            — HTML del panel
  */
 
-const TURNOS = ["11AM", "3PM", "9PM"];
+const TURNOS      = ["11AM", "3PM", "9PM"];
+const SP_DAYS     = 14; // días que dura el período de recuperación post-SP
 
 function mirror(n) {
   const d = Math.floor(n / 10), u = n % 10;
@@ -20,6 +23,35 @@ function mirror(n) {
 }
 
 function turnoIdx(h) { return TURNOS.indexOf(h); }
+
+// ─── Clasificación de períodos ────────────────────────────────────────────────
+
+/**
+ * Construye un Set de fechas que caen dentro de un período de recuperación
+ * (los SP_DAYS días posteriores a cualquier fecha de Super Premio).
+ */
+function buildRecupSet(spFechas) {
+  const recupDates = new Set();
+  spFechas.forEach((sp) => {
+    const base = new Date(sp + "T12:00:00");
+    for (let i = 1; i <= SP_DAYS; i++) {
+      const d = new Date(base.getTime() + i * 86_400_000);
+      const iso = d.toISOString().slice(0, 10);
+      recupDates.add(iso);
+    }
+  });
+  return recupDates;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function parsear(draws, pais = null) {
+  return draws.filter((d) => {
+    if (d.isTest || d.isPending) return false;
+    if (pais && (d.pais || "").toUpperCase() !== pais.toUpperCase()) return false;
+    return d.fecha && TURNOS.includes(d.horario) && !isNaN(parseInt(d.numero, 10));
+  });
+}
 
 function agruparPorFecha(draws) {
   const map = new Map();
@@ -30,31 +62,15 @@ function agruparPorFecha(draws) {
   return map;
 }
 
-function parsear(draws, pais = null) {
-  return draws.filter((d) => {
-    if (d.isTest || d.isPending) return false;
-    if (pais && (d.pais || "").toUpperCase() !== pais.toUpperCase()) return false;
-    return d.fecha && TURNOS.includes(d.horario) && !isNaN(parseInt(d.numero, 10));
-  });
-}
-
-// ─── Análisis histórico ───────────────────────────────────────────────────────
-
 /**
- * Calcula estadísticas históricas del patrón vuelta dentro del mismo día.
+ * Analiza el patrón de vuelta dentro de un conjunto de días ya agrupados por fecha.
+ * Cada fecha del mapa debe tener ≥2 draws para contar como día analizable.
  */
-export function analizarVueltaHistorica(draws, pais = null) {
-  const clean = parsear(draws, pais);
-  const fechaMap = agruparPorFecha(clean);
-
-  let diasTotal = 0;       // días con ≥2 turnos
-  let diasConVuelta = 0;   // días donde ocurrió al menos una vuelta
-
-  // Estadísticas por par de turno: "11AM→9PM" → {total, conVuelta}
-  const parMap = new Map();
-  // Frecuencia por par numérico: "76:67" → count
-  const pairFreq = new Map();
-  // Lista de vueltas confirmadas con fecha para mostrar últimas
+function calcularStats(fechaMap) {
+  let diasTotal = 0;
+  let diasConVuelta = 0;
+  const parMap   = new Map(); // "11AM→9PM" → {desde, hasta, total, conVuelta}
+  const pairFreq = new Map(); // "76:67"    → count
   const confirmadas = [];
 
   fechaMap.forEach((dayDraws, fecha) => {
@@ -82,7 +98,6 @@ export function analizarVueltaHistorica(draws, pais = null) {
         if (mA !== null && mA === numB) {
           parMap.get(parKey).conVuelta++;
           diaConVuelta = true;
-
           const pairKey = `${numA}:${numB}`;
           pairFreq.set(pairKey, (pairFreq.get(pairKey) || 0) + 1);
           confirmadas.push({ fecha, numOrigen: numA, numVuelta: numB, turnoOrigen: a.horario, turnoVuelta: b.horario });
@@ -99,105 +114,128 @@ export function analizarVueltaHistorica(draws, pais = null) {
 
   const topPares = [...pairFreq.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 20)
+    .slice(0, 15)
     .map(([key, count]) => {
       const [o, v] = key.split(":").map(Number);
-      return { numOrigen: o, padOrigen: String(o).padStart(2, "0"), numVuelta: v, padVuelta: String(v).padStart(2, "0"), count };
+      return {
+        numOrigen: o, padOrigen: String(o).padStart(2, "0"),
+        numVuelta: v, padVuelta: String(v).padStart(2, "0"),
+        count,
+      };
     });
 
-  // Últimas 5 vueltas confirmadas
-  const ultimasConfirmadas = confirmadas
+  const ultimasConfirmadas = [...confirmadas]
     .sort((a, b) => b.fecha.localeCompare(a.fecha))
     .slice(0, 5);
 
   return {
     diasTotal,
     diasConVuelta,
-    pctGeneral: diasTotal > 0 ? Math.round(diasConVuelta / diasTotal * 100) : 0,
+    pct: diasTotal > 0 ? Math.round(diasConVuelta / diasTotal * 100) : 0,
     porParTurno,
     topPares,
     ultimasConfirmadas,
   };
 }
 
-// ─── Detección del día actual ─────────────────────────────────────────────────
+// ─── API pública ──────────────────────────────────────────────────────────────
 
 /**
- * Devuelve el estado de la vuelta en el día más reciente del historial.
+ * Análisis completo del patrón de vuelta del día.
  *
- * Returns {
- *   hoy, drawsHoy, stats,
- *   vueltasPendientes: [{numOrigen, padOrigen, numVuelta, padVuelta, turnoOrigen, turnoDestino, pct, frecHistorica}]
- *   vueltasConfirmadasHoy: [{numOrigen, padOrigen, numVuelta, padVuelta, turnoOrigen, turnoVuelta}]
- *   diaCompleto: boolean
- * }
+ * @param {Array}  draws     — historial completo de sorteos
+ * @param {object} opts
+ * @param {string} [opts.pais]
+ * @param {Array}  [opts.spFechas] — fechas de Super Premio (["YYYY-MM-DD", ...])
+ *
+ * @returns {object|null}
  */
-export function analizarVuelta(draws, { pais = null } = {}) {
+export function analizarVuelta(draws, { pais = null, spFechas = [] } = {}) {
   const clean = parsear(draws, pais);
   if (clean.length < 30) return null;
 
-  const stats = analizarVueltaHistorica(draws, pais);
-  if (stats.diasTotal < 15) return null;
+  // ── Clasificar draws por período ──────────────────────────────────────────
+  const recupSet = buildRecupSet(spFechas);
 
-  // Día más reciente
+  const drawsRecup  = clean.filter((d) => recupSet.has(d.fecha));
+  const drawsNormal = clean.filter((d) => !recupSet.has(d.fecha));
+
+  const mapTodos  = agruparPorFecha(clean);
+  const mapRecup  = agruparPorFecha(drawsRecup);
+  const mapNormal = agruparPorFecha(drawsNormal);
+
+  // ── Stats por período ──────────────────────────────────────────────────────
+  const statsGlobal = calcularStats(mapTodos);
+  if (statsGlobal.diasTotal < 15) return null;
+
+  const statsRecup  = drawsRecup.length  >= 20 ? calcularStats(mapRecup)  : null;
+  const statsNormal = drawsNormal.length >= 20 ? calcularStats(mapNormal) : null;
+
+  // ── Día más reciente ───────────────────────────────────────────────────────
   const sorted = [...clean].sort((a, b) => {
     const d = a.fecha.localeCompare(b.fecha);
     return d !== 0 ? d : turnoIdx(a.horario) - turnoIdx(b.horario);
   });
-  const hoy = sorted[sorted.length - 1].fecha;
-  const drawsHoy = sorted.filter((d) => d.fecha === hoy);
+  const hoy      = sorted[sorted.length - 1].fecha;
+  const esHoyRecup = recupSet.has(hoy);
 
+  // Stats relevantes al período actual (para calcular pct del candidato)
+  const statsActuales = (esHoyRecup && statsRecup) ? statsRecup : (statsNormal || statsGlobal);
+
+  const drawsHoy = sorted.filter((d) => d.fecha === hoy);
   if (!drawsHoy.length) return null;
 
-  const numsCaidos = new Map(); // numero → horario (primer turno en que cayó)
+  const numsCaidos = new Map();
   drawsHoy.forEach((d) => {
     const n = parseInt(d.numero, 10);
     if (!numsCaidos.has(n)) numsCaidos.set(n, d.horario);
   });
 
-  const turnosYaCaidos = new Set(drawsHoy.map((d) => d.horario));
-  const lastTurno      = drawsHoy[drawsHoy.length - 1].horario;
+  const lastTurno       = drawsHoy[drawsHoy.length - 1].horario;
   const turnosRestantes = TURNOS.filter((t) => turnoIdx(t) > turnoIdx(lastTurno));
   const diaCompleto     = turnosRestantes.length === 0;
 
-  // Vueltas ya confirmadas hoy
+  // ── Vueltas ya confirmadas hoy ─────────────────────────────────────────────
   const vueltasConfirmadasHoy = [];
-  drawsHoy.forEach((d) => {
-    const numA = parseInt(d.numero, 10);
+  for (let i = 0; i < drawsHoy.length - 1; i++) {
+    const a   = drawsHoy[i];
+    const numA = parseInt(a.numero, 10);
     const mA   = mirror(numA);
-    if (mA === null) return;
-    drawsHoy.forEach((e) => {
-      if (e.horario === d.horario) return;
-      if (parseInt(e.numero, 10) === mA && turnoIdx(e.horario) > turnoIdx(d.horario)) {
+    if (mA === null) continue;
+    for (let j = i + 1; j < drawsHoy.length; j++) {
+      const b = drawsHoy[j];
+      if (parseInt(b.numero, 10) === mA) {
         vueltasConfirmadasHoy.push({
-          numOrigen:  numA,
-          padOrigen:  String(numA).padStart(2, "0"),
-          numVuelta:  mA,
-          padVuelta:  String(mA).padStart(2, "0"),
-          turnoOrigen: d.horario,
-          turnoVuelta: e.horario,
+          numOrigen:   numA,
+          padOrigen:   String(numA).padStart(2, "0"),
+          numVuelta:   mA,
+          padVuelta:   String(mA).padStart(2, "0"),
+          turnoOrigen: a.horario,
+          turnoVuelta: b.horario,
         });
       }
-    });
-  });
+    }
+  }
 
-  // Vueltas pendientes (solo si quedan turnos)
+  // ── Vueltas pendientes ─────────────────────────────────────────────────────
   const vueltasPendientes = [];
   if (!diaCompleto) {
     drawsHoy.forEach((d) => {
       const numA = parseInt(d.numero, 10);
       const mA   = mirror(numA);
-      if (mA === null) return;
-      if (numsCaidos.has(mA)) return; // ya cayó hoy
+      if (mA === null || numsCaidos.has(mA)) return;
 
-      // Buscar frecuencia histórica del par exacto
-      const pairHist = stats.topPares.find((p) => p.numOrigen === numA && p.numVuelta === mA);
+      const pairHist = statsActuales.topPares.find(
+        (p) => p.numOrigen === numA && p.numVuelta === mA
+      );
       const frecHistorica = pairHist?.count || 0;
 
       turnosRestantes.forEach((turnoDestino) => {
         if (turnoIdx(turnoDestino) <= turnoIdx(d.horario)) return;
         const parStr  = `${d.horario}→${turnoDestino}`;
-        const parStat = stats.porParTurno.find((p) => `${p.desde}→${p.hasta}` === parStr);
+        const parStat = statsActuales.porParTurno.find(
+          (p) => `${p.desde}→${p.hasta}` === parStr
+        );
 
         vueltasPendientes.push({
           numOrigen:    numA,
@@ -206,7 +244,7 @@ export function analizarVuelta(draws, { pais = null } = {}) {
           padVuelta:    String(mA).padStart(2, "0"),
           turnoOrigen:  d.horario,
           turnoDestino,
-          pct:          parStat?.pct  || 0,
+          pct:          parStat?.pct || 0,
           frecHistorica,
         });
       });
@@ -215,7 +253,18 @@ export function analizarVuelta(draws, { pais = null } = {}) {
     vueltasPendientes.sort((a, b) => b.frecHistorica - a.frecHistorica || b.pct - a.pct);
   }
 
-  return { hoy, drawsHoy, stats, vueltasPendientes, vueltasConfirmadasHoy, diaCompleto };
+  return {
+    hoy,
+    esHoyRecup,
+    diaCompleto,
+    drawsHoy,
+    vueltasPendientes,
+    vueltasConfirmadasHoy,
+    statsGlobal,
+    statsRecup,
+    statsNormal,
+    statsActuales,
+  };
 }
 
 // ─── Render HTML ──────────────────────────────────────────────────────────────
@@ -223,16 +272,15 @@ export function analizarVuelta(draws, { pais = null } = {}) {
 export function renderVueltaHTML(result, guia = {}) {
   if (!result) return "";
 
-  const { stats, vueltasPendientes, vueltasConfirmadasHoy, diaCompleto } = result;
+  const {
+    esHoyRecup, diaCompleto,
+    vueltasPendientes, vueltasConfirmadasHoy,
+    statsGlobal, statsRecup, statsNormal, statsActuales,
+  } = result;
+
   const pad = (n) => String(n).padStart(2, "0");
 
-  // Resumen de tasas por par de turno
-  const parRates = stats.porParTurno
-    .filter((p) => p.total >= 5)
-    .map((p) => `<span class="vlt-rate">${p.desde}→${p.hasta}: <strong>${p.pct}%</strong> <small>(${p.conVuelta}/${p.total})</small></span>`)
-    .join("");
-
-  // Badge de estado
+  // ── Badge de estado ────────────────────────────────────────────────────────
   let badgeHtml;
   if (vueltasConfirmadasHoy.length > 0) {
     badgeHtml = `<span class="vlt-badge vlt-badge--confirmada">✓ Vuelta confirmada hoy</span>`;
@@ -244,82 +292,138 @@ export function renderVueltaHTML(result, guia = {}) {
     badgeHtml = `<span class="vlt-badge vlt-badge--sin">Sin candidatos hoy</span>`;
   }
 
-  // Chips de vueltas pendientes
+  // Badge de modo actual
+  const modoBadge = esHoyRecup
+    ? `<span class="vlt-badge vlt-badge--recup">🔴 Recuperación</span>`
+    : `<span class="vlt-badge vlt-badge--normal">Modo normal</span>`;
+
+  // ── Comparativa de períodos ────────────────────────────────────────────────
+  const pctRecup  = statsRecup  ? statsRecup.pct  : null;
+  const pctNormal = statsNormal ? statsNormal.pct : null;
+
+  let comparativaHtml = "";
+  if (pctRecup !== null && pctNormal !== null) {
+    const diff    = pctRecup - pctNormal;
+    const diffStr = diff > 0
+      ? `<span class="vlt-diff vlt-diff--up">+${diff}pp en recuperación</span>`
+      : diff < 0
+      ? `<span class="vlt-diff vlt-diff--down">${diff}pp en recuperación</span>`
+      : `<span class="vlt-diff vlt-diff--eq">Sin diferencia entre modos</span>`;
+
+    const interpretation = diff >= 5
+      ? "La vuelta es más frecuente en recuperación — señal a vigilar en este modo."
+      : diff <= -5
+      ? "La vuelta es menos frecuente en recuperación — LOTELHSA tiende a evitarla post-SP."
+      : "No hay diferencia estadística significativa entre modos para este patrón.";
+
+    comparativaHtml = `
+      <div class="vlt-compare">
+        <div class="vlt-compare__col ${esHoyRecup ? "vlt-compare__col--active" : ""}">
+          <span class="vlt-compare__label">Modo normal</span>
+          <span class="vlt-compare__pct">${pctNormal}%</span>
+          <span class="vlt-compare__sub">${statsNormal.diasConVuelta}/${statsNormal.diasTotal} días</span>
+        </div>
+        <div class="vlt-compare__vs">vs</div>
+        <div class="vlt-compare__col ${esHoyRecup ? "vlt-compare__col--active vlt-compare__col--recup" : ""}">
+          <span class="vlt-compare__label">🔴 Recuperación</span>
+          <span class="vlt-compare__pct vlt-compare__pct--recup">${pctRecup}%</span>
+          <span class="vlt-compare__sub">${statsRecup.diasConVuelta}/${statsRecup.diasTotal} días</span>
+        </div>
+        <div class="vlt-compare__insight">
+          ${diffStr}
+          <span class="vlt-compare__interp">${interpretation}</span>
+        </div>
+      </div>`;
+  }
+
+  // ── Tasas por par de turno (período actual) ────────────────────────────────
+  const parRates = statsActuales.porParTurno
+    .filter((p) => p.total >= 5)
+    .map((p) => `<span class="vlt-rate">${p.desde}→${p.hasta}: <strong>${p.pct}%</strong> <small>(${p.conVuelta}/${p.total})</small></span>`)
+    .join("");
+
+  // ── Función para chip de número ────────────────────────────────────────────
+  const chipHtml = (padNum, turno, modClass = "", turnoClass = "") => {
+    const info = guia[padNum] || {};
+    return `
+      <div class="vlt-chip ${modClass}">
+        <img class="vlt-chip__img" src="data/img/${padNum}.png" onerror="this.style.display='none'">
+        <span class="vlt-chip__num">${padNum}</span>
+        ${info.simbolo ? `<span class="vlt-chip__sym">${info.simbolo}</span>` : ""}
+        <span class="vlt-chip__turno ${turnoClass}">${turno}</span>
+      </div>`;
+  };
+
+  // ── Vueltas pendientes ─────────────────────────────────────────────────────
   const pendientesHtml = vueltasPendientes.map((v) => {
-    const infoO = guia[v.padOrigen] || {};
-    const infoV = guia[v.padVuelta] || {};
     const freqBadge = v.frecHistorica > 0
       ? `<span class="vlt-freq">${v.frecHistorica}×</span>` : "";
     const pctBadge = v.pct > 0
       ? `<span class="vlt-pct">${v.pct}%</span>` : "";
     return `
       <div class="vlt-item">
-        <div class="vlt-chip vlt-chip--origen">
-          <img class="vlt-chip__img" src="data/img/${v.padOrigen}.png" onerror="this.style.display='none'">
-          <span class="vlt-chip__num">${v.padOrigen}</span>
-          ${infoO.simbolo ? `<span class="vlt-chip__sym">${infoO.simbolo}</span>` : ""}
-          <span class="vlt-chip__turno">${v.turnoOrigen}</span>
-        </div>
+        ${chipHtml(v.padOrigen, v.turnoOrigen, "vlt-chip--origen")}
         <span class="vlt-arrow">&#x21C4;</span>
-        <div class="vlt-chip vlt-chip--vuelta">
-          <img class="vlt-chip__img" src="data/img/${v.padVuelta}.png" onerror="this.style.display='none'">
-          <span class="vlt-chip__num">${v.padVuelta}</span>
-          ${infoV.simbolo ? `<span class="vlt-chip__sym">${infoV.simbolo}</span>` : ""}
-          <span class="vlt-chip__turno vlt-chip__turno--pending">${v.turnoDestino} ?</span>
-        </div>
-        <div class="vlt-item__meta">
-          ${freqBadge}${pctBadge}
-        </div>
+        ${chipHtml(v.padVuelta, `${v.turnoDestino} ?`, "vlt-chip--vuelta", "vlt-chip__turno--pending")}
+        <div class="vlt-item__meta">${freqBadge}${pctBadge}</div>
       </div>`;
   }).join("");
 
-  // Chips de vueltas confirmadas hoy
-  const confirmadasHtml = vueltasConfirmadasHoy.map((v) => {
-    const infoO = guia[pad(v.numOrigen)] || {};
-    const infoV = guia[pad(v.numVuelta)] || {};
+  // ── Vueltas confirmadas hoy ────────────────────────────────────────────────
+  const confirmadasHtml = vueltasConfirmadasHoy.map((v) => `
+    <div class="vlt-item vlt-item--confirmed">
+      ${chipHtml(v.padOrigen, v.turnoOrigen, "vlt-chip--origen")}
+      <span class="vlt-arrow vlt-arrow--confirmed">&#x2713;</span>
+      ${chipHtml(v.padVuelta, v.turnoVuelta, "vlt-chip--vuelta vlt-chip--confirmed")}
+    </div>`).join("");
+
+  // ── Top pares por período ──────────────────────────────────────────────────
+  function topParesSection(stats, label, modClass = "") {
+    if (!stats || !stats.topPares.length) return "";
+    const chips = stats.topPares.slice(0, 8).map((p) => {
+      const infoO = guia[p.padOrigen] || {};
+      const infoV = guia[p.padVuelta] || {};
+      return `
+        <div class="vlt-top-pair ${modClass}">
+          <span class="vlt-top-pair__nums">${p.padOrigen}→${p.padVuelta}</span>
+          <span class="vlt-top-pair__syms">${infoO.simbolo || "—"}→${infoV.simbolo || "—"}</span>
+          <span class="vlt-top-pair__count">${p.count}×</span>
+        </div>`;
+    }).join("");
     return `
-      <div class="vlt-item vlt-item--confirmed">
-        <div class="vlt-chip vlt-chip--origen">
-          <img class="vlt-chip__img" src="data/img/${v.padOrigen}.png" onerror="this.style.display='none'">
-          <span class="vlt-chip__num">${v.padOrigen}</span>
-          ${infoO.simbolo ? `<span class="vlt-chip__sym">${infoO.simbolo}</span>` : ""}
-          <span class="vlt-chip__turno">${v.turnoOrigen}</span>
-        </div>
-        <span class="vlt-arrow vlt-arrow--confirmed">&#x2713;</span>
-        <div class="vlt-chip vlt-chip--vuelta vlt-chip--confirmed">
-          <img class="vlt-chip__img" src="data/img/${v.padVuelta}.png" onerror="this.style.display='none'">
-          <span class="vlt-chip__num">${v.padVuelta}</span>
-          ${infoV.simbolo ? `<span class="vlt-chip__sym">${infoV.simbolo}</span>` : ""}
-          <span class="vlt-chip__turno">${v.turnoVuelta}</span>
-        </div>
+      <div class="vlt-history-block">
+        <div class="vlt-history-label">${label}</div>
+        <div class="vlt-top-pairs">${chips}</div>
       </div>`;
-  }).join("");
+  }
 
-  // Top pares históricos más frecuentes
-  const topParesHtml = stats.topPares.slice(0, 8).map((p) => {
-    const infoO = guia[p.padOrigen] || {};
-    const infoV = guia[p.padVuelta] || {};
-    return `
-      <div class="vlt-top-pair">
-        <span class="vlt-top-pair__nums">${p.padOrigen}→${p.padVuelta}</span>
-        <span class="vlt-top-pair__syms">${infoO.simbolo || ""}→${infoV.simbolo || ""}</span>
-        <span class="vlt-top-pair__count">${p.count}×</span>
-      </div>`;
-  }).join("");
+  const historyHtml = (statsRecup || statsNormal)
+    ? `<details class="vlt-history">
+        <summary>Pares históricos por modo de juego</summary>
+        <div class="vlt-history-grid">
+          ${topParesSection(statsNormal, "Modo normal", "")}
+          ${topParesSection(statsRecup,  "🔴 Recuperación post-SP", "vlt-top-pair--recup")}
+        </div>
+       </details>`
+    : topParesSection(statsGlobal, "Pares más frecuentes");
 
+  // ── HTML final ─────────────────────────────────────────────────────────────
   return `
     <div class="vlt-panel">
       <div class="vlt-panel__head">
         <span class="vlt-panel__title">Vuelta del día</span>
+        ${modoBadge}
         ${badgeHtml}
-        <span class="vlt-panel__rate">${stats.pctGeneral}% de días</span>
+        <span class="vlt-panel__rate">${statsActuales.pct}% en modo actual</span>
       </div>
       <p class="vlt-panel__hint">
-        En el <strong>${stats.pctGeneral}%</strong> de días con múltiples turnos, La Diaria jugó un número y luego su vuelta (dígitos invertidos) en el mismo día.
-        Muestra: ${stats.diasConVuelta} vueltas en ${stats.diasTotal} días con ≥2 turnos.
+        Patrón donde LOTELHSA juega un número y luego su espejo de dígitos en el mismo día.
+        Las estadísticas se calculan por separado para modo normal y período de recuperación post-SP.
       </p>
 
-      ${parRates ? `<div class="vlt-rates">${parRates}</div>` : ""}
+      ${comparativaHtml}
+
+      ${parRates ? `<div class="vlt-rates"><span class="vlt-rates__label">Tasas por turno (modo actual):</span>${parRates}</div>` : ""}
 
       ${confirmadasHtml ? `
         <div class="vlt-section">
@@ -329,14 +433,10 @@ export function renderVueltaHTML(result, guia = {}) {
 
       ${pendientesHtml ? `
         <div class="vlt-section">
-          <div class="vlt-section__label">Candidatos pendientes</div>
+          <div class="vlt-section__label">Candidatos pendientes — usando stats de ${esHoyRecup ? "recuperación" : "modo normal"}</div>
           <div class="vlt-grid">${pendientesHtml}</div>
         </div>` : ""}
 
-      ${topParesHtml ? `
-        <details class="vlt-history">
-          <summary>Pares históricos más frecuentes</summary>
-          <div class="vlt-top-pairs">${topParesHtml}</div>
-        </details>` : ""}
+      ${historyHtml}
     </div>`;
 }

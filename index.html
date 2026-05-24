@@ -6102,8 +6102,9 @@
 
         // ── Vuelta del día: mismo número con dígitos invertidos en turno posterior ──
         try {
-          const allDraws = await DB.listDraws({ excludeTest: true });
-          const vltResult = analizarVuelta(allDraws, { pais: pais || null });
+          const allDraws  = await DB.listDraws({ excludeTest: true });
+          const vltSpFech = await listSpFromDb().catch(() => []);
+          const vltResult = analizarVuelta(allDraws, { pais: pais || null, spFechas: vltSpFech });
           const vltHtml   = renderVueltaHTML(vltResult, GUIA);
           if (vltHtml) {
             const vltWrap = document.createElement("div");
