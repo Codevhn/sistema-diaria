@@ -1108,6 +1108,7 @@
     import { consultarNumero, renderConsultaHTML } from "./src/consulta-engine.js";
     import { verificarAfirmaciones, verificarEstacionalidad, indexRobotelsa, compararAnioAnio } from "./src/temporal-engine.js";
     import { analizarAusencias, renderAusenciasHTML } from "./src/ausencia-engine.js";
+    import { analizarVuelta, renderVueltaHTML } from "./src/vuelta-engine.js";
     import { analizarLineas, renderLineasHTML } from "./src/lineas-engine.js";
     import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
@@ -6097,6 +6098,20 @@
           }
         } catch (err) {
           console.warn("ausencias falló:", err?.message || err);
+        }
+
+        // ── Vuelta del día: mismo número con dígitos invertidos en turno posterior ──
+        try {
+          const allDraws = await DB.listDraws({ excludeTest: true });
+          const vltResult = analizarVuelta(allDraws, { pais: pais || null });
+          const vltHtml   = renderVueltaHTML(vltResult, GUIA);
+          if (vltHtml) {
+            const vltWrap = document.createElement("div");
+            vltWrap.innerHTML = vltHtml;
+            if (vltWrap.firstElementChild) frag.appendChild(vltWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("vuelta-engine falló:", err?.message || err);
         }
 
         // ── Detector de anomalías estadísticas ───────────────────────────────────
