@@ -2688,11 +2688,27 @@ html[data-theme="light"] .rec-ht__badge--avg-good { color: #0040dd !important; }
   font-weight: 500 !important;
   color: var(--color-muted) !important;
 }
+/* Verde: supera al azar → pool tiene valor predictivo */
 .rec-ht__val--good { color: #30d158 !important; }
 html[data-theme="light"] .rec-ht__val--good { color: #248a3d !important; }
-.rec-ht__val--base { color: var(--color-muted) !important; font-size: 1rem !important; }
 .rec-ht__stat--good .rec-ht__val { color: #30d158 !important; }
 html[data-theme="light"] .rec-ht__stat--good .rec-ht__val { color: #248a3d !important; }
+
+/* Amarillo: dentro del rango del azar (±15%) → neutro, seguir monitoreando */
+.rec-ht__val--warn { color: #ff9f0a !important; }
+html[data-theme="light"] .rec-ht__val--warn { color: #b36200 !important; }
+.rec-ht__stat--warn .rec-ht__val { color: #ff9f0a !important; }
+html[data-theme="light"] .rec-ht__stat--warn .rec-ht__val { color: #b36200 !important; }
+
+/* Rojo: por debajo del azar → pool no es útil este ciclo */
+.rec-ht__val--bad { color: #ff453a !important; }
+html[data-theme="light"] .rec-ht__val--bad { color: #c0392b !important; }
+.rec-ht__stat--bad .rec-ht__val { color: #ff453a !important; }
+html[data-theme="light"] .rec-ht__stat--bad .rec-ht__val { color: #c0392b !important; }
+
+/* Neutro: sin datos aún */
+.rec-ht__val--neutral { color: var(--color-muted) !important; }
+.rec-ht__val--base { color: var(--color-muted) !important; font-size: 1rem !important; }
 .rec-ht__lbl {
   font-size: 0.63rem !important;
   color: var(--color-muted) !important;
