@@ -6549,7 +6549,7 @@
               <div class="mkt-grid">${cells}</div>
               <div class="mkt-tooltip hidden" id="mkt-tt"></div>
             `;
-            frag.appendChild(mapaEl);
+            frag.insertBefore(mapaEl, frag.firstChild);
 
             // Tooltip al hacer click en una celda
             mapaEl.querySelectorAll(".mkt-cell").forEach((cell, i) => {
