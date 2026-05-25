@@ -3685,3 +3685,121 @@ html[data-theme="light"] .calc-loss__val { color: #c0392b; }
   background: rgba(10,132,255,0.10);
   font-weight: 700;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAPA DE MERCADO — heatmap de popularidad
+   ═══════════════════════════════════════════════════════════════════ */
+.mkt-wrap {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 14px 14px 16px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.mkt-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.mkt-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+.mkt-hint {
+  font-size: 0.65rem;
+  color: var(--color-muted);
+}
+.mkt-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.mkt-leg {
+  font-size: 0.65rem;
+  color: var(--color-muted);
+}
+.mkt-leg--free { color: #30d158; }
+.mkt-leg--hot  { color: #ff453a; }
+.mkt-leg--rep  { color: #ff9f0a; }
+
+.mkt-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+}
+.mkt-cell {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.1s, box-shadow 0.1s;
+  user-select: none;
+}
+.mkt-cell:hover {
+  transform: scale(1.18);
+  z-index: 2;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+}
+.mkt-cell--rep {
+  outline: 2px solid rgba(255,159,10,0.8);
+  outline-offset: -1px;
+}
+.mkt-cell__num {
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.mkt-cell__sym {
+  font-size: 0.52rem;
+  opacity: 0.85;
+  line-height: 1;
+  margin-top: 1px;
+}
+.mkt-cell__rep {
+  position: absolute;
+  top: 1px;
+  right: 2px;
+  font-size: 0.42rem;
+  line-height: 1;
+}
+
+/* Tooltip */
+.mkt-tooltip {
+  position: absolute;
+  z-index: 99;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 200px;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  pointer-events: none;
+}
+.mkt-tooltip.hidden { display: none; }
+.mkt-tooltip strong {
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+.mkt-tt__zona  { font-size: 0.75rem; font-weight: 700; color: var(--color-text); }
+.mkt-tt__score { font-size: 0.67rem; color: var(--color-muted); }
+.mkt-tt__mot   { font-size: 0.67rem; color: var(--color-muted); font-style: italic; }
+.mkt-tt__rep   {
+  font-size: 0.67rem;
+  color: #ff9f0a;
+  border-top: 1px solid rgba(255,159,10,0.2);
+  padding-top: 4px;
+  margin-top: 2px;
+}

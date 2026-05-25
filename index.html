@@ -6478,6 +6478,9 @@
                 frios:     mercado.frios.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score, dias: e.diasDesdeUltima })),
                 reprimidos: mercado.reprimidos.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score, dias: e.diasDesdeUltima, zScore: e.zScore, motivo: e.motivos[0] || "Popular reprimido" })),
                 libres:    mercado.frios.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score })),
+                mapaScores: Object.fromEntries([...popMap.entries()].map(([n, v]) => [n, v.score])),
+                mapaMotivos: Object.fromEntries([...popMap.entries()].map(([n, v]) => [n, (v.motivos||[]).slice(0,3).join(" · ")])),
+                reprimidosSet: new Set(mercado.reprimidos.map(e => e.numero)),
                 cadenasActivas: cadenas.slice(0, 6).map(c => ({
                   cadena: c.cadena,
                   triggers: c.triggers.map(n => ({ numero: n, pad: String(n).padStart(2,"0") })),
@@ -6487,6 +6490,101 @@
               };
             } catch (e) { /* opcional */ }
           }
+          // ── Mapa de calor de mercado ─────────────────────────────────────
+          if (popData?.mapaScores) {
+            const scores  = popData.mapaScores;
+            const motivos = popData.mapaMotivos || {};
+            const repSet  = popData.reprimidosSet || new Set();
+            const allScores = Object.values(scores);
+            const maxScore  = Math.max(...allScores, 1);
+
+            // Interpola color: verde (libre) → amarillo → rojo (popular/peligroso)
+            function scoreColor(s, alpha = 1) {
+              const t = Math.min(s / maxScore, 1);
+              if (t < 0.5) {
+                // verde → amarillo
+                const r = Math.round(48  + (255 - 48)  * (t * 2));
+                const g = Math.round(209 + (213 - 209) * (t * 2));
+                const b = Math.round(88  + (10  - 88)  * (t * 2));
+                return `rgba(${r},${g},${b},${alpha})`;
+              } else {
+                // amarillo → rojo
+                const u = (t - 0.5) * 2;
+                const r = 255;
+                const g = Math.round(213 - 213 * u);
+                const b = 10;
+                return `rgba(${r},${g},${b},${alpha})`;
+              }
+            }
+
+            const cells = Array.from({length: 100}, (_, i) => {
+              const pd  = String(i).padStart(2, "0");
+              const sc  = scores[i] ?? 0;
+              const mot = motivos[i] || "Sin señal cultural";
+              const isRep = repSet.has(i);
+              const sym = GUIA?.[pd]?.simbolo || "";
+              const t   = Math.min(sc / maxScore, 1);
+              const textDark = t < 0.55;
+              return `<div class="mkt-cell${isRep ? " mkt-cell--rep" : ""}"
+                style="background:${scoreColor(sc, 0.85)};color:${textDark?"#1a1a1a":"#fff"}"
+                title="${pd}${sym?" · "+sym:""}\nScore: ${sc}\n${mot}${isRep?" · 🛑 REPRIMIDO":""}">
+                <span class="mkt-cell__num">${pd}</span>
+                ${sym ? `<span class="mkt-cell__sym">${sym}</span>` : ""}
+                ${isRep ? `<span class="mkt-cell__rep">🛑</span>` : ""}
+              </div>`;
+            }).join("");
+
+            const mapaEl = document.createElement("div");
+            mapaEl.className = "mkt-wrap";
+            mapaEl.innerHTML = `
+              <div class="mkt-header">
+                <span class="mkt-title">🗺 Mapa de mercado — popularidad estimada del público</span>
+                <span class="mkt-hint">Toca un número para ver por qué es popular o libre</span>
+              </div>
+              <div class="mkt-legend">
+                <span class="mkt-leg mkt-leg--free">■ Libre (poco comprado)</span>
+                <span class="mkt-leg mkt-leg--hot">■ Popular (la casa lo evita)</span>
+                <span class="mkt-leg mkt-leg--rep">🛑 Reprimido (popular + sin caer)</span>
+              </div>
+              <div class="mkt-grid">${cells}</div>
+              <div class="mkt-tooltip hidden" id="mkt-tt"></div>
+            `;
+            frag.appendChild(mapaEl);
+
+            // Tooltip al hacer click en una celda
+            mapaEl.querySelectorAll(".mkt-cell").forEach((cell, i) => {
+              cell.onclick = () => {
+                const pd  = String(i).padStart(2, "0");
+                const sc  = scores[i] ?? 0;
+                const mot = motivos[i] || "Sin señal cultural";
+                const isRep = repSet.has(i);
+                const sym = GUIA?.[pd]?.simbolo || "";
+                const tt = mapaEl.querySelector("#mkt-tt");
+                const pct = Math.round((sc / maxScore) * 100);
+                const zona = pct >= 65 ? (isRep ? "🛑 Reprimido" : "🔥 Muy popular") : pct >= 35 ? "🟡 Popularidad media" : "✅ Libre — bajo interés";
+                tt.innerHTML = `
+                  <strong>${pd}${sym ? " · " + sym : ""}</strong>
+                  <span class="mkt-tt__zona">${zona}</span>
+                  <span class="mkt-tt__score">Score: ${sc} (${pct}% del máximo)</span>
+                  <span class="mkt-tt__mot">${mot}</span>
+                  ${isRep ? `<span class="mkt-tt__rep">El público lo compra masivamente pero lleva ${popData.reprimidos?.find(r=>r.numero===i)?.dias ?? "?"} días sin caer. La casa lo retiene.</span>` : ""}
+                `;
+                tt.classList.remove("hidden");
+                // posición relativa al grid
+                const cr = cell.getBoundingClientRect();
+                const wr = mapaEl.getBoundingClientRect();
+                tt.style.top  = (cr.bottom - wr.top + 6) + "px";
+                tt.style.left = Math.min(cr.left - wr.left, wr.width - 220) + "px";
+              };
+            });
+            // Cerrar tooltip al clickear fuera
+            document.addEventListener("click", e => {
+              if (!e.target.closest(".mkt-cell") && !e.target.closest("#mkt-tt")) {
+                mapaEl.querySelector("#mkt-tt")?.classList.add("hidden");
+              }
+            }, { passive: true });
+          }
+
           if (popData && (popData.calientes?.length || popData.frios?.length || popData.libres?.length || popData.reprimidos?.length || popData.cadenasActivas?.length)) {
             const cadenaLabels = {
               mujer_madre: "Mujer / Madre", muerte: "Muerte", boda_novia: "Boda / Novia",
