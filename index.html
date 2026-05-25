@@ -95,6 +95,7 @@
     <button data-view="maint" class="requires-admin"><span
         class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
     <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
+    <button data-view="calc"><span class="sidebar-icon fa-solid fa-calculator"></span><i>Calculadora</i></button>
     <button data-view="wiki"><span class="sidebar-icon fa-solid fa-circle-question"></span><i>Guía del sistema</i></button>
   </aside>
 
@@ -1061,6 +1062,62 @@
   <!-- ═══════════════════════════════════════════════════════════
        WIKI / GUÍA DEL SISTEMA
        ═══════════════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════════════
+       CALCULADORA DE APUESTAS
+       ════════════════════════════════════════════════════════════ -->
+  <section id="view-calc" class="view hidden">
+    <div class="calc-wrap">
+      <h2 class="calc-title">🧮 Calculadora de apuestas</h2>
+      <p class="calc-sub">Ingresa tu estrategia y ve exactamente cuánto ganas o pierdes en cada escenario.</p>
+
+      <!-- Inputs -->
+      <div class="calc-card">
+        <div class="calc-field-row">
+          <div class="calc-field">
+            <label class="calc-lbl">Tipo de jugada</label>
+            <select id="calc-tipo" class="calc-select">
+              <option value="linea">Línea completa (10 números)</option>
+              <option value="numero">Número individual</option>
+              <option value="custom">Cantidad personalizada de números</option>
+            </select>
+          </div>
+          <div class="calc-field" id="calc-field-linea">
+            <label class="calc-lbl">Línea (décena)</label>
+            <select id="calc-linea" class="calc-select">
+              ${Array.from({length:10},(_,i)=>`<option value="${i}">${i}0–${i}9</option>`).join("")}
+            </select>
+          </div>
+          <div class="calc-field hidden" id="calc-field-custom">
+            <label class="calc-lbl">Cantidad de números</label>
+            <input id="calc-custom-count" type="number" min="1" max="100" value="5" class="calc-input">
+          </div>
+        </div>
+
+        <div class="calc-field-row">
+          <div class="calc-field">
+            <label class="calc-lbl">Monto por número (L)</label>
+            <div class="calc-amount-btns">
+              <button class="calc-amt-btn" data-val="5">5</button>
+              <button class="calc-amt-btn" data-val="10">10</button>
+              <button class="calc-amt-btn" data-val="20">20</button>
+              <button class="calc-amt-btn" data-val="50">50</button>
+            </div>
+            <input id="calc-monto" type="number" min="5" step="5" value="20" class="calc-input" placeholder="Ej: 20">
+          </div>
+          <div class="calc-field">
+            <label class="calc-lbl">Días que piensas jugar</label>
+            <input id="calc-dias" type="number" min="1" max="30" value="3" class="calc-input">
+          </div>
+        </div>
+
+        <button id="calc-btn" class="calc-run-btn">Calcular</button>
+      </div>
+
+      <!-- Resultados -->
+      <div id="calc-result" class="calc-result hidden"></div>
+    </div>
+  </section>
+
   <section id="view-wiki" class="view hidden">
     <div class="wiki-layout">
       <nav class="wiki-nav">
@@ -8453,6 +8510,7 @@ function buildVariantEntries(profile) {
       config: "view-config",
       maint: "view-maint",
       modes: "view-modes",
+      calc:  "view-calc",
       wiki:  "view-wiki",
       superpremio: "view-superpremio",
       suerte: "view-suerte",
@@ -8480,6 +8538,7 @@ function buildVariantEntries(profile) {
           getCachedDraws().then((draws) => renderHistoryCoverage(draws)).catch(() => {});
         }
         if (id === "view-modes") refreshModesPanel();
+        if (id === "view-calc")  initCalc();
         if (id === "view-pega3") {
           syncPega3Context();
           refreshPega3Historial();
@@ -11730,6 +11789,144 @@ function buildVariantEntries(profile) {
         import2014Btn.disabled = false;
         import2014Btn.textContent = "Importar 839 sorteos de 2014";
       });
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  CALCULADORA DE APUESTAS
+    // ══════════════════════════════════════════════════════════════
+    let _calcInited = false;
+    function initCalc() {
+      if (_calcInited) return;
+      _calcInited = true;
+
+      const PAGO_POR_5 = 300;   // cada 5L apostados pagan 300L
+      const UNIDAD     = 5;
+
+      const selTipo    = document.getElementById("calc-tipo");
+      const selLinea   = document.getElementById("calc-linea");
+      const inpMonto   = document.getElementById("calc-monto");
+      const inpDias    = document.getElementById("calc-dias");
+      const btnCalc    = document.getElementById("calc-btn");
+      const divResult  = document.getElementById("calc-result");
+      const fieldLinea = document.getElementById("calc-field-linea");
+      const fieldCust  = document.getElementById("calc-field-custom");
+      const inpCustom  = document.getElementById("calc-custom-count");
+
+      // Botones rápidos de monto
+      document.querySelectorAll(".calc-amt-btn").forEach(btn => {
+        btn.onclick = () => {
+          inpMonto.value = btn.dataset.val;
+          document.querySelectorAll(".calc-amt-btn").forEach(b => b.classList.remove("calc-amt-btn--active"));
+          btn.classList.add("calc-amt-btn--active");
+        };
+      });
+
+      // Tipo de jugada cambia campos visibles
+      selTipo.onchange = () => {
+        const t = selTipo.value;
+        fieldLinea.classList.toggle("hidden", t !== "linea");
+        fieldCust.classList.toggle("hidden",  t !== "custom");
+      };
+
+      btnCalc.onclick = () => {
+        const tipo   = selTipo.value;
+        const monto  = Math.max(UNIDAD, Math.round(parseFloat(inpMonto.value) / UNIDAD) * UNIDAD);
+        const dias   = Math.max(1, parseInt(inpDias.value));
+        const nNums  = tipo === "linea" ? 10 : tipo === "numero" ? 1 : Math.max(1, parseInt(inpCustom.value));
+        const decena = parseInt(selLinea.value);
+
+        inpMonto.value = monto; // normalizar a múltiplo de 5
+
+        // Pago si cae UN número apostado
+        const pagoUnitario = (monto / UNIDAD) * PAGO_POR_5;
+        // Inversión diaria total
+        const inversionDia = monto * nNums;
+
+        // Filas de escenario por día
+        let filasGanancia = "";
+        let breakEvenDia  = null;
+        for (let d = 1; d <= dias; d++) {
+          const gastado = inversionDia * d;
+          const neto    = pagoUnitario - gastado;
+          if (breakEvenDia === null && neto < 0) breakEvenDia = d;
+          const cls  = neto >= 0 ? "calc-row--win" : "calc-row--lose";
+          const sign = neto >= 0 ? "+" : "";
+          filasGanancia += `
+            <div class="calc-row ${cls}">
+              <span class="calc-row__dia">Día ${d}</span>
+              <span class="calc-row__gasto">Invertido: <strong>L ${gastado.toLocaleString()}</strong></span>
+              <span class="calc-row__pago">Cobras: <strong>L ${pagoUnitario.toLocaleString()}</strong></span>
+              <span class="calc-row__neto ${neto>=0?"calc-neto--win":"calc-neto--lose"}">${sign}L ${neto.toLocaleString()}</span>
+            </div>`;
+        }
+
+        // Escenario: no cae ninguno en todos los días
+        const perdidaTotal = inversionDia * dias;
+
+        // Tabla comparativa de montos
+        const montosComp = [5, 10, 20, 50].filter(m => m !== monto);
+        montosComp.unshift(monto);
+        let filasComp = montosComp.map(m => {
+          const p  = (m / UNIDAD) * PAGO_POR_5;
+          const inv = m * nNums;
+          const be  = Math.ceil(p / inv);
+          return `<tr class="${m===monto?"calc-comp--active":""}">
+            <td>L ${m} c/u</td>
+            <td>L ${inv.toLocaleString()}/día</td>
+            <td>L ${p.toLocaleString()}</td>
+            <td>${be} día${be===1?"":"s"}</td>
+          </tr>`;
+        }).join("");
+
+        const descripcion = tipo === "linea"
+          ? `línea del ${decena}0 al ${decena}9 (${nNums} números)`
+          : tipo === "numero" ? "número individual"
+          : `${nNums} números personalizados`;
+
+        divResult.innerHTML = `
+          <div class="calc-summary">
+            <div class="calc-summary__item">
+              <span class="calc-summary__lbl">Jugada</span>
+              <span class="calc-summary__val">${descripcion}</span>
+            </div>
+            <div class="calc-summary__item">
+              <span class="calc-summary__lbl">Apuesta por número</span>
+              <span class="calc-summary__val">L ${monto}</span>
+            </div>
+            <div class="calc-summary__item">
+              <span class="calc-summary__lbl">Inversión diaria</span>
+              <span class="calc-summary__val">L ${inversionDia.toLocaleString()}</span>
+            </div>
+            <div class="calc-summary__item">
+              <span class="calc-summary__lbl">Premio si cae</span>
+              <span class="calc-summary__val calc-summary__val--win">L ${pagoUnitario.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <h3 class="calc-section-title">📅 ¿En qué día cae? — Ganancia neta</h3>
+          <p class="calc-hint-txt">Verde = ganancia, rojo = pérdida neta después de lo invertido hasta ese día.</p>
+          <div class="calc-rows">${filasGanancia}</div>
+
+          <div class="calc-alert ${breakEvenDia ? "calc-alert--warn" : "calc-alert--info"}">
+            ${breakEvenDia
+              ? `⚠ A partir del <strong>día ${breakEvenDia}</strong> lo que llevas invertido supera el premio. Si no cae antes de ese día, ya estás en pérdida aunque caiga.`
+              : `✅ En los ${dias} días calculados, el premio siempre supera la inversión acumulada.`}
+          </div>
+
+          <div class="calc-loss-box">
+            <span class="calc-loss__lbl">Si no cae ninguno en ${dias} día${dias===1?"":"s"}:</span>
+            <span class="calc-loss__val">−L ${perdidaTotal.toLocaleString()}</span>
+          </div>
+
+          <h3 class="calc-section-title">⚖ Comparar montos — misma jugada (${nNums} número${nNums===1?"":"s"})</h3>
+          <table class="calc-comp-table">
+            <thead><tr><th>Por número</th><th>Inv./día</th><th>Premio</th><th>Break-even</th></tr></thead>
+            <tbody>${filasComp}</tbody>
+          </table>
+          <p class="calc-hint-txt">Break-even = día desde el que la inversión acumulada supera el premio.</p>
+        `;
+        divResult.classList.remove("hidden");
+      };
     }
 </script>
 
