@@ -1366,6 +1366,49 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
   box-shadow: none !important;
 }
 .pega3-card::before { display: none !important; }
+
+/* Quitar fondos oscuros apilados de los bloques internos */
+.pega3-analisis__grid section {
+  background: transparent !important;
+  border: none !important;
+  border-top: 1px solid var(--color-border) !important;
+  border-radius: 0 !important;
+  padding: 14px 0 !important;
+}
+.pega3-analisis__grid h5 {
+  font-size: 0.63rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: var(--color-muted) !important;
+  margin-bottom: 10px !important;
+}
+.pega3-sesgo {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(128,128,128,0.10) !important;
+  border-radius: 0 !important;
+  padding: 0 0 10px !important;
+}
+.pega3-sesgo:last-child { border-bottom: none !important; }
+
+/* Filas de selección: sin fondo gris */
+.p3sel-row {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(128,128,128,0.07) !important;
+  border-radius: 0 !important;
+  padding: 7px 2px !important;
+}
+.p3sel-row:last-child { border-bottom: none !important; }
+
+/* Comodín: solo texto, sin caja azul */
+.p3sel-comodin {
+  background: transparent !important;
+  border: none !important;
+  border-top: 1px solid var(--color-border) !important;
+  padding: 10px 2px 4px !important;
+  border-radius: 0 !important;
+}
+.p3sel-comodin__num { font-size: 1.8rem !important; }
 .pega3-entry[style*="--pega3-entry-border"] {
   border-color: var(--pega3-entry-border) !important;
   background: var(--pega3-entry-bg) !important;
