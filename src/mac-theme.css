@@ -1358,9 +1358,9 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
 .pair-card--pending { background: rgba(255,159,10,0.05) !important; }
 
 
-/* ── Pega3: anular TODOS los fondos, bordes y radios ───────────────
-   [class*="-panel"] atrapa .pega3-panel y le pone surface+shadow.
-   Lo pisamos aquí con máxima especificidad. */
+/* ── Pega3: anular fondos/sombras/radios sin quitar padding ────────
+   [class*="-panel"] atrapa .pega3-panel y le aplica surface+shadow.
+   Neutralizamos solo background, border-radius y box-shadow. */
 .pega3-card,
 .pega3-entry,
 .pega3-panel,
@@ -1372,49 +1372,93 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  padding: 0 !important;
 }
 .pega3-card::before,
 .pega3-panel::before { display: none !important; }
 
-/* Separadores finos entre secciones (Resumen / Sesgos / Selección) */
+/* Separadores entre secciones (Resumen / Sesgos / Selección) */
 .pega3-analisis__grid section {
   border-top: 1px solid var(--color-border) !important;
-  padding: 16px 0 !important;
+  padding: 20px 0 !important;
 }
-.pega3-analisis__grid section:first-child { border-top: none !important; }
+.pega3-analisis__grid section:first-child { border-top: none !important; padding-top: 8px !important; }
 
-/* Labels de sección */
+/* Títulos de sección — más grandes que los datos, no más pequeños */
+.pega3-analisis__grid > section > h5,
 .pega3-analisis__grid h5 {
-  font-size: 0.62rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--color-text) !important;
+  margin: 0 0 14px !important;
+}
+
+/* Sub-labels dentro de Sesgos ("Sesgos moderados", etc.) */
+.pega3-sesgo h5 {
+  font-size: 0.68rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.08em !important;
+  letter-spacing: 0.07em !important;
   color: var(--color-muted) !important;
-  margin: 0 0 10px !important;
+  margin: 0 0 8px !important;
 }
 
-/* Sesgos: filas con separador fino */
+/* Filas de sesgos: número + barra + porcentaje */
+.pega3-sesgo ul { list-style: none !important; padding: 0 !important; margin: 0 !important; }
+.pega3-sesgo li {
+  display: grid !important;
+  grid-template-columns: 32px 1fr 36px !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 6px 0 !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid rgba(128,128,128,0.07) !important;
+}
+.pega3-sesgo li:last-child { border-bottom: none !important; }
+.pega3-sesgo li span:first-child { color: var(--color-text) !important; font-family: var(--font-mono, monospace) !important; }
+.pega3-sesgo li span:last-child  { color: var(--color-muted) !important; text-align: right !important; font-size: 0.75rem !important; font-weight: 600 !important; }
+.p3seg-bar-wrap {
+  height: 4px !important;
+  border-radius: 99px !important;
+  background: rgba(128,128,128,0.15) !important;
+  overflow: hidden !important;
+}
+.p3seg-bar {
+  height: 100% !important;
+  border-radius: 99px !important;
+  background: var(--color-accent) !important;
+  transition: width 0.4s ease !important;
+}
+
+/* Sesgos: grupos con separación */
 .pega3-sesgo {
+  margin-bottom: 16px !important;
+  padding-bottom: 16px !important;
   border-bottom: 1px solid rgba(128,128,128,0.09) !important;
-  padding: 0 0 12px !important;
-  margin-bottom: 12px !important;
 }
-.pega3-sesgo:last-child {
-  border-bottom: none !important;
-  padding-bottom: 0 !important;
-  margin-bottom: 0 !important;
-}
-.pega3-sesgo h5 { margin-bottom: 6px !important; }
+.pega3-sesgo:last-child { border-bottom: none !important; margin-bottom: 0 !important; padding-bottom: 0 !important; }
 
 /* Filas de selección */
 .p3sel-row {
   background: transparent !important;
   border-radius: 0 !important;
   border-bottom: 1px solid rgba(128,128,128,0.07) !important;
-  padding: 8px 0 !important;
+  padding: 9px 0 !important;
 }
 .p3sel-row:last-child { border-bottom: none !important; }
+
+/* Header de selección */
+.p3sel-title { font-size: 0.95rem !important; font-weight: 700 !important; }
+.p3sel-section__label {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  color: var(--color-muted) !important;
+  margin-bottom: 4px !important;
+}
 
 /* Comodín sin caja */
 .p3sel-comodin {

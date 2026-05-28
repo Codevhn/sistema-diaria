@@ -7542,19 +7542,23 @@
 
     function renderPega3Sesgos({ fuertes = [], moderados = [], debiles = [] } = {}) {
       if (!pega3Sesgos) return;
+      const allScores = [...fuertes, ...moderados, ...debiles].map(e => (e.score || 0) * 100);
+      const maxScore  = Math.max(...allScores, 1);
+
       const build = (titulo, lista) => {
-        if (!lista.length) {
-          return `<p class="hint">${titulo}: sin datos.</p>`;
-        }
-        const items = lista
-          .slice(0, 8)
-          .map(
-            (entry) =>
-              `<li><span>${formatNumber(entry.numero)}</span><span>${Math.round((entry.score || 0) * 100)}%</span></li>`,
-          )
-          .join("");
+        if (!lista.length) return `<p class="hint small">${titulo}: sin datos.</p>`;
+        const items = lista.slice(0, 8).map(entry => {
+          const score = Math.round((entry.score || 0) * 100);
+          const bar   = Math.round((score / maxScore) * 100);
+          return `<li>
+            <span>${formatNumber(entry.numero)}</span>
+            <div class="p3seg-bar-wrap"><div class="p3seg-bar" style="width:${bar}%"></div></div>
+            <span>${score}%</span>
+          </li>`;
+        }).join("");
         return `<div class="pega3-sesgo"><h5>${titulo}</h5><ul>${items}</ul></div>`;
       };
+
       pega3Sesgos.innerHTML = `
         <div class="pega3-sesgos-grid">
           ${build("Sesgos fuertes", fuertes)}
