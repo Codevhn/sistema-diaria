@@ -7570,34 +7570,46 @@
         pega3Seleccion.innerHTML = "<p class='hint'>Calcula los sesgos para generar candidatos finales.</p>";
         return;
       }
-      const topList = seleccion.top
-        .map((item) => `<li><span>${formatNumber(item.numero)}</span><span>${Math.round(item.score * 100)}%</span></li>`)
-        .join("");
-      const secList = (seleccion.secundarios || [])
-        .map((item) => `<li><span>${formatNumber(item.numero)}</span><span>${Math.round(item.score * 100)}%</span></li>`)
-        .join("");
+
+      const buildRow = (item, rank) => {
+        const num   = formatNumber(item.numero);
+        const score = Math.round(item.score * 100);
+        const bar   = Math.min(score, 100);
+        return `
+          <li class="p3sel-row">
+            ${rank != null ? `<span class="p3sel-rank">${rank + 1}</span>` : `<span class="p3sel-rank p3sel-rank--sec">·</span>`}
+            <span class="p3sel-num">${num}</span>
+            <div class="p3sel-bar-wrap"><div class="p3sel-bar" style="width:${bar}%"></div></div>
+            <span class="p3sel-score">${score}%</span>
+          </li>`;
+      };
+
+      const topList = seleccion.top.map((item, i) => buildRow(item, i)).join("");
+      const secList = (seleccion.secundarios || []).map(item => buildRow(item, null)).join("");
+      const comodin = formatNumber(seleccion.comodin ?? seleccion.top[seleccion.top.length - 1].numero);
+
       pega3Seleccion.innerHTML = `
-        <div class="final-selection">
-          <div class="final-selection__head">
-            <h3>Selección final Pega3</h3>
-            <p class="hint">Turno objetivo: ${seleccion.turnoObjetivo?.label || "pendiente"}</p>
+        <div class="p3sel-wrap">
+          <div class="p3sel-header">
+            <span class="p3sel-title">Selección final Pega3</span>
+            <span class="p3sel-turno">Turno objetivo: ${seleccion.turnoObjetivo?.label || "pendiente"}</span>
           </div>
-          <article class="final-block">
-            <h4>Top Picks</h4>
-            <ul class="final-block__list">${topList}</ul>
-          </article>
-          <article class="final-block">
-            <h4>Candidatos secundarios</h4>
-            ${
-              secList
-                ? `<ul class="final-block__list">${secList}</ul>`
-                : "<p class='hint'>Sin secundarios con score ≥ 35%.</p>"
-            }
-          </article>
-          <article class="final-block final-block--wildcard">
-            <h4>Comodín disruptor</h4>
-            <div class="final-block__wildcard">${formatNumber(seleccion.comodin ?? seleccion.top[seleccion.top.length - 1].numero)}</div>
-          </article>
+
+          <div class="p3sel-section">
+            <div class="p3sel-section__label">🏆 Top Picks</div>
+            <ul class="p3sel-list">${topList}</ul>
+          </div>
+
+          ${secList ? `
+          <div class="p3sel-section">
+            <div class="p3sel-section__label">📌 Secundarios</div>
+            <ul class="p3sel-list p3sel-list--sec">${secList}</ul>
+          </div>` : ""}
+
+          <div class="p3sel-comodin">
+            <span class="p3sel-comodin__lbl">🃏 Comodín disruptor</span>
+            <span class="p3sel-comodin__num">${comodin}</span>
+          </div>
         </div>
       `;
     }
