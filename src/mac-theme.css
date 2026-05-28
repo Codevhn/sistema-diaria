@@ -3974,6 +3974,16 @@ details.maint-p3-year[open] > .maint-p3-year__head::before {
   letter-spacing: 0.04em;
 }
 
+/* Anular shadow y radius en TODOS los contenedores del análisis Pega3 */
+#view-pega3 .card,
+#view-pega3 article,
+#view-pega3 section,
+#view-pega3 [class*="-panel"],
+#view-pega3 [class*="-card"] {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    PEGA3 — Selección final rediseñada
    ═══════════════════════════════════════════════════════════════════ */
