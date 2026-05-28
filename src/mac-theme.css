@@ -1357,13 +1357,15 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
 .pair-card--miss { background: rgba(255,69,58,0.05)  !important; }
 .pair-card--pending { background: rgba(255,159,10,0.05) !important; }
 
-/* Pega3 */
+/* Pega3 — fondo transparente, sin degradado dorado heredado de .card */
 .pega3-card,
 .pega3-entry {
-  background: var(--color-surface) !important;
-  border-color: var(--color-border) !important;
+  background: transparent !important;
+  border: none !important;
   border-radius: var(--radius-lg) !important;
+  box-shadow: none !important;
 }
+.pega3-card::before { display: none !important; }
 .pega3-entry[style*="--pega3-entry-border"] {
   border-color: var(--pega3-entry-border) !important;
   background: var(--pega3-entry-bg) !important;
@@ -3802,4 +3804,68 @@ html[data-theme="light"] .calc-loss__val { color: #c0392b; }
   border-top: 1px solid rgba(255,159,10,0.2);
   padding-top: 4px;
   margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HISTORIAL PEGA3 — Mantenimiento
+   ═══════════════════════════════════════════════════════════════════ */
+.maint-p3-year {
+  border-bottom: 1px solid var(--color-border);
+}
+.maint-p3-year:last-child { border-bottom: none; }
+.maint-p3-year__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.maint-p3-year__head::-webkit-details-marker { display: none; }
+.maint-p3-year__head::before {
+  content: "▶";
+  font-size: 0.6rem;
+  margin-right: 8px;
+  color: var(--color-muted);
+  transition: transform 0.2s;
+}
+details.maint-p3-year[open] > .maint-p3-year__head::before {
+  transform: rotate(90deg);
+}
+.maint-p3-year__count {
+  font-size: 0.68rem;
+  color: var(--color-muted);
+  font-weight: 400;
+}
+.maint-p3-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.maint-p3-table th {
+  text-align: left;
+  font-size: 0.63rem;
+  color: var(--color-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+.maint-p3-table td {
+  padding: 6px 14px;
+  color: var(--color-text);
+  border-bottom: 1px solid rgba(128,128,128,0.07);
+}
+.maint-p3-table tr:last-child td { border-bottom: none; }
+.maint-p3-table tr:hover td { background: rgba(128,128,128,0.04); }
+.maint-p3-pares {
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  color: var(--color-accent) !important;
+  letter-spacing: 0.04em;
 }
