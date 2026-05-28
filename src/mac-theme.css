@@ -4098,3 +4098,79 @@ details.maint-p3-year[open] > .maint-p3-year__head::before {
   font-family: var(--font-mono, monospace);
   letter-spacing: 0.08em;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PEGA3 — Resumen rediseñado
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Neutralizar color dorado heredado de .analysis-note */
+#view-pega3 .analysis-note {
+  color: var(--color-text) !important;
+}
+
+.p3res-wrap { display: flex; flex-direction: column; gap: 14px; }
+
+/* Fila de métricas clave */
+.p3res-metrics {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.p3res-metric {
+  flex: 1;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(128,128,128,0.07);
+}
+.p3res-metric__val {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-text);
+  font-family: var(--font-mono, monospace);
+  line-height: 1;
+}
+.p3res-metric__lbl {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+.p3res-metric__sub {
+  font-size: 0.65rem;
+  color: var(--color-accent);
+  margin-top: 2px;
+}
+
+/* Filas de detalle */
+.p3res-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.p3res-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(128,128,128,0.08);
+}
+.p3res-row:last-child { border-bottom: none; }
+.p3res-row__lbl {
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+.p3res-row__val {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: right;
+}

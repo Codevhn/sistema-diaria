@@ -7510,34 +7510,42 @@
     function renderPega3Summary(stats) {
       if (!pega3Resumen) return;
       const totalDraws = stats.totalDraws || 0;
-      const topNumero = stats.numeroList?.[0];
-      const topPair = stats.pairList?.[0];
-      const pattern = stats.patternSummary || {};
+      const topN  = stats.numeroList?.[0];
+      const topP  = stats.pairList?.[0];
+      const pat   = stats.patternSummary || {};
       const cross = stats.crossTurn || {};
-      const external = stats.externalSummary || [];
-      const parts = [];
-      parts.push(`<strong>Total sorteos:</strong> ${totalDraws}`);
-      if (topNumero) {
-        parts.push(
-          `<strong>Número dominante:</strong> ${formatNumber(topNumero.numero)} · ${(topNumero.freq * 100).toFixed(2)}% global · Turno favorito ${topNumero.turnoFuerte}`,
-        );
-      }
-      if (topPair) {
-        parts.push(
-          `<strong>Par destacado:</strong> [${topPair.numeros.map((n) => formatNumber(n)).join(" – ")}] · ${topPair.total} repeticiones`,
-        );
-      }
-      parts.push(
-        `<strong>Patrones internos:</strong> repetidos ${pattern.repetidos || 0}, vecinos ${pattern.vecinos || 0}, espejos ${pattern.espejos || 0}, progresiones ${pattern.escaleras || 0}`,
-      );
-      parts.push(
-        `<strong>Arrastres entre turnos:</strong> coincidencias directas ${cross.directas || 0}, espejos ${cross.espejos || 0}, repeticiones ${cross.repeticiones || 0}`,
-      );
-      if (external.length) {
-        const topExt = external.slice(0, 2).map((item) => `${formatNumber(item.numero)} (${Math.round(item.coef * 100)}%)`);
-        parts.push(`<strong>Correlación con La Diaria:</strong> ${topExt.join(" · ")}`);
-      }
-      pega3Resumen.innerHTML = `<ul class="analysis-note">${parts.map((text) => `<li>${text}</li>`).join("")}</ul>`;
+      const ext   = stats.externalSummary || [];
+
+      const metric = (label, value, sub = "") => `
+        <div class="p3res-metric">
+          <span class="p3res-metric__val">${value}</span>
+          <span class="p3res-metric__lbl">${label}</span>
+          ${sub ? `<span class="p3res-metric__sub">${sub}</span>` : ""}
+        </div>`;
+
+      const row = (label, value) => `
+        <div class="p3res-row">
+          <span class="p3res-row__lbl">${label}</span>
+          <span class="p3res-row__val">${value}</span>
+        </div>`;
+
+      const topExtStr = ext.length
+        ? ext.slice(0, 2).map(e => `${formatNumber(e.numero)} (${Math.round(e.coef * 100)}%)`).join(" · ")
+        : null;
+
+      pega3Resumen.innerHTML = `
+        <div class="p3res-wrap">
+          <div class="p3res-metrics">
+            ${metric("sorteos", totalDraws)}
+            ${topN  ? metric("núm. dominante", formatNumber(topN.numero), `${(topN.freq*100).toFixed(1)}% · ${topN.turnoFuerte}`) : ""}
+            ${topP  ? metric("par destacado", topP.numeros.map(n=>formatNumber(n)).join("–"), `${topP.total} reps`) : ""}
+          </div>
+          <div class="p3res-rows">
+            ${row("Patrones", `espejo ${pat.espejos||0} · vecino ${pat.vecinos||0} · progresión ${pat.escaleras||0} · repetido ${pat.repetidos||0}`)}
+            ${row("Arrastres entre turnos", `directas ${cross.directas||0} · espejos ${cross.espejos||0} · reps ${cross.repeticiones||0}`)}
+            ${topExtStr ? row("Correlación c/ La Diaria", topExtStr) : ""}
+          </div>
+        </div>`;
     }
 
     function renderPega3Sesgos({ fuertes = [], moderados = [], debiles = [] } = {}) {
