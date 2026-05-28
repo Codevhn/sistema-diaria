@@ -1528,7 +1528,9 @@ button#btn-toggle-sidebar:not(.mac-titlebar__icon-btn) {
 
 /* Eliminar gradiente dorado del card::before en el panel de transformaciones */
 #transform-panel::before,
-#transform-panel:hover::before {
+#transform-panel:hover::before,
+#view-transform .card::before,
+#view-transform .card:hover::before {
   display: none !important;
   opacity: 0 !important;
   background: none !important;
@@ -2657,10 +2659,41 @@ html[data-theme="light"] .cq-dif-col--normal { background: rgba(52,199,89,0.05) 
   color: var(--color-text) !important;
 }
 .cq-dif-col__head span { color: var(--color-muted) !important; font-weight: 400 !important; }
+/* Chips de seguidores — sin border-radius, más grandes */
+.cq-chip {
+  border-radius: 0 !important;
+  border: none !important;
+  border-bottom: 2px solid var(--color-border) !important;
+  background: transparent !important;
+  padding: 10px 10px 8px !important;
+  min-width: 68px !important;
+  gap: 5px !important;
+}
+.cq-chip__img {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 0 !important;
+}
+.cq-chip__num {
+  font-size: 1.05rem !important;
+  font-weight: 900 !important;
+}
+.cq-chip__sym {
+  font-size: 0.65rem !important;
+}
+.cq-seg-chip__pct {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+}
+.cq-chips-row { gap: 6px !important; }
 .cq-chips-row--sm { gap: 6px !important; flex-wrap: wrap !important; }
-.cq-chip--sm .cq-chip__img { width: 32px !important; height: 32px !important; }
-.cq-chip--sm .cq-chip__num { font-size: 0.82rem !important; }
-.cq-seg-chip--sm { min-width: 48px !important; }
+.cq-chip--sm {
+  min-width: 56px !important;
+  padding: 8px 8px 6px !important;
+}
+.cq-chip--sm .cq-chip__img { width: 40px !important; height: 40px !important; }
+.cq-chip--sm .cq-chip__num { font-size: 0.88rem !important; }
+.cq-seg-chip--sm { min-width: 56px !important; }
 
 /* ── Cadena de recuperación ──────────────────────────────────────── */
 .cq-section--cadena {
