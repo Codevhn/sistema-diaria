@@ -1151,7 +1151,7 @@ a:hover { color: var(--color-accent-hover) !important; }
   font-size: 12px !important;
 }
 [class*="-badge"], [class*="-pill"]:not(.history-pill):not(.history-pill--today),
-[class*="-chip"]:not(.ht-chip) {
+[class*="-chip"]:not(.ht-chip):not(.cq-chip) {
   border-radius: 20px !important;
   font-size: 11px !important;
   font-weight: 600 !important;
