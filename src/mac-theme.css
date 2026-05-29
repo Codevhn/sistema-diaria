@@ -2662,9 +2662,8 @@ html[data-theme="light"] .cq-dif-col--normal { background: rgba(52,199,89,0.05) 
 /* Chips de seguidores — sin border-radius, más grandes */
 .cq-chip {
   border-radius: 0 !important;
-  border: none !important;
-  border-bottom: 2px solid var(--color-border) !important;
-  background: transparent !important;
+  border: 1px solid var(--color-border) !important;
+  background: rgba(255,255,255,0.04) !important;
   padding: 10px 10px 8px !important;
   min-width: 68px !important;
   gap: 5px !important;
