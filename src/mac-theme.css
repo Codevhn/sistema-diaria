@@ -136,7 +136,8 @@ html[data-theme="dark"] {
   --titlebar-btn-hover-bg: rgba(255, 255, 255, 0.12);
 
   /* Sidebar vibrancy */
-  --sidebar-bg: rgba(30, 30, 32, 0.78);
+  --sidebar-bg: linear-gradient(180deg, rgba(48, 48, 52, 0.82) 0%, rgba(28, 28, 30, 0.88) 100%);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-btn-active-bg: rgba(10, 132, 255, 0.22);
   --sidebar-btn-active-color: #0a84ff;
   --sidebar-btn-hover-bg: rgba(255, 255, 255, 0.08);
@@ -219,7 +220,8 @@ html[data-theme="light"] {
   --titlebar-btn-hover-bg: rgba(0, 0, 0, 0.06);
 
   /* Sidebar */
-  --sidebar-bg: rgba(242, 242, 247, 0.82);
+  --sidebar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(235, 235, 240, 0.85) 100%);
+  --sidebar-border: rgba(0, 0, 0, 0.09);
   --sidebar-btn-active-bg: rgba(0, 122, 255, 0.14);
   --sidebar-btn-active-color: #007aff;
   --sidebar-btn-hover-bg: rgba(0, 0, 0, 0.06);
@@ -368,7 +370,8 @@ body {
   background: var(--sidebar-bg) !important;
   backdrop-filter: var(--blur-sidebar) !important;
   -webkit-backdrop-filter: var(--blur-sidebar) !important;
-  border-right: 1px solid var(--color-border) !important;
+  border-right: 1px solid var(--sidebar-border, var(--color-border)) !important;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.04), 1px 0 12px rgba(0,0,0,0.18) !important;
   padding: 10px 6px !important;
   width: 220px !important;
   top: 40px !important;
