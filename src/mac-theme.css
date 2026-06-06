@@ -377,6 +377,15 @@ body {
   top: 40px !important;
   transition: transform 0.28s var(--ease-mac), box-shadow 0.28s var(--ease-mac) !important;
 }
+
+html[data-theme="dark"] .sidebar,
+html:not([data-theme]) .sidebar {
+  background: linear-gradient(180deg, rgba(52, 52, 56, 0.85) 0%, rgba(28, 28, 30, 0.92) 100%) !important;
+}
+
+html[data-theme="light"] .sidebar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.80) 0%, rgba(232, 232, 238, 0.88) 100%) !important;
+}
 .sidebar .brand { display: none !important; }
 
 /* Botones del sidebar */
