@@ -333,8 +333,8 @@
     <button data-view="superpremio"><span class="sidebar-icon fa-solid fa-trophy"></span><i>Super Premio</i></button>
     <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
     <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
-    <button data-view="suerte"><span class="sidebar-icon fa-solid fa-shuffle"></span><i>Tirada de suerte</i></button>
-    <button data-view="geometry"><span
+    <button data-view="suerte" style="display:none"><span class="sidebar-icon fa-solid fa-shuffle"></span><i>Tirada de suerte</i></button>
+    <button data-view="geometry" style="display:none"><span
         class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
     <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
     <button data-view="guide"><span class="sidebar-icon fa-solid fa-book"></span><i>Guía de los Sueños</i></button>
@@ -342,7 +342,7 @@
     <button data-view="maint" class="requires-admin"><span
         class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
     <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
-    <button data-view="calc"><span class="sidebar-icon fa-solid fa-calculator"></span><i>Calculadora</i></button>
+    <button data-view="calc" style="display:none"><span class="sidebar-icon fa-solid fa-calculator"></span><i>Calculadora</i></button>
     <button data-view="wiki"><span class="sidebar-icon fa-solid fa-circle-question"></span><i>Guía del sistema</i></button>
   </aside>
 
@@ -1546,7 +1546,7 @@
       setLocalDrawSnapshotMode,
     } from "./src/local-draw-cache.js";
     import { supabase } from "./src/supabaseClient.js";
-    import { ejecutarMotorSeñales, sucesoresMarkov, estadoRezago, calcularRezago } from "./src/signal-engine.js";
+    import { ejecutarMotorSeñales, estadoRezago, calcularRezago } from "./src/signal-engine.js";
     import { logout as supabaseLogout, requireAuthOrRedirect } from "./src/auth.js";
     import { showBootLoader, hideBootLoader } from "./src/boot-loader.js";
     const bootOverlay = document.getElementById("boot-loader");
@@ -6636,7 +6636,7 @@
           const preEvento = recoveryMode.activo && recoveryMode.ultimoEvento
             ? detectarNumerosPreEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
             : [];
-          const [motorResult, rezagoResult, sucesores] = await Promise.allSettled([
+          const [motorResult, rezagoResult] = await Promise.allSettled([
             ejecutarMotorSeñales({
               pais,
               turno: nextHorario,
@@ -6650,35 +6650,9 @@
               } : null,
             }),
             estadoRezago(pais),
-            sucesoresMarkov(lastNum, pais, 4),
           ]);
 
-          // ── Sucesores Markov del último número ──
-          const suc = sucesores.status === "fulfilled" ? sucesores.value : [];
-          if (suc.length) {
-            const markovSec = document.createElement("div");
-            markovSec.className = "pulso-group";
-            markovSec.innerHTML = `
-              <div class="pulso-group__head">
-                <span class="pulso-group__label">Markov — tras ${lastPad} ${lastInfo.simbolo || ""}</span>
-                <span class="pulso-group__freq">transiciones históricas</span>
-              </div>`;
-            const markovChips = document.createElement("div");
-            markovChips.className = "pulso-chips";
-            suc.forEach(({ pad, simbolo, prob, count }) => {
-              const chip = document.createElement("div");
-              chip.className = "pulso-chip pulso-chip--markov";
-              chip.appendChild(numImg(pad, simbolo));
-              chip.insertAdjacentHTML("beforeend", `
-                <span class="pulso-chip__num">${pad}</span>
-                <span class="pulso-chip__sym">${simbolo}</span>
-                <div class="pulso-chip__bar" style="--pct:${prob}%"></div>
-                <span class="pulso-chip__count">${prob}% · ${count}×</span>`);
-              markovChips.appendChild(chip);
-            });
-            markovSec.appendChild(markovChips);
-            frag.appendChild(markovSec);
-          }
+          // Markov raw removido — ya está integrado en el motor unificado (evita duplicado con Mesa de Análisis)
 
           // ── Candidatos del motor unificado ──
           const motor = motorResult.status === "fulfilled" ? motorResult.value : null;
@@ -6692,16 +6666,23 @@
               </div>`;
             const motorChips = document.createElement("div");
             motorChips.className = "pulso-chips";
-            motor.candidatos.forEach((c) => {
+            // Normalizar barras relativas al líder del grupo
+            const _scores = motor.candidatos.map(cc => cc.score);
+            const _maxS = _scores[0] || 1;
+            const _minS = _scores[_scores.length - 1] || 0;
+            const _rng  = _maxS - _minS || _maxS;
+            motor.candidatos.forEach((c, ci) => {
               const chip = document.createElement("div");
               chip.className = `pulso-chip pulso-chip--motor${c.penalizado ? " pulso-chip--penalizado" : ""}`;
               chip.appendChild(numImg(c.pad, c.simbolo));
               const topSignal = c.signals[0];
+              const absScore  = Math.round(c.score * 100);
+              const relPct    = ci === 0 ? 100 : Math.round(30 + ((_scores[ci] - _minS) / _rng) * 70);
               chip.insertAdjacentHTML("beforeend", `
                 <span class="pulso-chip__num">${c.pad}</span>
                 <span class="pulso-chip__sym">${c.simbolo}</span>
-                <div class="pulso-chip__bar" style="--pct:${Math.round(c.score * 100)}%"></div>
-                <span class="pulso-chip__count">${Math.round(c.score * 100)}%</span>
+                <div class="pulso-chip__bar" style="--pct:${relPct}%"></div>
+                <span class="pulso-chip__count" title="Score: ${absScore}/100">${absScore}</span>
                 ${topSignal ? `<span class="pulso-chip__hint" title="${topSignal.label}">${topSignal.source}</span>` : ""}`);
               chip.title = c.signals.map((s) => s.label).join("\n");
               motorChips.appendChild(chip);
@@ -12616,20 +12597,28 @@ function buildVariantEntries(profile) {
       function _renderTop3(candidatos = []) {
         const el = $("mesa-top3");
         if (!candidatos.length) { el.innerHTML = '<div class="mesa-loading">Sin candidatos</div>'; return; }
-        el.innerHTML = candidatos.slice(0, 5).map((c, i) => {
-          const score = Math.round(c.score * 100);
-          const col   = score >= 70 ? "#5cba5c" : score >= 45 ? "#e0b84a" : "#888";
+        const top5 = candidatos.slice(0, 5);
+        // Normalizar barras relativas al top del grupo (evita que todos lleguen a 100%)
+        const maxScore = top5[0]?.score || 1;
+        const minScore = top5[top5.length - 1]?.score || 0;
+        const range    = maxScore - minScore || maxScore;
+        el.innerHTML = top5.map((c, i) => {
+          const scoreAbs = Math.round(c.score * 100);
+          // Barra relativa: top=100%, resto escalado proporcionalmente desde 30% mínimo
+          const barPct  = i === 0 ? 100 : Math.round(30 + ((c.score - minScore) / range) * 70);
+          const col     = scoreAbs >= 70 ? "#5cba5c" : scoreAbs >= 45 ? "#e0b84a" : "#888";
+          const rank    = ["①","②","③","④","⑤"][i];
           return `
             <div class="mesa-candidato" data-num="${c.numero}">
-              <div class="mesa-cand-num">${c.pad}</div>
+              <div class="mesa-cand-num">${rank} ${c.pad}</div>
               <div class="mesa-cand-info">
                 <div class="mesa-cand-simb">${c.simbolo ?? c.pad}</div>
                 <div class="mesa-cand-fam">${c.familia ?? ""}</div>
                 <div class="mesa-cand-bar">
-                  <div class="mesa-cand-bar-fill" style="width:${score}%;background:${col}"></div>
+                  <div class="mesa-cand-bar-fill" style="width:${barPct}%;background:${col}"></div>
                 </div>
               </div>
-              <div class="mesa-cand-score" style="color:${col}">${score}</div>
+              <div class="mesa-cand-score" style="color:${col}" title="Score absoluto: ${scoreAbs}/100">${scoreAbs}</div>
             </div>`;
         }).join("");
 
