@@ -11079,6 +11079,319 @@ function buildVariantEntries(profile) {
           <p>Cada número tiene una imagen ilustrativa guardada en <code>data/img/</code>. Aparecen en las cards del panel Escenarios, en el historial y en la guía visual. Si un número no tiene imagen todavía, simplemente no se muestra.</p>
         `,
       },
+      // ── Módulos de inteligencia adversarial (Sprints 1-7) ─────────────────
+      {
+        id: "conversiones",
+        categoria: "Conversiones y variantes",
+        titulo: "Conversiones, equivalencias y variantes matemáticas",
+        contenido: `
+          <h2>Conversiones y variantes matemáticas</h2>
+          <p class="wiki-lead">El sistema conoce el "vocabulario" matemático de La Diaria: cuando no quiere pagar un número, tira uno <em>relacionado</em>. Aquí están todas las relaciones que el sistema calcula.</p>
+
+          <h3>Las dos reglas base</h3>
+          <div class="wiki-example">
+            <strong>CONVERSIÓN:</strong> &nbsp;0↔1 &nbsp; 2↔5 &nbsp; 3↔8 &nbsp; 4↔7 &nbsp; 6↔9<br>
+            <strong>EQUIVALENCIA:</strong> 0↔5 &nbsp; 1↔6 &nbsp; 2↔7 &nbsp; 3↔8 &nbsp; 4↔9
+          </div>
+          <p>Nota: 3↔8 aparece en <em>ambas</em> tablas — es la única relación compartida.</p>
+
+          <h3>Las 8 categorías de variante</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Tipo</th><th>Operación</th><th>Peso</th><th>Ejemplo desde 80 ☕ Café</th></tr></thead>
+            <tbody>
+              <tr><td>Conversión simple decena</td><td>Solo convierte el dígito izquierdo</td><td>0.95</td><td>80 → <strong>30</strong> 🎳 Bolo (8→3)</td></tr>
+              <tr><td>Conversión simple unidad</td><td>Solo convierte el dígito derecho</td><td>0.95</td><td>80 → <strong>81</strong> 🚂 Rieles (0→1)</td></tr>
+              <tr><td>Conversión compuesta</td><td>Convierte ambos dígitos</td><td>0.85</td><td>80 → <strong>31</strong> 🦂 Alacrán (8→3, 0→1)</td></tr>
+              <tr><td>Equivalencia directa</td><td>Equivalencia en ambos dígitos</td><td>0.80</td><td>80 → <strong>35</strong> 🕍 Virgen (8↔3, 0↔5)</td></tr>
+              <tr><td>Espejo simple</td><td>Invierte los dos dígitos</td><td>0.75</td><td>80 → <strong>08</strong> 🐇 Conejo</td></tr>
+              <tr><td>Espejo de compuesta</td><td>Espejo del número convertido compuesto</td><td>0.70</td><td>80 → <strong>13</strong> 🐱 Gato (espejo del 31)</td></tr>
+              <tr><td>Espejo de equivalencia</td><td>Espejo del número equivalente</td><td>0.65</td><td>80 → <strong>53</strong> 🛞 Llanta (espejo del 35)</td></tr>
+              <tr><td>Encadenado</td><td>Dos transformaciones seguidas</td><td>0.45</td><td>80→31→<strong>86</strong> ⌚ Reloj, 80→35→<strong>82</strong> 🏫 Escuela</td></tr>
+            </tbody>
+          </table>
+
+          <h3>¿Qué son los encadenados?</h3>
+          <p>Son transformaciones de segundo nivel: se aplica una conversión sobre el resultado de otra conversión. Por ejemplo:</p>
+          <div class="wiki-example">
+            <strong>80</strong> → conversión compuesta → <strong>31</strong> → equivalencia directa → <strong>86</strong> ⌚ Reloj<br>
+            <strong>80</strong> → equivalencia directa → <strong>35</strong> → conversión compuesta → <strong>82</strong> 🏫 Escuela
+          </div>
+          <p>La hipótesis: cuando La Diaria "disfrazó" un número dos veces seguidas, el encadenado es el resultado. Tienen el peso más bajo (0.45) porque son menos frecuentes en la práctica.</p>
+
+          <h3>Los relativos oficiales</h3>
+          <p>Además de las variantes matemáticas, el sistema tiene un catálogo de <em>relativos</em> — pares establecidos por la tradición del juego, no por fórmula. Son relaciones semánticas o culturales.</p>
+          <div class="wiki-example">
+            <strong>80 ☕ Café</strong> tiene como relativos oficiales:<br>
+            &nbsp;· <strong>27</strong> 🎮 Juego<br>
+            &nbsp;· <strong>61</strong> ⚔️ Guerra
+          </div>
+          <p>Estos relativos están guardados en <code>data/relativos_diaria.json</code> y tienen el peso más alto (0.95) porque son las relaciones más directas del juego.</p>
+        `,
+      },
+      {
+        id: "presion-publica",
+        categoria: "Sistema adversarial",
+        titulo: "🌡️ Presión pública — lo que el público espera y La Casa evita",
+        contenido: `
+          <h2>Presión pública</h2>
+          <p class="wiki-lead">La presión de un número es una estimación de <em>cuánta gente lo está comprando ahora mismo</em>. Cuanto más alta, más lo evita La Diaria.</p>
+
+          <h3>Por qué no se mide directamente</h3>
+          <p>No hay acceso al volumen real de ventas. El sistema <em>infiere</em> la presión pública a partir de señales observables en el historial:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--warn">
+              <strong>Gap largo sin caer</strong>
+              <span>Si un número lleva más de 2.2× su ciclo promedio sin aparecer, el público lo sigue esperando. Presión alta.</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>Es saladito</strong>
+              <span>Dobles (11, 22…), redondos (10, 20…) y terminales en 5 siempre tienen presión base alta porque el público los adora.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Cayó hace poco</strong>
+              <span>Si cayó en los últimos 5 días, la presión baja — el jugador "ya cobró" o dejó de esperarlo.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Se pagó la variante</strong>
+              <span>Si La Casa tiró la variante del número, parte del público migró. Presión baja temporalmente.</span>
+            </div>
+          </div>
+
+          <h3>Cómo afecta al score</h3>
+          <p>La presión se convierte en un <strong>factor multiplicativo adversarial</strong>:</p>
+          <div class="wiki-example">
+            · Presión 0.0 (libre) → factor <strong>1.50×</strong> — La Casa puede pagarlo tranquilo<br>
+            · Presión 0.5 (media) → factor <strong>~0.90×</strong> — reducción moderada<br>
+            · Presión 1.0 (máxima) → factor <strong>0.30×</strong> — La Casa lo evita activamente
+          </div>
+
+          <h3>Momento de liberación</h3>
+          <p>Cuando la presión lleva tanto tiempo alta que el jugador se "cansa" de esperar y deja de comprar el número — ese es el <strong>momento de liberación</strong>. El sistema detecta ese punto (umbral de cansancio: 2.2× el ciclo) como la señal más fuerte para que el número finalmente caiga.</p>
+
+          <h3>Dónde verlo</h3>
+          <p>En el panel <strong>Mesa de Análisis → Posibles Liberaciones</strong>: números cercanos al momento de liberación, con su score de presión y el tiempo sin caer.</p>
+        `,
+      },
+      {
+        id: "secuencias",
+        categoria: "Sistema adversarial",
+        titulo: "🔗 Secuencias activas — cuando un número "está corriendo"",
+        contenido: `
+          <h2>Secuencias activas</h2>
+          <p class="wiki-lead">Una secuencia es una relación A→B que se detectó en el historial: después de que cayó A, suele aparecer B en los siguientes sorteos. El sistema las monitorea en tiempo real.</p>
+
+          <h3>Cómo se detecta una secuencia</h3>
+          <p>El sistema analiza cada sorteo contra los últimos 45 anteriores buscando si el número nuevo es variante, relativo o equivalente de alguno previo. Si el patrón se repitió suficientes veces históricamente, abre una "secuencia activa".</p>
+
+          <h3>La proyección con distribución normal</h3>
+          <p>Para cada secuencia activa, el sistema calcula cuántos sorteos faltan para que se resuelva, usando estadística real:</p>
+          <div class="wiki-example">
+            Históricamente, la secuencia A→B se resuelve en promedio en <strong>8 sorteos</strong> con desviación de 3.<br>
+            Si ya van 6 sorteos desde que cayó A:<br>
+            &nbsp;· Probabilidad de que B caiga en el siguiente sorteo: <strong>~24%</strong><br>
+            &nbsp;· Probabilidad de que B caiga en los próximos 3: <strong>~52%</strong>
+          </div>
+
+          <h3>La barra de progreso</h3>
+          <p>En <strong>Mesa de Análisis → Secuencias Activas</strong> verás una barra por cada secuencia. La longitud de la barra = qué tan cerca está de su ventana histórica de resolución. Una barra llena = el sistema proyecta resolución inminente.</p>
+
+          <h3>Cuándo confiar más</h3>
+          <p>Cuando la secuencia tiene al menos 3 instancias históricas con estadística confirmada. Las secuencias con 1 o 2 casos se marcan con baja confianza.</p>
+        `,
+      },
+      {
+        id: "regimen",
+        categoria: "Sistema adversarial",
+        titulo: "🎭 Régimen de juego — cuándo La Casa cambió su estilo",
+        contenido: `
+          <h2>Régimen de juego</h2>
+          <p class="wiki-lead">El régimen describe el <em>estado estratégico actual</em> de La Diaria. Cuando detecta que el patrón de sorteos cambió significativamente, clasifica en qué modo está jugando la operadora.</p>
+
+          <h3>Cómo se detecta el cambio</h3>
+          <p>Cada 10 sorteos el sistema compara la distribución de los últimos 30 contra los 30 anteriores usando <strong>divergencia KL</strong> — una medida de qué tan diferente es la nueva distribución. Si el KL ≥ 0.08, hay cambio de régimen.</p>
+
+          <h3>Los 7 regímenes</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Régimen</th><th>Qué significa</th><th>Señal característica</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Normal</strong></td><td>Distribución histórica típica</td><td>KL bajo, sin anomalías</td></tr>
+              <tr><td><strong>Post superpremio</strong></td><td>Tras pagar premio mayor, La Casa se vuelve impredecible</td><td>Entropía alta, saladitos ↓</td></tr>
+              <tr><td><strong>Bloqueo de saladitos</strong></td><td>Período donde evita dobles y redondos</td><td>% saladitos muy por debajo del histórico</td></tr>
+              <tr><td><strong>Liberación masiva</strong></td><td>Varios números vencidos caen en ventana corta</td><td>Ratio de números "nuevos" muy alto</td></tr>
+              <tr><td><strong>Secuencia activa</strong></td><td>Patrón de variantes/secuencias dominando</td><td>Ratio variante alto + repetición baja</td></tr>
+              <tr><td><strong>Modo camuflaje</strong></td><td>La Casa usa variantes matemáticas más de lo normal</td><td>Ratio variante muy por encima del baseline</td></tr>
+              <tr><td><strong>Fin de mes</strong></td><td>Cambio en últimos 5 días del mes</td><td>Patrones mensuales dominantes</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Por qué importa el régimen</h3>
+          <p>Cada régimen ajusta automáticamente los pesos del motor. Ejemplo: en <em>post superpremio</em> el peso de Markov baja (porque el historial ya no es fiable) y el de modos/patrones sube. El sistema se adapta sin que tengas que tocarlo.</p>
+
+          <h3>Dónde verlo</h3>
+          <p>En <strong>Mesa de Análisis → Régimen Activo</strong>: badge con el nombre, nivel de confianza y descripción del cambio detectado.</p>
+        `,
+      },
+      {
+        id: "pesos-dinamicos",
+        categoria: "Sistema adversarial",
+        titulo: "⚖️ Pesos dinámicos — el motor se ajusta solo",
+        contenido: `
+          <h2>Pesos dinámicos del motor</h2>
+          <p class="wiki-lead">Los 7 motores de señal no siempre tienen el mismo peso. El sistema los ajusta automáticamente según qué motores están acertando en los últimos 30 sorteos.</p>
+
+          <h3>Los pesos por defecto</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Motor</th><th>Peso inicial</th><th>Rango permitido</th></tr></thead>
+            <tbody>
+              <tr><td>Markov O1</td><td>28%</td><td>3% – 42%</td></tr>
+              <tr><td>Markov O2</td><td>18%</td><td>3% – 42%</td></tr>
+              <tr><td>Rezago</td><td>14%</td><td>3% – 42%</td></tr>
+              <tr><td>Modos</td><td>18%</td><td>3% – 42%</td></tr>
+              <tr><td>Patrones</td><td>12%</td><td>3% – 42%</td></tr>
+              <tr><td>Semanal</td><td>6%</td><td>3% – 42%</td></tr>
+              <tr><td>Mensual</td><td>4%</td><td>3% – 42%</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Cómo se ajustan (gradient ascent)</h3>
+          <p>Después de cada bloque de 30 evaluaciones, el sistema aplica un "paso de gradiente":</p>
+          <div class="wiki-example">
+            · Si Rezago señaló el número ganador → su peso sube.<br>
+            · Si Markov O1 falló consistentemente → su peso baja.<br>
+            · Los ajustes son pequeños (1.5% por paso) para no sobrereaccionar a ruido.
+          </div>
+
+          <h3>Ajuste adicional por régimen</h3>
+          <p>Encima del gradient, el régimen activo aplica multiplicadores. Ejemplo en <em>modo camuflaje</em>: Markov × 0.80, Patrones × 1.30. Los dos ajustes se combinan.</p>
+
+          <h3>Crisis y reset</h3>
+          <p>Si el hit rate top-3 cae por debajo del 20%, el sistema entra en modo crisis y ejecuta el optimizador automáticamente. Si nada mejora, puedes hacer reset manual a los pesos por defecto.</p>
+        `,
+      },
+      {
+        id: "mesa-analisis",
+        categoria: "Paneles",
+        titulo: "🧠 Mesa de Análisis — el centro de mando",
+        contenido: `
+          <h2>Mesa de Análisis</h2>
+          <p class="wiki-lead">Es el panel más completo del sistema. Reúne en una sola vista todos los módulos de inteligencia adversarial, organizados para que veas el contexto completo antes de decidir.</p>
+
+          <h3>Los 7 paneles de la Mesa</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok">
+              <strong>Top Candidatos</strong>
+              <span>Los 5 números con mayor score combinado (señales + presión + secuencias). Haz clic en uno para ver su análisis detallado.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Régimen Activo</strong>
+              <span>El estado estratégico actual de La Casa, con nivel de confianza y descripción del cambio detectado.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Salud del Sistema</strong>
+              <span>Score global de las últimas 30 evaluaciones, hit rates por posición (top-1, top-3, top-5) y diagnóstico de problemas.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Secuencias Activas</strong>
+              <span>Secuencias A→B en curso, con barra de progreso hacia su ventana histórica de resolución y probabilidad calculada.</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>Alertas</strong>
+              <span>Hasta 10 alertas automáticas: cambio de régimen, números extremadamente vencidos, sin dobles en 15 sorteos, repeticiones sospechosas.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Posibles Liberaciones</strong>
+              <span>Números que superaron el umbral de cansancio del jugador (2.2× su ciclo). La presión empezó a bajar — posible momento de caída.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Intra-Día</strong>
+              <span>Si ya cayó un número hoy (turno 11AM o 3PM), muestra los candidatos más probables para el turno siguiente del mismo día.</span>
+            </div>
+          </div>
+
+          <h3>Análisis detallado de candidato</h3>
+          <p>Al hacer clic en cualquier número del Top Candidatos, el sistema responde 4 preguntas:</p>
+          <ol>
+            <li>¿Qué secuencias activas apuntan a este número?</li>
+            <li>¿Cuál es su nivel de presión pública ahora mismo?</li>
+            <li>¿Se pagó alguna variante suya recientemente?</li>
+            <li>¿Hay conflicto por familia simbólica?</li>
+          </ol>
+        `,
+      },
+      {
+        id: "autoevaluacion",
+        categoria: "Sistema adversarial",
+        titulo: "📊 Autoevaluación — el sistema se califica a sí mismo",
+        contenido: `
+          <h2>Loop de autoevaluación</h2>
+          <p class="wiki-lead">Cada vez que registras un sorteo real, el sistema compara el número ganador contra las predicciones que hizo antes. Eso le permite saber si está funcionando bien o necesita ajustarse.</p>
+
+          <h3>Los 4 tipos de resultado</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Tipo</th><th>Qué significa</th><th>Acción del sistema</th></tr></thead>
+            <tbody>
+              <tr><td><strong>C — Acierto</strong></td><td>El número cayó dentro del top-5 predicho</td><td>Refuerza los motores que lo señalaron</td></tr>
+              <tr><td><strong>A — Ranking</strong></td><td>El número estaba en la lista pero fuera del top-5</td><td>Ajusta el peso de ranking de los motores</td></tr>
+              <tr><td><strong>B — Ausente</strong></td><td>El número no estaba en ninguna posición de la lista</td><td>Señal de alerta: el motor no está captando esa señal</td></tr>
+              <tr><td><strong>D — Falso positivo</strong></td><td>El motor predijo con alta confianza un número que no cayó</td><td>Penaliza los motores que sobreconfiaron</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Score global</h3>
+          <p>La salud del sistema se mide con esta fórmula sobre las últimas 30 evaluaciones:</p>
+          <div class="wiki-example">
+            Score = (hit top-1 × 40%) + (hit top-3 × 35%) + (hit top-5 × 15%) + (cobertura × 10%)
+          </div>
+
+          <h3>Crisis automática</h3>
+          <p>Si el hit rate top-3 cae por debajo del 20%, el sistema entra en modo crisis y ejecuta el optimizador de pesos automáticamente. El panel Salud muestra el badge rojo "CRISIS — Ajustando pesos".</p>
+
+          <h3>Diagnóstico de causa raíz</h3>
+          <p>Cuando hay muchos errores tipo B (ausente), el sistema intenta diagnosticar por qué:</p>
+          <ul>
+            <li>¿La distribución cambió de régimen y los pesos están desactualizados?</li>
+            <li>¿Un motor específico tiene desempeño sistemáticamente bajo?</li>
+            <li>¿Hay concentración de errores en una decena particular (posible bloqueo selectivo)?</li>
+            <li>¿El score está en tendencia de caída acelerada?</li>
+          </ul>
+        `,
+      },
+      {
+        id: "backtest-v4",
+        categoria: "Estadística y verificación",
+        titulo: "🆚 Backtest V3 vs V4 — prueba honesta de la mejora",
+        contenido: `
+          <h2>Backtest V3 vs V4</h2>
+          <p class="wiki-lead">Una comparación directa entre el motor clásico (solo Markov + rezago) y el motor v4 completo (+ presión adversarial + régimen dinámico + pesos auto-ajustados), corrida sobre el mismo historial real.</p>
+
+          <h3>Por qué existe esta prueba</h3>
+          <p>Agregar módulos nuevos no significa mejorar. Este backtest verifica con datos reales si la inteligencia adversarial realmente sube el hit rate o solo agrega ruido.</p>
+
+          <h3>La metodología</h3>
+          <p>Para cada punto en el historial, el sistema simula que el motor se corrió <em>el día anterior</em> usando solo datos hasta ese momento (sin mirar el futuro). Luego comprueba si el número que cayó estaba en el top-K predicho.</p>
+          <div class="wiki-example">
+            <strong>V3:</strong> Markov + Rezago + Popularidad (motor base)<br>
+            <strong>V4:</strong> V3 + Presión adversarial + Régimen dinámico + Pesos gradient rolling
+          </div>
+
+          <h3>Qué mide el resultado</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Métrica</th><th>Qué significa</th></tr></thead>
+            <tbody>
+              <tr><td>Hit rate top-5</td><td>% de veces que el número ganador estaba en los primeros 5</td></tr>
+              <tr><td>Lift</td><td>Hit rate ÷ azar puro. Lift 1.5× = 50% mejor que adivinar</td></tr>
+              <tr><td>Δ Lift</td><td>Mejora de V4 respecto a V3. Positivo = V4 es mejor</td></tr>
+              <tr><td>Rank medio</td><td>Posición promedio del número ganador en el ranking predicho</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Cómo ejecutarlo</h3>
+          <p>En <strong>Mesa de Análisis → Validación Histórica V3 vs V4</strong>, haz clic en "▶ Correr Backtest". Tarda 30–90 segundos. Puedes cancelarlo con el mismo botón.</p>
+
+          <h3>Importante: el backtest no garantiza nada</h3>
+          <p>Un lift alto en el historial no promete que el sistema seguirá funcionando igual en el futuro. Lo que sí dice es que <em>en los sorteos pasados</em>, el motor tenía ventaja real sobre el azar. Es la mejor evidencia disponible sin adivinar.</p>
+        `,
+      },
     ];
 
     let _wikiIniciada = false;
