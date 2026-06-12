@@ -12645,7 +12645,9 @@ function buildVariantEntries(profile) {
           const scoreAbs = Math.round(c.score * 100);
           // Barra relativa: top=100%, resto escalado proporcionalmente desde 30% mínimo
           const barPct  = i === 0 ? 100 : Math.round(30 + ((c.score - minScore) / range) * 70);
-          const col     = scoreAbs >= 70 ? "#5cba5c" : scoreAbs >= 45 ? "#e0b84a" : "#888";
+          // Umbrales para la nueva escala compuesta (fracción del máximo posible
+          // con todos los motores al tope): >=50 fuerte, >=30 moderado
+          const col     = scoreAbs >= 50 ? "#5cba5c" : scoreAbs >= 30 ? "#e0b84a" : "#888";
           const rank    = ["①","②","③","④","⑤"][i];
           return `
             <div class="mesa-candidato" data-num="${c.numero}">

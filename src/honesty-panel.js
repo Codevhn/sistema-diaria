@@ -115,12 +115,20 @@ export async function renderHonestyPanel(container, draws = [], opts = {}) {
     console.warn("[honesty-panel] auditarAleatoriedad:", e?.message);
   }
 
+  const notaExcluidos = stats?.excluidosNoSellados
+    ? `<div class="honesty-metric__sub" style="margin-top:.4rem">
+        🔒 ${stats.excluidosNoSellados} batch(es) excluido(s): no se pudo verificar que la predicción
+        se registró <b>antes</b> del sorteo (post-hoc o sin timestamp). Solo las predicciones
+        selladas cuentan como evidencia.
+      </div>`
+    : "";
+
   const metricas = statsError
     ? `<div class="honesty-metric__empty">⚠ No se pudieron cargar las métricas: ${statsError}</div>`
     : `<div class="honesty-metrics-row">
         ${renderMetricaHTML("Histórico completo", stats.hits, stats.resolved, stats.baseline)}
         ${renderMetricaHTML(`Últimos ${stats.recent.n || 0} batches`, stats.recent.hits, stats.recent.n, stats.baseline)}
-      </div>`;
+      </div>${notaExcluidos}`;
 
   container.innerHTML = `
     ${metricas}

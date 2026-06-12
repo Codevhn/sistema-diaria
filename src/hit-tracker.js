@@ -14,6 +14,7 @@
  */
 
 import { DB } from "./storage.js";
+import { esPrediccionSellada } from "./prediction-integrity.js";
 
 const TOP_N_DEFAULT = 8; // motor.candidatos top-N
 
@@ -74,20 +75,30 @@ export async function computeHitTrackerStats(opts = {}) {
     const onlyDescartado = states.every((s) => s === "descartado");
     const isPending = !allResolved && !onlyDescartado;
     const isResolved = allResolved && !onlyDescartado;
+    // Sellado: todas las filas activas del batch se registraron ANTES del
+    // sorteo. Los batches con predicciones post-hoc (ingreso histórico,
+    // logs re-marcados) no cuentan como evidencia de hit-rate.
+    const activos = b.rows.filter((r) => r.estado !== "descartado");
+    const sellado = activos.length > 0 && activos.every(esPrediccionSellada);
     return {
       ...b,
       isPending,
       isResolved,
+      sellado,
       hit: hasAcierto,
-      size: b.rows.filter((r) => r.estado !== "descartado").length,
+      size: activos.length,
     };
   });
 
   // Ordenar por createdAt ascendente para "recent" estable
   batchList.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
-  const resolved = batchList.filter((b) => b.isResolved);
+  const resueltosTodos = batchList.filter((b) => b.isResolved);
   const pending = batchList.filter((b) => b.isPending);
+
+  // Solo los batches sellados son evidencia válida para el hit-rate
+  const resolved = resueltosTodos.filter((b) => b.sellado);
+  const excluidosNoSellados = resueltosTodos.length - resolved.length;
 
   const hits = resolved.filter((b) => b.hit).length;
   const total = resolved.length;
@@ -118,6 +129,7 @@ export async function computeHitTrackerStats(opts = {}) {
     batches: batchList.length,
     pending: pending.length,
     resolved: total,
+    excluidosNoSellados,
     hits,
     hitRate,
     baseline,

@@ -463,16 +463,20 @@ export function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, se
 
   // ── Score compuesto ──
   const composed = new Map();
+  // Peso total de TODOS los motores: dividir solo entre los pesos de las
+  // señales presentes (weightUsed) hacía que un número con una única señal
+  // saturada llegara a score 1.0 igual que uno con seis señales fuertes —
+  // todo el top quedaba clavado en "100" sin capacidad de discriminar.
+  const pesoTotal = Object.values(SOURCE_WEIGHTS).reduce((s, w) => s + w, 0) || 1;
   scores.forEach((entry, numero) => {
     let total = 0;
-    let weightUsed = 0;
     Object.entries(entry.rawScores).forEach(([source, val]) => {
       const w = SOURCE_WEIGHTS[source] || 0;
-      total      += val * w;
-      weightUsed += w;
+      total += val * w;
     });
-    // Normalizar por peso usado (si solo hay algunas fuentes)
-    const score = weightUsed > 0 ? Math.min(1, total / weightUsed) : 0;
+    // Score = fracción del máximo posible con todos los motores al tope.
+    // Tener más señales coincidentes pesa más que una sola señal saturada.
+    const score = Math.min(1, total / pesoTotal);
 
     // Penalización por familia activa
     const { familia } = getSymboloFamilia(numero);
@@ -863,7 +867,10 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
       // Señal de secuencia activa
       const seqSig = seqSigsMap.get(numero);
       if (seqSig && seqSig.score > 0) {
-        const boost = Math.min(0.35, seqSig.score / 100 * 0.35);
+        // Tope 0.12: el +0.35 original estaba calibrado para la escala
+        // saturada anterior; con scores compuestos típicos de 0.2-0.5
+        // habría dominado a todos los motores juntos.
+        const boost = Math.min(0.12, seqSig.score / 100 * 0.12);
         data.score = Math.min(1, data.score + boost);
         data.signals.unshift({
           source: "secuencia-activa",

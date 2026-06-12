@@ -24,6 +24,7 @@
 import { DB } from './storage.js';
 import { supabase } from './supabaseClient.js';
 import { insertEvaluation, getRecentEvaluations } from './intelligence-storage.js';
+import { separarPorSellado } from './prediction-integrity.js';
 
 // Posición máxima que sigue contando como "acierto de ranking"
 const TOP_ACIERTO = 5;
@@ -149,7 +150,30 @@ export async function evaluarSorteo(draw, opts = {}) {
     };
   }
 
-  const candidatos   = normalizarCandidatos(matchingLogs);
+  // Sellado: solo cuentan como evidencia las predicciones registradas ANTES
+  // del sorteo. Las post-hoc (típicas de sesiones de ingreso histórico) se
+  // marcan como descartadas para que el hit-tracker no las compute.
+  const { sellados, postHoc } = separarPorSellado(matchingLogs);
+
+  if (persistir && postHoc.length) {
+    await _descartarLogs(postHoc).catch(e =>
+      console.warn('[evaluation-engine] _descartarLogs:', e?.message)
+    );
+  }
+
+  if (!sellados.length) {
+    return {
+      evaluado:    false,
+      razon:       `Solo predicciones post-hoc (${postHoc.length}) — registradas después del sorteo, no cuentan como evidencia`,
+      fecha:       draw.fecha,
+      turno:       draw.turno,
+      pais:        draw.pais,
+      numeroReal:  numero,
+      postHocDescartados: postHoc.length,
+    };
+  }
+
+  const candidatos   = normalizarCandidatos(sellados);
   const ranking      = candidatos.findIndex(c => c.numero === numero); // 0-indexed, -1=ausente
   const enTop1       = ranking === 0;
   const enTop3       = ranking >= 0 && ranking < 3;
@@ -161,9 +185,11 @@ export async function evaluarSorteo(draw, opts = {}) {
 
   // Detectar tipo D: falso positivo peligroso
   // (número en top-3 que NO cayó, con score muy alto — motor sobreconfiado)
+  // Umbral 0.5 para la nueva escala compuesta (fracción del máximo posible);
+  // el 0.7 anterior correspondía a la escala saturada donde todo llegaba a 1.0
   const falsoPositivoPeligroso = candidatos
     .slice(0, 3)
-    .filter(c => c.numero !== numero && Number.isFinite(c.score) && c.score > 0.7)
+    .filter(c => c.numero !== numero && Number.isFinite(c.score) && c.score > 0.5)
     .map(c => c.numero);
 
   const evaluacion = {
@@ -206,13 +232,30 @@ export async function evaluarSorteo(draw, opts = {}) {
       score_prediccion:  evaluacion.scoreNumeroReal,
     }).catch(e => verbose && console.warn('[evaluation-engine] insertEvaluation:', e?.message));
 
-    // Marcar prediction_logs: el que acertó como "acierto", el resto como "fallo"
-    await _marcarLogs(matchingLogs, numero).catch(e =>
+    // Marcar prediction_logs sellados: el que acertó como "acierto", el resto como "fallo"
+    await _marcarLogs(sellados, numero).catch(e =>
       console.warn('[evaluation-engine] _marcarLogs:', e?.message)
     );
   }
 
   return evaluacion;
+}
+
+/**
+ * Marca como 'descartado' los logs post-hoc (creados después del sorteo)
+ * para que el hit-tracker no los cuente como evidencia.
+ */
+async function _descartarLogs(logs) {
+  for (const row of logs) {
+    if (row.estado === 'descartado') continue;
+    const { error } = await supabase
+      .from('prediction_logs')
+      .update({ estado: 'descartado', updated_at: new Date().toISOString() })
+      .eq('id', row.id);
+    if (error) {
+      console.warn(`[evaluation-engine] No se pudo descartar log post-hoc ${row.id}:`, error.message);
+    }
+  }
 }
 
 /**
