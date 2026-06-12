@@ -174,7 +174,6 @@ export function consultarNumero(numero, draws, guia = {}, { pais = null, horario
     const chainFreq = new Map();
     hitsRecup.forEach(h => {
       sorted.slice(h.idx + 1, h.idx + 1 + CHAIN_LOOKAHEAD).forEach(d => {
-        const pOcc = prevOcc[sorted.indexOf(d, h.idx + 1)];
         let dIdx = -1;
         for (let k = h.idx + 1; k < Math.min(sorted.length, h.idx + 1 + CHAIN_LOOKAHEAD); k++) {
           if (sorted[k].num === d.num) { dIdx = k; break; }

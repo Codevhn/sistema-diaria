@@ -7,8 +7,9 @@ CREATE TABLE draws (
   fecha         DATE         NOT NULL,
   pais          TEXT         NOT NULL,
   horario       TEXT         NOT NULL,
-  numero        INTEGER      NOT NULL,
+  numero        INTEGER      NOT NULL CHECK (numero BETWEEN 0 AND 99),
   is_test       BOOLEAN      NOT NULL DEFAULT FALSE,
+  is_pending    BOOLEAN      NOT NULL DEFAULT FALSE,
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 

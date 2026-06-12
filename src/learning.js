@@ -340,7 +340,18 @@ export function calcularMemoria(draws = [], hypotheses = [], logs = []) {
   const hypSummary = summarizeHypotheses(hypotheses);
   attachHypotheses(profiles, hypSummary);
 
-  const logSummary = summarizeHypothesisLogs(logs);
+  // Solo logs con resultado hasta el último sorteo del timeline: un log
+  // fechado en el futuro (dato corrupto o memoria reconstruida sobre un
+  // histórico parcial) contaminaría los perfiles con información posterior.
+  const cutoffTs = timeline.length ? timeline[timeline.length - 1].timestamp + DAY_MS : null;
+  const logsValidos = cutoffTs
+    ? logs.filter((log) => {
+        const f = parseDrawDate(log.fechaResultado);
+        return !f || f.getTime() <= cutoffTs;
+      })
+    : logs;
+
+  const logSummary = summarizeHypothesisLogs(logsValidos);
   attachHypothesisLogs(profiles, logSummary);
 
   return {
@@ -389,16 +400,23 @@ export async function rebuildKnowledge() {
   return { totalDraws, perfiles, latestTimestamp };
 }
 
+// Tras este tiempo los perfiles cacheados en knowledge se consideran
+// obsoletos y se reconstruyen (los scores de hipótesis cambian con cada
+// evaluación y el caché no se invalidaba nunca por sí solo).
+const PERFILES_TTL_MS = 6 * 60 * 60 * 1000;
+
 export async function obtenerPerfilesNumeros() {
   const rows = await DB.getKnowledgeByScope("number-profile");
   if (!rows.length) return rebuildKnowledge();
   const perfiles = [];
   let totalDraws = null;
   let latestTimestamp = null;
+  let metaUpdatedAt = null;
   rows.forEach((row) => {
     if (!row?.data) return;
     if (row.key === "number-profile:__meta__") {
       totalDraws = row.data.totalDraws ?? totalDraws;
+      metaUpdatedAt = row.data.updatedAt ?? metaUpdatedAt;
     } else if (row.key === "number-profile:__latest__") {
       latestTimestamp = row.data.latestTimestamp ?? latestTimestamp;
     } else {
@@ -406,6 +424,9 @@ export async function obtenerPerfilesNumeros() {
     }
   });
   if (!perfiles.length) return rebuildKnowledge();
+  if (metaUpdatedAt && Date.now() - metaUpdatedAt > PERFILES_TTL_MS) {
+    return rebuildKnowledge();
+  }
   return { totalDraws: totalDraws ?? 0, perfiles, latestTimestamp };
 }
 

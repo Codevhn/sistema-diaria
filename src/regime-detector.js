@@ -196,7 +196,13 @@ export async function evaluarCambioRegimen(draws, opts = {}) {
 
   if (kl < KL_UMBRAL && !force) return null;
 
-  const regimenAnterior = clasificarRegimen(perfilRef, perfilRef); // baseline vs sí mismo
+  // El régimen anterior se clasifica comparando la ventana de referencia con
+  // la ventana previa a ella; compararla consigo misma siempre daba "normal".
+  const refPrevia       = draws.slice(VENTANA * 2, VENTANA * 3);
+  const perfilRefPrevia = refPrevia.length >= VENTANA * 0.7 ? perfilarVentana(refPrevia) : null;
+  const regimenAnterior = perfilRefPrevia
+    ? clasificarRegimen(perfilRef, perfilRefPrevia)
+    : clasificarRegimen(perfilRef, perfilRef); // sin histórico suficiente: asume estable
   const regimenNuevo    = clasificarRegimen(perfilRec, perfilRef);
 
   const cambioSignificativo = kl >= KL_UMBRAL || regimenNuevo !== regimenAnterior;

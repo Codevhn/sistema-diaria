@@ -24,11 +24,15 @@ const ROLE_COLORS = {
 };
 
 let _roleCache = null;
+let _roleCacheTs = 0;
+// Tras este tiempo el rol se relee de la BD, para que cambios de rol o bans
+// hechos por un admin surtan efecto sin esperar al logout.
+const ROLE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 // ─── Consulta del rol propio ──────────────────────────────────────────────────
 
 export async function getMyProfile() {
-  if (_roleCache) return _roleCache;
+  if (_roleCache && Date.now() - _roleCacheTs < ROLE_CACHE_TTL_MS) return _roleCache;
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return null;
@@ -39,9 +43,11 @@ export async function getMyProfile() {
       .single();
     if (error) throw error;
     _roleCache = data ?? { role: "lector", banned: false, nombre: null };
+    _roleCacheTs = Date.now();
   } catch (err) {
     console.warn("[roles] No se pudo leer perfil:", err?.message);
-    _roleCache = { role: "lector", banned: false };
+    // No cachear el fallback: reintentar en la próxima llamada
+    return _roleCache ?? { role: "lector", banned: false };
   }
   return _roleCache;
 }
@@ -67,6 +73,7 @@ export async function checkBanOrRedirect(redirectTo = "./login.html") {
 
 export function clearRoleCache() {
   _roleCache = null;
+  _roleCacheTs = 0;
 }
 
 export async function setBanStatus(userId, banned) {

@@ -62,6 +62,12 @@ export async function computeHitTrackerStats(opts = {}) {
 
   // Clasificar cada batch
   const batchList = Array.from(batches.values()).map((b) => {
+    // Sin createdAt el batch quedaba con 0 y el orden cronológico (y por
+    // tanto el hit-rate "reciente") se volvía indeterminado; se usa la fecha
+    // objetivo del sorteo como aproximación.
+    if (!b.createdAt && b.fecha) {
+      b.createdAt = Date.parse(`${b.fecha}T12:00:00`) || 0;
+    }
     const states = b.rows.map((r) => r.estado);
     const hasAcierto = states.includes("acierto");
     const allResolved = states.every((s) => s === "acierto" || s === "fallo" || s === "descartado");

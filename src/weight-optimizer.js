@@ -147,11 +147,23 @@ function normalizar(pesos) {
   const suma = MOTORES.reduce((acc, m) => acc + pesos[m], 0);
   const norm = {};
   for (const m of MOTORES) {
-    norm[m] = Math.round((pesos[m] / suma) * 1000) / 1000;
+    // La división puede sacar un peso fuera de [MIN_PESO, MAX_PESO]
+    // (ej: 0.03/1.2 = 0.025 < MIN_PESO), así que se re-clampea aquí.
+    const v = Math.round((pesos[m] / suma) * 1000) / 1000;
+    norm[m] = Math.max(MIN_PESO, Math.min(MAX_PESO, v));
   }
-  // Ajustar redondeo para que sume exactamente 1.0
-  const diff = 1.0 - MOTORES.reduce((acc, m) => acc + norm[m], 0);
-  norm[MOTORES[0]] = Math.round((norm[MOTORES[0]] + diff) * 1000) / 1000;
+  // Ajustar redondeo para que sume exactamente 1.0, repartiendo el residuo
+  // en el primer motor que admita el ajuste sin violar sus límites.
+  const diff = Math.round((1.0 - MOTORES.reduce((acc, m) => acc + norm[m], 0)) * 1000) / 1000;
+  if (diff !== 0) {
+    for (const m of MOTORES) {
+      const ajustado = Math.round((norm[m] + diff) * 1000) / 1000;
+      if (ajustado >= MIN_PESO && ajustado <= MAX_PESO) {
+        norm[m] = ajustado;
+        break;
+      }
+    }
+  }
   return norm;
 }
 

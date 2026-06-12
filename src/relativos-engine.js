@@ -59,7 +59,7 @@ async function loadCompanionsMap() {
     const map = new Map();
     if (!Array.isArray(arr)) throw new Error("formato inesperado");
     for (const entry of arr) {
-      const a = parseInt(entry.numero ?? entry.numero, 10);
+      const a = parseInt(entry.numero, 10);
       if (isNaN(a)) continue;
       const targets = (entry.companeros || []).map((c) =>
         Array.isArray(c) ? parseInt(c[0], 10) : parseInt(c, 10)

@@ -47,7 +47,10 @@ function pad(n) {
 function normalizarCandidatos(rows) {
   if (!Array.isArray(rows) || !rows.length) return [];
   if (typeof rows[0] === 'number') {
-    return rows.map((n, i) => ({ numero: n, score: 1 - i * 0.01, motores: [] }));
+    // Formato viejo: el orden de la lista ya es el ranking. No se inventan
+    // scores (antes se asignaba 1, 0.99, 0.98… y eso inflaba métricas que
+    // dependen del score, como los falsos positivos peligrosos).
+    return rows.map((n) => ({ numero: n, score: null, motores: [], legacy: true }));
   }
   return rows
     .filter(r => r.estado !== 'descartado')
@@ -160,7 +163,7 @@ export async function evaluarSorteo(draw, opts = {}) {
   // (número en top-3 que NO cayó, con score muy alto — motor sobreconfiado)
   const falsoPositivoPeligroso = candidatos
     .slice(0, 3)
-    .filter(c => c.numero !== numero && c.score > 0.7)
+    .filter(c => c.numero !== numero && Number.isFinite(c.score) && c.score > 0.7)
     .map(c => c.numero);
 
   const evaluacion = {
@@ -178,7 +181,7 @@ export async function evaluarSorteo(draw, opts = {}) {
     motoresFallidos,
     falsoPositivoPeligroso,
     candidatos:        candidatos.slice(0, 10).map(c => c.numero),
-    scoreNumeroReal:   ranking >= 0 ? candidatos[ranking].score : 0,
+    scoreNumeroReal:   ranking >= 0 ? (candidatos[ranking].score ?? 0) : 0,
     evaluado:          true,
   };
 
@@ -204,7 +207,9 @@ export async function evaluarSorteo(draw, opts = {}) {
     }).catch(e => verbose && console.warn('[evaluation-engine] insertEvaluation:', e?.message));
 
     // Marcar prediction_logs: el que acertó como "acierto", el resto como "fallo"
-    await _marcarLogs(matchingLogs, numero).catch(() => {});
+    await _marcarLogs(matchingLogs, numero).catch(e =>
+      console.warn('[evaluation-engine] _marcarLogs:', e?.message)
+    );
   }
 
   return evaluacion;
@@ -212,16 +217,25 @@ export async function evaluarSorteo(draw, opts = {}) {
 
 /**
  * Marca los prediction_logs del batch como acierto/fallo en Supabase.
+ * Los fallos de actualización se loguean: silenciarlos dejaba logs en estados
+ * inconsistentes que luego sesgaban el hit-tracker sin ninguna pista.
  */
 async function _marcarLogs(logs, numeroGanador) {
+  let fallos = 0;
   for (const row of logs) {
     const nuevoEstado = row.numero === numeroGanador ? 'acierto' : 'fallo';
     if (row.estado === nuevoEstado) continue;
-    await supabase
+    const { error } = await supabase
       .from('prediction_logs')
       .update({ estado: nuevoEstado, updated_at: new Date().toISOString() })
-      .eq('id', row.id)
-      .catch(() => {});
+      .eq('id', row.id);
+    if (error) {
+      fallos += 1;
+      console.warn(`[evaluation-engine] No se pudo marcar log ${row.id} como ${nuevoEstado}:`, error.message);
+    }
+  }
+  if (fallos) {
+    console.warn(`[evaluation-engine] ${fallos}/${logs.length} logs quedaron sin marcar; el hit-tracker puede reflejar datos parciales.`);
   }
 }
 
