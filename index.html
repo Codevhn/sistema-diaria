@@ -16,6 +16,185 @@
       display: none !important;
       visibility: hidden;
     }
+
+    /* ── Mesa de Análisis v4.0 ─────────────────────────────────────────── */
+    #view-mesa { padding: 0 0 2rem; }
+    .mesa-header {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .9rem 1rem; border-bottom: 1px solid var(--border, #2a2a2a);
+      position: sticky; top: 0; z-index: 10;
+      background: var(--bg, #0f0f0f);
+    }
+    .mesa-title  { font-size: 1.05rem; font-weight: 700; color: var(--accent, #e0b84a); }
+    .mesa-meta   { font-size: .78rem; color: var(--muted, #666); flex: 1; }
+    .mesa-refresh-btn {
+      background: none; border: 1px solid var(--border, #2a2a2a);
+      color: var(--text, #ccc); border-radius: 6px; padding: .3rem .6rem;
+      cursor: pointer; font-size: .95rem; transition: opacity .2s;
+    }
+    .mesa-refresh-btn:hover { opacity: .7; }
+    .mesa-grid-top {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: .75rem; padding: .75rem 1rem 0;
+    }
+    .mesa-grid-bottom {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: .75rem; padding: .75rem 1rem 0;
+    }
+    @media (max-width: 720px) {
+      .mesa-grid-top, .mesa-grid-bottom { grid-template-columns: 1fr; }
+    }
+    .mesa-card {
+      background: var(--card-bg, #1a1a1a);
+      border: 1px solid var(--border, #2a2a2a);
+      border-radius: 10px; padding: .9rem 1rem;
+    }
+    .mesa-card--full { margin: .75rem 1rem 0; }
+    .mesa-card__title {
+      font-size: .7rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted, #666);
+      margin-bottom: .6rem;
+    }
+    .mesa-loading { color: var(--muted, #666); font-size: .82rem; }
+
+    /* Top 3 */
+    .mesa-candidato {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .45rem 0; border-bottom: 1px solid var(--border, #2a2a2a);
+      cursor: pointer; transition: opacity .15s;
+    }
+    .mesa-candidato:last-child { border-bottom: none; }
+    .mesa-candidato:hover { opacity: .8; }
+    .mesa-cand-num {
+      font-size: 1.5rem; font-weight: 800; min-width: 2.2rem;
+      color: var(--accent, #e0b84a);
+    }
+    .mesa-cand-info { flex: 1; min-width: 0; }
+    .mesa-cand-simb { font-size: .82rem; color: var(--text, #ccc); }
+    .mesa-cand-fam  { font-size: .7rem; color: var(--muted, #666); }
+    .mesa-cand-score {
+      font-size: .8rem; font-weight: 700;
+      padding: .15rem .4rem; border-radius: 4px;
+      background: var(--accent-dim, #2a2010);
+      color: var(--accent, #e0b84a);
+    }
+    .mesa-cand-bar {
+      width: 100%; height: 3px; border-radius: 2px;
+      background: var(--border, #2a2a2a); margin-top: .25rem;
+    }
+    .mesa-cand-bar-fill {
+      height: 100%; border-radius: 2px;
+      background: var(--accent, #e0b84a);
+      transition: width .5s ease;
+    }
+
+    /* Régimen */
+    .mesa-regimen-badge {
+      display: inline-block; padding: .25rem .65rem;
+      border-radius: 20px; font-size: .75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; margin-bottom: .5rem;
+    }
+    .regimen-normal          { background: #1a2a1a; color: #5cba5c; }
+    .regimen-post_superpremio { background: #2a1a1a; color: #e05c5c; }
+    .regimen-bloqueo_saladitos{ background: #2a2010; color: #e0b84a; }
+    .regimen-liberacion_masiva{ background: #102a2a; color: #5ce0d0; }
+    .regimen-secuencia_activa { background: #1a102a; color: #9b5ce0; }
+    .regimen-modo_camuflaje   { background: #2a2a10; color: #d0d05c; }
+    .regimen-fin_mes          { background: #2a1a2a; color: #e05cd0; }
+
+    /* Salud */
+    .mesa-score-gauge {
+      font-size: 2.2rem; font-weight: 900; text-align: center;
+      padding: .4rem 0; line-height: 1;
+    }
+    .mesa-score-ok   { color: #5cba5c; }
+    .mesa-score-warn { color: #e0b84a; }
+    .mesa-score-crit { color: #e05c5c; }
+    .mesa-score-bars { display: flex; flex-direction: column; gap: .25rem; margin-top: .5rem; }
+    .mesa-score-row  { display: flex; align-items: center; gap: .4rem; font-size: .7rem; }
+    .mesa-score-label{ min-width: 4.5rem; color: var(--muted, #666); }
+    .mesa-score-track{
+      flex: 1; height: 5px; border-radius: 3px;
+      background: var(--border, #2a2a2a);
+    }
+    .mesa-score-fill {
+      height: 100%; border-radius: 3px;
+      background: var(--accent, #e0b84a);
+    }
+    .mesa-score-pct { min-width: 2.8rem; text-align: right; color: var(--text, #ccc); }
+
+    /* Secuencias */
+    .mesa-seq-list { display: flex; flex-direction: column; gap: .5rem; }
+    .mesa-seq-row  {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .35rem 0; border-bottom: 1px solid var(--border, #2a2a2a);
+    }
+    .mesa-seq-row:last-child { border-bottom: none; }
+    .mesa-seq-pair { font-weight: 700; font-size: .9rem; min-width: 4.5rem; }
+    .mesa-seq-prog { flex: 1; }
+    .mesa-seq-track{
+      width: 100%; height: 5px; border-radius: 3px;
+      background: var(--border, #2a2a2a); margin-top: .2rem;
+    }
+    .mesa-seq-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, #e0b84a, #e05c5c);
+      transition: width .5s;
+    }
+    .mesa-seq-meta { font-size: .68rem; color: var(--muted, #666); }
+    .mesa-seq-prob {
+      font-size: .75rem; font-weight: 700; padding: .1rem .4rem;
+      border-radius: 4px; background: var(--accent-dim, #2a2010);
+      color: var(--accent, #e0b84a); white-space: nowrap;
+    }
+
+    /* Alertas */
+    .mesa-alerta {
+      display: flex; gap: .5rem; align-items: flex-start;
+      padding: .3rem 0; font-size: .78rem;
+      border-bottom: 1px solid var(--border, #2a2a2a);
+    }
+    .mesa-alerta:last-child { border-bottom: none; }
+    .mesa-alerta-icon { font-size: .9rem; margin-top: .05rem; }
+    .alerta-danger { color: #e05c5c; }
+    .alerta-warning{ color: #e0b84a; }
+    .alerta-info   { color: #5c9ce0; }
+
+    /* Detalle candidato */
+    .mesa-detalle-num {
+      font-size: 2rem; font-weight: 900;
+      color: var(--accent, #e0b84a); margin-bottom: .25rem;
+    }
+    .mesa-narrativa {
+      font-size: .82rem; line-height: 1.6;
+      color: var(--text, #ccc); padding: .6rem 0;
+      border-top: 1px solid var(--border, #2a2a2a);
+      border-bottom: 1px solid var(--border, #2a2a2a);
+      margin: .5rem 0;
+    }
+    .mesa-signals-list { list-style: none; padding: 0; margin: 0; }
+    .mesa-signals-list li {
+      font-size: .75rem; padding: .2rem 0;
+      border-bottom: 1px solid var(--border, #1a1a1a);
+      color: var(--muted, #666);
+    }
+    .mesa-signals-list li:last-child { border-bottom: none; }
+    .mesa-sig-source {
+      display: inline-block; font-size: .65rem; font-weight: 700;
+      padding: .05rem .3rem; border-radius: 3px;
+      background: var(--accent-dim, #2a2010);
+      color: var(--accent, #e0b84a); margin-right: .35rem;
+    }
+    .recomendacion-fuerte  { color: #5cba5c; font-weight: 700; }
+    .recomendacion-moderado{ color: #e0b84a; font-weight: 700; }
+    .recomendacion-esperar { color: #5c9ce0; font-weight: 700; }
+    .recomendacion-descartar{ color: #e05c5c; font-weight: 700; }
+    .recomendacion-observar { color: var(--muted, #888); }
+
+    /* Nav item */
+    .nav-item[data-view="mesa"] .nav-label::after {
+      content: " ✦"; font-size: .6rem; color: var(--accent, #e0b84a);
+    }
   </style>
   <script type="module">
     import { requireAuthOrRedirect } from "./src/auth.js";
@@ -80,6 +259,8 @@
     <button data-view="login"><i>🔐 Acceso</i></button>
     <button data-view="day"><span class="sidebar-icon fa-solid fa-gauge"></span><i>Panel del día</i></button>
     <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
+    <button data-view="mesa" class="nav-item"><span
+        class="sidebar-icon fa-solid fa-table-cells-large"></span><i>Mesa de Análisis</i></button>
     <button data-view="analysis"><span
         class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
     <button data-view="temporal"><span class="sidebar-icon fa-solid fa-flask"></span><i>Verificador</i></button>
@@ -594,6 +775,72 @@
       <!-- Pulso: candidatos por conversión/equivalencia del último sorteo -->
       <div id="result-pulso"></div>
 
+    </section>
+
+    <!-- MESA DE ANÁLISIS v4.0 -->
+    <section id="view-mesa" class="view hidden">
+      <div class="mesa-header">
+        <div class="mesa-title">Mesa de Análisis</div>
+        <div class="mesa-meta" id="mesa-meta">—</div>
+        <button class="mesa-refresh-btn" id="mesa-refresh-btn" title="Actualizar análisis">↺</button>
+      </div>
+
+      <!-- Fila principal: TOP 3 + Régimen + Salud -->
+      <div class="mesa-grid-top">
+
+        <!-- TOP 3 candidatos -->
+        <div class="mesa-card mesa-card--top3">
+          <div class="mesa-card__title">Top Candidatos</div>
+          <div id="mesa-top3">
+            <div class="mesa-loading">Calculando…</div>
+          </div>
+        </div>
+
+        <!-- Régimen activo -->
+        <div class="mesa-card mesa-card--regimen">
+          <div class="mesa-card__title">Régimen Activo</div>
+          <div id="mesa-regimen"><div class="mesa-loading">—</div></div>
+        </div>
+
+        <!-- Salud del sistema -->
+        <div class="mesa-card mesa-card--salud">
+          <div class="mesa-card__title">Salud del Sistema</div>
+          <div id="mesa-salud"><div class="mesa-loading">—</div></div>
+        </div>
+
+      </div>
+
+      <!-- Fila secuencias -->
+      <div class="mesa-card mesa-card--full">
+        <div class="mesa-card__title">Secuencias Activas</div>
+        <div id="mesa-secuencias"><div class="mesa-loading">—</div></div>
+      </div>
+
+      <!-- Fila alertas + liberaciones -->
+      <div class="mesa-grid-bottom">
+
+        <div class="mesa-card">
+          <div class="mesa-card__title">Alertas</div>
+          <div id="mesa-alertas"><div class="mesa-loading">—</div></div>
+        </div>
+
+        <div class="mesa-card">
+          <div class="mesa-card__title">Posibles Liberaciones</div>
+          <div id="mesa-liberaciones"><div class="mesa-loading">—</div></div>
+        </div>
+
+        <div class="mesa-card">
+          <div class="mesa-card__title">Intra-Día</div>
+          <div id="mesa-intraday"><div class="mesa-loading">—</div></div>
+        </div>
+
+      </div>
+
+      <!-- Detalle del candidato seleccionado -->
+      <div class="mesa-card mesa-card--full" id="mesa-detalle-wrap" style="display:none">
+        <div class="mesa-card__title">Análisis Detallado</div>
+        <div id="mesa-detalle"></div>
+      </div>
 
     </section>
 
@@ -8621,6 +8868,7 @@ function buildVariantEntries(profile) {
     // ✅ Cambio de vistas
     const views = {
       day: "view-day",
+      mesa: "view-mesa",
       hypo: "view-hypo",
       analysis: "view-analysis",
       temporal: "view-temporal",
@@ -8652,6 +8900,7 @@ function buildVariantEntries(profile) {
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();
         if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
+        if (id === "view-mesa")     renderMesa();
         if (id === "view-analysis") renderPulso();
         if (id === "view-superpremio") renderSuperPremioPanel();
         if (id === "view-temporal") renderVerificador();
@@ -11890,6 +12139,310 @@ function buildVariantEntries(profile) {
         divResult.classList.remove("hidden");
       };
     }
+
+    // ════════════════════════════════════════════════════════════════
+    // MESA DE ANÁLISIS v4.0
+    // ════════════════════════════════════════════════════════════════
+    (function () {
+      const PAD = n => String(n).padStart(2, "0");
+      const $ = id => document.getElementById(id);
+
+      let _mesaCtx   = null; // último contexto calculado
+      let _mesaDraws = null; // últimos draws usados
+
+      // Colores por nivel de recomendación
+      const RECOL = {
+        fuerte: "#5cba5c", moderado: "#e0b84a",
+        esperar: "#5c9ce0", descartar: "#e05c5c", observar: "#888"
+      };
+
+      // Colores por tipo de alerta
+      const ALERTI = { danger: "🔴", warning: "🟡", info: "🔵" };
+
+      async function renderMesa() {
+        $("mesa-meta").textContent = "Calculando…";
+        $("mesa-refresh-btn").disabled = true;
+
+        try {
+          const rawDraws = await getCachedDraws({ excludeTest: true });
+          _mesaDraws     = rawDraws.slice().reverse(); // reciente primero
+
+          // Ejecutar motor de señales completo
+          const resultado = await ejecutarMotorSeñales({
+            pais: window._currentPais ?? "Honduras",
+          });
+
+          _mesaCtx = resultado;
+
+          // Llenar cada sección
+          _renderTop3(resultado.candidatos);
+          _renderRegimen(resultado.inteligencia?.regimen);
+          _renderSalud(resultado.inteligencia);
+          _renderSecuencias(resultado.inteligencia?.secuencias);
+          _renderAlertas(resultado.inteligencia);
+          _renderLiberaciones(resultado.inteligencia?.liberaciones);
+          _renderIntraday(resultado.inteligencia);
+
+          // Meta info
+          const ult = resultado.contexto?.ultimoSorteo;
+          $("mesa-meta").textContent = ult
+            ? `Último: ${PAD(ult.numero)} · ${ult.horario} · ${ult.fecha}`
+            : new Date().toLocaleString("es-HN");
+
+        } catch (e) {
+          $("mesa-meta").textContent = "Error al calcular";
+          console.error("[mesa]", e);
+        } finally {
+          $("mesa-refresh-btn").disabled = false;
+        }
+      }
+
+      function _renderTop3(candidatos = []) {
+        const el = $("mesa-top3");
+        if (!candidatos.length) { el.innerHTML = '<div class="mesa-loading">Sin candidatos</div>'; return; }
+        el.innerHTML = candidatos.slice(0, 5).map((c, i) => {
+          const score = Math.round(c.score * 100);
+          const col   = score >= 70 ? "#5cba5c" : score >= 45 ? "#e0b84a" : "#888";
+          return `
+            <div class="mesa-candidato" data-num="${c.numero}">
+              <div class="mesa-cand-num">${c.pad}</div>
+              <div class="mesa-cand-info">
+                <div class="mesa-cand-simb">${c.simbolo ?? c.pad}</div>
+                <div class="mesa-cand-fam">${c.familia ?? ""}</div>
+                <div class="mesa-cand-bar">
+                  <div class="mesa-cand-bar-fill" style="width:${score}%;background:${col}"></div>
+                </div>
+              </div>
+              <div class="mesa-cand-score" style="color:${col}">${score}</div>
+            </div>`;
+        }).join("");
+
+        // Click en candidato → detalle
+        el.querySelectorAll(".mesa-candidato").forEach(row => {
+          row.addEventListener("click", () => _mostrarDetalle(parseInt(row.dataset.num)));
+        });
+      }
+
+      function _renderRegimen(reg) {
+        const el = $("mesa-regimen");
+        if (!reg) { el.innerHTML = '<div class="mesa-loading">—</div>'; return; }
+        const nombre = reg.regimen?.replace(/_/g, " ") ?? "normal";
+        const cls    = "regimen-" + (reg.regimen ?? "normal");
+        const conf   = reg.confianza ? `${(reg.confianza * 100).toFixed(0)}%` : "";
+        el.innerHTML = `
+          <div class="mesa-regimen-badge ${cls}">${nombre}</div>
+          ${conf ? `<div style="font-size:.7rem;color:var(--muted,#666)">Confianza: ${conf}</div>` : ""}
+          <div style="font-size:.75rem;color:var(--text,#ccc);margin-top:.4rem;line-height:1.4">
+            ${reg.descripcion ?? ""}
+          </div>`;
+      }
+
+      function _renderSalud(intel) {
+        const el = $("mesa-salud");
+        if (!intel) { el.innerHTML = '<div class="mesa-loading">—</div>'; return; }
+
+        // Intentar leer score desde la vista de Supabase
+        const score = intel.scoreInfo;
+        if (!score) {
+          el.innerHTML = '<div class="mesa-loading">Sin evaluaciones aún</div>';
+          return;
+        }
+
+        const sg  = score.score_global_promedio ?? 0;
+        const cls = sg >= 0.65 ? "mesa-score-ok" : sg >= 0.40 ? "mesa-score-warn" : "mesa-score-crit";
+        const t1  = score.hit_rate_top1_pct ?? 0;
+        const t3  = score.hit_rate_top3_pct ?? 0;
+        const t5  = score.hit_rate_top5_pct ?? 0;
+
+        el.innerHTML = `
+          <div class="mesa-score-gauge ${cls}">${(sg * 100).toFixed(0)}</div>
+          <div class="mesa-score-bars">
+            ${_scorebar("Top-1", t1, 20)}
+            ${_scorebar("Top-3", t3, 40)}
+            ${_scorebar("Top-5", t5, 60)}
+          </div>
+          <div style="font-size:.68rem;color:var(--muted,#666);margin-top:.5rem">
+            Basado en ${score.evaluaciones_30d ?? "?"} evaluaciones
+          </div>`;
+      }
+
+      function _scorebar(label, val, meta) {
+        const pct = Math.min(100, val);
+        const col = pct >= meta ? "#5cba5c" : pct >= meta * 0.6 ? "#e0b84a" : "#e05c5c";
+        return `
+          <div class="mesa-score-row">
+            <div class="mesa-score-label">${label}</div>
+            <div class="mesa-score-track">
+              <div class="mesa-score-fill" style="width:${pct}%;background:${col}"></div>
+            </div>
+            <div class="mesa-score-pct">${pct.toFixed(1)}%</div>
+          </div>`;
+      }
+
+      function _renderSecuencias(secs = []) {
+        const el = $("mesa-secuencias");
+        if (!secs?.length) {
+          el.innerHTML = '<div class="mesa-loading">Sin secuencias activas</div>';
+          return;
+        }
+        el.innerHTML = `<div class="mesa-seq-list">` +
+          secs.slice(0, 6).map(s => {
+            const pct  = s.progresoMax != null ? Math.round(s.progresoMax * 100) : 0;
+            const prob = (s.probResolucion * 100).toFixed(1);
+            const varTag = s.variantePagada != null
+              ? `<span style="color:#5c9ce0;font-size:.65rem"> · variante ${PAD(s.variantePagada)} pagada</span>`
+              : "";
+            return `
+              <div class="mesa-seq-row">
+                <div class="mesa-seq-pair">${s.origenPad ?? PAD(s.origen)}→${s.destinoPad ?? PAD(s.destino)}</div>
+                <div class="mesa-seq-prog">
+                  <div class="mesa-seq-meta">
+                    ${s.sorteosTranscurridos} sorteos
+                    ${s.gapMedia ? `/ media ${s.gapMedia.toFixed(1)}` : ""}
+                    ${varTag}
+                  </div>
+                  <div class="mesa-seq-track">
+                    <div class="mesa-seq-fill" style="width:${Math.min(100, pct)}%"></div>
+                  </div>
+                </div>
+                <div class="mesa-seq-prob">${prob}%</div>
+              </div>`;
+          }).join("") + `</div>`;
+      }
+
+      function _renderAlertas(intel) {
+        const el = $("mesa-alertas");
+        const alertas = intel?.alertas ?? [];
+        if (!alertas.length) {
+          el.innerHTML = '<div class="mesa-loading" style="color:#5cba5c">Sin alertas activas</div>';
+          return;
+        }
+        el.innerHTML = alertas.slice(0, 6).map(a => `
+          <div class="mesa-alerta">
+            <div class="mesa-alerta-icon alerta-${a.nivel}">${ALERTI[a.nivel] ?? "·"}</div>
+            <div style="font-size:.76rem;color:var(--text,#ccc)">${a.mensaje}</div>
+          </div>`).join("");
+      }
+
+      function _renderLiberaciones(libs = []) {
+        const el = $("mesa-liberaciones");
+        if (!libs?.length) {
+          el.innerHTML = '<div class="mesa-loading">Sin liberaciones cercanas</div>';
+          return;
+        }
+        el.innerHTML = libs.slice(0, 6).map(l => {
+          const sc = (l.liberacion?.score * 100 ?? 0).toFixed(0);
+          return `
+            <div style="display:flex;align-items:center;gap:.5rem;padding:.25rem 0;
+                        border-bottom:1px solid var(--border,#2a2a2a);cursor:pointer"
+                 data-num="${l.numero}">
+              <div style="font-size:1.1rem;font-weight:800;color:var(--accent,#e0b84a);min-width:2rem">
+                ${PAD(l.numero)}
+              </div>
+              <div style="flex:1;font-size:.72rem;color:var(--text,#ccc)">
+                ${l.liberacion?.descripcion ?? ""}
+              </div>
+              <div style="font-size:.72rem;color:#5cba5c;font-weight:700">${sc}%</div>
+            </div>`;
+        }).join("");
+
+        el.querySelectorAll("[data-num]").forEach(row =>
+          row.addEventListener("click", () => _mostrarDetalle(parseInt(row.dataset.num)))
+        );
+      }
+
+      function _renderIntraday(intel) {
+        const el = $("mesa-intraday");
+        const ctx = intel?.intradayContext;
+        if (!ctx?.candidatosIntraday?.length) {
+          el.innerHTML = '<div class="mesa-loading">Sin datos intra-día</div>';
+          return;
+        }
+        el.innerHTML = `
+          <div style="font-size:.72rem;color:var(--muted,#666);margin-bottom:.4rem">
+            ${ctx.descripcion ?? ""}
+          </div>` +
+          ctx.candidatosIntraday.slice(0, 6).map(c => `
+            <div style="display:flex;gap:.5rem;align-items:center;padding:.2rem 0;
+                        border-bottom:1px solid var(--border,#2a2a2a);cursor:pointer"
+                 data-num="${c.candidato}">
+              <div style="font-size:1rem;font-weight:800;color:var(--accent,#e0b84a);min-width:2rem">
+                ${PAD(c.candidato)}
+              </div>
+              <div style="font-size:.72rem;color:var(--text,#ccc)">
+                desde ${PAD(c.origen)} (${c.turnoOrig}) · ${c.relacion?.tipo ?? ""}
+              </div>
+              <div style="font-size:.7rem;color:var(--muted,#666)">
+                ${(c.relacion?.peso * 100).toFixed(0)}%
+              </div>
+            </div>`).join("");
+
+        el.querySelectorAll("[data-num]").forEach(row =>
+          row.addEventListener("click", () => _mostrarDetalle(parseInt(row.dataset.num)))
+        );
+      }
+
+      async function _mostrarDetalle(numero) {
+        const wrap = $("mesa-detalle-wrap");
+        const det  = $("mesa-detalle");
+        wrap.style.display = "block";
+        det.innerHTML = "<div class='mesa-loading'>Analizando…</div>";
+        wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+        try {
+          // Buscar en candidatos el que coincide
+          const cand = _mesaCtx?.candidatos?.find(c => c.numero === numero);
+
+          // Importar auditarCandidato dinámicamente
+          const { auditarCandidato } = await import("./src/internal-reasoner.js");
+          const drawsDesc = _mesaDraws ?? [];
+
+          const audit = await auditarCandidato(numero, {
+            draws:       drawsDesc,
+            presionMap:  new Map(),
+            secuencias:  _mesaCtx?.inteligencia?.secuencias ?? [],
+            seqSigs:     new Map(),
+          });
+
+          const score = cand ? Math.round(cand.score * 100) : "—";
+          const col   = audit.recomendacion === "fuerte"  ? "#5cba5c"
+                      : audit.recomendacion === "moderado" ? "#e0b84a"
+                      : audit.recomendacion === "esperar"  ? "#5c9ce0"
+                      : audit.recomendacion === "descartar"? "#e05c5c" : "#888";
+
+          const signals = cand?.signals ?? [];
+
+          det.innerHTML = `
+            <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.5rem">
+              <div class="mesa-detalle-num">${PAD(numero)}</div>
+              <div>
+                <div style="font-weight:700">${cand?.simbolo ?? PAD(numero)}</div>
+                <div style="font-size:.72rem;color:var(--muted,#666)">${cand?.familia ?? ""}</div>
+              </div>
+              <div style="margin-left:auto;font-size:1.8rem;font-weight:900;color:${col}">${score}</div>
+            </div>
+            <div class="mesa-narrativa">${audit.narrativa ?? ""}</div>
+            ${signals.length ? `
+              <div class="mesa-card__title" style="margin-top:.6rem">Señales del motor</div>
+              <ul class="mesa-signals-list">
+                ${signals.slice(0, 8).map(s => `
+                  <li>
+                    <span class="mesa-sig-source">${s.source}</span>
+                    ${s.label}
+                  </li>`).join("")}
+              </ul>` : ""}`;
+        } catch (e) {
+          det.innerHTML = `<div class="mesa-loading">Error: ${e.message}</div>`;
+        }
+      }
+
+      // Botón refresh
+      const btnRef = $("mesa-refresh-btn");
+      if (btnRef) btnRef.addEventListener("click", renderMesa);
+
+      // Exponer para el switch de vistas
+      window.renderMesa = renderMesa;
+    })();
 </script>
 
   <!-- === MODAL PENDIENTES === -->

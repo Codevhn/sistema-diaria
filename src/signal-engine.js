@@ -13,6 +13,12 @@ import { GUIA } from "./loader.js";
 import { parseDrawDate } from "./date-utils.js";
 import { detectarPatrones } from "./pattern-detector.js";
 import { evaluarModos } from "./mode-engine.js";
+// ── Inteligencia adversarial v4.0 ────────────────────────────────────────────
+import { getPesosActivos }          from "./weight-optimizer.js";
+import { detectarRegimen }          from "./regime-detector.js";
+import { proyectarSecuencias, seqSignals } from "./sequence-engine.js";
+import { calcularPresion, presionAFactor }  from "./pressure-engine.js";
+import { razonar }                  from "./internal-reasoner.js";
 import { analizarPatronesMensuales } from "./monthly-trends.js";
 import { analizarSecuenciasSemanales } from "./weekly-patterns.js";
 import { getEfectosCalendarioPorNumero, getEventosProximos } from "./popularity-calendar.js";
@@ -28,8 +34,9 @@ const HORARIO_ORDER = { "11AM": 0, "12PM": 1, "3PM": 2, "6PM": 3, "9PM": 4 };
 const HORARIO_REAL_MS = { "11AM": 11 * 3600000, "12PM": 12 * 3600000, "3PM": 15 * 3600000, "6PM": 18 * 3600000, "9PM": 21 * 3600000 };
 const TURNOS_BASE = ["11AM", "3PM", "9PM"];
 
-// Pesos de cada fuente en la puntuación final (deben sumar 1.0)
-const SOURCE_WEIGHTS = {
+// Pesos por defecto — se reemplazan en tiempo de ejecución por getPesosActivos()
+// No editar manualmente: usar weight-optimizer para calibrar.
+let SOURCE_WEIGHTS = {
   markov1:  0.28,
   markov2:  0.18,
   rezago:   0.14,
@@ -816,6 +823,76 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     }
   } catch (e) { /* opcional */ }
 
+  // ── v4.0: Cargar pesos dinámicos, régimen, secuencias y presión ────────────
+  let regimenInfo   = { regimen: "normal", confianza: 0 };
+  let contextoV4    = null;
+  try {
+    // Régimen activo (reciente primero para el detector)
+    const drawsDesc = draws.slice().reverse();
+    regimenInfo = detectarRegimen(drawsDesc);
+
+    // Pesos dinámicos del weight-optimizer (ajustados por régimen)
+    const pesosActivos = await getPesosActivos(regimenInfo.regimen);
+    SOURCE_WEIGHTS = { ...SOURCE_WEIGHTS, ...pesosActivos };
+
+    // Presión pública por número
+    const presionMap = await calcularPresion(drawsDesc, { turno });
+
+    // Señales de secuencias activas
+    const secuencias  = await proyectarSecuencias(drawsDesc, presionMap);
+    const seqSigsMap  = seqSignals(secuencias);
+
+    // Aplicar señales de secuencia + factor de presión adversarial a composed
+    composed.forEach((data, numero) => {
+      // Factor adversarial de presión (reemplaza el factor de popularidad simple)
+      const ps     = presionMap.get(numero);
+      if (ps) {
+        const factor = presionAFactor(ps.presion);
+        if (Math.abs(factor - 1) > 0.05) {
+          data.score = Math.max(0, Math.min(1, data.score * factor));
+          const pct  = Math.round((factor - 1) * 100);
+          const sign = pct >= 0 ? "+" : "";
+          data.signals.unshift({
+            source: factor < 1 ? "presion-alta" : "presion-baja",
+            label:  `Presión pública ${(ps.presion * 100).toFixed(0)}% — ${sign}${pct}% peso`,
+            value:  Math.min(0.95, Math.abs(factor - 1) + 0.5),
+          });
+        }
+      }
+
+      // Señal de secuencia activa
+      const seqSig = seqSigsMap.get(numero);
+      if (seqSig && seqSig.score > 0) {
+        const boost = Math.min(0.35, seqSig.score / 100 * 0.35);
+        data.score = Math.min(1, data.score + boost);
+        data.signals.unshift({
+          source: "secuencia-activa",
+          label:  seqSig.razones[0] ?? "Secuencia activa apunta a este número",
+          value:  Math.min(0.95, 0.55 + boost),
+        });
+      }
+    });
+
+    // Razonador interno: contexto completo para la UI (no bloquea el ranking)
+    contextoV4 = {
+      regimen:    regimenInfo,
+      secuencias: secuencias.slice(0, 6),
+      presionAlta: Array.from(presionMap.values())
+        .filter(p => p.presion > 0.65)
+        .sort((a, b) => b.presion - a.presion)
+        .slice(0, 6)
+        .map(p => ({ numero: p.numero, presion: p.presion, liberacion: p.liberacion })),
+      liberaciones: Array.from(presionMap.values())
+        .filter(p => p.liberacion?.cerca)
+        .sort((a, b) => b.liberacion.score - a.liberacion.score)
+        .slice(0, 6)
+        .map(p => ({ numero: p.numero, liberacion: p.liberacion })),
+    };
+  } catch (e) {
+    // Los motores v4 son opcionales — no rompen el motor base
+    if (typeof console !== "undefined") console.warn("[signal-engine v4]", e?.message);
+  }
+
   // 7. Rankear candidatos (excluyendo eliminados)
   const candidatos = [];
   composed.forEach((data, numero) => {
@@ -897,6 +974,8 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
       turno:           turno || null,
       fecha:           fecha || null,
     },
+    // ── v4.0 ────────────────────────────────────────────────────────────────
+    inteligencia: contextoV4,
   };
 }
 
