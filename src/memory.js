@@ -3,7 +3,7 @@ import {
   convertBothDigits,
   getSimpleConversions,
   getCompositeConversions,
-} from "./conversion-map.js";
+} from "./conversion-engine.js";
 import { parseDrawDate } from "./date-utils.js";
 
 const HORARIO_ORDER = {
