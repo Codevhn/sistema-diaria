@@ -5035,6 +5035,11 @@
       if (Number.isFinite(memorySelectedNumero)) {
         await openMemoryDetail(memorySelectedNumero);
       }
+      // Refrescar Mesa de Análisis en background si está visible
+      const mesaEl = document.getElementById("view-mesa");
+      if (mesaEl && !mesaEl.classList.contains("hidden") && typeof renderMesa === "function") {
+        renderMesa();
+      }
     }
 
     async function bootstrapExtendedPanels() {
@@ -12580,7 +12585,7 @@ function buildVariantEntries(profile) {
 
           // Ejecutar motor de señales completo
           const resultado = await ejecutarMotorSeñales({
-            pais: window._currentPais ?? "Honduras",
+            pais: window._currentPais ?? "HN",
           });
 
           _mesaCtx = resultado;
