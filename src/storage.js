@@ -146,7 +146,6 @@ async function insertRecord(table, data, context, attempt = 0) {
     if (!row) throw new Error(`${context}: Supabase no devolvió fila insertada`);
     return decodeRecord(row);
   } catch (err) {
-    reportSupabaseException(context, err);
     const primaryKey = getPrimaryKey(table);
     const hasCustomPrimary = Object.prototype.hasOwnProperty.call(data || {}, primaryKey);
     if (
@@ -160,6 +159,7 @@ async function insertRecord(table, data, context, attempt = 0) {
         return insertRecord(table, { ...data, id: nextId }, `${context}:retry`, attempt + 1);
       }
     }
+    reportSupabaseException(context, err);
     throw err instanceof Error ? err : new Error(String(err));
   }
 }
@@ -357,8 +357,17 @@ export const DB = {
       return existing.id;
     }
     const rec = { fecha, pais, horario, numero, isTest, isPending: true, createdAt: Date.now() };
-    const inserted = await insertRecord("draws", rec, "insertPendingDraw");
-    return inserted?.id ?? null;
+    try {
+      const inserted = await insertRecord("draws", rec, "insertPendingDraw");
+      return inserted?.id ?? null;
+    } catch (err) {
+      if (isDuplicatePrimaryError(err)) {
+        // Race condition: otro proceso insertó el mismo slot — releer y devolver
+        const race = await findPendingDrawBySlot(fecha, pais, horario);
+        if (race) return race.id;
+      }
+      throw err;
+    }
   },
 
   async updatePendingDrawEntry(id, changes = {}) {
