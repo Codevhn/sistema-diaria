@@ -123,6 +123,52 @@
     }
     .mesa-score-pct { min-width: 2.8rem; text-align: right; color: var(--text, #ccc); }
 
+    /* Backtest */
+    .mesa-card--backtest { margin-top: .75rem; }
+    .bt-run-btn {
+      background: var(--accent, #e0b84a); color: #111;
+      border: none; border-radius: 6px; padding: .25rem .7rem;
+      font-size: .75rem; font-weight: 700; cursor: pointer;
+    }
+    .bt-run-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .bt-placeholder { font-size: .8rem; line-height: 1.5; padding: .5rem 0; }
+    .bt-progress-wrap { margin-top: .6rem; }
+    .bt-progress-bar {
+      height: 6px; border-radius: 3px;
+      background: var(--border, #2a2a2a); overflow: hidden;
+    }
+    .bt-progress-fill { height: 100%; background: var(--accent, #e0b84a); border-radius: 3px; transition: width .3s; }
+    .bt-progress-label { font-size: .7rem; margin-top: .25rem; }
+    .bt-report { font-size: .78rem; line-height: 1.6; }
+    .bt-veredicto {
+      border-radius: 6px; padding: .5rem .75rem;
+      margin-bottom: .75rem; display: flex; gap: .5rem; align-items: center;
+      font-size: .82rem; font-weight: 600;
+    }
+    .bt-veredicto--ok   { background: rgba(92,186,92,.12); border: 1px solid #5cba5c; color: #5cba5c; }
+    .bt-veredicto--warn { background: rgba(224,184,74,.12); border: 1px solid #e0b84a; color: #e0b84a; }
+    .bt-veredicto__icono { font-size: 1.1rem; }
+    .bt-section { margin-bottom: .9rem; }
+    .bt-section-title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted, #666); margin-bottom: .35rem; }
+    .bt-evals-note { font-size: .68rem; margin-bottom: .3rem; }
+    .bt-table { width: 100%; border-collapse: collapse; font-size: .75rem; }
+    .bt-table th { text-align: left; font-weight: 600; color: var(--muted, #666); padding: .2rem .4rem; border-bottom: 1px solid var(--border, #2a2a2a); }
+    .bt-table td { padding: .22rem .4rem; border-bottom: 1px solid var(--border, #1e1e1e); }
+    .bt-k { font-weight: 700; }
+    .bt-delta--pos { color: #5cba5c; font-weight: 700; }
+    .bt-delta--neg { color: #e05c5c; font-weight: 700; }
+    .bt-reg-name { text-transform: capitalize; }
+    .bt-metrics-row { display: flex; gap: 1.5rem; margin-bottom: .35rem; }
+    .bt-metric { display: flex; flex-direction: column; }
+    .bt-metric-label { font-size: .68rem; color: var(--muted, #666); }
+    .bt-metric-val { font-size: 1.4rem; font-weight: 900; color: var(--text, #ccc); }
+    .bt-flags { font-size: .68rem; margin-bottom: .35rem; }
+    .bt-pesos { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
+    .bt-peso-chip { background: var(--border, #2a2a2a); border-radius: 4px; padding: .1rem .45rem; font-size: .7rem; }
+    .bt-footer { font-size: .68rem; margin-top: .75rem; padding-top: .5rem; border-top: 1px solid var(--border, #2a2a2a); }
+    .bt-error, .bt-info { font-size: .8rem; color: #e05c5c; padding: .5rem; }
+    .bt-info { color: var(--muted, #666); }
+
     /* Diagnóstico */
     .diag-panel { font-size:.75rem; line-height:1.5; }
     .diag-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:.3rem; }
@@ -860,6 +906,26 @@
       <div class="mesa-card mesa-card--full" id="mesa-detalle-wrap" style="display:none">
         <div class="mesa-card__title">Análisis Detallado</div>
         <div id="mesa-detalle"></div>
+      </div>
+
+      <!-- Panel Backtest V3 vs V4 -->
+      <div class="mesa-card mesa-card--full mesa-card--backtest">
+        <div class="mesa-card__title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>Validación Histórica V3 vs V4</span>
+          <button class="bt-run-btn" id="bt-run-btn">▶ Correr Backtest</button>
+        </div>
+        <div id="mesa-backtest">
+          <div class="bt-placeholder muted">
+            Compara el motor clásico (Markov + rezago) contra el motor v4 (+ presión adversarial + régimen dinámico + pesos auto-ajustados).
+            Puede tardar 30–90 segundos dependiendo del historial.
+          </div>
+        </div>
+        <div class="bt-progress-wrap" id="bt-progress-wrap" style="display:none">
+          <div class="bt-progress-bar">
+            <div class="bt-progress-fill" id="bt-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="bt-progress-label muted" id="bt-progress-label">Iniciando…</div>
+        </div>
       </div>
 
     </section>
@@ -12478,6 +12544,77 @@ function buildVariantEntries(profile) {
       // Botón refresh
       const btnRef = $("mesa-refresh-btn");
       if (btnRef) btnRef.addEventListener("click", renderMesa);
+
+      // ── Backtest V3 vs V4 ─────────────────────────────────────────────────
+      let _btAbort = null;
+
+      const btnBt = $("bt-run-btn");
+      if (btnBt) {
+        btnBt.addEventListener("click", async () => {
+          if (_btAbort) { _btAbort.abort(); _btAbort = null; btnBt.textContent = "▶ Correr Backtest"; return; }
+
+          _btAbort = new AbortController();
+          btnBt.textContent = "■ Cancelar";
+          btnBt.disabled    = false;
+
+          const btEl    = $("mesa-backtest");
+          const progW   = $("bt-progress-wrap");
+          const progFill = $("bt-progress-fill");
+          const progLbl  = $("bt-progress-label");
+
+          btEl.innerHTML = "";
+          progW.style.display  = "block";
+          progFill.style.width = "0%";
+          progLbl.textContent  = "Cargando sorteos…";
+
+          try {
+            const { compararV3vsV4 }    = await import("./src/backtest-v4.js");
+            const { buildReporteHTML, buildReporteEstructurado } = await import("./src/backtest-reporter.js");
+
+            const rawDraws = await getCachedDraws({ excludeTest: true });
+
+            if (rawDraws.length < 320) {
+              btEl.innerHTML = `<div class="bt-info">Se necesitan al menos 320 sorteos para el backtest (hay ${rawDraws.length}).</div>`;
+              progW.style.display = "none";
+              btnBt.textContent = "▶ Correr Backtest";
+              _btAbort = null;
+              return;
+            }
+
+            const comparacion = await compararV3vsV4(rawDraws, {
+              signal: _btAbort.signal,
+              onProgress: ({ fase, pct }) => {
+                progFill.style.width = `${pct}%`;
+                progLbl.textContent  = fase === 'v3' ? `Motor V3… ${pct}%` : `Motor V4… ${pct}%`;
+              },
+            });
+
+            progW.style.display = "none";
+            btEl.innerHTML = buildReporteHTML(comparacion);
+
+            // Persistir resultado en knowledge (best effort)
+            try {
+              const { supabase } = await import("./src/supabaseClient.js");
+              const reporte = buildReporteEstructurado(comparacion);
+              if (reporte) {
+                await supabase.from("knowledge").upsert({
+                  key:  "backtest_v4_ultimo",
+                  scope: "sistema",
+                  data:  reporte,
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: "key" });
+              }
+            } catch (_) {}
+
+          } catch (e) {
+            progW.style.display = "none";
+            btEl.innerHTML = `<div class="bt-error">Error: ${e?.message ?? e}</div>`;
+          } finally {
+            btnBt.textContent = "▶ Correr Backtest";
+            _btAbort = null;
+          }
+        });
+      }
 
       // Exponer para el switch de vistas
       window.renderMesa = renderMesa;
