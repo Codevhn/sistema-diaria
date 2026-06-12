@@ -408,14 +408,14 @@ COMMENT ON VIEW sequence_resolution_stats IS
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW system_current_score AS
 SELECT
-  COUNT(*)                                           AS evaluaciones_30d,
-  ROUND(AVG(CASE WHEN en_top1  THEN 1.0 ELSE 0.0 END) * 100, 1) AS hit_rate_top1_pct,
-  ROUND(AVG(CASE WHEN en_top3  THEN 1.0 ELSE 0.0 END) * 100, 1) AS hit_rate_top3_pct,
-  ROUND(AVG(CASE WHEN en_top5  THEN 1.0 ELSE 0.0 END) * 100, 1) AS hit_rate_top5_pct,
-  ROUND(AVG(CASE WHEN ausente  THEN 1.0 ELSE 0.0 END) * 100, 1) AS ausencia_pct,
-  ROUND(AVG(score_global_30d), 2)                    AS score_global_promedio,
-  MAX(CASE WHEN en_modo_crisis THEN 1 ELSE 0 END)    AS en_crisis_ahora,
-  MAX(fecha)                                         AS ultima_evaluacion
+  COUNT(*)                                                                        AS evaluaciones_30d,
+  ROUND((AVG(CASE WHEN en_top1  THEN 1.0 ELSE 0.0 END) * 100)::NUMERIC, 1)      AS hit_rate_top1_pct,
+  ROUND((AVG(CASE WHEN en_top3  THEN 1.0 ELSE 0.0 END) * 100)::NUMERIC, 1)      AS hit_rate_top3_pct,
+  ROUND((AVG(CASE WHEN en_top5  THEN 1.0 ELSE 0.0 END) * 100)::NUMERIC, 1)      AS hit_rate_top5_pct,
+  ROUND((AVG(CASE WHEN ausente  THEN 1.0 ELSE 0.0 END) * 100)::NUMERIC, 1)      AS ausencia_pct,
+  ROUND(AVG(score_global_30d)::NUMERIC, 2)                                        AS score_global_promedio,
+  MAX(CASE WHEN en_modo_crisis THEN 1 ELSE 0 END)                                AS en_crisis_ahora,
+  MAX(fecha)                                                                      AS ultima_evaluacion
 FROM (
   SELECT * FROM system_evaluations
   ORDER BY fecha DESC, id DESC
