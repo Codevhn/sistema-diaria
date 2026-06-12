@@ -76,11 +76,14 @@ export function analizarPostRepeticion(draws, { pais = null, forceActive = false
   });
 
   // ── 4. Calcular ratio boost para cada número ───────────────────────────────
+  // Suavizado de Laplace en ambas tasas: sin él, un número que nunca cayó en
+  // el período base quedaba descartado aunque dominara las ventanas
+  // post-repetido, y los ratios con conteos de 2-3 hits salían exagerados.
   const candidatos = [];
   for (let n = 0; n <= 99; n++) {
-    const baseRate = baseTotal > 0 ? baseCount[n] / baseTotal : 0;
-    const postRate = postTotal > 0 ? postCount[n] / postTotal : 0;
-    if (baseRate === 0 || postCount[n] < 2) continue;
+    const baseRate = (baseCount[n] + 1) / (baseTotal + 100);
+    const postRate = (postCount[n] + 1) / (postTotal + 100);
+    if (postCount[n] < 2) continue;
     const ratio = postRate / baseRate;
     if (ratio >= BOOST_THRESHOLD) {
       candidatos.push({

@@ -24,6 +24,8 @@
  *    de si había ausencia previa, para detectar tendencias.
  */
 
+import { bayesRate } from "./stats-utils.js";
+
 const UMBRAL_AUSENCIA    = 15;  // sorteos mínimos de ausencia para calificar como "prolongada"
 const LOOKAHEAD          = 10;  // sorteos a mirar después del doble para ver si repite
 const VENTANA_RECIENTE   = 9;   // últimos N sorteos para detectar evento activo (≈ 3 días)
@@ -168,9 +170,11 @@ export function analizarAusencias(draws, guia = {}, { pais = null } = {}) {
   // ── 1. Eventos DAPA históricos ───────────────────────────────────────────────
   const eventosHist = detectarEventosDAPAHistorico(sorted, ausenciaMap);
 
-  // Tasa global de repetición post-DAPA
+  // Tasa global de repetición post-DAPA, suavizada con prior Beta(1,1):
+  // con muestras de 3-5 eventos, la tasa cruda (2/3 = "67%") exagera la
+  // certeza; el suavizado la acerca a 50% hasta que haya evidencia real.
   const tasaRepeticion = eventosHist.length >= MIN_EVENTOS_HIST
-    ? eventosHist.filter(e => e.repitio).length / eventosHist.length
+    ? bayesRate(eventosHist.filter(e => e.repitio).length, eventosHist.length)
     : null;
 
   // Distribución de cuándo repite (sorteo 1, 2, 3...)
