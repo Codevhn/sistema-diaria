@@ -123,6 +123,26 @@
     }
     .mesa-score-pct { min-width: 2.8rem; text-align: right; color: var(--text, #ccc); }
 
+    /* Diagnóstico */
+    .diag-panel { font-size:.75rem; line-height:1.5; }
+    .diag-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:.3rem; }
+    .diag-estado{ font-weight:700; font-size:.8rem; }
+    .diag-subtitulo{ font-size:.68rem; color:var(--muted,#666); }
+    .diag-principal{ color:var(--text,#ccc); margin-bottom:.4rem; }
+    .diag-hallazgos{ display:flex; flex-direction:column; gap:.25rem; margin-bottom:.4rem; }
+    .diag-hallazgo { display:flex; gap:.4rem; align-items:flex-start; }
+    .diag-hallazgo__tipo{ font-weight:700; min-width:5rem; color:var(--muted,#888); font-size:.68rem; }
+    .diag-hallazgo__desc{ color:var(--text,#ccc); font-size:.7rem; }
+    .sev-critica .diag-hallazgo__tipo { color:#e05c5c; }
+    .sev-alta    .diag-hallazgo__tipo { color:#e08840; }
+    .sev-media   .diag-hallazgo__tipo { color:#e0b84a; }
+    .diag-recsTitle{ font-size:.7rem; font-weight:700; color:var(--muted,#888); margin:.3rem 0 .1rem; }
+    .diag-recs  { margin:0; padding-left:1.1rem; font-size:.7rem; color:var(--text,#ccc); }
+    .diag-empty { font-size:.75rem; color:var(--muted,#666); }
+    .diag--critico .diag-estado { color:#e05c5c; }
+    .diag--alerta  .diag-estado { color:#e0b84a; }
+    .diag--normal  .diag-estado { color:#5cba5c; }
+
     /* Secuencias */
     .mesa-seq-list { display: flex; flex-direction: column; gap: .5rem; }
     .mesa-seq-row  {
@@ -12177,7 +12197,7 @@ function buildVariantEntries(profile) {
           // Llenar cada sección
           _renderTop3(resultado.candidatos);
           _renderRegimen(resultado.inteligencia?.regimen);
-          _renderSalud(resultado.inteligencia);
+          _renderSalud(resultado.inteligencia); // async — no await, carga en background
           _renderSecuencias(resultado.inteligencia?.secuencias);
           _renderAlertas(resultado.inteligencia);
           _renderLiberaciones(resultado.inteligencia?.liberaciones);
@@ -12237,33 +12257,52 @@ function buildVariantEntries(profile) {
           </div>`;
       }
 
-      function _renderSalud(intel) {
+      async function _renderSalud(_intel) {
         const el = $("mesa-salud");
-        if (!intel) { el.innerHTML = '<div class="mesa-loading">—</div>'; return; }
+        el.innerHTML = '<div class="mesa-loading">Cargando salud…</div>';
 
-        // Intentar leer score desde la vista de Supabase
-        const score = intel.scoreInfo;
-        if (!score) {
-          el.innerHTML = '<div class="mesa-loading">Sin evaluaciones aún</div>';
-          return;
+        try {
+          const { calcularScoreActual } = await import('./src/score-tracker.js');
+          const { diagnosticar, buildDiagnosticoHTML } = await import('./src/diagnostic-engine.js');
+
+          const [score, diagnostico] = await Promise.all([
+            calcularScoreActual({ ventana: 30 }),
+            diagnosticar({ ventana: 20 }),
+          ]);
+
+          if (!score.suficiente) {
+            el.innerHTML = `<div class="mesa-loading" style="color:var(--muted,#888)">
+              ⏳ Acumulando evaluaciones (${score.evaluaciones}/5 mín.)<br>
+              <small>Se completa al registrar sorteos con predicciones activas</small>
+            </div>`;
+            return;
+          }
+
+          const sg  = score.scoreGlobal;
+          const cls = sg >= 0.45 ? "mesa-score-ok" : sg >= 0.28 ? "mesa-score-warn" : "mesa-score-crit";
+          const t1  = score.hitRateTop1 * 100;
+          const t3  = score.hitRateTop3 * 100;
+          const t5  = score.hitRateTop5 * 100;
+          const crisisBadge = score.enCrisis
+            ? `<div style="background:#c0392b;color:#fff;border-radius:4px;padding:2px 7px;font-size:.72rem;display:inline-block;margin-bottom:.4rem">🚨 CRISIS — Ajustando pesos</div>`
+            : '';
+
+          el.innerHTML = `
+            ${crisisBadge}
+            <div class="mesa-score-gauge ${cls}">${(sg * 100).toFixed(0)}</div>
+            <div class="mesa-score-bars">
+              ${_scorebar("Top-1", t1, 15)}
+              ${_scorebar("Top-3", t3, 35)}
+              ${_scorebar("Top-5", t5, 55)}
+            </div>
+            <div style="font-size:.68rem;color:var(--muted,#666);margin-top:.4rem">
+              ${score.evaluaciones} evaluaciones · Ausencia ${(score.ausencia * 100).toFixed(0)}%
+              · Tipos A:${score.tiposConteo?.A ?? 0} B:${score.tiposConteo?.B ?? 0} C:${score.tiposConteo?.C ?? 0}
+            </div>
+            <div style="margin-top:.6rem">${buildDiagnosticoHTML(diagnostico)}</div>`;
+        } catch (e) {
+          el.innerHTML = `<div class="mesa-loading" style="color:#e05c5c">Error cargando salud: ${e?.message ?? e}</div>`;
         }
-
-        const sg  = score.score_global_promedio ?? 0;
-        const cls = sg >= 0.65 ? "mesa-score-ok" : sg >= 0.40 ? "mesa-score-warn" : "mesa-score-crit";
-        const t1  = score.hit_rate_top1_pct ?? 0;
-        const t3  = score.hit_rate_top3_pct ?? 0;
-        const t5  = score.hit_rate_top5_pct ?? 0;
-
-        el.innerHTML = `
-          <div class="mesa-score-gauge ${cls}">${(sg * 100).toFixed(0)}</div>
-          <div class="mesa-score-bars">
-            ${_scorebar("Top-1", t1, 20)}
-            ${_scorebar("Top-3", t3, 40)}
-            ${_scorebar("Top-5", t5, 60)}
-          </div>
-          <div style="font-size:.68rem;color:var(--muted,#666);margin-top:.5rem">
-            Basado en ${score.evaluaciones_30d ?? "?"} evaluaciones
-          </div>`;
       }
 
       function _scorebar(label, val, meta) {

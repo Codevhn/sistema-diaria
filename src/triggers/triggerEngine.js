@@ -1,5 +1,7 @@
 import { supabase } from "../supabaseClient.js";
 import { parseDrawDate } from "../date-utils.js";
+import { onSorteoRegistrado } from "../evaluation-engine.js";
+import { ejecutarCicloEvaluacion } from "../score-tracker.js";
 
 const RELATIONS_TABLE = "trigger_relations";
 const EVENTS_TABLE = "trigger_events";
@@ -352,6 +354,14 @@ export async function processNewDraw(draw) {
   if (!draw) return;
   await createEventsForOrigin(draw);
   await resolveHitsForTarget(draw);
+
+  // Sprint 6: evaluar predicciones y actualizar score rolling
+  try {
+    await onSorteoRegistrado(draw);
+    await ejecutarCicloEvaluacion([], { persistir: true });
+  } catch (e) {
+    console.warn('[triggerEngine] evaluation hook error:', e?.message);
+  }
 }
 
 export async function closeExpiredEvents(nowTs = new Date()) {
