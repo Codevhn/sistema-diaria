@@ -43,3 +43,7 @@ assets/cache/
 # sessions/
 # (no se ignoran porque son parte del sistema)
 
+
+# Vue 3 UI build artifacts
+ui/node_modules/
+ui/dist/

@@ -1,0 +1,94 @@
+/* ─────────────────────────────────────────────
+   Design Tokens — Sistema Diaria
+   Fuente única de verdad para colores, tipografía,
+   espaciado y efectos. Editar aquí, propagado a todo.
+   ───────────────────────────────────────────── */
+
+:root,
+[data-theme="dark"] {
+  /* ── Fondos ─────────────────────────────────── */
+  --bg-base:       #0D1117;   /* cuerpo de la app */
+  --bg-surface:    #161C24;   /* tarjetas, paneles */
+  --bg-raised:     #1C2433;   /* hover, input, badge */
+  --bg-overlay:    #212B38;   /* modales, tooltips */
+
+  /* ── Bordes ─────────────────────────────────── */
+  --border:        #26303B;
+  --border-subtle: #1E2730;
+  --border-focus:  #F0B429;
+
+  /* ── Texto ──────────────────────────────────── */
+  --text-primary:  #E6EDF3;
+  --text-secondary:#8B98A5;
+  --text-muted:    #4D5968;
+  --text-inverse:  #0D1117;
+
+  /* ── Acento — Dorado (identidad lotería) ──────── */
+  --gold:          #F0B429;
+  --gold-dim:      #C08C1A;
+  --gold-glow:     rgba(240, 180, 41, 0.15);
+  --gold-surface:  rgba(240, 180, 41, 0.08);
+
+  /* ── Acento — Cian (datos, estadísticas) ─────── */
+  --cyan:          #38BDF8;
+  --cyan-dim:      #0EA5E9;
+  --cyan-surface:  rgba(56, 189, 248, 0.08);
+
+  /* ── Semáforo (veredictos) ──────────────────── */
+  --green:         #4ADE80;
+  --green-surface: rgba(74, 222, 128, 0.10);
+  --yellow:        #FBBF24;
+  --yellow-surface:rgba(251, 191, 36, 0.10);
+  --red:           #F87171;
+  --red-surface:   rgba(248, 113, 113, 0.10);
+  --orange:        #FB923C;
+
+  /* ── Sombras ────────────────────────────────── */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.4);
+  --shadow-md:  0 4px 12px rgba(0,0,0,.5);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,.6);
+  --shadow-gold:0 0 20px rgba(240,180,41,.2);
+
+  /* ── Tipografía ─────────────────────────────── */
+  --font-sans:  "Inter", system-ui, sans-serif;
+  --font-mono:  "JetBrains Mono", "Fira Mono", monospace;
+
+  --text-xs:   .75rem;   /* 12px */
+  --text-sm:   .875rem;  /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg:   1.25rem;  /* 20px */
+  --text-xl:   1.5rem;   /* 24px */
+  --text-2xl:  2rem;     /* 32px */
+
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semi:   600;
+  --fw-bold:   700;
+
+  /* ── Espaciado (múltiplos de 4px) ───────────── */
+  --sp-1: .25rem;   /* 4px  */
+  --sp-2: .5rem;    /* 8px  */
+  --sp-3: .75rem;   /* 12px */
+  --sp-4: 1rem;     /* 16px */
+  --sp-5: 1.25rem;  /* 20px */
+  --sp-6: 1.5rem;   /* 24px */
+  --sp-8: 2rem;     /* 32px */
+  --sp-10:2.5rem;   /* 40px */
+  --sp-12:3rem;     /* 48px */
+
+  /* ── Bordes redondeados ─────────────────────── */
+  --r-sm:   6px;
+  --r-md:   10px;
+  --r-lg:   16px;
+  --r-pill: 9999px;
+
+  /* ── Transiciones ───────────────────────────── */
+  --t-fast:   80ms ease;
+  --t-normal: 150ms ease;
+  --t-slow:   280ms ease;
+
+  /* ── Sidebar ────────────────────────────────── */
+  --sidebar-w:      220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h:     48px;
+}
