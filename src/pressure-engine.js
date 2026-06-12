@@ -9,9 +9,11 @@
  *   2. Saladito                   → siempre tiene presión base
  *   3. Secuencia activa reciente  → el catálogo la activa masivamente
  *   4. Cadena semántica activada  → cayó un trigger, el público corre al target
- *   5. Evento cultural próximo    → popularidad estacional (fiestas, etc.)
- *   6. Cayó hace poco             → presión cae (el jugador "ya lo jugó")
- *   7. Variante pagada reciente   → presión baja (el jugador migró a la variante)
+ *   5. Cayó hace poco             → presión cae (el jugador "ya lo jugó")
+ *   6. Variante pagada reciente   → presión baja (el jugador migró a la variante)
+ *   7. Rebound de variante        → variante pagada hace 3-8 sorteos → boost al directo
+ *   8. Preferencia de turno       → el número cae mayorit. en este turno → leve boost
+ *   9. Cluster activo             → La Casa está minando este set de dígitos → presión baja
  *
  * Tesis adversarial:
  *   Presión alta  → La Casa lo evita (factor penalizador en signal-engine)
@@ -26,6 +28,7 @@
 import { ACTIVACIONES, CADENAS } from './popularity-model.js';
 import { variantesSet } from './conversion-engine.js';
 import { upsertPublicPressure } from './intelligence-storage.js';
+import { detectarClusters, pesoPorCluster } from './digit-cluster-detector.js';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -46,6 +49,19 @@ const DIAS_OLVIDO_SALADITO = 8;  // saladitos tardan más en olvidarse
 
 // Umbral de gap para que el jugador "se canse" de esperar (múltiplo de media)
 const UMBRAL_CANSANCIO = 2.2;
+
+// Ventana de sorteos para detectar rebound de variante (sorteos atrás, no días)
+const REBOUND_MIN_SORTEOS = 3;
+const REBOUND_MAX_SORTEOS = 10;
+
+// Mínimo de apariciones en un turno para activar la preferencia
+const TURNO_MIN_APARICIONES = 4;
+
+// Umbral de % de apariciones en un turno para considerarlo "preferido"
+const TURNO_PREFERENCIA_UMBRAL = 0.60;
+
+// Turnos conocidos
+const TURNOS_ORDEN = ['11AM', '3PM', '9PM'];
 
 // Ventana de sorteos para buscar triggers activos
 const VENTANA_TRIGGER = 6;
@@ -136,6 +152,10 @@ export async function calcularPresion(draws, opts = {}) {
   const triggers    = _detectarTriggersActivos(draws);
   const presionMap  = new Map();
 
+  // Pre-calcular señales de cluster y turno (una vez fuera del loop de 100 números)
+  const clusterScores = _calcularClusterScores(draws);
+  const turnoStats    = turno ? _calcularTurnoStats(draws, turno) : null;
+
   for (let n = 0; n <= 99; n++) {
     const gap    = gapsMap[n];
     const fuentes = {};
@@ -198,8 +218,48 @@ export async function calcularPresion(draws, opts = {}) {
       presion -= 0.20;
     }
 
+    // ── 7. Rebound de variante ────────────────────────────────────────────
+    // Si la variante del número se pagó hace 3-10 sorteos (no ayer pero
+    // tampoco olvidado), el directo tiene señal de liberación: La Casa ya
+    // desvió la atención y ahora puede pagarlo sin que cueste tanto.
+    if (!variantePagada) {
+      const reboundIdx = draws.findIndex((d, i) => i >= REBOUND_MIN_SORTEOS && i <= REBOUND_MAX_SORTEOS && variantSet.has(d.numero));
+      if (reboundIdx >= REBOUND_MIN_SORTEOS) {
+        // Rebound más fuerte cuanto más cerca del rango óptimo (idx 5-7)
+        const reboundFactor = Math.max(0, 1 - Math.abs(reboundIdx - 6) / 5);
+        const delta = -0.12 * reboundFactor; // presión baja = boost al score
+        fuentes.rebound_variante = delta;
+        presion += delta;
+      }
+    }
+
+    // ── 8. Preferencia de turno ────────────────────────────────────────────
+    // Si el número históricamente cae mayorit. en este turno, pequeña reducción
+    // de presión (La Casa puede "aprovecharlo" en ese turno).
+    if (turnoStats) {
+      const ts = turnoStats.get(n);
+      if (ts && ts.pctTurnoActual >= TURNO_PREFERENCIA_UMBRAL && ts.totalApariciones >= TURNO_MIN_APARICIONES) {
+        const delta = -0.10 * (ts.pctTurnoActual - TURNO_PREFERENCIA_UMBRAL) / (1 - TURNO_PREFERENCIA_UMBRAL);
+        fuentes.turno_preferido = delta;
+        presion += delta;
+      }
+    }
+
+    // ── 9. Cluster activo ─────────────────────────────────────────────────
+    // Si La Casa está minando un cluster de dígitos y este número pertenece
+    // al cluster activo, su presión baja (es un candidato real del cluster).
+    const clusterInfo = clusterScores.get(n);
+    if (clusterInfo && clusterInfo.peso > 0.5) {
+      const delta = -0.08 * clusterInfo.peso;
+      fuentes.cluster_activo = delta;
+      presion += delta;
+    }
+
     // Clamp final 0-1
     presion = Math.max(0, Math.min(1, presion));
+
+    const reboundActivo = !!fuentes.rebound_variante;
+    const gapConRebound = { ...gap, reboundActivo };
 
     const score = {
       numero:   n,
@@ -210,7 +270,7 @@ export async function calcularPresion(draws, opts = {}) {
       sigma:     gap.sigma,
       vencido:   gap.vencido,
       cansado:   gap.cansado,
-      liberacion: _calcularMomentoLiberacion(gap, presion, variantePagada),
+      liberacion: _calcularMomentoLiberacion(gapConRebound, presion, variantePagada),
     };
 
     presionMap.set(n, score);
@@ -290,6 +350,12 @@ function _calcularMomentoLiberacion(gap, presion, variantePagada) {
     desc.push('Variante ya pagada — posible liberación del directo');
   }
 
+  // Rebound activo (variante pagada hace 3-10 sorteos) suma a la señal de liberación
+  if (gap.reboundActivo) {
+    score += 0.20;
+    desc.push('Rebound de variante activo — La Casa puede pagar el directo pronto');
+  }
+
   score = Math.min(1, score);
 
   return {
@@ -327,6 +393,52 @@ function _detectarTriggersActivos(draws) {
   }
 
   return mapa;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers privados para señales nuevas
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-calcula el score de cluster para todos los números 0-99.
+ * Usa los últimos 12 sorteos. Devuelve Map<numero, {peso, digitos}>.
+ */
+function _calcularClusterScores(draws) {
+  try {
+    const clusters = detectarClusters(draws, { lookback: 12, umbralRatio: 0.65 });
+    return pesoPorCluster(clusters);
+  } catch {
+    return new Map();
+  }
+}
+
+/**
+ * Pre-calcula estadísticas de turno para todos los números.
+ * Devuelve Map<numero, { totalApariciones, pctTurnoActual }>.
+ *
+ * @param {Array} draws  - ordenados reciente primero
+ * @param {string} turno - turno actual ('11AM', '3PM', '9PM')
+ */
+function _calcularTurnoStats(draws, turnoActual) {
+  const stats = new Map();
+  // Solo mirar los últimos 90 draws para no usar historia irrelevante
+  const ventana = draws.slice(0, 90);
+
+  for (let n = 0; n <= 99; n++) {
+    const apariciones = ventana.filter(d => d.numero === n);
+    if (apariciones.length < TURNO_MIN_APARICIONES) continue;
+
+    const enTurnoActual = apariciones.filter(d =>
+      (d.horario ?? d.turno) === turnoActual
+    ).length;
+
+    stats.set(n, {
+      totalApariciones: apariciones.length,
+      pctTurnoActual:   enTurnoActual / apariciones.length,
+    });
+  }
+
+  return stats;
 }
 
 // ---------------------------------------------------------------------------

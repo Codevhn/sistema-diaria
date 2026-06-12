@@ -4,7 +4,7 @@
 // consecutivos, y con qué frecuencia. Esto permite presentar candidatos con
 // respaldo estadístico real en lugar de supuestos teóricos.
 
-import { classifyRelation, getAllRelated } from "./conversion-map.js";
+import { classifyRelation, getAllRelated } from "./conversion-engine.js";
 import { GUIA } from "./loader.js";
 
 const HORARIO_ORDER = ["11AM", "3PM", "9PM"];

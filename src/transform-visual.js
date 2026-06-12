@@ -3,8 +3,8 @@ import {
   CONVERSION_MAP_NOTE,
   getSimpleConversions,
   getCompositeConversions,
-} from "./conversion-map.js";
-import { getEquivalencias } from "./conversion-engine.js";
+  getEquivalencias,
+} from "./conversion-engine.js";
 
 const padNumber = (n) => String(n).padStart(2, "0");
 

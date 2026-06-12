@@ -1501,7 +1501,7 @@
     import { analizarAusencias, renderAusenciasHTML } from "./src/ausencia-engine.js";
     import { analizarVuelta, renderVueltaHTML } from "./src/vuelta-engine.js";
     import { analizarLineas, renderLineasHTML } from "./src/lineas-engine.js";
-    import { getSimpleConversions, getCompositeConversions } from "./src/conversion-map.js";
+    import { getSimpleConversions, getCompositeConversions } from "./src/conversion-engine.js";
     import { buildRelationStats, getCandidates, getContextSignal } from "./src/relation-analyzer.js";
     import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./src/memory.js";
     import {
@@ -11154,6 +11154,18 @@ function buildVariantEntries(profile) {
             <div class="wiki-state wiki-state--ok">
               <strong>Se pagó la variante</strong>
               <span>Si La Casa tiró la variante del número, parte del público migró. Presión baja temporalmente.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Rebound de variante</strong>
+              <span>Si la variante se pagó hace 3-10 sorteos (no ayer, pero tampoco olvidado), el directo recibe un boost de liberación. La Casa desvió la atención y ahora puede pagarlo sin que cueste tanto.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Preferencia de turno</strong>
+              <span>Si el número históricamente cae el 60%+ de las veces en un turno específico y es ese turno ahora, recibe presión ligeramente menor (señal de que La Casa puede aprovecharlo en ese momento).</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Cluster activo</strong>
+              <span>Si La Casa está minando un conjunto de dígitos (ej: últimos 12 sorteos con muchos números de {0,1,6,9}), los números de ese cluster reciben presión reducida — son candidatos reales del patrón activo.</span>
             </div>
           </div>
 
