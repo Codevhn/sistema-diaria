@@ -89,17 +89,28 @@
         <table class="history-table">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Turno</th>
               <th class="num-col">Número</th>
+              <th>Turno</th>
+              <th>Fecha</th>
+              <th class="del-col"></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="d in recentDraws" :key="d.id">
-              <td>{{ d.fecha }}</td>
-              <td>{{ d.horario }}</td>
               <td class="num-col">
                 <NumberChip :numero="d.numero" size="sm" />
+              </td>
+              <td>{{ d.horario }}</td>
+              <td>{{ d.fecha }}</td>
+              <td class="del-col">
+                <button
+                  class="del-btn"
+                  :disabled="deletingId === d.id"
+                  :title="`Eliminar sorteo ${pad(d.numero)} del ${d.fecha}`"
+                  @click="eliminar(d.id)"
+                >
+                  <i class="fa-solid" :class="deletingId === d.id ? 'fa-spinner fa-spin' : 'fa-trash-can'" />
+                </button>
               </td>
             </tr>
           </tbody>
@@ -131,6 +142,7 @@ const draws       = ref([]);
 const loadingDraws= ref(false);
 const errorDraws  = ref(null);
 const savingSlot  = ref(null);
+const deletingId  = ref(null);
 const formValues  = ref(Object.fromEntries(TURNOS.map(t => [t.id, ""])));
 const slotErrors  = ref({});
 
@@ -206,6 +218,19 @@ async function registrar(turnoId) {
     slotErrors.value = { ...slotErrors.value, [turnoId]: e?.message ?? "Error al guardar" };
   } finally {
     savingSlot.value = null;
+  }
+}
+
+async function eliminar(id) {
+  if (!confirm("¿Eliminar este sorteo?")) return;
+  deletingId.value = id;
+  try {
+    await DB.deleteDraw(id);
+    await reloadDraws();
+  } catch (e) {
+    alert(e?.message ?? "Error al eliminar");
+  } finally {
+    deletingId.value = null;
   }
 }
 
@@ -300,7 +325,17 @@ onMounted(reloadDraws);
   color: var(--text-secondary);
 }
 .history-table tr:last-child td { border-bottom: none; }
-.num-col { text-align: right; }
+.num-col { text-align: left; }
+.del-col { text-align: right; width: 36px; }
+.del-btn {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  border-radius: var(--r-sm); color: var(--text-muted); font-size: .8rem;
+  transition: background var(--t-fast), color var(--t-fast);
+  opacity: 0;
+}
+.history-table tr:hover .del-btn { opacity: 1; }
+.del-btn:hover { background: var(--red-surface); color: var(--red); }
+.del-btn:disabled { opacity: .4; cursor: default; }
 .history-more { margin-top: var(--sp-2); font-size: var(--text-xs); color: var(--text-muted); }
 
 /* Error / Empty */
