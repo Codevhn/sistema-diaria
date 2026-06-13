@@ -83,7 +83,7 @@
       </div>
       <div v-else-if="!filteredDraws.length" class="empty-state">
         <i class="fa-solid fa-inbox" />
-        No hay sorteos registrados para este país.
+        Aún no hay sorteos registrados.
       </div>
       <div v-else class="history-table-wrap">
         <table class="history-table">
@@ -134,15 +134,16 @@ const savingSlot  = ref(null);
 const formValues  = ref(Object.fromEntries(TURNOS.map(t => [t.id, ""])));
 const slotErrors  = ref({});
 
-const fechaLabel = computed(() =>
-  new Date(fecha.value + "T12:00:00").toLocaleDateString("es-HN", {
+const fechaLabel = computed(() => {
+  const label = new Date(fecha.value + "T12:00:00").toLocaleDateString("es-HN", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
-  })
-);
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+});
 
 const filteredDraws = computed(() =>
   draws.value
-    .filter(d => !d.isTest && (d.pais || "").toUpperCase() === pais.value)
+    .filter(d => !d.isTest && (d.pais || "").toUpperCase() === pais)
     .sort((a, b) => {
       if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
       return (b.createdAt ?? 0) - (a.createdAt ?? 0);
@@ -154,7 +155,7 @@ const recentDraws = computed(() => filteredDraws.value.slice(0, 50));
 function getSlotResult(turnoId) {
   return draws.value.find(d =>
     d.fecha === fecha.value &&
-    (d.pais || "").toUpperCase() === pais.value &&
+    (d.pais || "").toUpperCase() === pais &&
     d.horario === turnoId &&
     !d.isPending
   ) ?? null;
@@ -195,7 +196,7 @@ async function registrar(turnoId) {
     await DB.saveDraw({
       numero:  Math.round(numero),
       fecha:   fecha.value,
-      pais:    pais.value,
+      pais:    pais,
       horario: turnoId,
     });
     formValues.value[turnoId] = "";
@@ -221,7 +222,7 @@ onMounted(reloadDraws);
   display: flex; align-items: center; gap: var(--sp-3);
 }
 .view-title i { color: var(--gold); font-size: .85em; }
-.view-sub { color: var(--text-secondary); font-size: var(--text-sm); text-transform: capitalize; }
+.view-sub { color: var(--text-secondary); font-size: var(--text-sm); }
 
 /* Controles */
 .controls-bar {
