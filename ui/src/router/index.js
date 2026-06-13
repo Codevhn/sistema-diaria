@@ -58,8 +58,12 @@ export const router = createRouter({
 router.beforeEach(async (to) => {
   if (to.meta?.public) return true;
 
-  const { data } = await supabase.auth.getSession();
-  if (!data?.session?.user) {
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data?.user) {
+      return { name: "login" };
+    }
+  } catch {
     return { name: "login" };
   }
   return true;
