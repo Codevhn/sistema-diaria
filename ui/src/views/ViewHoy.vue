@@ -45,12 +45,12 @@
         <!-- Formulario de registro -->
         <div v-else class="slot-card__form">
           <input
-            type="number"
-            min="0"
-            max="99"
+            type="text"
+            inputmode="numeric"
+            maxlength="2"
             placeholder="00–99"
             class="slot-input"
-            v-model.number="formValues[slot.id]"
+            v-model="formValues[slot.id]"
             @keyup.enter="registrar(slot.id)"
           />
           <BaseBtn
@@ -58,7 +58,7 @@
             size="sm"
             icon="fa-check"
             :loading="savingSlot === slot.id"
-            :disabled="formValues[slot.id] === '' || formValues[slot.id] === null"
+            :disabled="formValues[slot.id] === ''"
             @click="registrar(slot.id)"
           >
             OK
@@ -184,9 +184,10 @@ async function reloadDraws() {
 }
 
 async function registrar(turnoId) {
-  const numero = formValues.value[turnoId];
-  if (numero === "" || numero === null || isNaN(numero)) return;
-  if (numero < 0 || numero > 99) {
+  const raw = String(formValues.value[turnoId] ?? "").trim();
+  if (raw === "") return;
+  const numero = parseInt(raw, 10);
+  if (isNaN(numero) || numero < 0 || numero > 99) {
     slotErrors.value[turnoId] = "Número fuera de rango (00–99)";
     return;
   }
@@ -194,7 +195,7 @@ async function registrar(turnoId) {
   slotErrors.value  = { ...slotErrors.value, [turnoId]: null };
   try {
     await DB.saveDraw({
-      numero:  Math.round(numero),
+      numero,
       fecha:   fecha.value,
       pais:    pais,
       horario: turnoId,
