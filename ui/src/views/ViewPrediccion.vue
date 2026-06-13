@@ -112,8 +112,8 @@
           <div class="chips-wrap">
             <NumberChip
               v-for="n in result.eliminados"
-              :key="n"
-              :numero="n"
+              :key="n.numero"
+              :numero="n.numero"
               size="sm"
             />
           </div>
