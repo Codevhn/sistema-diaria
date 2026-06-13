@@ -9,6 +9,8 @@ export default defineConfig({
       "@": resolve(__dirname, "src"),
       // Motors viven en ../src/ — importados por las views sin copiarlos
       "@motors": resolve(__dirname, "../src"),
+      // Supabase: los motores importan desde esm.sh (CDN), Vite necesita npm
+      "https://esm.sh/@supabase/supabase-js@2": resolve(__dirname, "src/lib/supabase-shim.js"),
     },
   },
   // Cuando buildemos, la app vive en /ui/
