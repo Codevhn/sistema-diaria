@@ -1,9 +1,16 @@
 import { createRouter, createWebHashHistory } from "vue-router";
+import { supabase } from "@motors/supabaseClient.js";
 
 const routes = [
   {
     path: "/",
     redirect: "/hoy",
+  },
+  {
+    path: "/login",
+    name: "login",
+    component: () => import("@/views/ViewLogin.vue"),
+    meta: { public: true },
   },
   {
     path: "/hoy",
@@ -46,4 +53,14 @@ const routes = [
 export const router = createRouter({
   history: createWebHashHistory(),
   routes,
+});
+
+router.beforeEach(async (to) => {
+  if (to.meta?.public) return true;
+
+  const { data } = await supabase.auth.getSession();
+  if (!data?.session?.user) {
+    return { name: "login" };
+  }
+  return true;
 });
