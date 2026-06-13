@@ -2,31 +2,35 @@
   <div class="view-prediccion">
     <!-- ── Header ──────────────────────────────────── -->
     <div class="view-header">
-      <h1 class="view-title">
-        <i class="fa-solid fa-bullseye" />
-        Predicción
-      </h1>
-      <p class="view-sub">Motor unificado de señales — top candidatos para el próximo sorteo.</p>
+      <div class="view-title-row">
+        <h1 class="view-title">
+          <i class="fa-solid fa-bullseye" />
+          Predicción
+        </h1>
+        <HelpTooltip title="¿Cómo funciona la predicción?">
+          <p>El motor combina <b>7 señales estadísticas</b> para generar un ranking de los 10 números más probables para el próximo sorteo de Honduras:</p>
+          <ul>
+            <li><b>Markov O1 y O2</b> — probabilidades de transición basadas en secuencias históricas</li>
+            <li><b>Rezago / Poisson</b> — números que están "vencidos" según su ciclo promedio</li>
+            <li><b>Modos de juego</b> — patrones detectados en el comportamiento reciente</li>
+            <li><b>Patrones secuenciales</b> — hallazgos estadísticos (rachas, alternancia, etc.)</li>
+            <li><b>Tendencias semanales</b> — comportamiento por día de la semana</li>
+          </ul>
+          <p>El <b>score</b> (0–100) refleja qué fracción del peso total de los motores señaló ese número. Un 60 significa que señales con el 60% del peso total lo apuntan.</p>
+          <p><b>Importante:</b> el sistema no predice el futuro — detecta patrones estadísticos. Un score alto no garantiza que el número caiga.</p>
+        </HelpTooltip>
+      </div>
+      <p class="view-sub">Motor unificado de señales — top candidatos para el próximo sorteo de Honduras.</p>
     </div>
 
     <!-- ── Controles ───────────────────────────────── -->
     <div class="controls-bar">
       <div class="control-group">
-        <label class="control-label">País</label>
-        <select v-model="pais" class="select">
-          <option value="HN">HN — Honduras</option>
-          <option value="GT">GT — Guatemala</option>
-          <option value="SV">SV — El Salvador</option>
-        </select>
-      </div>
-      <div class="control-group">
         <label class="control-label">Turno</label>
         <select v-model="turno" class="select">
           <option value="">Todos</option>
           <option value="11AM">11 AM</option>
-          <option value="12PM">12 PM</option>
           <option value="3PM">3 PM</option>
-          <option value="6PM">6 PM</option>
           <option value="9PM">9 PM</option>
         </select>
       </div>
@@ -139,14 +143,14 @@ import { useSignalEngine } from "@/composables/useSignalEngine.js";
 import BaseCard from "@/components/BaseCard.vue";
 import BaseBtn from "@/components/BaseBtn.vue";
 import NumberChip from "@/components/NumberChip.vue";
+import HelpTooltip from "@/components/HelpTooltip.vue";
 
 const { result, loading, error, run } = useSignalEngine();
 
-const pais  = ref("HN");
 const turno = ref("");
 
 async function ejecutar() {
-  await run({ pais: pais.value, turno: turno.value || null });
+  await run({ pais: "HN", turno: turno.value || null });
 }
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -168,6 +172,7 @@ function scoreColor(score) {
 }
 .view-title i { color: var(--gold); font-size: .85em; }
 .view-sub { color: var(--text-secondary); font-size: var(--text-sm); }
+.view-title-row { display: flex; align-items: center; gap: var(--sp-3); }
 
 /* Controles */
 .controls-bar {

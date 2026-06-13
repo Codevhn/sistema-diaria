@@ -9,16 +9,8 @@
       <p class="view-sub">{{ fechaLabel }} · Registrá resultados y consultá el historial.</p>
     </div>
 
-    <!-- ── Selector de país ───────────────────────── -->
+    <!-- ── Controles ─────────────────────────────── -->
     <div class="controls-bar">
-      <div class="control-group">
-        <label class="control-label">País</label>
-        <select v-model="pais" class="select">
-          <option value="HN">HN — Honduras</option>
-          <option value="GT">GT — Guatemala</option>
-          <option value="SV">SV — El Salvador</option>
-        </select>
-      </div>
       <div class="control-group">
         <label class="control-label">Fecha</label>
         <input type="date" v-model="fecha" class="select" />
@@ -129,13 +121,11 @@ import NumberChip from "@/components/NumberChip.vue";
 
 const TURNOS = [
   { id: "11AM", label: "11 AM", hour: 11 },
-  { id: "12PM", label: "12 PM", hour: 12 },
   { id: "3PM",  label: "3 PM",  hour: 15 },
-  { id: "6PM",  label: "6 PM",  hour: 18 },
   { id: "9PM",  label: "9 PM",  hour: 21 },
 ];
 
-const pais        = ref("HN");
+const pais        = "HN";
 const fecha       = ref(new Date().toISOString().slice(0, 10));
 const draws       = ref([]);
 const loadingDraws= ref(false);
@@ -252,8 +242,11 @@ onMounted(reloadDraws);
 /* Slots */
 .slots-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--sp-3);
+}
+@media (max-width: 480px) {
+  .slots-grid { grid-template-columns: 1fr; }
 }
 .slot-card {
   display: flex; flex-direction: column; gap: var(--sp-2);

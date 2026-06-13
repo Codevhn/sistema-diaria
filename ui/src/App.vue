@@ -39,6 +39,20 @@
       @click="sidebarCollapsed = true"
     />
 
+    <!-- ── Barra inferior mobile ─────────────────────── -->
+    <nav class="bottom-nav" aria-label="Navegación">
+      <RouterLink
+        v-for="item in navItems"
+        :key="item.name"
+        :to="{ name: item.name }"
+        class="bottom-nav__item"
+        active-class="bottom-nav__item--active"
+      >
+        <i :class="`fa-solid ${item.icon}`" />
+        <span>{{ item.label }}</span>
+      </RouterLink>
+    </nav>
+
     <!-- ── Contenido principal ──────────────────────── -->
     <main class="main-content">
       <RouterView v-slot="{ Component }">
@@ -254,6 +268,9 @@ const todayLabel = computed(() => {
   transform: translateY(-4px);
 }
 
+/* ── Bottom nav (hidden on desktop) ─────────────── */
+.bottom-nav { display: none; }
+
 /* ── Mobile ─────────────────────────────────────── */
 @media (max-width: 768px) {
   .app-shell {
@@ -294,6 +311,39 @@ const todayLabel = computed(() => {
 
   .main-content {
     padding: var(--sp-4);
+    padding-bottom: calc(var(--sp-4) + 60px); /* espacio para bottom nav */
   }
+
+  /* Barra inferior */
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    overflow-x: auto;
+  }
+
+  .bottom-nav__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color var(--t-fast);
+    min-width: 52px;
+    padding: var(--sp-1);
+  }
+  .bottom-nav__item i { font-size: 1.1rem; }
+  .bottom-nav__item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52px; }
+  .bottom-nav__item:hover { color: var(--text-secondary); }
+  .bottom-nav__item--active { color: var(--gold); }
+  .bottom-nav__item--active i { color: var(--gold); }
 }
 </style>

@@ -10,14 +10,6 @@
 
     <!-- Controles -->
     <div class="controls-bar">
-      <div class="control-group">
-        <label class="control-label">País</label>
-        <select v-model="pais" class="select">
-          <option value="HN">HN — Honduras</option>
-          <option value="GT">GT — Guatemala</option>
-          <option value="SV">SV — El Salvador</option>
-        </select>
-      </div>
       <BaseBtn variant="primary" icon="fa-play" :loading="loading" @click="ejecutar">
         Analizar
       </BaseBtn>
@@ -122,7 +114,6 @@ import { evaluarMotorPega3 } from "@motors/pega3-engine.js";
 import BaseCard from "@/components/BaseCard.vue";
 import BaseBtn from "@/components/BaseBtn.vue";
 
-const pais    = ref("HN");
 const result  = ref(null);
 const loading = ref(false);
 const error   = ref(null);
@@ -133,7 +124,7 @@ async function ejecutar() {
   result.value  = null;
   try {
     const draws = await DB.listDraws({ excludeTest: true });
-    const filtered = draws.filter(d => (d.pais || "").toUpperCase() === pais.value);
+    const filtered = draws.filter(d => (d.pais || "").toUpperCase() === "HN");
     result.value = evaluarMotorPega3(filtered);
   } catch (e) {
     error.value = e?.message ?? String(e);

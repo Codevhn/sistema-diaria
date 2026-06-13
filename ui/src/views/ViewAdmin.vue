@@ -60,12 +60,8 @@
       <h3 class="section-title">Preferencias</h3>
       <div class="config-section">
         <div class="config-row">
-          <label class="config-label">País por defecto</label>
-          <select v-model="prefs.paisDefault" class="select">
-            <option value="HN">Honduras (HN)</option>
-            <option value="GT">Guatemala (GT)</option>
-            <option value="SV">El Salvador (SV)</option>
-          </select>
+          <label class="config-label">País</label>
+          <span class="config-value">Honduras — único país soportado</span>
         </div>
         <div class="config-row">
           <label class="config-label">Top-N candidatos</label>
@@ -259,6 +255,7 @@ onMounted(() => { loadPrefs(); cargarModos(); });
   text-align: center;
 }
 .num-input:focus { outline: none; border-color: var(--gold); }
+.config-value { font-size: var(--text-sm); color: var(--text-muted); }
 
 /* Modos */
 .modos-list { display: flex; flex-direction: column; gap: var(--sp-2); }

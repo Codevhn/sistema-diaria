@@ -13,9 +13,7 @@
         <select v-model="turno" class="select">
           <option value="">Todos</option>
           <option value="11AM">11 AM</option>
-          <option value="12PM">12 PM</option>
           <option value="3PM">3 PM</option>
-          <option value="6PM">6 PM</option>
           <option value="9PM">9 PM</option>
         </select>
       </div>

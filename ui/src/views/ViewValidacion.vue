@@ -2,10 +2,24 @@
   <div class="view-validacion">
     <!-- ── Header ──────────────────────────────────── -->
     <div class="view-header">
-      <h1 class="view-title">
-        <i class="fa-solid fa-circle-check" />
-        Validación
-      </h1>
+      <div class="view-title-row">
+        <h1 class="view-title">
+          <i class="fa-solid fa-circle-check" />
+          Validación
+        </h1>
+        <HelpTooltip title="¿Cómo se mide la honestidad del sistema?">
+          <p>Este panel responde la pregunta que importa: <b>¿el motor predice mejor que elegir al azar?</b></p>
+          <p>Con 10 candidatos, elegir al azar acierta el 10% de las veces (baseline). Si el sistema acierta el 15%, el lift es 1.5×.</p>
+          <p>El <b>IC95%</b> (intervalo de credibilidad) muestra el rango real del hit-rate dado el número de intentos. Con pocas predicciones el intervalo es amplio; con más datos se estrecha.</p>
+          <p>El <b>veredicto</b> es honesto:</p>
+          <ul>
+            <li><b>Ventaja demostrada</b> — todo el IC95% del lift está sobre 1.0</li>
+            <li><b>Sin ventaja demostrada</b> — el intervalo incluye 1.0 (puede ser suerte)</li>
+            <li><b>Peor que el azar</b> — todo el intervalo bajo 1.0</li>
+          </ul>
+          <p>Solo cuentan predicciones <b>selladas</b>: registradas antes del sorteo (verificado por timestamp de servidor). Las post-hoc se excluyen automáticamente.</p>
+        </HelpTooltip>
+      </div>
       <p class="view-sub">
         Responde sin maquillaje: ¿el sistema le gana al azar?
       </p>
@@ -182,6 +196,7 @@ import BaseBtn from "@/components/BaseBtn.vue";
 import StatBadge from "@/components/StatBadge.vue";
 import VerdictBadge from "@/components/VerdictBadge.vue";
 import NumberChip from "@/components/NumberChip.vue";
+import HelpTooltip from "@/components/HelpTooltip.vue";
 
 const { stats, ci, loading, error, reload } = useHitTracker(30);
 const { draws } = useDraws();
@@ -279,6 +294,7 @@ function formatP(pValue) {
 }
 .view-title i { color: var(--cyan); font-size: .85em; }
 .view-sub { color: var(--text-secondary); font-size: var(--text-sm); }
+.view-title-row { display: flex; align-items: center; gap: var(--sp-3); }
 
 /* Métricas */
 .metrics-grid {

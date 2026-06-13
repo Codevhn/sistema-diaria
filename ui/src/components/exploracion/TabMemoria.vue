@@ -3,15 +3,6 @@
     <!-- Controles -->
     <div class="controls-bar">
       <div class="control-group">
-        <label class="control-label">País</label>
-        <select v-model="pais" class="select">
-          <option value="">Todos</option>
-          <option value="HN">HN</option>
-          <option value="GT">GT</option>
-          <option value="SV">SV</option>
-        </select>
-      </div>
-      <div class="control-group">
         <label class="control-label">Ordenar por</label>
         <select v-model="sortBy" class="select">
           <option value="numero">Número</option>
@@ -72,7 +63,6 @@ import { ref, computed, onMounted } from "vue";
 import { DB } from "@motors/storage.js";
 import { resumirActividadNumeros } from "@motors/memory.js";
 
-const pais   = ref("HN");
 const sortBy = ref("numero");
 const draws  = ref([]);
 const loading= ref(false);
@@ -82,9 +72,7 @@ const pad = (n) => String(n).padStart(2, "0");
 
 const summary = computed(() => {
   if (!draws.value.length) return null;
-  return resumirActividadNumeros(draws.value, {
-    pais: pais.value || undefined,
-  });
+  return resumirActividadNumeros(draws.value, { pais: "HN" });
 });
 
 const totalDraws = computed(() =>
