@@ -44,7 +44,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { loadGuide } from "@motors/guia.js";
 
 const query       = ref("");
 const guide       = ref(null);
@@ -72,7 +71,9 @@ const filtered = computed(() => {
 onMounted(async () => {
   loadingGuide.value = true;
   try {
-    guide.value = await loadGuide();
+    const res = await fetch("./data/guia_suenos.json");
+    if (!res.ok) throw new Error(`Error ${res.status} al cargar guía`);
+    guide.value = await res.json();
   } catch (e) {
     guideError.value = e?.message ?? String(e);
   } finally {
