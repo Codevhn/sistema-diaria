@@ -1,5 +1,8 @@
 <template>
-  <div class="app-shell" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+  <!-- Login page: render without shell chrome -->
+  <RouterView v-if="isLoginPage" />
+
+  <div v-else class="app-shell" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
     <!-- ── Titlebar ─────────────────────────────────── -->
     <header class="titlebar">
       <button class="titlebar__toggle" @click="toggleSidebar" :aria-label="sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'">
@@ -11,6 +14,9 @@
       </span>
       <div class="titlebar__right">
         <span class="titlebar__date">{{ todayLabel }}</span>
+        <button class="titlebar__logout" title="Cerrar sesión" @click="handleLogout">
+          <i class="fa-solid fa-right-from-bracket" />
+        </button>
       </div>
     </header>
 
@@ -66,7 +72,14 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import { RouterLink, RouterView } from "vue-router";
+import { RouterLink, RouterView, useRoute, useRouter } from "vue-router";
+import { useAuth } from "@/composables/useAuth.js";
+
+const route = useRoute();
+const router = useRouter();
+const { user, logout } = useAuth();
+
+const isLoginPage = computed(() => route.name === "login");
 
 const sidebarCollapsed = ref(false);
 
@@ -81,6 +94,11 @@ const navItems = [
 
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value;
+}
+
+async function handleLogout() {
+  await logout();
+  router.push({ name: "login" });
 }
 
 const todayLabel = computed(() => {
@@ -165,6 +183,22 @@ const todayLabel = computed(() => {
   font-size: var(--text-xs);
   color: var(--text-muted);
   text-transform: capitalize;
+}
+
+.titlebar__logout {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  transition: background var(--t-fast), color var(--t-fast);
+  flex-shrink: 0;
+}
+.titlebar__logout:hover {
+  background: var(--red-surface);
+  color: var(--red);
 }
 
 /* ── Sidebar ────────────────────────────────────── */
