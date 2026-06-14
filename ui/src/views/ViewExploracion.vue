@@ -46,12 +46,14 @@ const TabTransformaciones = defineAsyncComponent(() => import("@/components/expl
 const TabCruceta        = defineAsyncComponent(() => import("@/components/exploracion/TabCruceta.vue"));
 const TabPares          = defineAsyncComponent(() => import("@/components/exploracion/TabPares.vue"));
 const TabGuia           = defineAsyncComponent(() => import("@/components/exploracion/TabGuia.vue"));
+const TabRelativos      = defineAsyncComponent(() => import("@/components/exploracion/TabRelativos.vue"));
 
 const tabs = [
   { id: "memoria",          icon: "fa-brain",               label: "Memoria",         component: TabMemoria },
   { id: "transformaciones", icon: "fa-wand-magic-sparkles", label: "Transformaciones",component: TabTransformaciones },
   { id: "cruceta",          icon: "fa-draw-polygon",        label: "Cruceta",         component: TabCruceta },
   { id: "pares",            icon: "fa-puzzle-piece",        label: "Pares",           component: TabPares },
+  { id: "relativos",        icon: "fa-link",                label: "Relativos",       component: TabRelativos },
   { id: "suenos",           icon: "fa-book",                label: "Guía de Sueños",  component: TabGuia },
 ];
 
