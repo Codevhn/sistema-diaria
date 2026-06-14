@@ -107,7 +107,7 @@
                   class="del-btn"
                   :disabled="deletingId === d.id"
                   :title="`Eliminar sorteo ${pad(d.numero)} del ${d.fecha}`"
-                  @click="eliminar(d.id)"
+                  @click="pedirEliminar(d)"
                 >
                   <i class="fa-solid" :class="deletingId === d.id ? 'fa-spinner fa-spin' : 'fa-trash-can'" />
                 </button>
@@ -121,6 +121,20 @@
       </div>
     </BaseCard>
   </div>
+
+  <!-- Modal de confirmación de borrado -->
+  <ConfirmModal
+    :model-value="!!confirmTarget"
+    title="Eliminar sorteo"
+    :message="confirmTarget ? `¿Eliminar ${pad(confirmTarget.numero)} · ${confirmTarget.fecha}? Esta acción no se puede deshacer.` : ''"
+    confirm-label="Eliminar"
+    cancel-label="Cancelar"
+    icon="fa-trash-can"
+    icon-color="var(--red)"
+    variant="danger"
+    @confirm="confirmarEliminar"
+    @cancel="confirmTarget = null"
+  />
 </template>
 
 <script setup>
@@ -129,6 +143,7 @@ import { DB } from "@motors/storage.js";
 import BaseCard from "@/components/BaseCard.vue";
 import BaseBtn from "@/components/BaseBtn.vue";
 import NumberChip from "@/components/NumberChip.vue";
+import ConfirmModal from "@/components/ConfirmModal.vue";
 
 const TURNOS = [
   { id: "11AM", label: "11 AM", hour: 11 },
@@ -143,6 +158,7 @@ const loadingDraws= ref(false);
 const errorDraws  = ref(null);
 const savingSlot  = ref(null);
 const deletingId  = ref(null);
+const confirmTarget = ref(null); // { id, numero, fecha }
 const formValues  = ref(Object.fromEntries(TURNOS.map(t => [t.id, ""])));
 const slotErrors  = ref({});
 
@@ -221,14 +237,20 @@ async function registrar(turnoId) {
   }
 }
 
-async function eliminar(id) {
-  if (!confirm("¿Eliminar este sorteo?")) return;
-  deletingId.value = id;
+function pedirEliminar(d) {
+  confirmTarget.value = { id: d.id, numero: d.numero, fecha: d.fecha };
+}
+
+async function confirmarEliminar() {
+  const target = confirmTarget.value;
+  confirmTarget.value = null;
+  if (!target) return;
+  deletingId.value = target.id;
   try {
-    await DB.deleteDraw(id);
+    await DB.deleteDraw(target.id);
     await reloadDraws();
   } catch (e) {
-    alert(e?.message ?? "Error al eliminar");
+    console.error(e);
   } finally {
     deletingId.value = null;
   }
