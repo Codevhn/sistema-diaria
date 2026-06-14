@@ -175,6 +175,7 @@
                 v-for="r in sortedRows(b)"
                 :key="r.numero"
                 :numero="r.numero"
+                :symbol="sym(r.numero)"
                 :hit="r.estado === 'acierto'"
                 size="sm"
               />
@@ -197,8 +198,10 @@ import StatBadge from "@/components/StatBadge.vue";
 import VerdictBadge from "@/components/VerdictBadge.vue";
 import NumberChip from "@/components/NumberChip.vue";
 import HelpTooltip from "@/components/HelpTooltip.vue";
+import { useGuide } from "@/composables/useGuide.js";
 
 const { stats, ci, loading, error, reload } = useHitTracker(30);
+const { sym } = useGuide();
 const { draws } = useDraws();
 
 // ── Auditoría de aleatoriedad ────────────────────────

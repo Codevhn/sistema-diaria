@@ -88,7 +88,7 @@
               class="candidate-row"
             >
               <span class="candidate-rank">#{{ i + 1 }}</span>
-              <NumberChip :numero="c.numero" size="lg" :score="c.score" />
+              <NumberChip :numero="c.numero" size="lg" :score="c.score" :symbol="sym(c.numero)" />
               <div class="candidate-bar-wrap">
                 <div
                   class="candidate-bar"
@@ -114,6 +114,7 @@
               v-for="n in result.eliminados"
               :key="n.numero"
               :numero="n.numero"
+              :symbol="sym(n.numero)"
               size="sm"
             />
           </div>
@@ -140,12 +141,14 @@
 <script setup>
 import { ref } from "vue";
 import { useSignalEngine } from "@/composables/useSignalEngine.js";
+import { useGuide } from "@/composables/useGuide.js";
 import BaseCard from "@/components/BaseCard.vue";
 import BaseBtn from "@/components/BaseBtn.vue";
 import NumberChip from "@/components/NumberChip.vue";
 import HelpTooltip from "@/components/HelpTooltip.vue";
 
 const { result, loading, error, run } = useSignalEngine();
+const { sym } = useGuide();
 
 const turno = ref("");
 

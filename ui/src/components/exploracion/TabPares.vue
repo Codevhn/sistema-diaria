@@ -41,7 +41,7 @@
           </thead>
           <tbody>
             <tr v-for="c in candidates" :key="c.numero">
-              <td><NumberChip :numero="c.numero" size="sm" /></td>
+              <td><NumberChip :numero="c.numero" :symbol="sym(c.numero)" size="sm" /></td>
               <td class="rel-col">{{ c.relation }}</td>
               <td class="num-col">{{ c.count }}</td>
               <td class="num-col">{{ (c.freq * 100).toFixed(1) }}%</td>
@@ -64,6 +64,9 @@ import { DB } from "@motors/storage.js";
 import { buildRelationStats, getCandidates } from "@motors/relation-analyzer.js";
 import NumberChip from "@/components/NumberChip.vue";
 import BaseBtn from "@/components/BaseBtn.vue";
+import { useGuide } from "@/composables/useGuide.js";
+
+const { sym } = useGuide();
 
 const ultimoNum = ref(null);
 const turno     = ref("");

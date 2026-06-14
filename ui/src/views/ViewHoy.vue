@@ -39,6 +39,7 @@
         <!-- Resultado existente -->
         <div v-if="getSlotResult(slot.id)" class="slot-card__result">
           <span class="slot-num mono">{{ pad(getSlotResult(slot.id).numero) }}</span>
+          <span v-if="sym(getSlotResult(slot.id).numero)" class="slot-sym">{{ sym(getSlotResult(slot.id).numero) }}</span>
           <span class="slot-reg">registrado</span>
         </div>
 
@@ -98,7 +99,7 @@
           <tbody>
             <tr v-for="d in recentDraws" :key="d.id">
               <td class="num-col">
-                <NumberChip :numero="d.numero" size="sm" />
+                <NumberChip :numero="d.numero" :symbol="sym(d.numero)" size="sm" />
               </td>
               <td>{{ d.horario }}</td>
               <td>{{ d.fecha }}</td>
@@ -144,6 +145,9 @@ import BaseCard from "@/components/BaseCard.vue";
 import BaseBtn from "@/components/BaseBtn.vue";
 import NumberChip from "@/components/NumberChip.vue";
 import ConfirmModal from "@/components/ConfirmModal.vue";
+import { useGuide } from "@/composables/useGuide.js";
+
+const { sym } = useGuide();
 
 const TURNOS = [
   { id: "11AM", label: "11 AM", hour: 11 },
@@ -314,8 +318,9 @@ onMounted(reloadDraws);
   border-radius: var(--r-pill); padding: 1px 6px; letter-spacing: .05em;
 }
 
-.slot-card__result { display: flex; align-items: baseline; gap: var(--sp-2); }
+.slot-card__result { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
 .slot-num { font-size: var(--text-2xl); font-weight: var(--fw-bold); color: var(--green); }
+.slot-sym { font-size: var(--text-sm); color: var(--text-secondary); font-style: italic; }
 .slot-reg  { font-size: var(--text-xs); color: var(--text-muted); }
 
 .slot-card__form { display: flex; gap: var(--sp-2); align-items: center; }
