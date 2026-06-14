@@ -154,8 +154,9 @@ onMounted(loadDraws);
 /* Órbita */
 .orbit-grid {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
+  grid-template-columns: repeat(10, minmax(0, 72px));
   gap: 6px;
+  justify-content: center;
 }
 .orbit-cell {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -176,19 +177,20 @@ onMounted(loadDraws);
 }
 .orbit-cell__num  {
   font-family: var(--font-mono); font-weight: var(--fw-bold);
-  font-size: clamp(10px, 1.5vw, 15px); line-height: 1;
+  font-size: clamp(11px, 1.8cqw, 16px); line-height: 1;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,.6);
 }
 .orbit-cell__days {
-  font-size: clamp(6px, 0.85vw, 9px);
-  color: rgba(255,255,255,.75);
-  line-height: 1;
+  font-size: clamp(8px, 1.1cqw, 11px);
+  color: rgba(255,255,255,.85);
+  line-height: 1.2;
+  font-weight: 500;
 }
 .orbit-cell__total{
-  font-size: clamp(6px, 0.8vw, 8px);
-  color: rgba(255,255,255,.6);
-  line-height: 1;
+  font-size: clamp(7px, 0.9cqw, 10px);
+  color: rgba(255,255,255,.65);
+  line-height: 1.2;
 }
 
 .orbit-footnote { font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--sp-1); }
