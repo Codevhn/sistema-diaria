@@ -5,10 +5,115 @@
         <i class="fa-solid fa-dice" />
         Pega3
       </h1>
-      <p class="view-sub">Motor independiente de análisis de tres dígitos.</p>
+      <p class="view-sub">Registrá sorteos de tres pares y analizá candidatos.</p>
     </div>
 
-    <!-- Controles -->
+    <!-- ── Registro ─────────────────────────────────── -->
+    <BaseCard title="Registrar sorteo Pega3">
+      <div class="reg-form">
+        <div class="control-group">
+          <label class="control-label">Fecha</label>
+          <input type="date" v-model="regFecha" class="select" />
+        </div>
+        <div class="control-group">
+          <label class="control-label">Turno</label>
+          <select v-model="regTurno" class="select">
+            <option value="">— Seleccioná —</option>
+            <option value="11AM">11 AM</option>
+            <option value="3PM">3 PM</option>
+            <option value="9PM">9 PM</option>
+          </select>
+        </div>
+        <div class="pares-group">
+          <label class="control-label">3 Pares (00–99)</label>
+          <div class="pares-inputs">
+            <input
+              v-for="i in 3"
+              :key="i"
+              type="text"
+              inputmode="numeric"
+              maxlength="2"
+              placeholder="00"
+              class="par-input"
+              v-model="regPares[i - 1]"
+              @keyup.enter="registrarPega3"
+            />
+          </div>
+        </div>
+        <BaseBtn
+          variant="primary"
+          size="sm"
+          icon="fa-check"
+          :loading="saving"
+          :disabled="!canSave"
+          @click="registrarPega3"
+        >
+          Guardar
+        </BaseBtn>
+      </div>
+      <p v-if="regError" class="reg-error">{{ regError }}</p>
+    </BaseCard>
+
+    <!-- ── Historial ─────────────────────────────────── -->
+    <BaseCard title="Historial Pega3">
+      <template #action>
+        <div style="display:flex;align-items:center;gap:var(--sp-3)">
+          <span class="history-count">{{ pega3Draws.length }} sorteos</span>
+          <BaseBtn variant="secondary" size="sm" icon="fa-rotate" :loading="loadingHistory" @click="reloadHistory">
+            Actualizar
+          </BaseBtn>
+        </div>
+      </template>
+
+      <div v-if="loadingHistory" class="skeleton" style="height:160px;border-radius:6px" />
+      <div v-else-if="historyError" class="error-notice">
+        <i class="fa-solid fa-triangle-exclamation" /> {{ historyError }}
+      </div>
+      <div v-else-if="!pega3Draws.length" class="empty-state">
+        <i class="fa-solid fa-inbox" /> Aún no hay sorteos Pega3 registrados.
+      </div>
+      <div v-else class="history-table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Par 1</th>
+              <th>Par 2</th>
+              <th>Par 3</th>
+              <th>Turno</th>
+              <th>Fecha</th>
+              <th class="del-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="d in recentPega3" :key="d.id">
+              <td class="par-col mono">{{ padNum(d.pares?.[0]) }}</td>
+              <td class="par-col mono">{{ padNum(d.pares?.[1]) }}</td>
+              <td class="par-col mono">{{ padNum(d.pares?.[2]) }}</td>
+              <td>{{ d.horario }}</td>
+              <td>{{ d.fecha }}</td>
+              <td class="del-col">
+                <button
+                  class="del-btn"
+                  :disabled="deletingId === d.id"
+                  :title="`Eliminar sorteo Pega3 del ${d.fecha}`"
+                  @click="pedirEliminar(d)"
+                >
+                  <i class="fa-solid" :class="deletingId === d.id ? 'fa-spinner fa-spin' : 'fa-trash-can'" />
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="pega3Draws.length > 50" class="history-more">
+          Mostrando últimos 50 de {{ pega3Draws.length }} sorteos.
+        </p>
+      </div>
+    </BaseCard>
+
+    <!-- ── Análisis ───────────────────────────────────── -->
+    <div class="section-label">
+      <i class="fa-solid fa-chart-line" /> Análisis de candidatos
+    </div>
     <div class="controls-bar">
       <BaseBtn variant="primary" icon="fa-play" :loading="loading" @click="ejecutar">
         Analizar
@@ -21,20 +126,17 @@
     <div v-if="loading" class="skeleton" style="height:300px;border-radius:10px" />
 
     <template v-else-if="result">
-      <!-- Sin datos -->
       <div v-if="!result.seleccion?.top?.length" class="empty-state">
         <i class="fa-solid fa-circle-info" />
         Sin suficientes datos Pega3 para generar candidatos.
       </div>
 
       <div v-else class="results-grid">
-        <!-- Turno objetivo -->
         <div v-if="result.seleccion.turnoObjetivo" class="turno-badge">
           <i class="fa-solid fa-clock" />
           Turno objetivo: <b>{{ result.seleccion.turnoObjetivo.label }}</b>
         </div>
 
-        <!-- Top candidatos -->
         <BaseCard title="Top candidatos" variant="gold" :full="false">
           <div class="pega3-candidates">
             <div
@@ -52,7 +154,6 @@
           </div>
         </BaseCard>
 
-        <!-- Secundarios -->
         <BaseCard v-if="result.seleccion.secundarios?.length" title="Secundarios">
           <div class="chips-wrap">
             <span
@@ -63,7 +164,6 @@
           </div>
         </BaseCard>
 
-        <!-- Comodín -->
         <BaseCard v-if="result.seleccion.comodin" title="Comodín">
           <div class="comodin-wrap">
             <span class="pega3-num comodin-num mono">
@@ -75,7 +175,6 @@
           </div>
         </BaseCard>
 
-        <!-- Sesgos -->
         <BaseCard title="Sesgos detectados" :full="true">
           <div class="sesgos-row" v-if="result.sesgos.fuertes.length">
             <span class="sesgo-label sesgo-label--strong">Fuertes</span>
@@ -102,36 +201,138 @@
 
     <div v-else-if="!loading" class="empty-start">
       <div class="empty-start__icon"><i class="fa-solid fa-dice" /></div>
-      <p>Seleccioná un país y presioná <b>Analizar</b>.</p>
+      <p>Presioná <b>Analizar</b> para generar candidatos desde el historial.</p>
     </div>
   </div>
+
+  <ConfirmModal
+    :model-value="!!confirmTarget"
+    title="Eliminar sorteo Pega3"
+    :message="confirmTarget ? `¿Eliminar sorteo del ${confirmTarget.fecha} (${confirmTarget.horario})? Esta acción no se puede deshacer.` : ''"
+    confirm-label="Eliminar"
+    cancel-label="Cancelar"
+    icon="fa-trash-can"
+    icon-color="var(--red)"
+    variant="danger"
+    @confirm="confirmarEliminar"
+    @cancel="confirmTarget = null"
+  />
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { DB } from "@motors/storage.js";
 import { evaluarMotorPega3 } from "@motors/pega3-engine.js";
 import BaseCard from "@/components/BaseCard.vue";
 import BaseBtn from "@/components/BaseBtn.vue";
+import ConfirmModal from "@/components/ConfirmModal.vue";
 
 const result  = ref(null);
 const loading = ref(false);
 const error   = ref(null);
 
+// --- Registro ---
+const regFecha  = ref(new Date().toISOString().slice(0, 10));
+const regTurno  = ref("");
+const regPares  = ref(["", "", ""]);
+const saving    = ref(false);
+const regError  = ref(null);
+
+const canSave = computed(() => {
+  if (!regFecha.value || !regTurno.value) return false;
+  return regPares.value.every(p => p.trim() !== "" && !isNaN(parseInt(p, 10)));
+});
+
+async function registrarPega3() {
+  if (!canSave.value) return;
+  regError.value = null;
+  const pares = regPares.value.map(p => parseInt(p.trim(), 10));
+  if (pares.some(n => n < 0 || n > 99)) {
+    regError.value = "Cada par debe ser un número entre 00 y 99.";
+    return;
+  }
+  saving.value = true;
+  try {
+    await DB.savePega3Draw({
+      fecha:   regFecha.value,
+      horario: regTurno.value,
+      pais:    "HN",
+      pares,
+    });
+    regPares.value = ["", "", ""];
+    await reloadHistory();
+  } catch (e) {
+    regError.value = e?.message ?? "Error al guardar";
+  } finally {
+    saving.value = false;
+  }
+}
+
+// --- Historial ---
+const pega3Draws    = ref([]);
+const loadingHistory= ref(false);
+const historyError  = ref(null);
+const deletingId    = ref(null);
+const confirmTarget = ref(null);
+
+const recentPega3 = computed(() =>
+  [...pega3Draws.value]
+    .sort((a, b) => {
+      if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
+      return (b.createdAt ?? 0) - (a.createdAt ?? 0);
+    })
+    .slice(0, 50)
+);
+
+async function reloadHistory() {
+  loadingHistory.value = true;
+  historyError.value   = null;
+  try {
+    pega3Draws.value = await DB.listPega3Draws({ pais: "HN" });
+  } catch (e) {
+    historyError.value = e?.message ?? String(e);
+  } finally {
+    loadingHistory.value = false;
+  }
+}
+
+function pedirEliminar(d) {
+  confirmTarget.value = { id: d.id, fecha: d.fecha, horario: d.horario };
+}
+
+async function confirmarEliminar() {
+  const target = confirmTarget.value;
+  confirmTarget.value = null;
+  if (!target) return;
+  deletingId.value = target.id;
+  try {
+    await DB.deletePega3Draw(target.id);
+    await reloadHistory();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    deletingId.value = null;
+  }
+}
+
+// --- Análisis ---
 async function ejecutar() {
   loading.value = true;
   error.value   = null;
   result.value  = null;
   try {
-    const draws = await DB.listDraws({ excludeTest: true });
-    const filtered = draws.filter(d => (d.pais || "").toUpperCase() === "HN");
-    result.value = evaluarMotorPega3(filtered);
+    const draws = await DB.listPega3Draws({ pais: "HN" });
+    result.value = evaluarMotorPega3(draws);
   } catch (e) {
     error.value = e?.message ?? String(e);
   } finally {
     loading.value = false;
   }
 }
+
+const padNum = (n) => n != null ? String(n).padStart(2, "0") : "–";
+
+onMounted(reloadHistory);
 </script>
 
 <style scoped>
@@ -144,10 +345,9 @@ async function ejecutar() {
 .view-title i { color: var(--orange); font-size: .85em; }
 .view-sub { color: var(--text-secondary); font-size: var(--text-sm); }
 
-.controls-bar {
-  display: flex; align-items: flex-end; gap: var(--sp-4); flex-wrap: wrap;
-  padding: var(--sp-4);
-  background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md);
+/* Registro */
+.reg-form {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-4);
 }
 .control-group { display: flex; flex-direction: column; gap: var(--sp-1); }
 .control-label { font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
@@ -158,6 +358,59 @@ async function ejecutar() {
   padding: var(--sp-2) var(--sp-3); cursor: pointer;
 }
 .select:focus { outline: none; border-color: var(--gold); }
+
+.pares-group { display: flex; flex-direction: column; gap: var(--sp-1); }
+.pares-inputs { display: flex; gap: var(--sp-2); }
+.par-input {
+  font-family: var(--font-mono); font-size: var(--text-base);
+  width: 56px; text-align: center;
+  background: var(--bg-raised); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: var(--sp-2);
+}
+.par-input:focus { outline: none; border-color: var(--gold); }
+.reg-error { margin-top: var(--sp-2); font-size: var(--text-xs); color: var(--red); }
+
+/* Section label */
+.section-label {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--text-sm); font-weight: var(--fw-semi); color: var(--text-secondary);
+}
+
+/* Historial */
+.history-count { font-size: var(--text-xs); color: var(--text-muted); }
+.history-table-wrap { overflow-x: auto; }
+.history-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.history-table th {
+  padding: var(--sp-2) var(--sp-3); text-align: left;
+  font-weight: var(--fw-semi); color: var(--text-muted);
+  font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid var(--border);
+}
+.history-table td {
+  padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.history-table tr:last-child td { border-bottom: none; }
+.par-col { font-family: var(--font-mono); font-weight: var(--fw-bold); color: var(--gold); }
+.del-col { text-align: right; width: 36px; }
+.del-btn {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  border-radius: var(--r-sm); color: var(--text-muted); font-size: .8rem;
+  transition: background var(--t-fast), color var(--t-fast);
+  opacity: 0;
+}
+.history-table tr:hover .del-btn { opacity: 1; }
+.del-btn:hover { background: var(--red-surface); color: var(--red); }
+.del-btn:disabled { opacity: .4; cursor: default; }
+.history-more { margin-top: var(--sp-2); font-size: var(--text-xs); color: var(--text-muted); }
+
+/* Controles */
+.controls-bar {
+  display: flex; align-items: flex-end; gap: var(--sp-4); flex-wrap: wrap;
+  padding: var(--sp-4);
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md);
+}
 
 .results-grid {
   display: grid;
@@ -225,4 +478,5 @@ async function ejecutar() {
 }
 .empty-start p { font-size: var(--text-sm); max-width: 260px; }
 .secondary { color: var(--text-secondary); font-size: var(--text-sm); }
+.mono { font-family: var(--font-mono); }
 </style>

@@ -1,0 +1,1619 @@
+{
+  "_meta": {
+    "version": 1,
+    "fuente": "Tabla oficial de \"números relativos\" de La Diaria (Honduras) — proporcionada por jugador con experiencia",
+    "descripcion": "Mapa direccional: por cada número (00-99) hay 2 \"relativos\" que el sistema La Diaria tiende a usar después. NO es bidireccional — A→[B,C] no implica B→A.",
+    "formato": "pares: { numero: { simbolo, relativos: [n1, n2] } }",
+    "notas": [
+      "Los relativos pueden repetirse (ej: 19→[74,74])",
+      "Un número puede aparecer como su propio relativo (ej: 37→[76,37])",
+      "No es bidireccional: si 01→77, no implica 77→01",
+      "Algunos números aparecen como relativos de muchos (atractores): 91, 92, 80, 76, 47",
+      "El motor usará este mapa para medir la cadencia histórica real (días promedio entre A y aparición de algún relativo de A) y alertar cuando un relativo esté vencido."
+    ],
+    "total_numeros": 100,
+    "universo_destino": "82 destinos únicos"
+  },
+  "pares": {
+    "00": {
+      "numero": 0,
+      "simbolo": "Avión",
+      "relativos": [
+        {
+          "numero": 21,
+          "pad": "21",
+          "simbolo": "Pájaro"
+        },
+        {
+          "numero": 69,
+          "pad": "69",
+          "simbolo": "Soldado"
+        }
+      ]
+    },
+    "01": {
+      "numero": 1,
+      "simbolo": "Pies",
+      "relativos": [
+        {
+          "numero": 77,
+          "pad": "77",
+          "simbolo": "Humo"
+        },
+        {
+          "numero": 28,
+          "pad": "28",
+          "simbolo": "Gallo"
+        }
+      ]
+    },
+    "02": {
+      "numero": 2,
+      "simbolo": "Mujer",
+      "relativos": [
+        {
+          "numero": 50,
+          "pad": "50",
+          "simbolo": "Luna nueva"
+        },
+        {
+          "numero": 27,
+          "pad": "27",
+          "simbolo": "Juego"
+        }
+      ]
+    },
+    "03": {
+      "numero": 3,
+      "simbolo": "Muerto",
+      "relativos": [
+        {
+          "numero": 50,
+          "pad": "50",
+          "simbolo": "Luna nueva"
+        },
+        {
+          "numero": 28,
+          "pad": "28",
+          "simbolo": "Gallo"
+        }
+      ]
+    },
+    "04": {
+      "numero": 4,
+      "simbolo": "Tigre",
+      "relativos": [
+        {
+          "numero": 74,
+          "pad": "74",
+          "simbolo": "Edificio"
+        },
+        {
+          "numero": 29,
+          "pad": "29",
+          "simbolo": "Padre"
+        }
+      ]
+    },
+    "05": {
+      "numero": 5,
+      "simbolo": "Embarazada",
+      "relativos": [
+        {
+          "numero": 75,
+          "pad": "75",
+          "simbolo": "Reina"
+        },
+        {
+          "numero": 60,
+          "pad": "60",
+          "simbolo": "Dragón"
+        }
+      ]
+    },
+    "06": {
+      "numero": 6,
+      "simbolo": "Elefante",
+      "relativos": [
+        {
+          "numero": 19,
+          "pad": "19",
+          "simbolo": "Mariposa"
+        },
+        {
+          "numero": 21,
+          "pad": "21",
+          "simbolo": "Pájaro"
+        }
+      ]
+    },
+    "07": {
+      "numero": 7,
+      "simbolo": "Navaja",
+      "relativos": [
+        {
+          "numero": 73,
+          "pad": "73",
+          "simbolo": "Fuego"
+        },
+        {
+          "numero": 32,
+          "pad": "32",
+          "simbolo": "Culebra"
+        }
+      ]
+    },
+    "08": {
+      "numero": 8,
+      "simbolo": "Conejo",
+      "relativos": [
+        {
+          "numero": 46,
+          "pad": "46",
+          "simbolo": "Familia"
+        },
+        {
+          "numero": 35,
+          "pad": "35",
+          "simbolo": "Virgen"
+        }
+      ]
+    },
+    "09": {
+      "numero": 9,
+      "simbolo": "Hombre",
+      "relativos": [
+        {
+          "numero": 94,
+          "pad": "94",
+          "simbolo": "Carro"
+        },
+        {
+          "numero": 52,
+          "pad": "52",
+          "simbolo": "Zorrillo"
+        }
+      ]
+    },
+    "10": {
+      "numero": 10,
+      "simbolo": "Anillo",
+      "relativos": [
+        {
+          "numero": 14,
+          "pad": "14",
+          "simbolo": "Boda"
+        },
+        {
+          "numero": 25,
+          "pad": "25",
+          "simbolo": "Balanza"
+        }
+      ]
+    },
+    "11": {
+      "numero": 11,
+      "simbolo": "Perro",
+      "relativos": [
+        {
+          "numero": 7,
+          "pad": "07",
+          "simbolo": "Navaja"
+        },
+        {
+          "numero": 30,
+          "pad": "30",
+          "simbolo": "Bolo"
+        }
+      ]
+    },
+    "12": {
+      "numero": 12,
+      "simbolo": "Caballo",
+      "relativos": [
+        {
+          "numero": 70,
+          "pad": "70",
+          "simbolo": "Oro"
+        },
+        {
+          "numero": 37,
+          "pad": "37",
+          "simbolo": "Suerte"
+        }
+      ]
+    },
+    "13": {
+      "numero": 13,
+      "simbolo": "Gato",
+      "relativos": [
+        {
+          "numero": 81,
+          "pad": "81",
+          "simbolo": "Rieles"
+        },
+        {
+          "numero": 42,
+          "pad": "42",
+          "simbolo": "Madre"
+        }
+      ]
+    },
+    "14": {
+      "numero": 14,
+      "simbolo": "Boda",
+      "relativos": [
+        {
+          "numero": 91,
+          "pad": "91",
+          "simbolo": "Tortuga"
+        },
+        {
+          "numero": 97,
+          "pad": "97",
+          "simbolo": "Viejito"
+        }
+      ]
+    },
+    "15": {
+      "numero": 15,
+      "simbolo": "Ratón",
+      "relativos": [
+        {
+          "numero": 86,
+          "pad": "86",
+          "simbolo": "Reloj"
+        },
+        {
+          "numero": 40,
+          "pad": "40",
+          "simbolo": "Cielo"
+        }
+      ]
+    },
+    "16": {
+      "numero": 16,
+      "simbolo": "Niña",
+      "relativos": [
+        {
+          "numero": 90,
+          "pad": "90",
+          "simbolo": "Lentes"
+        },
+        {
+          "numero": 41,
+          "pad": "41",
+          "simbolo": "Novia"
+        }
+      ]
+    },
+    "17": {
+      "numero": 17,
+      "simbolo": "Joven",
+      "relativos": [
+        {
+          "numero": 91,
+          "pad": "91",
+          "simbolo": "Tortuga"
+        },
+        {
+          "numero": 42,
+          "pad": "42",
+          "simbolo": "Madre"
+        }
+      ]
+    },
+    "18": {
+      "numero": 18,
+      "simbolo": "Ángel",
+      "relativos": [
+        {
+          "numero": 40,
+          "pad": "40",
+          "simbolo": "Cielo"
+        },
+        {
+          "numero": 98,
+          "pad": "98",
+          "simbolo": "Bailes"
+        }
+      ]
+    },
+    "19": {
+      "numero": 19,
+      "simbolo": "Mariposa",
+      "relativos": [
+        {
+          "numero": 74,
+          "pad": "74",
+          "simbolo": "Edificio"
+        },
+        {
+          "numero": 74,
+          "pad": "74",
+          "simbolo": "Edificio"
+        }
+      ]
+    },
+    "20": {
+      "numero": 20,
+      "simbolo": "Espejo",
+      "relativos": [
+        {
+          "numero": 77,
+          "pad": "77",
+          "simbolo": "Humo"
+        },
+        {
+          "numero": 80,
+          "pad": "80",
+          "simbolo": "Café"
+        }
+      ]
+    },
+    "21": {
+      "numero": 21,
+      "simbolo": "Pájaro",
+      "relativos": [
+        {
+          "numero": 80,
+          "pad": "80",
+          "simbolo": "Café"
+        },
+        {
+          "numero": 81,
+          "pad": "81",
+          "simbolo": "Rieles"
+        }
+      ]
+    },
+    "22": {
+      "numero": 22,
+      "simbolo": "Ataúd",
+      "relativos": [
+        {
+          "numero": 68,
+          "pad": "68",
+          "simbolo": "Ladrón"
+        },
+        {
+          "numero": 49,
+          "pad": "49",
+          "simbolo": "Sombra"
+        }
+      ]
+    },
+    "23": {
+      "numero": 23,
+      "simbolo": "Mono",
+      "relativos": [
+        {
+          "numero": 41,
+          "pad": "41",
+          "simbolo": "Novia"
+        },
+        {
+          "numero": 14,
+          "pad": "14",
+          "simbolo": "Boda"
+        }
+      ]
+    },
+    "24": {
+      "numero": 24,
+      "simbolo": "Sapo",
+      "relativos": [
+        {
+          "numero": 46,
+          "pad": "46",
+          "simbolo": "Familia"
+        },
+        {
+          "numero": 94,
+          "pad": "94",
+          "simbolo": "Carro"
+        }
+      ]
+    },
+    "25": {
+      "numero": 25,
+      "simbolo": "Balanza",
+      "relativos": [
+        {
+          "numero": 4,
+          "pad": "04",
+          "simbolo": "Tigre"
+        },
+        {
+          "numero": 60,
+          "pad": "60",
+          "simbolo": "Dragón"
+        }
+      ]
+    },
+    "26": {
+      "numero": 26,
+      "simbolo": "Bandera",
+      "relativos": [
+        {
+          "numero": 52,
+          "pad": "52",
+          "simbolo": "Zorrillo"
+        },
+        {
+          "numero": 22,
+          "pad": "22",
+          "simbolo": "Ataúd"
+        }
+      ]
+    },
+    "27": {
+      "numero": 27,
+      "simbolo": "Juego",
+      "relativos": [
+        {
+          "numero": 44,
+          "pad": "44",
+          "simbolo": "Mesas"
+        },
+        {
+          "numero": 28,
+          "pad": "28",
+          "simbolo": "Gallo"
+        }
+      ]
+    },
+    "28": {
+      "numero": 28,
+      "simbolo": "Gallo",
+      "relativos": [
+        {
+          "numero": 44,
+          "pad": "44",
+          "simbolo": "Mesas"
+        },
+        {
+          "numero": 23,
+          "pad": "23",
+          "simbolo": "Mono"
+        }
+      ]
+    },
+    "29": {
+      "numero": 29,
+      "simbolo": "Padre",
+      "relativos": [
+        {
+          "numero": 76,
+          "pad": "76",
+          "simbolo": "Palomas"
+        },
+        {
+          "numero": 79,
+          "pad": "79",
+          "simbolo": "Flores"
+        }
+      ]
+    },
+    "30": {
+      "numero": 30,
+      "simbolo": "Bolo",
+      "relativos": [
+        {
+          "numero": 68,
+          "pad": "68",
+          "simbolo": "Ladrón"
+        },
+        {
+          "numero": 61,
+          "pad": "61",
+          "simbolo": "Guerra"
+        }
+      ]
+    },
+    "31": {
+      "numero": 31,
+      "simbolo": "Alacrán",
+      "relativos": [
+        {
+          "numero": 47,
+          "pad": "47",
+          "simbolo": "Banco"
+        },
+        {
+          "numero": 44,
+          "pad": "44",
+          "simbolo": "Mesas"
+        }
+      ]
+    },
+    "32": {
+      "numero": 32,
+      "simbolo": "Culebra",
+      "relativos": [
+        {
+          "numero": 1,
+          "pad": "01",
+          "simbolo": "Pies"
+        },
+        {
+          "numero": 29,
+          "pad": "29",
+          "simbolo": "Padre"
+        }
+      ]
+    },
+    "33": {
+      "numero": 33,
+      "simbolo": "Carpintero",
+      "relativos": [
+        {
+          "numero": 15,
+          "pad": "15",
+          "simbolo": "Ratón"
+        },
+        {
+          "numero": 5,
+          "pad": "05",
+          "simbolo": "Embarazada"
+        }
+      ]
+    },
+    "34": {
+      "numero": 34,
+      "simbolo": "Música",
+      "relativos": [
+        {
+          "numero": 84,
+          "pad": "84",
+          "simbolo": "Coronas"
+        },
+        {
+          "numero": 12,
+          "pad": "12",
+          "simbolo": "Caballo"
+        }
+      ]
+    },
+    "35": {
+      "numero": 35,
+      "simbolo": "Virgen",
+      "relativos": [
+        {
+          "numero": 91,
+          "pad": "91",
+          "simbolo": "Tortuga"
+        },
+        {
+          "numero": 53,
+          "pad": "53",
+          "simbolo": "Llanta"
+        }
+      ]
+    },
+    "36": {
+      "numero": 36,
+      "simbolo": "Viejita",
+      "relativos": [
+        {
+          "numero": 98,
+          "pad": "98",
+          "simbolo": "Bailes"
+        },
+        {
+          "numero": 76,
+          "pad": "76",
+          "simbolo": "Palomas"
+        }
+      ]
+    },
+    "37": {
+      "numero": 37,
+      "simbolo": "Suerte",
+      "relativos": [
+        {
+          "numero": 76,
+          "pad": "76",
+          "simbolo": "Palomas"
+        },
+        {
+          "numero": 37,
+          "pad": "37",
+          "simbolo": "Suerte"
+        }
+      ]
+    },
+    "38": {
+      "numero": 38,
+      "simbolo": "Pistola",
+      "relativos": [
+        {
+          "numero": 57,
+          "pad": "57",
+          "simbolo": "Cuchillo"
+        },
+        {
+          "numero": 53,
+          "pad": "53",
+          "simbolo": "Llanta"
+        }
+      ]
+    },
+    "39": {
+      "numero": 39,
+      "simbolo": "Jabón",
+      "relativos": [
+        {
+          "numero": 94,
+          "pad": "94",
+          "simbolo": "Carro"
+        },
+        {
+          "numero": 95,
+          "pad": "95",
+          "simbolo": "Costurera"
+        }
+      ]
+    },
+    "40": {
+      "numero": 40,
+      "simbolo": "Cielo",
+      "relativos": [
+        {
+          "numero": 97,
+          "pad": "97",
+          "simbolo": "Viejito"
+        },
+        {
+          "numero": 99,
+          "pad": "99",
+          "simbolo": "Aretes"
+        }
+      ]
+    },
+    "41": {
+      "numero": 41,
+      "simbolo": "Novia",
+      "relativos": [
+        {
+          "numero": 59,
+          "pad": "59",
+          "simbolo": "Selva"
+        },
+        {
+          "numero": 88,
+          "pad": "88",
+          "simbolo": "Platos"
+        }
+      ]
+    },
+    "42": {
+      "numero": 42,
+      "simbolo": "Madre",
+      "relativos": [
+        {
+          "numero": 47,
+          "pad": "47",
+          "simbolo": "Banco"
+        },
+        {
+          "numero": 51,
+          "pad": "51",
+          "simbolo": "Policía"
+        }
+      ]
+    },
+    "43": {
+      "numero": 43,
+      "simbolo": "Pantera",
+      "relativos": [
+        {
+          "numero": 80,
+          "pad": "80",
+          "simbolo": "Café"
+        },
+        {
+          "numero": 7,
+          "pad": "07",
+          "simbolo": "Navaja"
+        }
+      ]
+    },
+    "44": {
+      "numero": 44,
+      "simbolo": "Mesas",
+      "relativos": [
+        {
+          "numero": 65,
+          "pad": "65",
+          "simbolo": "Pintura"
+        },
+        {
+          "numero": 55,
+          "pad": "55",
+          "simbolo": "Olas"
+        }
+      ]
+    },
+    "45": {
+      "numero": 45,
+      "simbolo": "Iglesia",
+      "relativos": [
+        {
+          "numero": 75,
+          "pad": "75",
+          "simbolo": "Reina"
+        },
+        {
+          "numero": 70,
+          "pad": "70",
+          "simbolo": "Oro"
+        }
+      ]
+    },
+    "46": {
+      "numero": 46,
+      "simbolo": "Familia",
+      "relativos": [
+        {
+          "numero": 81,
+          "pad": "81",
+          "simbolo": "Rieles"
+        },
+        {
+          "numero": 59,
+          "pad": "59",
+          "simbolo": "Selva"
+        }
+      ]
+    },
+    "47": {
+      "numero": 47,
+      "simbolo": "Banco",
+      "relativos": [
+        {
+          "numero": 74,
+          "pad": "74",
+          "simbolo": "Edificio"
+        },
+        {
+          "numero": 89,
+          "pad": "89",
+          "simbolo": "Búho"
+        }
+      ]
+    },
+    "48": {
+      "numero": 48,
+      "simbolo": "Estrella",
+      "relativos": [
+        {
+          "numero": 70,
+          "pad": "70",
+          "simbolo": "Oro"
+        },
+        {
+          "numero": 63,
+          "pad": "63",
+          "simbolo": "Coco"
+        }
+      ]
+    },
+    "49": {
+      "numero": 49,
+      "simbolo": "Sombra",
+      "relativos": [
+        {
+          "numero": 23,
+          "pad": "23",
+          "simbolo": "Mono"
+        },
+        {
+          "numero": 29,
+          "pad": "29",
+          "simbolo": "Padre"
+        }
+      ]
+    },
+    "50": {
+      "numero": 50,
+      "simbolo": "Luna nueva",
+      "relativos": [
+        {
+          "numero": 80,
+          "pad": "80",
+          "simbolo": "Café"
+        },
+        {
+          "numero": 30,
+          "pad": "30",
+          "simbolo": "Bolo"
+        }
+      ]
+    },
+    "51": {
+      "numero": 51,
+      "simbolo": "Policía",
+      "relativos": [
+        {
+          "numero": 50,
+          "pad": "50",
+          "simbolo": "Luna nueva"
+        },
+        {
+          "numero": 46,
+          "pad": "46",
+          "simbolo": "Familia"
+        }
+      ]
+    },
+    "52": {
+      "numero": 52,
+      "simbolo": "Zorrillo",
+      "relativos": [
+        {
+          "numero": 97,
+          "pad": "97",
+          "simbolo": "Viejito"
+        },
+        {
+          "numero": 47,
+          "pad": "47",
+          "simbolo": "Banco"
+        }
+      ]
+    },
+    "53": {
+      "numero": 53,
+      "simbolo": "Llanta",
+      "relativos": [
+        {
+          "numero": 55,
+          "pad": "55",
+          "simbolo": "Olas"
+        },
+        {
+          "numero": 80,
+          "pad": "80",
+          "simbolo": "Café"
+        }
+      ]
+    },
+    "54": {
+      "numero": 54,
+      "simbolo": "Licor",
+      "relativos": [
+        {
+          "numero": 68,
+          "pad": "68",
+          "simbolo": "Ladrón"
+        },
+        {
+          "numero": 92,
+          "pad": "92",
+          "simbolo": "Águila"
+        }
+      ]
+    },
+    "55": {
+      "numero": 55,
+      "simbolo": "Olas",
+      "relativos": [
+        {
+          "numero": 32,
+          "pad": "32",
+          "simbolo": "Culebra"
+        },
+        {
+          "numero": 90,
+          "pad": "90",
+          "simbolo": "Lentes"
+        }
+      ]
+    },
+    "56": {
+      "numero": 56,
+      "simbolo": "Árbol",
+      "relativos": [
+        {
+          "numero": 16,
+          "pad": "16",
+          "simbolo": "Niña"
+        },
+        {
+          "numero": 38,
+          "pad": "38",
+          "simbolo": "Pistola"
+        }
+      ]
+    },
+    "57": {
+      "numero": 57,
+      "simbolo": "Cuchillo",
+      "relativos": [
+        {
+          "numero": 99,
+          "pad": "99",
+          "simbolo": "Aretes"
+        },
+        {
+          "numero": 92,
+          "pad": "92",
+          "simbolo": "Águila"
+        }
+      ]
+    },
+    "58": {
+      "numero": 58,
+      "simbolo": "Venado",
+      "relativos": [
+        {
+          "numero": 5,
+          "pad": "05",
+          "simbolo": "Embarazada"
+        },
+        {
+          "numero": 93,
+          "pad": "93",
+          "simbolo": "Cartero"
+        }
+      ]
+    },
+    "59": {
+      "numero": 59,
+      "simbolo": "Selva",
+      "relativos": [
+        {
+          "numero": 32,
+          "pad": "32",
+          "simbolo": "Culebra"
+        },
+        {
+          "numero": 47,
+          "pad": "47",
+          "simbolo": "Banco"
+        }
+      ]
+    },
+    "60": {
+      "numero": 60,
+      "simbolo": "Dragón",
+      "relativos": [
+        {
+          "numero": 4,
+          "pad": "04",
+          "simbolo": "Tigre"
+        },
+        {
+          "numero": 34,
+          "pad": "34",
+          "simbolo": "Música"
+        }
+      ]
+    },
+    "61": {
+      "numero": 61,
+      "simbolo": "Guerra",
+      "relativos": [
+        {
+          "numero": 54,
+          "pad": "54",
+          "simbolo": "Licor"
+        },
+        {
+          "numero": 4,
+          "pad": "04",
+          "simbolo": "Tigre"
+        }
+      ]
+    },
+    "62": {
+      "numero": 62,
+      "simbolo": "Lagarto",
+      "relativos": [
+        {
+          "numero": 10,
+          "pad": "10",
+          "simbolo": "Anillo"
+        },
+        {
+          "numero": 66,
+          "pad": "66",
+          "simbolo": "Diablo"
+        }
+      ]
+    },
+    "63": {
+      "numero": 63,
+      "simbolo": "Coco",
+      "relativos": [
+        {
+          "numero": 16,
+          "pad": "16",
+          "simbolo": "Niña"
+        },
+        {
+          "numero": 69,
+          "pad": "69",
+          "simbolo": "Soldado"
+        }
+      ]
+    },
+    "64": {
+      "numero": 64,
+      "simbolo": "Mueble",
+      "relativos": [
+        {
+          "numero": 22,
+          "pad": "22",
+          "simbolo": "Ataúd"
+        },
+        {
+          "numero": 43,
+          "pad": "43",
+          "simbolo": "Pantera"
+        }
+      ]
+    },
+    "65": {
+      "numero": 65,
+      "simbolo": "Pintura",
+      "relativos": [
+        {
+          "numero": 59,
+          "pad": "59",
+          "simbolo": "Selva"
+        },
+        {
+          "numero": 99,
+          "pad": "99",
+          "simbolo": "Aretes"
+        }
+      ]
+    },
+    "66": {
+      "numero": 66,
+      "simbolo": "Diablo",
+      "relativos": [
+        {
+          "numero": 58,
+          "pad": "58",
+          "simbolo": "Venado"
+        },
+        {
+          "numero": 34,
+          "pad": "34",
+          "simbolo": "Música"
+        }
+      ]
+    },
+    "67": {
+      "numero": 67,
+      "simbolo": "Vaca",
+      "relativos": [
+        {
+          "numero": 68,
+          "pad": "68",
+          "simbolo": "Ladrón"
+        },
+        {
+          "numero": 39,
+          "pad": "39",
+          "simbolo": "Jabón"
+        }
+      ]
+    },
+    "68": {
+      "numero": 68,
+      "simbolo": "Ladrón",
+      "relativos": [
+        {
+          "numero": 80,
+          "pad": "80",
+          "simbolo": "Café"
+        },
+        {
+          "numero": 44,
+          "pad": "44",
+          "simbolo": "Mesas"
+        }
+      ]
+    },
+    "69": {
+      "numero": 69,
+      "simbolo": "Soldado",
+      "relativos": [
+        {
+          "numero": 88,
+          "pad": "88",
+          "simbolo": "Platos"
+        },
+        {
+          "numero": 92,
+          "pad": "92",
+          "simbolo": "Águila"
+        }
+      ]
+    },
+    "70": {
+      "numero": 70,
+      "simbolo": "Oro",
+      "relativos": [
+        {
+          "numero": 49,
+          "pad": "49",
+          "simbolo": "Sombra"
+        },
+        {
+          "numero": 93,
+          "pad": "93",
+          "simbolo": "Cartero"
+        }
+      ]
+    },
+    "71": {
+      "numero": 71,
+      "simbolo": "Zapatos",
+      "relativos": [
+        {
+          "numero": 27,
+          "pad": "27",
+          "simbolo": "Juego"
+        },
+        {
+          "numero": 16,
+          "pad": "16",
+          "simbolo": "Niña"
+        }
+      ]
+    },
+    "72": {
+      "numero": 72,
+      "simbolo": "Arco",
+      "relativos": [
+        {
+          "numero": 60,
+          "pad": "60",
+          "simbolo": "Dragón"
+        },
+        {
+          "numero": 58,
+          "pad": "58",
+          "simbolo": "Venado"
+        }
+      ]
+    },
+    "73": {
+      "numero": 73,
+      "simbolo": "Fuego",
+      "relativos": [
+        {
+          "numero": 1,
+          "pad": "01",
+          "simbolo": "Pies"
+        },
+        {
+          "numero": 0,
+          "pad": "00",
+          "simbolo": "Avión"
+        }
+      ]
+    },
+    "74": {
+      "numero": 74,
+      "simbolo": "Edificio",
+      "relativos": [
+        {
+          "numero": 98,
+          "pad": "98",
+          "simbolo": "Bailes"
+        },
+        {
+          "numero": 17,
+          "pad": "17",
+          "simbolo": "Joven"
+        }
+      ]
+    },
+    "75": {
+      "numero": 75,
+      "simbolo": "Reina",
+      "relativos": [
+        {
+          "numero": 40,
+          "pad": "40",
+          "simbolo": "Cielo"
+        },
+        {
+          "numero": 19,
+          "pad": "19",
+          "simbolo": "Mariposa"
+        }
+      ]
+    },
+    "76": {
+      "numero": 76,
+      "simbolo": "Palomas",
+      "relativos": [
+        {
+          "numero": 0,
+          "pad": "00",
+          "simbolo": "Avión"
+        },
+        {
+          "numero": 87,
+          "pad": "87",
+          "simbolo": "León"
+        }
+      ]
+    },
+    "77": {
+      "numero": 77,
+      "simbolo": "Humo",
+      "relativos": [
+        {
+          "numero": 91,
+          "pad": "91",
+          "simbolo": "Tortuga"
+        },
+        {
+          "numero": 76,
+          "pad": "76",
+          "simbolo": "Palomas"
+        }
+      ]
+    },
+    "78": {
+      "numero": 78,
+      "simbolo": "Tienda",
+      "relativos": [
+        {
+          "numero": 92,
+          "pad": "92",
+          "simbolo": "Águila"
+        },
+        {
+          "numero": 25,
+          "pad": "25",
+          "simbolo": "Balanza"
+        }
+      ]
+    },
+    "79": {
+      "numero": 79,
+      "simbolo": "Flores",
+      "relativos": [
+        {
+          "numero": 31,
+          "pad": "31",
+          "simbolo": "Alacrán"
+        },
+        {
+          "numero": 12,
+          "pad": "12",
+          "simbolo": "Caballo"
+        }
+      ]
+    },
+    "80": {
+      "numero": 80,
+      "simbolo": "Café",
+      "relativos": [
+        {
+          "numero": 27,
+          "pad": "27",
+          "simbolo": "Juego"
+        },
+        {
+          "numero": 61,
+          "pad": "61",
+          "simbolo": "Guerra"
+        }
+      ]
+    },
+    "81": {
+      "numero": 81,
+      "simbolo": "Rieles",
+      "relativos": [
+        {
+          "numero": 47,
+          "pad": "47",
+          "simbolo": "Banco"
+        },
+        {
+          "numero": 36,
+          "pad": "36",
+          "simbolo": "Viejita"
+        }
+      ]
+    },
+    "82": {
+      "numero": 82,
+      "simbolo": "Escuela",
+      "relativos": [
+        {
+          "numero": 15,
+          "pad": "15",
+          "simbolo": "Ratón"
+        },
+        {
+          "numero": 38,
+          "pad": "38",
+          "simbolo": "Pistola"
+        }
+      ]
+    },
+    "83": {
+      "numero": 83,
+      "simbolo": "Bote",
+      "relativos": [
+        {
+          "numero": 76,
+          "pad": "76",
+          "simbolo": "Palomas"
+        },
+        {
+          "numero": 37,
+          "pad": "37",
+          "simbolo": "Suerte"
+        }
+      ]
+    },
+    "84": {
+      "numero": 84,
+      "simbolo": "Coronas",
+      "relativos": [
+        {
+          "numero": 21,
+          "pad": "21",
+          "simbolo": "Pájaro"
+        },
+        {
+          "numero": 62,
+          "pad": "62",
+          "simbolo": "Lagarto"
+        }
+      ]
+    },
+    "85": {
+      "numero": 85,
+      "simbolo": "Casa",
+      "relativos": [
+        {
+          "numero": 60,
+          "pad": "60",
+          "simbolo": "Dragón"
+        },
+        {
+          "numero": 18,
+          "pad": "18",
+          "simbolo": "Ángel"
+        }
+      ]
+    },
+    "86": {
+      "numero": 86,
+      "simbolo": "Reloj",
+      "relativos": [
+        {
+          "numero": 25,
+          "pad": "25",
+          "simbolo": "Balanza"
+        },
+        {
+          "numero": 51,
+          "pad": "51",
+          "simbolo": "Policía"
+        }
+      ]
+    },
+    "87": {
+      "numero": 87,
+      "simbolo": "León",
+      "relativos": [
+        {
+          "numero": 18,
+          "pad": "18",
+          "simbolo": "Ángel"
+        },
+        {
+          "numero": 21,
+          "pad": "21",
+          "simbolo": "Pájaro"
+        }
+      ]
+    },
+    "88": {
+      "numero": 88,
+      "simbolo": "Platos",
+      "relativos": [
+        {
+          "numero": 50,
+          "pad": "50",
+          "simbolo": "Luna nueva"
+        },
+        {
+          "numero": 11,
+          "pad": "11",
+          "simbolo": "Perro"
+        }
+      ]
+    },
+    "89": {
+      "numero": 89,
+      "simbolo": "Búho",
+      "relativos": [
+        {
+          "numero": 88,
+          "pad": "88",
+          "simbolo": "Platos"
+        },
+        {
+          "numero": 10,
+          "pad": "10",
+          "simbolo": "Anillo"
+        }
+      ]
+    },
+    "90": {
+      "numero": 90,
+      "simbolo": "Lentes",
+      "relativos": [
+        {
+          "numero": 77,
+          "pad": "77",
+          "simbolo": "Humo"
+        },
+        {
+          "numero": 83,
+          "pad": "83",
+          "simbolo": "Bote"
+        }
+      ]
+    },
+    "91": {
+      "numero": 91,
+      "simbolo": "Tortuga",
+      "relativos": [
+        {
+          "numero": 10,
+          "pad": "10",
+          "simbolo": "Anillo"
+        },
+        {
+          "numero": 95,
+          "pad": "95",
+          "simbolo": "Costurera"
+        }
+      ]
+    },
+    "92": {
+      "numero": 92,
+      "simbolo": "Águila",
+      "relativos": [
+        {
+          "numero": 6,
+          "pad": "06",
+          "simbolo": "Elefante"
+        },
+        {
+          "numero": 58,
+          "pad": "58",
+          "simbolo": "Venado"
+        }
+      ]
+    },
+    "93": {
+      "numero": 93,
+      "simbolo": "Cartero",
+      "relativos": [
+        {
+          "numero": 43,
+          "pad": "43",
+          "simbolo": "Pantera"
+        },
+        {
+          "numero": 1,
+          "pad": "01",
+          "simbolo": "Pies"
+        }
+      ]
+    },
+    "94": {
+      "numero": 94,
+      "simbolo": "Carro",
+      "relativos": [
+        {
+          "numero": 2,
+          "pad": "02",
+          "simbolo": "Mujer"
+        },
+        {
+          "numero": 60,
+          "pad": "60",
+          "simbolo": "Dragón"
+        }
+      ]
+    },
+    "95": {
+      "numero": 95,
+      "simbolo": "Costurera",
+      "relativos": [
+        {
+          "numero": 26,
+          "pad": "26",
+          "simbolo": "Bandera"
+        },
+        {
+          "numero": 63,
+          "pad": "63",
+          "simbolo": "Coco"
+        }
+      ]
+    },
+    "96": {
+      "numero": 96,
+      "simbolo": "Dinero",
+      "relativos": [
+        {
+          "numero": 12,
+          "pad": "12",
+          "simbolo": "Caballo"
+        },
+        {
+          "numero": 68,
+          "pad": "68",
+          "simbolo": "Ladrón"
+        }
+      ]
+    },
+    "97": {
+      "numero": 97,
+      "simbolo": "Viejito",
+      "relativos": [
+        {
+          "numero": 4,
+          "pad": "04",
+          "simbolo": "Tigre"
+        },
+        {
+          "numero": 61,
+          "pad": "61",
+          "simbolo": "Guerra"
+        }
+      ]
+    },
+    "98": {
+      "numero": 98,
+      "simbolo": "Bailes",
+      "relativos": [
+        {
+          "numero": 79,
+          "pad": "79",
+          "simbolo": "Flores"
+        },
+        {
+          "numero": 32,
+          "pad": "32",
+          "simbolo": "Culebra"
+        }
+      ]
+    },
+    "99": {
+      "numero": 99,
+      "simbolo": "Aretes",
+      "relativos": [
+        {
+          "numero": 19,
+          "pad": "19",
+          "simbolo": "Mariposa"
+        },
+        {
+          "numero": 35,
+          "pad": "35",
+          "simbolo": "Virgen"
+        }
+      ]
+    }
+  }
+}
