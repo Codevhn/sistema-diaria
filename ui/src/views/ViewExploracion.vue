@@ -47,6 +47,7 @@ const TabCruceta        = defineAsyncComponent(() => import("@/components/explor
 const TabPares          = defineAsyncComponent(() => import("@/components/exploracion/TabPares.vue"));
 const TabGuia           = defineAsyncComponent(() => import("@/components/exploracion/TabGuia.vue"));
 const TabRelativos      = defineAsyncComponent(() => import("@/components/exploracion/TabRelativos.vue"));
+const TabHorarios       = defineAsyncComponent(() => import("@/components/exploracion/TabHorarios.vue"));
 
 const tabs = [
   { id: "memoria",          icon: "fa-brain",               label: "Memoria",         component: TabMemoria },
@@ -54,6 +55,7 @@ const tabs = [
   { id: "cruceta",          icon: "fa-draw-polygon",        label: "Cruceta",         component: TabCruceta },
   { id: "pares",            icon: "fa-puzzle-piece",        label: "Pares",           component: TabPares },
   { id: "relativos",        icon: "fa-link",                label: "Relativos",       component: TabRelativos },
+  { id: "horarios",         icon: "fa-clock",               label: "Horarios",        component: TabHorarios },
   { id: "suenos",           icon: "fa-book",                label: "Guía de Sueños",  component: TabGuia },
 ];
 

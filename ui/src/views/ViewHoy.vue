@@ -39,18 +39,19 @@
         <!-- Resultado existente -->
         <div v-if="getSlotResult(slot.id)" class="slot-card__result">
           <span class="slot-num mono">{{ pad(getSlotResult(slot.id).numero) }}</span>
+          <span v-if="sym(getSlotResult(slot.id).numero)" class="slot-sym">{{ sym(getSlotResult(slot.id).numero) }}</span>
           <span class="slot-reg">registrado</span>
         </div>
 
         <!-- Formulario de registro -->
         <div v-else class="slot-card__form">
           <input
-            type="number"
-            min="0"
-            max="99"
+            type="text"
+            inputmode="numeric"
+            maxlength="2"
             placeholder="00–99"
             class="slot-input"
-            v-model.number="formValues[slot.id]"
+            v-model="formValues[slot.id]"
             @keyup.enter="registrar(slot.id)"
           />
           <BaseBtn
@@ -58,7 +59,7 @@
             size="sm"
             icon="fa-check"
             :loading="savingSlot === slot.id"
-            :disabled="formValues[slot.id] === '' || formValues[slot.id] === null"
+            :disabled="formValues[slot.id] === ''"
             @click="registrar(slot.id)"
           >
             OK
@@ -89,17 +90,28 @@
         <table class="history-table">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Turno</th>
               <th class="num-col">Número</th>
+              <th>Turno</th>
+              <th>Fecha</th>
+              <th class="del-col"></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="d in recentDraws" :key="d.id">
-              <td>{{ d.fecha }}</td>
-              <td>{{ d.horario }}</td>
               <td class="num-col">
-                <NumberChip :numero="d.numero" size="sm" />
+                <NumberChip :numero="d.numero" :symbol="sym(d.numero)" size="sm" />
+              </td>
+              <td>{{ d.horario }}</td>
+              <td>{{ d.fecha }}</td>
+              <td class="del-col">
+                <button
+                  class="del-btn"
+                  :disabled="deletingId === d.id"
+                  :title="`Eliminar sorteo ${pad(d.numero)} del ${d.fecha}`"
+                  @click="pedirEliminar(d)"
+                >
+                  <i class="fa-solid" :class="deletingId === d.id ? 'fa-spinner fa-spin' : 'fa-trash-can'" />
+                </button>
               </td>
             </tr>
           </tbody>
@@ -110,6 +122,20 @@
       </div>
     </BaseCard>
   </div>
+
+  <!-- Modal de confirmación de borrado -->
+  <ConfirmModal
+    :model-value="!!confirmTarget"
+    title="Eliminar sorteo"
+    :message="confirmTarget ? `¿Eliminar ${pad(confirmTarget.numero)} · ${confirmTarget.fecha}? Esta acción no se puede deshacer.` : ''"
+    confirm-label="Eliminar"
+    cancel-label="Cancelar"
+    icon="fa-trash-can"
+    icon-color="var(--red)"
+    variant="danger"
+    @confirm="confirmarEliminar"
+    @cancel="confirmTarget = null"
+  />
 </template>
 
 <script setup>
@@ -118,6 +144,10 @@ import { DB } from "@motors/storage.js";
 import BaseCard from "@/components/BaseCard.vue";
 import BaseBtn from "@/components/BaseBtn.vue";
 import NumberChip from "@/components/NumberChip.vue";
+import ConfirmModal from "@/components/ConfirmModal.vue";
+import { useGuide } from "@/composables/useGuide.js";
+
+const { sym } = useGuide();
 
 const TURNOS = [
   { id: "11AM", label: "11 AM", hour: 11 },
@@ -125,14 +155,16 @@ const TURNOS = [
   { id: "9PM",  label: "9 PM",  hour: 21 },
 ];
 
-const pais        = "HN";
-const fecha       = ref(new Date().toISOString().slice(0, 10));
-const draws       = ref([]);
-const loadingDraws= ref(false);
-const errorDraws  = ref(null);
-const savingSlot  = ref(null);
-const formValues  = ref(Object.fromEntries(TURNOS.map(t => [t.id, ""])));
-const slotErrors  = ref({});
+const pais          = "HN";
+const fecha         = ref(new Date().toISOString().slice(0, 10));
+const draws         = ref([]);
+const loadingDraws  = ref(false);
+const errorDraws    = ref(null);
+const savingSlot    = ref(null);
+const deletingId    = ref(null);
+const confirmTarget = ref(null);
+const formValues    = ref(Object.fromEntries(TURNOS.map(t => [t.id, ""])));
+const slotErrors    = ref({});
 
 const fechaLabel = computed(() => {
   const label = new Date(fecha.value + "T12:00:00").toLocaleDateString("es-HN", {
@@ -184,9 +216,10 @@ async function reloadDraws() {
 }
 
 async function registrar(turnoId) {
-  const numero = formValues.value[turnoId];
-  if (numero === "" || numero === null || isNaN(numero)) return;
-  if (numero < 0 || numero > 99) {
+  const raw = String(formValues.value[turnoId] ?? "").trim();
+  if (raw === "") return;
+  const numero = parseInt(raw, 10);
+  if (isNaN(numero) || numero < 0 || numero > 99) {
     slotErrors.value[turnoId] = "Número fuera de rango (00–99)";
     return;
   }
@@ -194,7 +227,7 @@ async function registrar(turnoId) {
   slotErrors.value  = { ...slotErrors.value, [turnoId]: null };
   try {
     await DB.saveDraw({
-      numero:  Math.round(numero),
+      numero,
       fecha:   fecha.value,
       pais:    pais,
       horario: turnoId,
@@ -205,6 +238,25 @@ async function registrar(turnoId) {
     slotErrors.value = { ...slotErrors.value, [turnoId]: e?.message ?? "Error al guardar" };
   } finally {
     savingSlot.value = null;
+  }
+}
+
+function pedirEliminar(d) {
+  confirmTarget.value = { id: d.id, numero: d.numero, fecha: d.fecha };
+}
+
+async function confirmarEliminar() {
+  const target = confirmTarget.value;
+  confirmTarget.value = null;
+  if (!target) return;
+  deletingId.value = target.id;
+  try {
+    await DB.deleteDraw(target.id);
+    await reloadDraws();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    deletingId.value = null;
   }
 }
 
@@ -266,8 +318,9 @@ onMounted(reloadDraws);
   border-radius: var(--r-pill); padding: 1px 6px; letter-spacing: .05em;
 }
 
-.slot-card__result { display: flex; align-items: baseline; gap: var(--sp-2); }
+.slot-card__result { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
 .slot-num { font-size: var(--text-2xl); font-weight: var(--fw-bold); color: var(--green); }
+.slot-sym { font-size: var(--text-sm); color: var(--text-secondary); font-style: italic; }
 .slot-reg  { font-size: var(--text-xs); color: var(--text-muted); }
 
 .slot-card__form { display: flex; gap: var(--sp-2); align-items: center; }
@@ -279,8 +332,6 @@ onMounted(reloadDraws);
   padding: var(--sp-2);
 }
 .slot-input:focus { outline: none; border-color: var(--gold); }
-.slot-input::-webkit-outer-spin-button,
-.slot-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 
 .slot-error { font-size: var(--text-xs); color: var(--red); }
 
@@ -299,7 +350,17 @@ onMounted(reloadDraws);
   color: var(--text-secondary);
 }
 .history-table tr:last-child td { border-bottom: none; }
-.num-col { text-align: right; }
+.num-col { text-align: left; }
+.del-col { text-align: right; width: 36px; }
+.del-btn {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  border-radius: var(--r-sm); color: var(--text-muted); font-size: .8rem;
+  transition: background var(--t-fast), color var(--t-fast);
+  opacity: 0;
+}
+.history-table tr:hover .del-btn { opacity: 1; }
+.del-btn:hover { background: var(--red-surface); color: var(--red); }
+.del-btn:disabled { opacity: .4; cursor: default; }
 .history-more { margin-top: var(--sp-2); font-size: var(--text-xs); color: var(--text-muted); }
 
 /* Error / Empty */
