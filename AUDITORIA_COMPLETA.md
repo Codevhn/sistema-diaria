@@ -5,6 +5,24 @@
 
 ---
 
+## ✅ ESTADO DE EJECUCIÓN (actualizado 2026-08-20)
+
+| Fase | Estado | Commits | Notas |
+|------|--------|---------|-------|
+| FASE 1 — Higiene y Seguridad | ✅ Completada | `c9adf25` | Credenciales fuera del código, .gitignore, package.json corregido |
+| FASE 2 — CSS Specificity War | ✅ Completada | `5b37f87` | ~1,950 `!important` eliminados vía prefijo `.mac-theme` |
+| FASE 3 — Split index.html / circular deps | ✅ Completada | `faf4db5` | Dependencia circular storage↔auth rota |
+| FASE 4 — Split módulos grandes | ✅ Completada (parcial) | `cf52397`, `f002ce8` | storage.js → src/storage/, signal-engine.js → src/signal/. pattern-detector.js NO se dividió: funciones demasiado acopladas (riesgo > beneficio) |
+| FASE 5 — DB Índices | ✅ Completada | `c4a0db9` | migrations/008_core_indexes.sql — 8 índices ejecutados en Supabase |
+| FASE 6 — Performance | ✅ Completada | `ac053ba` | Debounce, lazy rendering, memoización |
+| FASE 7 — Testing | ✅ Completada | `cb5793c`, `a094e08`, `4a12aa9` | Vitest — 125 tests en 9 archivos, todos verdes |
+| FASE 8 — UX/UI | ✅ Completada | `844096b`, `e48cae1` | Auditoría propia: 14 issues resueltos (2 críticos, 6 altos, 6 medios) |
+| FASE 9 — CI/CD | ✅ Completada | `6b2a15c`, `07dab69` | GitHub Actions corre los tests en cada push a main |
+
+**Resultado:** 125 tests pasando · CI verde · deploy automático por GitHub Pages · repo limpio en `main`.
+
+---
+
 ## RESUMEN EJECUTIVO
 
 | Aspecto | Estado | Nota |
