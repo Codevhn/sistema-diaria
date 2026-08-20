@@ -1794,6 +1794,15 @@
     }
     window.__showToast = showToast;
 
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
     if (guideLoadError) {
       reportGuideLoadIssue(guideLoadError);
     }
@@ -2371,6 +2380,13 @@
     };
     const DEFAULT_COUNTRY = "HN";
     const HORARIO_KEYS = SLOT_CONFIG.map((config) => config.key);
+
+    // Limpiar aria-invalid cuando el usuario corrige el input
+    document.addEventListener("input", (e) => {
+      if (e.target?.getAttribute?.("aria-invalid") === "true") {
+        e.target.removeAttribute("aria-invalid");
+      }
+    });
     const TURNOS = [...HORARIO_KEYS];
 
     const DAY_MS = 24 * 60 * 60 * 1000;
@@ -3058,12 +3074,14 @@
         if (!raw) continue;
         if (!/^\d{1,2}$/.test(raw)) {
           showToast(`Número inválido en ${config.key}. Usa formato 00-99.`, { variant: "warning" });
+          input?.setAttribute("aria-invalid", "true");
           input?.focus();
           return;
         }
         const numero = parseInt(raw, 10);
         if (numero < 0 || numero > 99) {
           showToast(`El número en ${config.key} debe estar entre 00 y 99.`, { variant: "warning" });
+          input?.setAttribute("aria-invalid", "true");
           input?.focus();
           return;
         }
@@ -3072,6 +3090,7 @@
           showToast(`El número ${formatNumber(numero)} no tiene símbolo registrado. Revisa la guía antes de guardarlo.`, {
             variant: "danger",
           });
+          input?.setAttribute("aria-invalid", "true");
           input?.focus();
           return;
         }
@@ -5228,7 +5247,7 @@
       let pairs;
       try { pairs = await listPairsFromDb(); }
       catch (err) {
-        listEl.innerHTML = `<p class='hint'>Error al cargar: ${err.message}</p>`;
+        listEl.innerHTML = `<p class='hint'>Error al cargar: ${escapeHtml(err.message)}</p>`;
         return;
       }
       if (!pairs.length) {
@@ -7881,8 +7900,8 @@
         return;
       }
       pega3Resumen.innerHTML = "<p class='hint'>Analizando patrones…</p>";
-      pega3Sesgos.innerHTML = "";
-      pega3Seleccion.innerHTML = "";
+      pega3Sesgos.innerHTML = "<p class='hint'>Calculando sesgos…</p>";
+      pega3Seleccion.innerHTML = "<p class='hint'>Calculando selección…</p>";
       try {
         const diariaDraws = await DB.listDraws({ excludeTest: true });
         const resultado = evaluarMotorPega3(pega3DrawCache, { externa: diariaDraws });
@@ -7898,8 +7917,8 @@
       if (!pega3Resumen) return;
       if (!pega3AnalysisCache?.stats) {
         pega3Resumen.innerHTML = "<p class='hint'>Registra sorteos y ejecuta el análisis para ver los hallazgos.</p>";
-        pega3Sesgos.innerHTML = "";
-        pega3Seleccion.innerHTML = "";
+        pega3Sesgos.innerHTML = "<p class='hint'>Sin datos. Ejecuta el análisis para calcular sesgos.</p>";
+        pega3Seleccion.innerHTML = "<p class='hint'>Sin datos. Ejecuta el análisis para generar candidatos.</p>";
         return;
       }
       renderPega3Summary(pega3AnalysisCache.stats);
@@ -9745,7 +9764,7 @@ function buildVariantEntries(profile) {
           container.appendChild(row);
         });
       } catch (err) {
-        container.innerHTML = `<p class='hint'>⚠ Error al cargar usuarios: ${err.message}</p>`;
+        container.innerHTML = `<p class='hint'>Error al cargar usuarios: ${escapeHtml(err.message)}</p>`;
       }
     }
 
@@ -10001,7 +10020,7 @@ function buildVariantEntries(profile) {
 
     function renderBacktest(res) {
       if (res.error) {
-        btOut.innerHTML = `<div class="hint" style="color:#ff8080;">${res.error}</div>`;
+        btOut.innerHTML = `<div class="hint" style="color:#ff8080;">${escapeHtml(res.error)}</div>`;
         return;
       }
       if (res.aborted) {
@@ -11506,11 +11525,13 @@ function buildVariantEntries(profile) {
       function buildToc(filter = "") {
         toc.innerHTML = "";
         const q = filter.toLowerCase();
+        let totalMatches = 0;
         categorias.forEach((cat) => {
           const arts = WIKI_ARTICLES.filter(
             (a) => a.categoria === cat && (!q || a.titulo.toLowerCase().includes(q) || a.contenido.toLowerCase().includes(q))
           );
           if (!arts.length) return;
+          totalMatches += arts.length;
 
           const li = document.createElement("li");
           li.className = "wiki-toc__cat";
@@ -11530,6 +11551,13 @@ function buildVariantEntries(profile) {
             toc.appendChild(item);
           });
         });
+        if (q && !totalMatches) {
+          const empty = document.createElement("li");
+          empty.className = "hint";
+          empty.style.padding = "0.75rem 0.5rem";
+          empty.textContent = `Sin resultados para "${filter}".`;
+          toc.appendChild(empty);
+        }
       }
 
       buildToc();
@@ -12489,7 +12517,7 @@ function buildVariantEntries(profile) {
           );
           outEl.innerHTML = buildTable(draws);
         } catch (e) {
-          outEl.innerHTML = `<p class='hint'>Error al cargar: ${e.message}</p>`;
+          outEl.innerHTML = `<p class='hint'>Error al cargar: ${escapeHtml(e.message)}</p>`;
         }
       }
 
@@ -12691,6 +12719,11 @@ function buildVariantEntries(profile) {
 
         } catch (e) {
           $("mesa-meta").textContent = "Error al calcular";
+          const msg = `<div class="mesa-loading">Error al cargar. Presiona Actualizar para reintentar.</div>`;
+          ["mesa-top3", "mesa-regimen", "mesa-secuencias", "mesa-honestidad"].forEach((id) => {
+            const el = $(id);
+            if (el && el.querySelector(".mesa-loading")) el.innerHTML = msg;
+          });
           console.error("[mesa]", e);
         } finally {
           $("mesa-refresh-btn").disabled = false;
@@ -13032,7 +13065,7 @@ function buildVariantEntries(profile) {
 
           } catch (e) {
             progW.style.display = "none";
-            btEl.innerHTML = `<div class="bt-error">Error: ${e?.message ?? e}</div>`;
+            btEl.innerHTML = `<div class="bt-error">Error: ${escapeHtml(e?.message ?? e)}</div>`;
           } finally {
             btnBt.textContent = "▶ Correr Backtest";
             _btAbort = null;
