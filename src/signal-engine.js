@@ -18,12 +18,10 @@ import { getPesosActivos }          from "./weight-optimizer.js";
 import { detectarRegimen }          from "./regime-detector.js";
 import { proyectarSecuencias, seqSignals } from "./sequence-engine.js";
 import { calcularPresion, presionAFactor }  from "./pressure-engine.js";
-import { razonar }                  from "./internal-reasoner.js";
-import { analizarPatronesMensuales } from "./monthly-trends.js";
 import { analizarSecuenciasSemanales } from "./weekly-patterns.js";
 import { getEfectosCalendarioPorNumero, getEventosProximos } from "./popularity-calendar.js";
 import { calcularPopularidad, popularidadAFactor, getCadenasActivas, getMercado } from "./popularity-model.js";
-import { generarVariantesMulti, generarVariantes } from "./conversion-engine.js";
+import { generarVariantesMulti } from "./conversion-engine.js";
 import { detectarClusters, pesoPorCluster, numerosDelCluster } from "./digit-cluster-detector.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────

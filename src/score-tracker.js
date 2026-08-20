@@ -13,7 +13,7 @@
  *   getScoreTendencia(n)               → 'mejorando' | 'estable' | 'cayendo'
  */
 
-import { getRecentEvaluations, getScoreHistory, insertScoreSnapshot } from './intelligence-storage.js';
+import { getRecentEvaluations, getScoreHistory } from './intelligence-storage.js';
 import { optimizarPesos } from './weight-optimizer.js';
 import { getRegimenActual } from './regime-detector.js';
 

@@ -20,10 +20,10 @@
  */
 
 import { detectarRegimen, getAjustesPorRegimen } from './regime-detector.js';
-import { calcularPresion, getMomentoLiberacion, reportePresion } from './pressure-engine.js';
-import { proyectarSecuencias, secuenciasQueApuntan, seqSignals } from './sequence-engine.js';
+import { calcularPresion, reportePresion } from './pressure-engine.js';
+import { proyectarSecuencias, seqSignals } from './sequence-engine.js';
 import { clasificarRelacionSync }  from './variant-resolver.js';
-import { getRecentEvaluations, getCurrentScore } from './intelligence-storage.js';
+import { getCurrentScore } from './intelligence-storage.js';
 import { getPesosActivos }         from './weight-optimizer.js';
 
 // ---------------------------------------------------------------------------
