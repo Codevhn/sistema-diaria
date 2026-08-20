@@ -4,12 +4,15 @@
   "description": "Sistema predictivo de lotería — La Diaria",
   "private": true,
   "scripts": {
-    "dev": "live-server --host=localhost --port=3000 --no-browser"
+    "dev": "live-server --host=localhost --port=3000 --no-browser",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "Francisco Vasquez <codevhn@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "live-server": "^1.2.2"
+    "live-server": "^1.2.2",
+    "vitest": "^4.1.11"
   }
 }
