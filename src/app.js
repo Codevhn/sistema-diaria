@@ -1,0 +1,11549 @@
+    import { mostrarGuia } from "./guide-grid.js";
+    import { DB } from "./storage.js";
+    import { importarManual } from "./importer.js";
+    import { crearHipotesis, actualizarHipotesis, eliminarHipotesis, registrarResultado } from "./narrative.js";
+    import { analizarYProponer } from "./reasoning.js";
+    import {
+      generarCruceta,
+      generarTrianguloInvertido,
+      dibujarTrianguloInvertido,
+      generarCrucetaTurnos,
+    } from "./geometry.js";
+    import { cargarGuia, GUIA, getColorPolaridad } from "./loader.js";
+    import { detectarPatrones } from "./pattern-detector.js";
+    import {
+      revisarDuplicados,
+      marcarGrupoComoTest,
+      borrarIds,
+      corregirFechasDesfasadas,
+    } from "./maintenance.js";
+    import { mostrarTransformaciones } from "./transform-visual.js";
+    import { initTooltips } from "./tooltip.js";
+    import { computeHitTrackerStats, renderHitTrackerHTML } from "./hit-tracker.js";
+    import { getVencidos, renderRelativosHTML, backtestRelativos, getRelativosEnAlerta, renderRelativosAlertaHTML, backtestConvergencia, getConvergenciaActiva, renderConvergenciaHTML } from "./relativos-engine.js";
+    import { initSuperPremioPicker } from "./superpremio-picker.js";
+    import { initNotifications } from "./notifications.js";
+    import { detectarAnomalias, renderAnomaliasHTML } from "./anomaly-engine.js";
+    import { detectarContexto, renderContextoHTML } from "./context-engine.js";
+    import { computeFeedback, renderFeedbackHTML } from "./feedback-engine.js";
+    import { analizarPostRepeticion, renderPostRepeticionHTML } from "./post-repeticion-engine.js";
+    import { analizarDejaVu, renderDejaVuHTML } from "./dejavu-engine.js";
+    import { analizarCadencias, renderCadenciasHTML } from "./cadencia-engine.js";
+    import { consultarNumero, renderConsultaHTML } from "./consulta-engine.js";
+    import { verificarAfirmaciones, verificarEstacionalidad, indexRobotelsa, compararAnioAnio } from "./temporal-engine.js";
+    import { analizarAusencias, renderAusenciasHTML } from "./ausencia-engine.js";
+    import { analizarVuelta, renderVueltaHTML } from "./vuelta-engine.js";
+    import { analizarLineas, renderLineasHTML } from "./lineas-engine.js";
+    import { getSimpleConversions, getCompositeConversions } from "./conversion-engine.js";
+    import { buildRelationStats, getCandidates, getContextSignal } from "./relation-analyzer.js";
+    import { construirPerfilNumero, resumirActividadNumeros, construirGapSummary } from "./memory.js";
+    import {
+      rebuildKnowledge,
+      obtenerPerfilesNumeros,
+      generarPredicciones,
+      describirPerfil,
+      generarInsights,
+      obtenerResumenPredicciones,
+    } from "./learning.js";
+
+    import { renderHonestyPanel } from "./honesty-panel.js";
+    import { evaluarMotorPega3 } from "./pega3-engine.js";
+    import { loadUserPreferences, saveUserPreferences } from "./user-preferences.js";
+    import { getMyRole, getAllProfiles, updateUserRole, updateUserName, setBanStatus, roleLabel, roleColor, VALID_ROLES } from "./roles.js";
+    import { computeDecemberStrategy } from "./december-strategy.js";
+    import {
+      createMode,
+      updateMode,
+      deleteMode,
+      listModesWithExamples,
+      deleteModeExample,
+      logModeUsage,
+      listModeUsage,
+    } from "./modes.js";
+    import {
+      createRelation as createTriggerRelation,
+      updateRelation as updateTriggerRelation,
+      deleteRelation as deleteTriggerRelation,
+      listRelations as listTriggerRelations,
+      listEvents as listTriggerEvents,
+      closeExpiredEvents as closeTriggerEvents,
+      computeRelationStats as computeTriggerStats,
+      seedSampleRelations as seedTriggerExamples,
+    } from "./triggers/triggerEngine.js";
+    import { evaluarModos } from "./mode-engine.js";
+    import { formatDateISO, getTodayISODate, parseDrawDate } from "./date-utils.js";
+    import { logInfo, logWarn } from "./logger.js";
+    import {
+      loadLocalDrawSnapshot,
+      saveLocalDrawSnapshot,
+      isLocalDrawSnapshotModeEnabled,
+      setLocalDrawSnapshotMode,
+    } from "./local-draw-cache.js";
+    import { supabase } from "./supabaseClient.js";
+    let _signalEngine = null;
+    async function loadSignalEngine() {
+      if (!_signalEngine) _signalEngine = await import("./signal-engine.js");
+      return _signalEngine;
+    }
+    import { logout as supabaseLogout, requireAuthOrRedirect } from "./auth.js";
+    import { showBootLoader, hideBootLoader } from "./boot-loader.js";
+
+    function debounce(fn, ms = 300) {
+      let timer;
+      return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+    }
+
+    const bootOverlay = document.getElementById("boot-loader");
+    const processingModal = document.getElementById("processing-modal");
+    const waitForFirstPaint = () =>
+      new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const isBooting = () => !!bootOverlay && !bootOverlay.classList.contains("hidden");
+    const showSavingModal = () => {
+      if (isBooting()) return;
+      processingModal?.classList.remove("hidden");
+    };
+    const hideSavingModal = () => processingModal?.classList.add("hidden");
+    const runWithSavingModal = async (task) => {
+      showSavingModal();
+      try {
+        return await task();
+      } finally {
+        hideSavingModal();
+      }
+    };
+    hideSavingModal();
+    window.addEventListener("pageshow", hideSavingModal);
+
+    let guideLoadError = null;
+    let userPreferences = {};
+    let userPrefsSaveTimer = null;
+    let decemberStrategyData = null;
+    let decemberSelectedYear = null;
+    let decemberSelectedNumero = null;
+    let decemberReminderStore = {};
+
+    async function initUserPreferences(user) {
+      if (!user?.id) return;
+      try {
+        const prefs = await loadUserPreferences(user.id);
+        if (prefs && typeof prefs === "object") {
+          userPreferences = prefs;
+        }
+      } catch (err) {
+        logWarn("No se pudieron inicializar preferencias de usuario", err);
+      }
+    }
+
+    function queueUserPreferencesSave(patch = {}) {
+      if (!currentUser?.id) return;
+      userPreferences = { ...(userPreferences || {}), ...patch };
+      if (userPrefsSaveTimer) clearTimeout(userPrefsSaveTimer);
+      userPrefsSaveTimer = setTimeout(async () => {
+        userPrefsSaveTimer = null;
+        try {
+          await saveUserPreferences(currentUser.id, userPreferences);
+        } catch (err) {
+          logWarn("No se pudieron guardar preferencias de usuario", err);
+        }
+      }, 350);
+    }
+
+    const currentUser = await requireAuthOrRedirect("./login.html");
+    if (!currentUser) throw new Error("Auth requerida");
+    // ── Diagnóstico de auth: guardamos los últimos 20 eventos en window.__authLog
+    //    y los imprimimos en consola para poder auditar expulsiones espurias.
+    window.__authLog = [];
+    const _logAuth = (tag, payload) => {
+      const entry = { ts: new Date().toISOString(), tag, ...payload };
+      window.__authLog.push(entry);
+      if (window.__authLog.length > 20) window.__authLog.shift();
+      console.log("[auth]", tag, entry);
+    };
+    _logAuth("boot", { hasUser: !!currentUser, uid: currentUser?.id });
+
+    // Anti-bounce: ignorar SIGNED_OUT que llegue en los primeros 3s tras el
+    // boot. Evita que un fallo transitorio del autoRefreshToken justo después
+    // de cargar tumbe una sesión que el servidor todavía considera válida.
+    const BOOT_GRACE_MS = 3000;
+    const bootAt = Date.now();
+    supabase.auth.onAuthStateChange((event, session) => {
+      _logAuth("event", { event, hasSession: !!session, uid: session?.user?.id });
+      if (event === "SIGNED_OUT") {
+        const sinceBoot = Date.now() - bootAt;
+        if (sinceBoot < BOOT_GRACE_MS) {
+          console.warn(`[auth] SIGNED_OUT ignorado en ventana de gracia (${sinceBoot}ms < ${BOOT_GRACE_MS}ms)`);
+          return;
+        }
+        // Antes de redirigir, verificamos con el servidor si realmente no hay
+        // sesión. Un SIGNED_OUT puede venir de un refresh fallido transitorio
+        // mientras la sesión todavía está válida en localStorage.
+        supabase.auth.getSession().then(({ data }) => {
+          if (data?.session?.user) {
+            console.warn("[auth] SIGNED_OUT espurio: getSession aún devuelve user. Ignoro.");
+            return;
+          }
+          _logAuth("redirect-login", { reason: "SIGNED_OUT confirmado" });
+          window.location.href = "./login.html";
+        }).catch((err) => {
+          console.warn("[auth] getSession tras SIGNED_OUT falló, no redirijo:", err?.message);
+        });
+      }
+    });
+    await initUserPreferences(currentUser);
+    decemberReminderStore = loadDecemberReminderStore();
+    showBootLoader();
+    try {
+      await cargarGuia();
+    } catch (err) {
+      guideLoadError = err instanceof Error ? err : new Error(String(err));
+    }
+
+    try {
+      const autoFix = await DB.fixFutureDatedDraws({ maxAheadDays: 1 });
+      if (autoFix?.length) {
+        logInfo("Sorteos corregidos automáticamente:", autoFix);
+        showToast(`Se corrigieron ${autoFix.length} sorteos con fecha adelantada.`, { variant: "info" });
+      }
+    } catch (err) {
+      logWarn("No se pudieron corregir fechas adelantadas automáticamente", err);
+    }
+
+    try {
+      const closed = await closeTriggerEvents();
+      if (closed) {
+        logInfo(`Trigger engine cerró ${closed} evento(s) vencidos al iniciar.`);
+      }
+    } catch (err) {
+      logWarn("No se pudieron cerrar eventos vencidos automáticamente", err);
+    }
+
+    const toastContainer = document.getElementById("toast-container");
+    function withButtonBusy(button, label = null) {
+      if (!button) return () => {};
+      const prevText = button.textContent;
+      const prevDisabled = button.disabled;
+      button.disabled = true;
+      if (label) button.textContent = label;
+      return () => {
+        if (label) button.textContent = prevText;
+        button.disabled = prevDisabled;
+      };
+    }
+
+    function showToast(message, { variant = "info", timeout = 4200 } = {}) {
+      if (!toastContainer) {
+        logWarn("Toast:", message);
+        return;
+      }
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.dataset.variant = variant;
+      const text = document.createElement("span");
+      text.textContent = message;
+
+      let hideTimer = null;
+      const dismiss = () => {
+        if (!toast || toast.classList.contains("hide")) return;
+        toast.classList.add("hide");
+        setTimeout(() => toast.remove(), 220);
+      };
+
+      const close = document.createElement("button");
+      close.type = "button";
+      close.innerHTML = "&times;";
+      close.addEventListener("click", () => dismiss());
+
+      toast.appendChild(text);
+      toast.appendChild(close);
+      toastContainer.appendChild(toast);
+
+      hideTimer = setTimeout(dismiss, timeout);
+      toast.addEventListener("mouseenter", () => clearTimeout(hideTimer));
+      toast.addEventListener("mouseleave", () => {
+        hideTimer = setTimeout(dismiss, 1800);
+      });
+    }
+    window.__showToast = showToast;
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    if (guideLoadError) {
+      reportGuideLoadIssue(guideLoadError);
+    }
+
+    function reportGuideLoadIssue(error) {
+      const runningFromFile = window.location.protocol === "file:";
+      const resolutionHint = runningFromFile
+        ? "Ejecuta npm run dev o sirve la carpeta con cualquier servidor HTTP para permitir la lectura de archivos locales."
+        : "Verifica que el archivo data/guia_suenos.json exista y sea accesible desde el servidor.";
+      const toastMessage = `No se pudo cargar la Guía de los Sueños: ${error.message || error}. ${resolutionHint}`;
+      const guideGrid = document.getElementById("guide-grid");
+      if (guideGrid) {
+        const hint = document.createElement("p");
+        hint.className = "hint";
+        hint.textContent = toastMessage;
+        guideGrid.innerHTML = "";
+        guideGrid.appendChild(hint);
+      }
+      showToast(toastMessage, { variant: "danger", timeout: 9000 });
+    }
+
+    const modeNameInput = document.getElementById("mode-name");
+    const modeTypeSelect = document.getElementById("mode-type");
+    const modeDescInput = document.getElementById("mode-desc");
+    const modeOperationSelect = document.getElementById("mode-operation");
+    const modeParamInput = document.getElementById("mode-parameter");
+    const modeOffsetSelect = document.getElementById("mode-offset");
+    const modeSaveBtn = document.getElementById("mode-save");
+    let editingModeId = null;
+
+    const triggerRelationsList = document.getElementById("trigger-relations-list");
+    const triggerStatsList = document.getElementById("trigger-stats-list");
+    const triggerEventsList = document.getElementById("trigger-events-list");
+    const triggerRelationForm = document.getElementById("trigger-relation-form");
+    const triggerFormLegend = document.getElementById("trigger-form-legend");
+    const triggerOriginInput = document.getElementById("trigger-origin");
+    const triggerTargetInput = document.getElementById("trigger-target");
+    const triggerTypeSelect = document.getElementById("trigger-type");
+    const triggerWindowMinInput = document.getElementById("trigger-window-min");
+    const triggerWindowMaxInput = document.getElementById("trigger-window-max");
+    const triggerNotesInput = document.getElementById("trigger-notes");
+    const triggerIsActiveInput = document.getElementById("trigger-is-active");
+    const triggerFormResetBtn = document.getElementById("trigger-form-reset");
+    const triggerFilterOriginInput = document.getElementById("trigger-filter-origin");
+    const triggerFilterTargetInput = document.getElementById("trigger-filter-target");
+    const triggerFilterTypeSelect = document.getElementById("trigger-filter-type");
+    const triggerFilterActiveSelect = document.getElementById("trigger-filter-active");
+    const triggerApplyFiltersBtn = document.getElementById("trigger-apply-filters");
+    const triggerRefreshRelationsBtn = document.getElementById("trigger-refresh-relations");
+    const triggerRefreshStatsBtn = document.getElementById("trigger-refresh-stats");
+    const triggerSeedExamplesBtn = document.getElementById("trigger-seed-examples");
+    const triggerEventsStatusSelect = document.getElementById("trigger-events-status");
+    const triggerEventsOriginInput = document.getElementById("trigger-events-origin");
+    const triggerEventsTargetInput = document.getElementById("trigger-events-target");
+    const triggerEventsLimitInput = document.getElementById("trigger-events-limit");
+    const triggerApplyEventFiltersBtn = document.getElementById("trigger-apply-event-filters");
+    const triggerRefreshEventsBtn = document.getElementById("trigger-refresh-events");
+    const triggerCloseExpiredBtn = document.getElementById("trigger-close-expired");
+    const dayFecha = document.getElementById("day-fecha");
+    const dayFechaDow = document.getElementById("day-fecha-dow");
+    const dayPais = document.getElementById("day-pais");
+    const geometryDateInput = document.getElementById("g-fecha");
+    const geometryPaisSelect = document.getElementById("g-pais");
+    const memoryBoardGrid = document.getElementById("memory-board-grid");
+    const memoryDetail = document.getElementById("memory-detail");
+    const memoryRefreshBtn = document.getElementById("memory-refresh");
+    const memoryGapGrid = document.getElementById("memory-gap-grid");
+    const memoryGapRefreshBtn = document.getElementById("memory-gap-refresh");
+
+    function updateDayFechaDow(value = dayFecha?.value) {
+      if (!dayFechaDow) return;
+      if (!value) {
+        dayFechaDow.textContent = "—";
+        return;
+      }
+      const parsed = parseISODate(value);
+      if (!parsed) {
+        dayFechaDow.textContent = "—";
+        return;
+      }
+      const dow = DOW_FULL_LABEL[parsed.getDay()] || "";
+      const monthName = MONTH_NAMES[parsed.getMonth()] || "";
+      dayFechaDow.textContent = dow ? `${dow} · ${monthName}` : monthName || "—";
+    }
+
+    function autoAdvanceDayFecha() {
+      if (!dayFecha || !dayFecha.value) return;
+      const nextValue = incrementISODate(dayFecha.value, 1);
+      if (!nextValue || nextValue === dayFecha.value) return;
+      dayFecha.value = nextValue;
+      dayFecha.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    async function procesarAprendizajeDia({
+      fecha,
+      pais,
+      silent = false,
+      skipKnowledgeSync = false,
+      showProgressModal = true,
+    } = {}) {
+      const normalizedPais = (pais || "").trim().toUpperCase();
+      if (!fecha || !normalizedPais) {
+        if (!silent) {
+          showToast("Selecciona fecha y país para procesar el aprendizaje.", { variant: "warning" });
+        }
+        return { status: "invalid" };
+      }
+      const draws = (await DB.listDraws({ excludeTest: true })).filter(
+        (d) => d.fecha === fecha && (d.pais || "").trim().toUpperCase() === normalizedPais
+      );
+      if (!draws.length) {
+        if (!silent) {
+          showToast("No hay sorteos reales registrados para esa fecha y país.", { variant: "warning" });
+        }
+        return { status: "no-data" };
+      }
+      const alreadyLogged = (await DB.getHypothesisLogs()).some(
+        (log) =>
+          log.fechaResultado === fecha &&
+          ((log.paisResultado || "").trim().toUpperCase() === normalizedPais)
+      );
+      if (alreadyLogged) {
+        if (!silent) {
+          showToast("Los resultados de ese día ya fueron procesados anteriormente.", {
+            variant: "info",
+            timeout: 3200,
+          });
+        }
+        return { status: "already" };
+      }
+      const processResultados = async () => {
+        for (const draw of draws) {
+          const simbolo = getSymbol(draw.numero);
+          await registrarResultado({
+            numero: draw.numero,
+            simbolo,
+            fecha: draw.fecha,
+            pais: draw.pais,
+            horario: draw.horario,
+          });
+        }
+        await DB.closePredictionBatch({ fecha, pais: normalizedPais });
+      };
+      if (showProgressModal) {
+        await runWithSavingModal(processResultados);
+      } else {
+        await processResultados();
+      }
+      if (!skipKnowledgeSync) {
+        await rebuildKnowledge();
+        await refreshHypotesis();
+      }
+      if (!silent) {
+        showToast("Hipótesis actualizadas con los resultados del día.", { variant: "success" });
+      }
+      return { status: "success" };
+    }
+    function resetModeForm() {
+      editingModeId = null;
+      if (modeNameInput) modeNameInput.value = "";
+      if (modeTypeSelect) modeTypeSelect.value = "manual";
+      if (modeDescInput) modeDescInput.value = "";
+      if (modeOperationSelect) modeOperationSelect.value = "";
+      if (modeParamInput) modeParamInput.value = "";
+      if (modeOffsetSelect) modeOffsetSelect.value = "1";
+      if (modeSaveBtn) modeSaveBtn.textContent = "Guardar modo";
+    }
+
+    function describeModoOperacion(mode = {}) {
+      const op = mode.operacion || "";
+      if (!op) return "";
+      const params = mode.parametros ?? mode.parametro ?? {};
+      const valor = typeof params === "object" && params !== null ? (params.valor ?? params.constante ?? params.raw) : params;
+      const offset = Number.isFinite(mode.offset) ? mode.offset : null;
+
+      const nombreOperacion = {
+        mirror: "Invertir dígitos",
+        "sum-digits": "Suma de dígitos",
+        "sum-digits-keep-first": "Suma de dígitos (mantener primer dígito)",
+        "add-constant": "Sumar constante",
+        "sub-constant": "Restar constante",
+        neighbor: "Número vecino",
+      }[op] || op;
+
+      let detalle = nombreOperacion;
+      if (valor !== undefined && valor !== null && valor !== "") {
+        detalle += ` · param ${valor}`;
+      }
+      if (offset !== null) {
+        const offsetTxt = offset === 0 ? "mismo turno" : offset === 1 ? "siguiente turno" : `${offset} turnos`;
+        detalle += ` · ${offsetTxt}`;
+      }
+      return detalle;
+    }
+
+    function buildModeParameters(operacion, rawValue) {
+      if (!operacion) return null;
+      if (operacion === "digit-map") {
+        const valor = rawValue?.trim() || "0:1,2:5,3:8,4:7,6:9";
+        return { mapa: valor };
+      }
+      if (!rawValue) return {};
+      const numeric = Number(rawValue);
+      if (!Number.isNaN(numeric) && rawValue.trim() !== "") {
+        return { valor: numeric };
+      }
+      return { valor: rawValue };
+    }
+
+    async function refreshModesPanel() {
+      const container = document.getElementById("mode-list");
+      if (!container) return;
+      const modes = await listModesWithExamples();
+      container.innerHTML = "";
+      if (!modes.length) {
+        container.innerHTML = "<p class='hint'>Aún no hay modos registrados.</p>";
+        if (!editingModeId) resetModeForm();
+        return;
+      }
+
+      const dayFechaInput = document.getElementById("day-fecha");
+      const dayPaisSelect = document.getElementById("day-pais");
+      const paisOptions = Array.from(dayPaisSelect?.options || []).map((opt) => opt.value || opt.textContent || "");
+
+      for (const mode of modes) {
+        const item = document.createElement("div");
+        item.className = "mode-item";
+
+        const head = document.createElement("div");
+        head.className = "mode-item-head";
+        const titleWrap = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = mode.nombre;
+        const chip = document.createElement("span");
+        chip.className = "analysis-chip";
+        chip.textContent = mode.tipo || "manual";
+        titleWrap.appendChild(title);
+        titleWrap.appendChild(chip);
+        head.appendChild(titleWrap);
+
+        const actions = document.createElement("div");
+        actions.className = "mode-item-actions";
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "btn-secondary";
+        editBtn.textContent = "Editar";
+        editBtn.addEventListener("click", () => {
+          editingModeId = mode.id;
+          if (modeNameInput) modeNameInput.value = mode.nombre || "";
+          if (modeTypeSelect) modeTypeSelect.value = mode.tipo || "manual";
+          if (modeDescInput) modeDescInput.value = mode.descripcion || "";
+          if (modeOperationSelect) modeOperationSelect.value = mode.operacion || "";
+          if (modeParamInput) {
+            const params = mode.parametros ?? mode.parametro ?? {};
+            let valor = "";
+            if (mode.operacion === "digit-map") {
+              if (typeof params === "object" && params !== null) valor = params.mapa ?? "";
+              else valor = params ?? "";
+            } else {
+              valor = typeof params === "object" && params !== null ? (params.valor ?? params.constante ?? params.raw) : params;
+            }
+            modeParamInput.value = valor ?? "";
+          }
+          if (modeOffsetSelect) {
+            const offsetVal = Number.isFinite(mode.offset) ? String(mode.offset) : "1";
+            modeOffsetSelect.value = offsetVal;
+          }
+          if (modeSaveBtn) modeSaveBtn.textContent = "Actualizar modo";
+          showToast(`Editando modo ${mode.nombre}`, { variant: "info", timeout: 2500 });
+        });
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn-danger";
+        deleteBtn.textContent = "Eliminar";
+        deleteBtn.addEventListener("click", async () => {
+          const confirmar = await mostrarModal(
+            "Eliminar modo",
+            `¿Eliminar el modo "${mode.nombre}" y sus ejemplos?`,
+            { okText: "Eliminar", cancelText: "Cancelar", okVariant: "danger" }
+          );
+          if (!confirmar) return;
+          try {
+            await deleteMode(mode.id);
+            if (editingModeId === mode.id) resetModeForm();
+            await refreshModesPanel();
+            showToast("Modo eliminado.", { variant: "success" });
+          } catch (err) {
+            showToast(`No se pudo eliminar: ${err.message}`, { variant: "danger" });
+          }
+        });
+
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
+        head.appendChild(actions);
+        item.appendChild(head);
+
+        const metaOperacion = describeModoOperacion(mode);
+        if (metaOperacion) {
+          const opMeta = document.createElement("div");
+          opMeta.className = "mode-meta";
+          opMeta.textContent = metaOperacion;
+          item.appendChild(opMeta);
+        }
+
+        const desc = document.createElement("div");
+        desc.className = "analysis-note";
+        desc.textContent = mode.descripcion || "Sin descripción.";
+        item.appendChild(desc);
+
+        const exampleList = document.createElement("div");
+        exampleList.className = "mode-example-list";
+        if (mode.ejemplos?.length) {
+          mode.ejemplos.forEach((ex) => {
+            const row = document.createElement("div");
+            row.className = "mode-example";
+            const text = document.createElement("span");
+            const nota = ex.nota ? ` · ${ex.nota}` : "";
+            text.textContent = `${ex.original} → ${ex.resultado}${nota}`;
+            text.style.flex = "1";
+            const del = document.createElement("button");
+            del.type = "button";
+            del.className = "btn-ghost";
+            del.textContent = "Eliminar";
+            del.addEventListener("click", async () => {
+              const ok = await mostrarModal(
+                "Eliminar ejemplo",
+                `¿Eliminar el ejemplo ${ex.original} → ${ex.resultado}?`,
+                { okText: "Eliminar", cancelText: "Cancelar", okVariant: "danger" }
+              );
+              if (!ok) return;
+              await deleteModeExample(ex.id);
+              showToast("Ejemplo eliminado.", { variant: "success" });
+              await refreshModesPanel();
+            });
+            row.appendChild(text);
+            row.appendChild(del);
+            exampleList.appendChild(row);
+          });
+        } else {
+          const empty = document.createElement("span");
+          empty.className = "analysis-note";
+          empty.textContent = "Sin ejemplos registrados.";
+          exampleList.appendChild(empty);
+        }
+        item.appendChild(exampleList);
+
+        const exampleForm = document.createElement("div");
+        exampleForm.className = "mode-example";
+        const exOriginal = document.createElement("input");
+        exOriginal.placeholder = "Original";
+        exOriginal.maxLength = 4;
+        const exResultado = document.createElement("input");
+        exResultado.placeholder = "Resultado";
+        exResultado.maxLength = 4;
+        const exNota = document.createElement("input");
+        exNota.placeholder = "Nota";
+        exNota.style.flex = "1";
+        const exBtn = document.createElement("button");
+        exBtn.type = "button";
+        exBtn.className = "btn-secondary";
+        exBtn.textContent = "Agregar";
+        exBtn.addEventListener("click", async () => {
+          const original = exOriginal.value.trim();
+          const resultado = exResultado.value.trim();
+          if (!original || !resultado) {
+            showToast("Completa original y resultado.", { variant: "warning" });
+            return;
+          }
+          try {
+            await DB.addGameModeExample({
+              modeId: mode.id,
+              original,
+              resultado,
+              nota: exNota.value.trim() || "",
+            });
+            showToast("Ejemplo agregado.", { variant: "success" });
+            await refreshModesPanel();
+          } catch (err) {
+            showToast(`No se pudo agregar el ejemplo: ${err.message}`,
+              { variant: "danger" }
+            );
+          }
+        });
+        exampleForm.appendChild(exOriginal);
+        exampleForm.appendChild(exResultado);
+        exampleForm.appendChild(exNota);
+        exampleForm.appendChild(exBtn);
+        item.appendChild(exampleForm);
+
+        const logForm = document.createElement("div");
+        logForm.className = "mode-log-form";
+        const logDate = document.createElement("input");
+        logDate.type = "date";
+        logDate.value = dayFechaInput?.value || "";
+        const logPais = document.createElement("select");
+        const defaultPaisOpt = document.createElement("option");
+        defaultPaisOpt.value = "";
+        defaultPaisOpt.textContent = "País";
+        logPais.appendChild(defaultPaisOpt);
+        const options = paisOptions.length ? paisOptions : ["HN"];
+        options.forEach((p) => {
+          const opt = document.createElement("option");
+          opt.value = p;
+          opt.textContent = p;
+          if (dayPaisSelect?.value === p) opt.selected = true;
+          logPais.appendChild(opt);
+        });
+        const logTurno = document.createElement("select");
+        ["", "11AM", "3PM", "9PM"].forEach((turno) => {
+          const opt = document.createElement("option");
+          opt.value = turno;
+          opt.textContent = turno || "Turno";
+          logTurno.appendChild(opt);
+        });
+        const logNotas = document.createElement("input");
+        logNotas.type = "text";
+        logNotas.placeholder = "Notas";
+        const logBtn = document.createElement("button");
+        logBtn.type = "button";
+        logBtn.className = "btn-secondary";
+        logBtn.textContent = "Registrar uso";
+        logBtn.addEventListener("click", async () => {
+          if (!logDate.value) {
+            showToast("Ingresa una fecha para registrar el modo.", { variant: "warning" });
+            return;
+          }
+          try {
+            await logModeUsage({
+              modeId: mode.id,
+              fecha: logDate.value,
+              pais: logPais.value || null,
+              turno: logTurno.value || null,
+              notas: logNotas.value.trim() || null,
+            });
+            logNotas.value = "";
+            showToast("Uso registrado.", { variant: "success" });
+            await refreshModesPanel();
+          } catch (err) {
+            showToast(`No se pudo registrar el uso: ${err.message}`,
+              { variant: "danger" }
+            );
+          }
+        });
+        logForm.appendChild(logDate);
+        logForm.appendChild(logPais);
+        logForm.appendChild(logTurno);
+        logForm.appendChild(logNotas);
+        logForm.appendChild(logBtn);
+        item.appendChild(logForm);
+
+        const logs = await listModeUsage({ modeId: mode.id });
+        const recentLogs = logs
+          .slice()
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+          .slice(0, 5);
+        const logList = document.createElement("div");
+        logList.className = "mode-log-list";
+        if (!recentLogs.length) {
+          const empty = document.createElement("span");
+          empty.className = "analysis-note";
+          empty.textContent = "Sin usos registrados.";
+          logList.appendChild(empty);
+        } else {
+          recentLogs.forEach((log) => {
+            const row = document.createElement("div");
+            row.className = "mode-log-item";
+            const fechaTxt = log.fecha || "(sin fecha)";
+            const paisTxt = log.pais || "-";
+            const turnoTxt = log.turno || "-";
+            row.innerHTML = `<strong>${fechaTxt}</strong><span>${paisTxt}</span><span>${turnoTxt}</span>${log.notas ? `<span>${log.notas}</span>` : ""}`;
+            logList.appendChild(row);
+          });
+        }
+        item.appendChild(logList);
+
+        container.appendChild(item);
+      }
+
+      if (modeSaveBtn) {
+        modeSaveBtn.textContent = editingModeId ? "Actualizar modo" : "Guardar modo";
+      }
+    }
+
+    resetModeForm();
+
+    modeSaveBtn?.addEventListener("click", async () => {
+      const nombre = modeNameInput?.value.trim();
+      if (!nombre) {
+        showToast("Ingresa un nombre para el modo.", { variant: "warning" });
+        return;
+      }
+      const operacion = modeOperationSelect?.value || "";
+      const parametroRaw = modeParamInput?.value.trim() || "";
+      const offsetVal = modeOffsetSelect?.value ?? "";
+      const offsetNumber = offsetVal === "" ? null : Number(offsetVal);
+      const parametros = buildModeParameters(operacion, parametroRaw);
+
+      const payload = {
+        nombre,
+        tipo: modeTypeSelect?.value || "manual",
+        descripcion: modeDescInput?.value.trim() || "",
+        operacion,
+        parametros: operacion ? parametros ?? {} : null,
+        offset: Number.isFinite(offsetNumber) ? offsetNumber : null,
+      };
+      try {
+        if (editingModeId) {
+          await updateMode(editingModeId, payload);
+          showToast("Modo actualizado.", { variant: "success" });
+        } else {
+          await createMode(payload);
+          showToast("Modo creado.", { variant: "success" });
+        }
+        resetModeForm();
+        await refreshModesPanel();
+      } catch (err) {
+        showToast(`No se pudo guardar el modo: ${err.message}`, { variant: "danger" });
+      }
+    });
+
+    const todayISO = getTodayISODate();
+    ["day-fecha", "h-fecha", "g-fecha"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = todayISO;
+    });
+    if (geometryPaisSelect && dayPais?.value) geometryPaisSelect.value = dayPais.value;
+    if (geometryPaisSelect && !geometryPaisSelect.value) geometryPaisSelect.value = "HN";
+
+    const SLOT_CONFIG = [
+      {
+        key: "11AM",
+        inputId: "n-11",
+        checkboxId: "test-11",
+        ballId: "b-11",
+        symId: "s-11",
+        containerId: "slot-11",
+      },
+      {
+        key: "12PM",
+        inputId: "n-12",
+        checkboxId: "test-12",
+        ballId: "b-12",
+        symId: "s-12",
+        containerId: "slot-12",
+      },
+      {
+        key: "3PM",
+        inputId: "n-3",
+        checkboxId: "test-3",
+        ballId: "b-3",
+        symId: "s-3",
+        containerId: "slot-3",
+      },
+      {
+        key: "6PM",
+        inputId: "n-6",
+        checkboxId: "test-6",
+        ballId: "b-6",
+        symId: "s-6",
+        containerId: "slot-6",
+      },
+      {
+        key: "9PM",
+        inputId: "n-9",
+        checkboxId: "test-9",
+        ballId: "b-9",
+        symId: "s-9",
+        containerId: "slot-9",
+      },
+    ];
+    const COUNTRY_TURNOS = {
+      HN: ["11AM", "3PM", "9PM"],
+    };
+    const DEFAULT_COUNTRY = "HN";
+    const HORARIO_KEYS = SLOT_CONFIG.map((config) => config.key);
+
+    // Limpiar aria-invalid cuando el usuario corrige el input
+    document.addEventListener("input", (e) => {
+      if (e.target?.getAttribute?.("aria-invalid") === "true") {
+        e.target.removeAttribute("aria-invalid");
+      }
+    });
+    const TURNOS = [...HORARIO_KEYS];
+
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const formatNumber = (n) => String(n).padStart(2, "0");
+    const hypothesisCache = {
+      map: new Map(),
+      dirty: true,
+    };
+    let triggerRelationsCache = [];
+    let triggerEditingRelationId = null;
+    let triggerRelationFilters = { origin: null, target: null, relationType: "", isActive: "" };
+    let triggerEventsFilters = { status: "", origin: null, target: null, limit: 60 };
+    const normalizeNumeroKey = (value) => {
+      const parsed = parseInt(value, 10);
+      if (!Number.isNaN(parsed)) {
+        const bounded = ((parsed % 100) + 100) % 100; // asegura 0-99
+        return formatNumber(bounded);
+      }
+      const raw = String(value ?? "")
+        .trim()
+        .replace(/[^0-9]/g, "");
+      if (!raw) return "";
+      return formatNumber(parseInt(raw.slice(-2), 10));
+    };
+
+    function seedHypothesisCache(list = []) {
+      const map = new Map();
+      list.forEach((hyp) => {
+        if (typeof hyp?.numero === "undefined") return;
+        const key = formatNumber(hyp.numero);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(hyp);
+      });
+      hypothesisCache.map = map;
+      hypothesisCache.dirty = false;
+    }
+
+    function invalidateHypothesisCache() {
+      hypothesisCache.map = new Map();
+      hypothesisCache.dirty = true;
+    }
+
+    async function ensureHypothesisCache({ force = false } = {}) {
+      if (!force && !hypothesisCache.dirty && hypothesisCache.map.size) {
+        return hypothesisCache.map;
+      }
+      try {
+        const hyps = await DB._getAll("hypotheses");
+        seedHypothesisCache(hyps);
+      } catch (err) {
+        console.error("hypothesis cache error", err);
+        invalidateHypothesisCache();
+      }
+      return hypothesisCache.map;
+    }
+
+    function getHypothesesForNumber(numero) {
+      if (numero === null || typeof numero === "undefined") return [];
+      const key = formatNumber(numero);
+      return hypothesisCache.map.get(key) || [];
+    }
+
+    function summarizeHypothesisStates(list = []) {
+      if (!list.length) return "";
+      const counts = list.reduce((acc, hyp) => {
+        const key = (hyp.estado || "pendiente").toLowerCase();
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      return Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([estado, count]) => `${count} ${estado}`)
+        .join(", ");
+    }
+
+    let memoryCachedDraws = null;
+    let memorySelectedNumero = null;
+    let memorySummary = [];
+    let memoryGapData = [];
+    let memoryGapTimer = null;
+    async function getMemoryDraws({ force = false } = {}) {
+      if (!memoryCachedDraws || force) {
+        memoryCachedDraws = await DB.listDraws({ excludeTest: false });
+      }
+      return memoryCachedDraws.slice();
+    }
+    function invalidateMemoryCache() {
+      memoryCachedDraws = null;
+    }
+    const parseISODate = (value) => {
+      if (!value) return null;
+      const date = new Date(`${value}T00:00:00`);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+    function incrementISODate(value, days = 1) {
+      if (!value || !Number.isFinite(days)) return value;
+      const base = parseISODate(value);
+      if (!base) return value;
+      const next = new Date(base.getTime() + Math.trunc(days) * DAY_MS);
+      if (Number.isNaN(next.getTime())) return value;
+      return formatDateISO(next);
+    }
+    const MONTH_NAMES = [
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre",
+    ];
+    const MONTH_ABBR = MONTH_NAMES.map((name) => name.slice(0, 3));
+    const DOW_FULL_LABEL = [
+      "Domingo",
+      "Lunes",
+      "Martes",
+      "Miércoles",
+      "Jueves",
+      "Viernes",
+      "Sábado",
+    ];
+    const HORARIO_ORDER = { "11AM": 0, "12PM": 1, "3PM": 2, "6PM": 3, "9PM": 4 };
+    const HORARIO_LABELS = {
+      "11AM": "11 AM",
+      "12PM": "12 PM",
+      "3PM": "3 PM",
+      "6PM": "6 PM",
+      "9PM": "9 PM",
+    };
+    const DRAW_CACHE_TTL = 15 * 1000;
+    const BIAS_TURN_SCHEDULE = {
+      "11AM": { hour: 11, minute: 0 },
+      "12PM": { hour: 12, minute: 0 },
+      "3PM": { hour: 15, minute: 0 },
+      "6PM": { hour: 18, minute: 0 },
+      "9PM": { hour: 21, minute: 0 },
+    };
+    const DECEMBER_REMINDER_KEY = "ld-v3-december-reminders";
+
+    let drawsCache = null;
+    let drawsCacheTs = 0;
+    let localSnapshotState = null;
+    let preferLocalSnapshot = isLocalDrawSnapshotModeEnabled();
+    let pega3DrawCache = [];
+    let pega3ActiveDrawId = null;
+    let pega3AnalysisCache = null;
+    let _pega3Page = 0;
+    const PEGA3_PAGE_SIZE = 30;
+    let _pega3Filter = "";
+    const formatFriendlyDate = (value) => {
+      if (!value) return "";
+      const date =
+        value instanceof Date
+          ? value
+          : typeof value === "string"
+            ? parseISODate(value)
+            : null;
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return typeof value === "string" ? value : "";
+      }
+      const day = date.getDate();
+      const monthName = MONTH_NAMES[date.getMonth()] || "";
+      const year = date.getFullYear();
+      const dow = DOW_FULL_LABEL[date.getDay()] || "";
+      return `${dow ? `${dow} ` : ""}${day} de ${monthName} ${year}`;
+    };
+    const formatShortDate = (iso) => {
+      if (!iso) return "";
+      const date = parseISODate(iso);
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return iso;
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = MONTH_ABBR[date.getMonth()] || "";
+      return `${day} ${month}`;
+    };
+    const formatWindowRange = (startIso, endIso) => {
+      const start = formatShortDate(startIso);
+      const end = formatShortDate(endIso);
+      if (start && end) {
+        if (start === end) return start;
+        return `${start} – ${end}`;
+      }
+      return start || end || "—";
+    };
+    function loadDecemberReminderStore() {
+      if (userPreferences?.decemberReminders && typeof userPreferences.decemberReminders === "object") {
+        return { ...userPreferences.decemberReminders };
+      }
+      if (typeof window === "undefined" || typeof window.localStorage === "undefined") return {};
+      try {
+        const raw = window.localStorage.getItem(DECEMBER_REMINDER_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch (err) {
+        logWarn("No se pudieron cargar recordatorios de diciembre", err);
+        return {};
+      }
+    }
+
+    function saveDecemberReminderStore(store) {
+      const isEmpty = !store || !Object.keys(store).length;
+      if (typeof window !== "undefined" && typeof window.localStorage !== "undefined") {
+        try {
+          if (isEmpty) {
+            window.localStorage.removeItem(DECEMBER_REMINDER_KEY);
+          } else {
+            window.localStorage.setItem(DECEMBER_REMINDER_KEY, JSON.stringify(store));
+          }
+        } catch (err) {
+          logWarn("No se pudieron guardar recordatorios de diciembre", err);
+        }
+      }
+      queueUserPreferencesSave({ decemberReminders: isEmpty ? {} : store });
+    }
+
+    const getSymbol = (numero) => {
+      const key = normalizeNumeroKey(numero);
+      const rawKey = (numero ?? "").toString().trim();
+      const candidates = [key, rawKey, formatNumber(rawKey)];
+      for (const cand of candidates) {
+        if (!cand) continue;
+        const entry = GUIA[cand];
+        if (entry?.simbolo) return entry.simbolo;
+      }
+      return "";
+    };
+    const getInverseNumero = (numero) => {
+      const normalized = normalizeNumeroKey(numero);
+      if (!normalized) return null;
+      const reversed = normalized.split("").reverse().join("");
+      const value = parseInt(reversed, 10);
+      if (Number.isNaN(value)) return null;
+      return { numero: value, symbol: getSymbol(value) || "" };
+    };
+
+    function getRecencyWarnTs() {
+      if (userPreferences && Object.prototype.hasOwnProperty.call(userPreferences, "recencyWarnTs")) {
+        return userPreferences.recencyWarnTs || 0;
+      }
+      if (typeof window === "undefined" || typeof window.localStorage === "undefined") return 0;
+      return parseInt(localStorage.getItem("recencyWarnTs"), 10) || 0;
+    }
+
+    function setRecencyWarnTs(value) {
+      queueUserPreferencesSave({ recencyWarnTs: value || null });
+      if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
+      try {
+        if (!value) {
+          localStorage.removeItem("recencyWarnTs");
+        } else {
+          localStorage.setItem("recencyWarnTs", String(value));
+        }
+      } catch (err) {
+        logWarn("No se pudo persistir recencyWarnTs", err);
+      }
+    }
+
+    function ensureLocalSnapshotState({ reload = false } = {}) {
+      if (!localSnapshotState || reload) {
+        localSnapshotState = loadLocalDrawSnapshot();
+      }
+      return localSnapshotState;
+    }
+
+    function formatSnapshotTimestamp(value) {
+      if (!value) return "";
+      try {
+        return new Intl.DateTimeFormat("es-ES", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(value));
+      } catch {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+      }
+    }
+
+    function updateLocalModeUI() {
+      if (!drawsLocalToggle || !drawsLocalStatus) return;
+      const snapshot = ensureLocalSnapshotState();
+      drawsLocalToggle.textContent = preferLocalSnapshot ? "Plan B activo" : "Plan B";
+      drawsLocalToggle.classList.toggle("btn-primary", preferLocalSnapshot);
+      drawsLocalToggle.classList.toggle("btn-ghost", !preferLocalSnapshot);
+      const hasSnapshot = snapshot.draws.length > 0;
+      if (!hasSnapshot && !preferLocalSnapshot) {
+        drawsLocalStatus.textContent = "";
+        drawsLocalStatus.classList.add("hidden");
+        drawsLocalStatus.classList.remove("local-mode-banner--active");
+        return;
+      }
+      const friendly = snapshot.updatedAt ? formatSnapshotTimestamp(snapshot.updatedAt) : "sin actualizar";
+      if (preferLocalSnapshot) {
+        drawsLocalStatus.textContent = hasSnapshot
+          ? `Modo local activado (${snapshot.draws.length} sorteos guardados · ${friendly}).`
+          : "Modo local activado, pero aún no has guardado sorteos.";
+      } else {
+        drawsLocalStatus.textContent = hasSnapshot
+          ? `Plan B listo: ${snapshot.draws.length} sorteos guardados (última sync ${friendly}).`
+          : "Aún no hay datos guardados para el modo local.";
+      }
+      drawsLocalStatus.classList.toggle("local-mode-banner--active", preferLocalSnapshot);
+      drawsLocalStatus.classList.remove("hidden");
+    }
+
+    async function getCachedDraws({ force = false, excludeTest = true } = {}) {
+      const now = Date.now();
+      let source = null;
+      if (!force && preferLocalSnapshot) {
+        const snapshot = ensureLocalSnapshotState();
+        if (snapshot.draws.length) source = snapshot.draws;
+      }
+      if (!source) {
+        if (!drawsCache || force || now - drawsCacheTs > DRAW_CACHE_TTL) {
+          const remoteDraws = await DB.listDraws({ excludeTest: false });
+          drawsCache = Array.isArray(remoteDraws) ? remoteDraws : [];
+          drawsCacheTs = now;
+          if (drawsCache.length) {
+            const saved = saveLocalDrawSnapshot(drawsCache);
+            if (saved) {
+              localSnapshotState = saved;
+            }
+          }
+          updateLocalModeUI();
+        }
+        source = drawsCache;
+      }
+      if (!source || !source.length) {
+        const snapshot = ensureLocalSnapshotState({ reload: true });
+        if (snapshot.draws.length) {
+          source = snapshot.draws;
+        }
+      }
+      if (!source || !source.length) return [];
+      const list = source.slice();
+      return excludeTest ? list.filter((d) => !d.isTest) : list;
+    }
+
+    function invalidateDrawCache() {
+      drawsCache = null;
+      drawsCacheTs = 0;
+    }
+
+    const OPERACION_LABELS = {
+      "": "",
+      mirror: "Invertir",
+      "sum-digits": "Suma dígitos",
+      "sum-digits-keep-first": "Suma dígitos (mantiene)",
+      "add-constant": "+Constante",
+      "sub-constant": "-Constante",
+      neighbor: "Ajuste ±1",
+      "digit-map": "Mapa dígitos",
+    };
+
+    function formatSampleDisplay(sample = {}) {
+      const { fecha, horario } = sample;
+      if (!fecha) return "";
+      const formatted = formatFriendlyDate(fecha);
+      return `${formatted}${horario ? ` ${horario}` : ""}`.trim();
+    }
+
+    const getFilters = () => ({
+      fecha: document.getElementById("day-fecha")?.value,
+      pais: document.getElementById("day-pais")?.value,
+    });
+
+    function normalizeCountry(value) {
+      const raw = typeof value === "string" ? value : value ? String(value) : DEFAULT_COUNTRY;
+      const normalized = raw.trim().toUpperCase();
+      return normalized || DEFAULT_COUNTRY;
+    }
+
+    function getCountryTurnos(pais) {
+      const normalized = normalizeCountry(pais);
+      return COUNTRY_TURNOS[normalized] || COUNTRY_TURNOS[DEFAULT_COUNTRY];
+    }
+
+    function getActiveSlotConfigs(pais) {
+      const allowed = new Set(getCountryTurnos(pais));
+      return SLOT_CONFIG.filter((config) => allowed.has(config.key));
+    }
+
+    function updateSlotVisibility(pais) {
+      const allowed = new Set(getCountryTurnos(pais));
+      SLOT_CONFIG.forEach((config) => {
+        const el = config.containerId ? document.getElementById(config.containerId) : null;
+        if (!el) return;
+        el.classList.toggle("hidden", !allowed.has(config.key));
+      });
+    }
+
+
+    function pickDraw(draws, fecha, pais, horario) {
+      if (!fecha || !pais) return null;
+      const matching = draws
+        .filter((d) => d.fecha === fecha && d.pais === pais && d.horario === horario)
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      if (!matching.length) return null;
+      return matching
+        .slice()
+        .reverse()
+        .find((d) => !d.isTest) ?? matching[matching.length - 1];
+    }
+
+    function formatBallContent(numero, symbol) {
+      const numHtml = `<span class="ball-number">${numero}</span>`;
+      const symHtml = symbol ? `<span class="ball-symbol">${symbol}</span>` : "";
+      return `${numHtml}${symHtml}`;
+    }
+
+    function applyDrawToSlot(config, draw) {
+      const ball = document.getElementById(config.ballId);
+      const sym = document.getElementById(config.symId);
+      if (!ball || !sym) return;
+      ball.removeAttribute("data-pending");
+      if (!draw) {
+        ball.innerHTML = formatBallContent("--", "");
+        ball.classList.remove("small");
+        ball.removeAttribute("data-numero");
+        ball.style.borderColor = "";
+        ball.style.color = "";
+        sym.textContent = "";
+        sym.removeAttribute("title");
+        return;
+      }
+      const numero = formatNumber(draw.numero);
+      const color = getColorPolaridad(draw.numero);
+      const symbol = getSymbol(draw.numero);
+      ball.innerHTML = formatBallContent(numero, symbol);
+      ball.dataset.numero = numero;
+      ball.classList.toggle("small", !!draw.isTest);
+      ball.style.borderColor = color;
+      ball.style.color = color;
+      sym.textContent = "";
+      sym.title = draw.isTest ? "Modo prueba" : symbol || "";
+    }
+
+    async function refreshSlots({ forceReload = false } = {}) {
+      const { fecha, pais } = getFilters();
+      const normalizedPais = normalizeCountry(pais);
+      const draws = await getCachedDraws({ force: forceReload, excludeTest: false });
+      getActiveSlotConfigs(normalizedPais).forEach((config) => {
+        const draw = pickDraw(draws, fecha, normalizedPais, config.key);
+        applyDrawToSlot(config, draw);
+      });
+      applyPendingSlots(fecha, normalizedPais);
+    }
+
+    const saveDayBtn = document.getElementById("save-day");
+    const syncDayBtn = document.getElementById("sync-day");
+    const dayPendingIndicator = document.getElementById("day-pending-indicator");
+    const managePendingBtn = document.getElementById("manage-pending");
+    const pendingModal = document.getElementById("pending-modal");
+    const pendingModalCloseBtn = document.getElementById("pending-modal-close");
+    const pendingTableBody = document.getElementById("pending-table-body");
+    const pendingTableWrap = document.getElementById("pending-table-wrap");
+    const pendingEmptyState = document.getElementById("pending-empty-state");
+    const pendingEditorForm = document.getElementById("pending-editor-form");
+    const pendingEditorMeta = document.getElementById("pending-editor-meta");
+    const pendingEditorNumeroInput = document.getElementById("pending-editor-numero");
+    const pendingEditorTestInput = document.getElementById("pending-editor-test");
+    const pendingEditorCancelBtn = document.getElementById("pending-editor-cancel");
+    let pendingDayQueue = [];
+    let pendingEditorIndex = null;
+    const buildPendingKey = (entry) =>
+      entry && entry.fecha && entry.pais && entry.horario
+        ? `${entry.fecha}|${entry.pais}|${entry.horario}`
+        : null;
+
+    async function loadPendingDayQueue() {
+      try {
+        return await DB.listPendingDraws();
+      } catch (err) {
+        logWarn("No se pudieron leer sorteos pendientes de Supabase", err);
+        return [];
+      }
+    }
+
+    function updatePendingIndicator() {
+      if (!dayPendingIndicator) return;
+      const count = pendingDayQueue.length;
+      if (!count) {
+        dayPendingIndicator.textContent = "Sin pendientes";
+        dayPendingIndicator.dataset.state = "empty";
+        return;
+      }
+      dayPendingIndicator.textContent = `${count} pendiente${count === 1 ? "" : "s"}`;
+      dayPendingIndicator.dataset.state = "pending";
+    }
+
+    function applyPendingSlots(targetFecha, targetPais) {
+      if (!pendingDayQueue.length) return;
+      const normalizedPais = normalizeCountry(targetPais);
+      pendingDayQueue.forEach((entry) => {
+        if (!entry) return;
+        if (entry.fecha !== targetFecha) return;
+        if ((entry.pais || "HN").toUpperCase() !== normalizedPais) return;
+        const config = SLOT_CONFIG.find((slot) => slot.key === entry.horario);
+        if (!config) return;
+        applyDrawToSlot(config, { numero: entry.numero, isTest: entry.isTest });
+        const ball = document.getElementById(config.ballId);
+        if (ball) ball.dataset.pending = "true";
+      });
+    }
+
+    const PENDING_EDITOR_DEFAULT_META = "Selecciona un sorteo para editarlo";
+
+    function resetPendingEditor() {
+      pendingEditorIndex = null;
+      if (pendingEditorNumeroInput) pendingEditorNumeroInput.value = "";
+      if (pendingEditorTestInput) pendingEditorTestInput.checked = false;
+      if (pendingEditorMeta) pendingEditorMeta.textContent = PENDING_EDITOR_DEFAULT_META;
+      pendingEditorForm?.classList.add("hidden");
+    }
+
+    function refreshPendingSlotsView() {
+      if (typeof refreshSlots !== "function") return;
+      try {
+        const maybePromise = refreshSlots();
+        if (maybePromise?.catch) {
+          maybePromise.catch((err) => console.error("refreshSlots error", err));
+        }
+      } catch (err) {
+        console.error("refreshSlots error", err);
+      }
+    }
+
+    function renderPendingTable() {
+      if (!pendingTableBody || !pendingTableWrap || !pendingEmptyState) return;
+      pendingTableBody.innerHTML = "";
+      if (!pendingDayQueue.length) {
+        pendingEmptyState.classList.remove("hidden");
+        pendingTableWrap.classList.add("hidden");
+        resetPendingEditor();
+        return;
+      }
+      pendingEmptyState.classList.add("hidden");
+      pendingTableWrap.classList.remove("hidden");
+      pendingDayQueue.forEach((entry, index) => {
+        const tr = document.createElement("tr");
+        const numero = formatNumber(entry.numero);
+        const symbol = getSymbol(entry.numero) || "—";
+        tr.innerHTML = `
+          <td>${entry.fecha}</td>
+          <td>${entry.pais}</td>
+          <td>${entry.horario}</td>
+          <td class="pending-table__number">${numero}</td>
+          <td class="pending-table__symbol">${symbol}</td>
+          <td class="pending-table__type ${entry.isTest ? "is-test" : "is-real"}">${entry.isTest ? "Prueba" : "Oficial"}</td>
+          <td>
+            <div class="pending-table-actions">
+              <button type="button" class="btn-ghost btn-compact" data-edit-pending="${index}">Editar</button>
+              <button type="button" class="btn-danger btn-compact" data-delete-pending="${index}">Eliminar</button>
+            </div>
+          </td>
+        `;
+        pendingTableBody.appendChild(tr);
+      });
+    }
+
+    function openPendingModalUI() {
+      if (!pendingModal) return;
+      renderPendingTable();
+      pendingModal.classList.remove("hidden");
+    }
+
+    function closePendingModalUI() {
+      if (!pendingModal) return;
+      pendingModal.classList.add("hidden");
+      resetPendingEditor();
+    }
+
+    function startPendingEdit(index) {
+      if (!Number.isInteger(index) || index < 0) return;
+      const entry = pendingDayQueue[index];
+      if (!entry || !pendingEditorForm || !pendingEditorNumeroInput || !pendingEditorMeta) return;
+      pendingEditorIndex = index;
+      pendingEditorNumeroInput.value = formatNumber(entry.numero);
+      if (pendingEditorTestInput) pendingEditorTestInput.checked = !!entry.isTest;
+      pendingEditorMeta.textContent = `${entry.fecha} · ${entry.pais} · ${entry.horario}`;
+      pendingEditorForm.classList.remove("hidden");
+      pendingEditorNumeroInput.focus();
+    }
+
+    pendingDayQueue = await loadPendingDayQueue();
+    updatePendingIndicator();
+    managePendingBtn?.addEventListener("click", openPendingModalUI);
+    pendingModalCloseBtn?.addEventListener("click", closePendingModalUI);
+    pendingModal?.addEventListener("click", (event) => {
+      if (event.target === pendingModal) {
+        closePendingModalUI();
+      }
+    });
+    pendingTableBody?.addEventListener("click", async (event) => {
+      const editBtn = event.target.closest?.("[data-edit-pending]");
+      if (editBtn) {
+        const index = Number(editBtn.dataset.editPending);
+        if (Number.isFinite(index)) {
+          startPendingEdit(index);
+        }
+        return;
+      }
+      const deleteBtn = event.target.closest?.("[data-delete-pending]");
+      if (deleteBtn) {
+        const index = Number(deleteBtn.dataset.deletePending);
+        if (!Number.isFinite(index) || index < 0) return;
+        const entry = pendingDayQueue[index];
+        if (!entry) return;
+        const confirm = await mostrarModal(
+          "Eliminar pendiente",
+          `¿Eliminar ${entry.horario} ${formatNumber(entry.numero)} del ${entry.fecha} (${entry.pais}) de los pendientes?`,
+          { okText: "Eliminar", cancelText: "Cancelar", okVariant: "danger" },
+        );
+        if (!confirm) return;
+        await DB.deleteDraw(entry.id);
+        pendingDayQueue = await loadPendingDayQueue();
+        updatePendingIndicator();
+        resetPendingEditor();
+        renderPendingTable();
+        refreshPendingSlotsView();
+        showToast("Sorteo eliminado de pendientes.", { variant: "success" });
+      }
+    });
+    pendingEditorCancelBtn?.addEventListener("click", resetPendingEditor);
+    pendingEditorForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!Number.isInteger(pendingEditorIndex) || pendingEditorIndex < 0) {
+        showToast("Selecciona un sorteo antes de editar.", { variant: "warning" });
+        return;
+      }
+      const entry = pendingDayQueue[pendingEditorIndex];
+      if (!entry) {
+        showToast("El elemento seleccionado ya no existe.", { variant: "warning" });
+        resetPendingEditor();
+        renderPendingTable();
+        return;
+      }
+      const rawValue = pendingEditorNumeroInput?.value.trim() ?? "";
+      if (!/^\d{1,2}$/.test(rawValue)) {
+        showToast("Ingresa un número válido (00–99).", { variant: "warning" });
+        pendingEditorNumeroInput?.focus();
+        return;
+      }
+      const numero = parseInt(rawValue, 10);
+      if (numero < 0 || numero > 99) {
+        showToast("El número debe estar entre 00 y 99.", { variant: "warning" });
+        pendingEditorNumeroInput?.focus();
+        return;
+      }
+      const symbol = getSymbol(numero);
+      if (!symbol) {
+        showToast(`El número ${formatNumber(numero)} no tiene símbolo registrado.`, { variant: "danger" });
+        return;
+      }
+      await DB.updatePendingDrawEntry(entry.id, { numero, isTest: !!pendingEditorTestInput?.checked });
+      pendingDayQueue = await loadPendingDayQueue();
+      updatePendingIndicator();
+      renderPendingTable();
+      refreshPendingSlotsView();
+      showToast(
+        `Actualizaste ${entry.horario} a ${formatNumber(numero)}${pendingEditorTestInput?.checked ? " (modo prueba)" : ""}.`,
+        { variant: "success" },
+      );
+      resetPendingEditor();
+    });
+
+    // === PANEL: Rachas por línea ===
+    saveDayBtn?.addEventListener("click", async () => {
+      const { fecha, pais } = getFilters();
+      if (!fecha || !pais) {
+        showToast("Selecciona fecha y país antes de guardar.", { variant: "warning" });
+        return;
+      }
+
+      const paisValue = normalizeCountry(pais);
+      const payloads = [];
+      for (const config of getActiveSlotConfigs(paisValue)) {
+        const input = document.getElementById(config.inputId);
+        const raw = input?.value.trim() ?? "";
+        if (!raw) continue;
+        if (!/^\d{1,2}$/.test(raw)) {
+          showToast(`Número inválido en ${config.key}. Usa formato 00-99.`, { variant: "warning" });
+          input?.setAttribute("aria-invalid", "true");
+          input?.focus();
+          return;
+        }
+        const numero = parseInt(raw, 10);
+        if (numero < 0 || numero > 99) {
+          showToast(`El número en ${config.key} debe estar entre 00 y 99.`, { variant: "warning" });
+          input?.setAttribute("aria-invalid", "true");
+          input?.focus();
+          return;
+        }
+        const symbol = getSymbol(numero);
+        if (!symbol) {
+          showToast(`El número ${formatNumber(numero)} no tiene símbolo registrado. Revisa la guía antes de guardarlo.`, {
+            variant: "danger",
+          });
+          input?.setAttribute("aria-invalid", "true");
+          input?.focus();
+          return;
+        }
+
+        const testCheck = document.getElementById(config.checkboxId);
+        payloads.push({ config, numero, input, testCheck, isTest: !!testCheck?.checked });
+      }
+
+      if (!payloads.length) {
+        showToast("Ingresa al menos un número antes de guardar.", { variant: "warning" });
+        return;
+      }
+
+      const release = withButtonBusy(saveDayBtn, "Guardando…");
+      try {
+        const queueEntries = payloads.map(({ config, numero, isTest }) => ({
+          fecha,
+          pais: paisValue,
+          horario: config.key,
+          numero,
+          isTest,
+        }));
+        await notifyHypothesisMatches(queueEntries);
+
+        for (const entry of queueEntries) {
+          await DB.savePendingDraw(entry);
+        }
+
+        pendingDayQueue = await loadPendingDayQueue();
+        updatePendingIndicator();
+
+        payloads.forEach(({ input, testCheck }) => {
+          if (input) input.value = "";
+          if (testCheck) testCheck.checked = false;
+        });
+
+        const detail = queueEntries
+          .map((entry) => `${entry.horario} ${formatNumber(entry.numero)}${entry.isTest ? " (test)" : ""}`)
+          .join(" · ");
+        showToast(
+          `Sorteos agregados a pendientes: ${detail}. Pendientes totales: ${pendingDayQueue.length}.`,
+          { variant: "success" },
+        );
+        applyPendingSlots(fecha, paisValue);
+        autoAdvanceDayFecha();
+      } catch (err) {
+        console.error("saveDay queue error", err);
+        showToast(`No se pudieron preparar los sorteos: ${err.message}`, { variant: "danger" });
+        throw err;
+      } finally {
+        release();
+      }
+    });
+
+    saveDayBtn?.addEventListener("click", () => {
+      updateCountdownDisplay();
+    });
+
+    async function notifyHypothesisMatches(entries = []) {
+      if (!entries.length) return;
+      await ensureHypothesisCache();
+      const matches = [];
+      entries.forEach((entry) => {
+        const hyps = getHypothesesForNumber(entry.numero);
+        if (!hyps.length) return;
+        matches.push({
+          numero: entry.numero,
+          simbolo: getSymbol(entry.numero) || "",
+          resumen: summarizeHypothesisStates(hyps),
+        });
+      });
+      if (!matches.length) return;
+      const detail = matches
+        .map((item) => {
+          const base = `${formatNumber(item.numero)}${item.simbolo ? ` ${item.simbolo}` : ""}`;
+          return item.resumen ? `${base} (${item.resumen})` : base;
+        })
+        .join(" · ");
+      showToast(`Hay hipótesis registradas para ${detail}. Revisa el panel de Hipótesis.`, {
+        variant: "info",
+        timeout: 6500,
+      });
+    }
+
+    syncDayBtn?.addEventListener("click", async () => {
+      if (!pendingDayQueue.length) {
+        showToast("No hay sorteos pendientes por confirmar.", { variant: "info" });
+        return;
+      }
+      const queueSnapshot = pendingDayQueue.slice();
+      const endBusy = withButtonBusy(syncDayBtn, "Confirmando…");
+      try {
+        await runWithSavingModal(async () => {
+          await DB.confirmAllPendingDraws();
+        });
+        pendingDayQueue = [];
+        updatePendingIndicator();
+        await refreshSlots();
+        await handleDrawsMutated();
+        const comboMap = new Map();
+        queueSnapshot.forEach((entry) => {
+          const key = `${entry.fecha}|${entry.pais}`;
+          if (!comboMap.has(key)) {
+            comboMap.set(key, { fecha: entry.fecha, pais: entry.pais });
+          }
+        });
+        for (const combo of comboMap.values()) {
+          await procesarAprendizajeDia({
+            fecha: combo.fecha,
+            pais: combo.pais,
+            silent: true,
+            skipKnowledgeSync: true,
+            showProgressModal: false,
+          });
+        }
+        await rebuildKnowledge();
+        await refreshHypotesis();
+        const detail = queueSnapshot
+          .map((entry) => `${entry.horario} ${formatNumber(entry.numero)} (${entry.fecha}${entry.pais ? ` · ${entry.pais}` : ""})`)
+          .join(" · ");
+        showToast(
+          `Confirmaste ${queueSnapshot.length} sorteo${queueSnapshot.length === 1 ? "" : "s"}. ${detail}`,
+          { variant: "success" },
+        );
+      } catch (err) {
+        console.error("confirm pending draws error", err);
+        showToast(`No se pudieron confirmar los sorteos: ${err.message}`, { variant: "danger" });
+        throw err;
+      } finally {
+        endBusy();
+      }
+    });
+
+    // === FUNCIONALIDAD: "Vincular par" desde slot del día ===
+    document.querySelectorAll(".ghost[data-hypo]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const turno = btn.dataset.hypo;
+        const { fecha, pais } = getFilters();
+        if (!fecha || !pais) {
+          mostrarAviso("Selecciona fecha y país antes de vincular un par.", { variant: "warning" });
+          return;
+        }
+
+        const slot = btn.closest(".slot");
+        const slotNumberInput = slot?.querySelector(".slot-controls input");
+        const numeroRaw = (slotNumberInput?.value || "").trim();
+        if (!/^\d{1,2}$/.test(numeroRaw)) {
+          mostrarAviso("Primero ingresa el número del sorteo en el slot.", { variant: "warning" });
+          slotNumberInput?.focus();
+          return;
+        }
+
+        const numA = parseInt(numeroRaw, 10);
+        const padA = String(numA).padStart(2, "0");
+        const simA = getSymbol(numA) || padA;
+
+        const modal = document.getElementById("sys-modal");
+        const tEl = document.getElementById("modal-title");
+        const mEl = document.getElementById("modal-msg");
+        const okBtn = document.getElementById("modal-ok");
+        const cancelBtn = document.getElementById("modal-cancel");
+
+        tEl.textContent = `Vincular par desde ${turno}`;
+        mEl.innerHTML = `
+          <div class="modal-form-panel">
+            <form class="modal-form" id="modal-pair-form">
+              <div class="modal-field modal-field--accent">
+                <span class="modal-label">Número A (cayó ${turno})</span>
+                <div class="modal-number-chip">
+                  <strong>${padA}</strong>
+                  <small>${simA}</small>
+                </div>
+              </div>
+              <div class="modal-field">
+                <label class="modal-label" for="mp-numB">Número B (compañero esperado)</label>
+                <input id="mp-numB" type="text" maxlength="2" inputmode="numeric" placeholder="00–99" class="pair-num-input" autocomplete="off" />
+                <div id="mp-infoB" class="pair-num-info" style="margin-top:4px;font-size:.82rem;color:var(--clr-gold)"></div>
+              </div>
+              <div class="modal-field">
+                <label class="modal-label" for="mp-nota">Nota <small>(opcional)</small></label>
+                <input id="mp-nota" type="text" placeholder="Ej: Suerte → Dinero, relación simbólica" class="pair-nota-input" />
+              </div>
+            </form>
+          </div>
+        `;
+        okBtn.textContent = "Guardar par";
+        cancelBtn.textContent = "Cancelar";
+        modal.classList.remove("hidden");
+
+        // Mostrar símbolo de B en tiempo real
+        document.getElementById("mp-numB")?.addEventListener("input", (e) => {
+          const v = e.target.value.trim();
+          const el = document.getElementById("mp-infoB");
+          if (!el) return;
+          const n = parseInt(v, 10);
+          if (!Number.isFinite(n) || n < 0 || n > 99 || v.length < 1) {
+            el.textContent = "";
+            return;
+          }
+          const pad = String(n).padStart(2, "0");
+          const info = GUIA?.[pad];
+          el.textContent = info ? `${info.simbolo || ""}${info.familia ? ` · ${info.familia}` : ""}` : pad;
+        });
+
+        // Cargar par existente si ya hay uno guardado con este A
+        try {
+          const existing = await listPairsFromDb();
+          const found = existing.find(p => p.numA === numA || p.numB === numA);
+          if (found) {
+            const otherNum = found.numA === numA ? found.numB : found.numA;
+            const padOther = String(otherNum).padStart(2, "0");
+            const bInput = document.getElementById("mp-numB");
+            if (bInput) bInput.value = padOther;
+            document.getElementById("mp-infoB").textContent = (() => {
+              const info = GUIA?.[padOther];
+              return info ? `${info.simbolo || ""}${info.familia ? ` · ${info.familia}` : ""}` : padOther;
+            })();
+            document.getElementById("mp-nota").value = found.nota ?? "";
+            okBtn.textContent = "Actualizar par";
+            showToast(`Par existente cargado: ${padA} ↔ ${padOther}`, { variant: "info", timeout: 2000 });
+          }
+        } catch (_) { /* sin par previo */ }
+
+        okBtn.onclick = async () => {
+          const rawB = (document.getElementById("mp-numB")?.value || "").trim();
+          if (!/^\d{1,2}$/.test(rawB)) {
+            mostrarAviso("Ingresa el Número B (00–99).", { variant: "warning" });
+            return;
+          }
+          const numB = parseInt(rawB, 10);
+          if (numB === numA) {
+            mostrarAviso("El Número B no puede ser igual al Número A.", { variant: "warning" });
+            return;
+          }
+          const nota = document.getElementById("mp-nota")?.value.trim() ?? "";
+          const padB = String(numB).padStart(2, "0");
+          try {
+            await savePairToDb({ numA, numB, nota });
+            mostrarAviso(`Par ${padA} ↔ ${padB} guardado.`, { variant: "success" });
+            invalidatePulso();
+            renderPairList();
+            renderPulso();
+          } catch (err) {
+            mostrarAviso(`Error al guardar el par: ${err.message}`, { variant: "danger" });
+          } finally {
+            modal.classList.add("hidden");
+          }
+        };
+
+        cancelBtn.onclick = () => modal.classList.add("hidden");
+      });
+    });
+    dayFecha?.addEventListener("change", () => {
+      updateDayFechaDow();
+      refreshSlots();
+      updateCountdownDisplay();
+    });
+    dayPais?.addEventListener("change", () => {
+      updateSlotVisibility(dayPais?.value);
+      refreshSlots();
+      updateCountdownDisplay();
+    });
+    window.addEventListener("load", () => {
+      try {
+        updateSlotVisibility(dayPais?.value || DEFAULT_COUNTRY);
+      } catch (err) {
+        console.error("init slot visibility failed", err);
+      }
+    });
+    updateDayFechaDow();
+
+    const countdownTargetEl = document.querySelector("[data-countdown-target]");
+    const countdownTimerEl = document.querySelector("[data-countdown-timer]");
+    const countdownLabelEl = document.querySelector("[data-countdown-label]");
+    let countdownInterval = null;
+
+    function getTurnoScheduleEntries(pais) {
+      const keys = getCountryTurnos(pais);
+      const entries = keys
+        .map((key) => {
+          const schedule = BIAS_TURN_SCHEDULE[key];
+          if (!schedule) return null;
+          const hour = Number(schedule.hour);
+          const minute = Number(schedule.minute) || 0;
+          if (!Number.isFinite(hour)) return null;
+          return {
+            name: key,
+            label: HORARIO_LABELS[key] || key,
+            hour,
+            minute,
+          };
+        })
+        .filter(Boolean);
+      if (!entries.length && pais !== DEFAULT_COUNTRY) {
+          return getTurnoScheduleEntries(DEFAULT_COUNTRY);
+      }
+      return entries.sort((a, b) => {
+        const aMinutes = a.hour * 60 + (a.minute || 0);
+        const bMinutes = b.hour * 60 + (b.minute || 0);
+        return aMinutes - bMinutes;
+      });
+    }
+
+    function getNextDraw(pais) {
+      const schedule = getTurnoScheduleEntries(pais);
+      if (!schedule.length) return null;
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      for (const draw of schedule) {
+        const drawTime = new Date(today);
+        drawTime.setHours(draw.hour, draw.minute || 0, 0, 0);
+        if (now < drawTime) {
+          return { ...draw, time: drawTime };
+        }
+      }
+
+      // If all draws for today are over, get the first draw of tomorrow
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const nextDraw = schedule[0];
+      const nextDrawTime = new Date(tomorrow);
+      nextDrawTime.setHours(nextDraw.hour, nextDraw.minute || 0, 0, 0);
+      return { ...nextDraw, time: nextDrawTime };
+    }
+
+    function updateCountdown(pais) {
+      const normalizedPais = normalizeCountry(pais);
+      const nextDraw = getNextDraw(normalizedPais);
+
+      if (!nextDraw) {
+        if (countdownLabelEl) countdownLabelEl.textContent = "Próximo sorteo no disponible";
+        if (countdownTargetEl) countdownTargetEl.textContent = "—";
+        if (countdownTimerEl) countdownTimerEl.textContent = "--:--:--";
+        if (countdownInterval) clearInterval(countdownInterval);
+        return;
+      }
+
+      if (countdownLabelEl) {
+        countdownLabelEl.textContent = `Próximo Sorteo: ${nextDraw.label}`;
+      }
+
+      if (countdownTargetEl) {
+        const options = { hour: "2-digit", minute: "2-digit" };
+        countdownTargetEl.textContent = nextDraw.time.toLocaleTimeString("es-ES", options);
+      }
+
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+
+      countdownInterval = setInterval(() => {
+        const now = new Date();
+        const diff = nextDraw.time - now;
+
+        if (diff <= 0) {
+          clearInterval(countdownInterval);
+          // Update to the next draw when the countdown finishes
+          setTimeout(() => updateCountdown(normalizedPais), 1000);
+          return;
+        }
+
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        if (countdownTimerEl) {
+          countdownTimerEl.textContent =
+            `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+      }, 1000);
+    }
+
+    updateCountdownDisplay();
+
+    function updateCountdownDisplay() {
+      try {
+        const pais = dayPais?.value || DEFAULT_COUNTRY;
+        updateCountdown(pais);
+      } catch (err) {
+        console.error("countdown update error", err);
+      }
+    }
+
+    // === Paneles extendidos: historial, seguimiento, patrones y ranking ===
+    const historyDateInput = document.getElementById("history-date");
+    const historyHourSelect = document.getElementById("history-hour");
+    const historyCountrySelect = document.getElementById("history-country");
+    const historyLimitSelect = document.getElementById("history-limit");
+    const historyTableWrap = document.getElementById("history-table");
+    const historySummary = document.getElementById("history-summary");
+    const historyCoveragePanel = document.getElementById("history-coverage");
+    const historySearchBtn = document.getElementById("history-search");
+    const historyClearBtn = document.getElementById("history-clear");
+    const historyRefreshBtn = document.getElementById("history-refresh");
+    const drawsLocalToggle = document.getElementById("draws-local-toggle");
+    const drawsLocalStatus = document.getElementById("draws-local-status");
+
+
+    const decemberCard = document.getElementById("december-card");
+    const decemberYearSelect = document.getElementById("december-year");
+    const decemberSearchInput = document.getElementById("december-search");
+    const decemberSearchBtn = document.getElementById("december-search-btn");
+    const decemberClearBtn = document.getElementById("december-clear");
+    const decemberRefreshBtn = document.getElementById("december-refresh");
+    const decemberSummaryEl = document.getElementById("december-summary");
+    const decemberWatchlistEl = document.getElementById("december-watchlist");
+    const decemberDetailEl = document.getElementById("december-detail");
+    const decemberRemindersEl = document.getElementById("december-reminders");
+    const strategyRefreshBtn = document.getElementById("strategy-refresh");
+    const strategiesList = document.getElementById("strategies-list");
+    const strategiesSection = document.getElementById("view-strategies");
+    const strategyTurnChips = document.querySelectorAll("[data-strategy-turn]");
+    const strategyOperatorChips = document.querySelectorAll("[data-strategy-operator]");
+    const strategyResetBtn = document.getElementById("strategy-reset");
+    let allowStrategyAutoRender = true;
+    const strategyFilters = {
+      turns: new Set(HORARIO_KEYS),
+      operators: new Set(["+", "−"]),
+    };
+
+    strategyRefreshBtn?.addEventListener("click", () => {
+      renderStrategiesPanel({ force: true });
+    });
+
+    function setStrategyChipState(chip, active) {
+      chip.classList.toggle("active", active);
+    }
+
+    function renderStrategyFilters() {
+      strategyTurnChips.forEach((chip) => {
+        const turno = chip.dataset.strategyTurn;
+        if (!turno) return;
+        setStrategyChipState(chip, strategyFilters.turns.has(turno));
+      });
+      strategyOperatorChips.forEach((chip) => {
+        const op = chip.dataset.strategyOperator;
+        if (!op) return;
+        setStrategyChipState(chip, strategyFilters.operators.has(op));
+      });
+    }
+
+    strategyTurnChips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const turno = chip.dataset.strategyTurn;
+        if (!turno) return;
+        if (strategyFilters.turns.has(turno)) {
+          if (strategyFilters.turns.size === 1) return;
+          strategyFilters.turns.delete(turno);
+        } else {
+          strategyFilters.turns.add(turno);
+        }
+        renderStrategyFilters();
+        renderStrategiesPanel();
+      });
+    });
+
+    strategyOperatorChips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const op = chip.dataset.strategyOperator;
+        if (!op) return;
+        if (strategyFilters.operators.has(op)) {
+          if (strategyFilters.operators.size === 1) return;
+          strategyFilters.operators.delete(op);
+        } else {
+          strategyFilters.operators.add(op);
+        }
+        renderStrategyFilters();
+        renderStrategiesPanel();
+      });
+    });
+
+    strategyResetBtn?.addEventListener("click", () => {
+      strategyFilters.turns = new Set(HORARIO_KEYS);
+      strategyFilters.operators = new Set(["+", "−"]);
+      renderStrategyFilters();
+      renderStrategiesPanel();
+    });
+    renderStrategyFilters();
+
+    strategiesList?.addEventListener("click", async (event) => {
+      const viewBtn = event.target.closest("[data-strategy-view]");
+      if (viewBtn) {
+        await focusDayPanel(viewBtn.dataset.fecha || null, viewBtn.dataset.pais || null);
+        return;
+      }
+      const hypoBtn = event.target.closest("[data-strategy-hypo]");
+      if (hypoBtn) {
+        navigateToView("hypo");
+        if (hypoFechaInput && hypoBtn.dataset.fecha) hypoFechaInput.value = hypoBtn.dataset.fecha;
+        if (hypoTurnoSelect && hypoBtn.dataset.turno) hypoTurnoSelect.value = hypoBtn.dataset.turno;
+        if (hypoNumeroInput && hypoBtn.dataset.numero) hypoNumeroInput.value = hypoBtn.dataset.numero;
+        if (hypoTextoInput) {
+          const notaBase = hypoBtn.dataset.descripcion || "Estrategia aritmética detectada.";
+          hypoTextoInput.value = notaBase;
+        }
+        autoFillHypothesisForm({ preserveText: true });
+        showToast("Hipótesis preparada desde la estrategia seleccionada.", { variant: "info" });
+      }
+    });
+
+    let patternsCache = null;
+    let patternsLoading = false;
+
+    async function ensurePatternsCache({ force = false } = {}) {
+      if (patternsLoading) return patternsCache;
+      if (force) patternsCache = null;
+      if (patternsCache) return patternsCache;
+      patternsLoading = true;
+      try {
+        patternsCache = await detectarPatrones({ cantidad: 12 });
+      } catch (err) {
+        console.error("patterns fetch error", err);
+        showToast(`No se pudieron calcular los patrones recientes: ${err.message}`, { variant: "danger" });
+        patternsCache = null;
+      } finally {
+        patternsLoading = false;
+      }
+      return patternsCache;
+    }
+
+    function getPatternStrategiesFromCache() {
+      return patternsCache?.estrategiasAritmeticas ?? [];
+    }
+
+    async function renderStrategiesPanel({ force = false, skipEnsure = false } = {}) {
+      if (!strategiesList) return;
+      if (force) patternsCache = null;
+      if (!skipEnsure) {
+        const prevFlag = allowStrategyAutoRender;
+        allowStrategyAutoRender = false;
+        await ensurePatternsCache({ force });
+        allowStrategyAutoRender = prevFlag;
+      } else if (!patternsCache) {
+        await ensurePatternsCache({ force: false });
+      }
+      const data = getPatternStrategiesFromCache();
+      if (!data.length) {
+        strategiesList.innerHTML =
+          "<p class='hint'>Sin estrategias disponibles en la ventana reciente. Calcula patrones para actualizar.</p>";
+        return;
+      }
+      const filtered = data.filter((entry) => {
+        const turnoMatch =
+          !entry.target?.horario || strategyFilters.turns.has(entry.target.horario);
+        const operatorMatch = strategyFilters.operators.has(entry.operador);
+        return turnoMatch && operatorMatch;
+      });
+      if (!filtered.length) {
+        strategiesList.innerHTML =
+          "<p class='hint'>Sin estrategias que coincidan con los filtros seleccionados.</p>";
+        return;
+      }
+      strategiesList.innerHTML = "";
+      const draws = await getCachedDraws({ force });
+      const dayCache = new Map();
+      const getDayDraws = (fecha, pais) => {
+        const key = `${fecha}|${pais || ""}`;
+        if (dayCache.has(key)) return dayCache.get(key);
+        const map = {};
+        HORARIO_KEYS.forEach((turno) => {
+          map[turno] = pickDraw(draws, fecha, pais || null, turno);
+        });
+        dayCache.set(key, map);
+        return map;
+      };
+
+      filtered
+        .slice()
+        .sort(
+          (a, b) =>
+            (new Date(b.target?.fecha || "1970-01-01") - new Date(a.target?.fecha || "1970-01-01")) ||
+            (HORARIO_ORDER[b.target?.horario] ?? 0) - (HORARIO_ORDER[a.target?.horario] ?? 0),
+        )
+        .forEach((entry) => {
+          const card = document.createElement("article");
+          card.className = "strategy-card";
+          const symbol = getSymbol(entry.target.numero);
+          const leftSymbol = getSymbol(entry.left.numero);
+          const rightSymbol = getSymbol(entry.right.numero);
+          const historyLine =
+            entry.historyCount > 0
+              ? `<div class="strategy-meta">Aplicada anteriormente: ${entry.historyCount} vez(es)</div>`
+              : "";
+          const dayDraws =
+            entry.target?.fecha ? getDayDraws(entry.target.fecha, entry.target.pais || null) : {};
+          card.innerHTML = `
+            <div class="strategy-head">
+              <span class="strategy-target">${formatNumber(entry.target.numero)} ${symbol || ""}</span>
+              <span class="strategy-badge">${entry.operador === "+" ? "Suma" : "Resta"}</span>
+            </div>
+            <div class="strategy-meta">${formatFriendlyDate(entry.target.fecha)} · ${entry.target.horario || "—"}${entry.target.pais ? ` · ${entry.target.pais}` : ""}</div>
+            <div class="strategy-operation">
+              <span>${formatNumber(entry.left.numero)} ${leftSymbol || ""}</span>
+              <span class="strategy-operator">${entry.operador}</span>
+              <span>${formatNumber(entry.right.numero)} ${rightSymbol || ""}</span>
+              <span class="strategy-operator">=</span>
+              <span>${formatNumber(entry.target.numero)}</span>
+            </div>
+            ${historyLine}
+          `;
+          const timeline = buildStrategyTimeline(entry, dayDraws);
+          card.appendChild(timeline);
+          const detail = document.createElement("ul");
+          detail.className = "strategy-detail";
+          detail.innerHTML = `
+            <li>${formatFriendlyDate(entry.left.fecha)} · ${entry.left.horario || "—"}${entry.left.pais ? ` · ${entry.left.pais}` : ""}</li>
+            <li>${formatFriendlyDate(entry.right.fecha)} · ${entry.right.horario || "—"}${entry.right.pais ? ` · ${entry.right.pais}` : ""}</li>
+          `;
+          card.appendChild(detail);
+          const actions = document.createElement("div");
+          actions.className = "strategy-actions";
+          if (entry.target?.fecha) {
+            const viewBtn = document.createElement("button");
+            viewBtn.type = "button";
+            viewBtn.className = "btn-outline";
+            viewBtn.textContent = "Ver día completo";
+            viewBtn.dataset.strategyView = "true";
+            viewBtn.dataset.fecha = entry.target.fecha;
+            viewBtn.dataset.pais = entry.target.pais || "";
+            actions.appendChild(viewBtn);
+          }
+          if (entry.target?.numero !== null) {
+            const hypoBtn = document.createElement("button");
+            hypoBtn.type = "button";
+            hypoBtn.className = "btn-secondary";
+            hypoBtn.textContent = "Guardar hipótesis";
+            hypoBtn.dataset.strategyHypo = "true";
+            hypoBtn.dataset.numero = formatNumber(entry.target.numero);
+            hypoBtn.dataset.fecha = entry.target.fecha || "";
+            hypoBtn.dataset.turno = entry.target.horario || "";
+            hypoBtn.dataset.descripcion = `${formatNumber(entry.left.numero)} ${entry.operador} ${formatNumber(
+              entry.right.numero,
+            )} = ${formatNumber(entry.target.numero)}`;
+            actions.appendChild(hypoBtn);
+          }
+          if (actions.childElementCount) card.appendChild(actions);
+          strategiesList.appendChild(card);
+        });
+
+      const stats = buildStrategyStats(filtered);
+      const years = Object.keys(stats.years).sort();
+      const rangeLabel =
+        years.length > 1 ? `${years[0]} – ${years[years.length - 1]}` : years[0] || "N/D";
+      const statsCard = document.createElement("article");
+      statsCard.className = "strategy-card strategy-card--stats";
+      statsCard.innerHTML = `
+        <div class="strategy-head">
+          <span class="strategy-target">Resumen histórico</span>
+          <span class="strategy-badge">${rangeLabel}</span>
+        </div>
+        <div class="strategy-stats">
+          <p><strong>Total estrategias detectadas:</strong> ${stats.total}</p>
+          <p><strong>Por operador:</strong> ${stats.operators["+"] || 0} sumas · ${stats.operators["−"] || 0} restas</p>
+        </div>
+      `;
+      if (years.length) {
+        const yearList = document.createElement("ul");
+        yearList.className = "strategy-year-stats";
+        years.forEach((year) => {
+          const info = stats.years[year];
+          const sumUse = info.suma || 0;
+          const restUse = info.resta || 0;
+          const li = document.createElement("li");
+          li.textContent = `${year}: ${info.total} estrategias (${sumUse} sumas / ${restUse} restas)`;
+          yearList.appendChild(li);
+        });
+        statsCard.appendChild(yearList);
+      }
+      strategiesList.appendChild(statsCard);
+    }
+
+    function buildStrategyStats(entries = []) {
+      const stats = {
+        total: entries.length,
+        operators: { "+": 0, "−": 0 },
+        years: {},
+      };
+      entries.forEach((entry) => {
+        if (stats.operators[entry.operador] !== undefined) {
+          stats.operators[entry.operador] += 1;
+        }
+        const year = entry.target?.fecha ? entry.target.fecha.slice(0, 4) : "N/D";
+        if (!stats.years[year]) {
+          stats.years[year] = { total: 0, suma: 0, resta: 0 };
+        }
+        stats.years[year].total += 1;
+        if (entry.operador === "+") stats.years[year].suma += 1;
+        else stats.years[year].resta += 1;
+      });
+      return stats;
+    }
+
+    function buildStrategyTimeline(entry, dayDraws = {}) {
+      const timeline = document.createElement("div");
+      timeline.className = "strategy-timeline";
+      HORARIO_KEYS.forEach((turno) => {
+        const slot = document.createElement("div");
+        slot.className = "strategy-slot";
+        const targetMatch = entry.target?.horario === turno;
+        if (targetMatch) slot.classList.add("strategy-slot--result");
+        const isLeftSource =
+          entry.left?.horario === turno &&
+          entry.left?.fecha === entry.target?.fecha &&
+          (entry.left?.pais || "") === (entry.target?.pais || "");
+        const isRightSource =
+          entry.right?.horario === turno &&
+          entry.right?.fecha === entry.target?.fecha &&
+          (entry.right?.pais || "") === (entry.target?.pais || "");
+        if (isLeftSource || isRightSource) slot.classList.add("strategy-slot--source");
+        let draw = dayDraws[turno] || null;
+        let value = draw ? formatNumber(draw.numero) : "--";
+        let symbol = draw ? getSymbol(draw.numero) : "";
+        let external = false;
+        if (!draw) {
+          const fallback =
+            entry.left?.horario === turno ? entry.left : entry.right?.horario === turno ? entry.right : null;
+          if (fallback && fallback.numero !== null) {
+            value = formatNumber(fallback.numero);
+            symbol = getSymbol(fallback.numero);
+            external =
+              fallback.fecha !== entry.target?.fecha ||
+              (fallback.pais || "") !== (entry.target?.pais || "");
+            if (fallback === entry.left || fallback === entry.right) {
+              slot.classList.add("strategy-slot--source");
+            }
+          }
+        }
+        if (external) slot.dataset.external = "true";
+        const label = document.createElement("span");
+        label.className = "strategy-slot__label";
+        label.textContent = turno;
+        const valueEl = document.createElement("span");
+        valueEl.className = "strategy-slot__value";
+        valueEl.textContent = value;
+        const symbolEl = document.createElement("span");
+        symbolEl.className = "strategy-slot__symbol";
+        symbolEl.textContent = symbol || "";
+        slot.appendChild(label);
+        slot.appendChild(valueEl);
+        slot.appendChild(symbolEl);
+        timeline.appendChild(slot);
+      });
+      return timeline;
+    }
+
+    const describeDecemberTurns = (turnHints = []) => {
+      if (!Array.isArray(turnHints) || !turnHints.length) return "";
+      const [first] = turnHints;
+      if (!first?.pair) return "";
+      const label = first.pair.replace("->", " → ");
+      const parts = [];
+      if (first.count) {
+        parts.push(`${first.count} ${first.count === 1 ? "evento" : "eventos"}`);
+      }
+      if (first.weight) {
+        parts.push(`${Math.round(first.weight * 100)}%`);
+      }
+      if (!parts.length) return label;
+      return `${label} · ${parts.join(" · ")}`;
+    };
+
+    const describeWatcherStatus = (watcher) => {
+      if (!watcher) {
+        return {
+          label: "Seguimiento",
+          message: "Sin datos suficientes.",
+        };
+      }
+      const windowRange = watcher.activeWindow ? formatWindowRange(watcher.activeWindow.windowStart, watcher.activeWindow.windowEnd) : null;
+      const gapLabel = watcher.activeWindow?.gap ? `+${watcher.activeWindow.gap} días` : "";
+      const hitInfo = watcher.activeWindow?.hit;
+      switch (watcher.status) {
+        case "due":
+          return {
+            label: "Ventana activa",
+            message: `Esperando repetición entre ${windowRange || "la ventana estimada"} (${gapLabel}).`,
+            detail: hitInfo ? `Último impacto: ${formatFriendlyDate(hitInfo.fecha)} ${hitInfo.horario || ""}` : "",
+          };
+        case "tracking":
+          return {
+            label: "Escucha temprana",
+            message: `La ventana abre el ${windowRange || "próximamente"} (${gapLabel}).`,
+            detail: "Prepara tus jugadas antes de que se activen los turnos frecuentes.",
+          };
+        case "hit":
+        case "completed":
+          return {
+            label: watcher.status === "hit" ? "Confirmado" : "Ciclo cerrado",
+            message: hitInfo
+              ? `Reapareció el ${formatFriendlyDate(hitInfo.fecha)} en ${hitInfo.horario || "—"}.`
+              : "Repetición confirmada este año.",
+            detail: "Revisa si suele encadenar otra aparición después de este punto.",
+          };
+        case "missed":
+          return {
+            label: "Ventana perdida",
+            message: `No se presentó en la ventana ${windowRange || ""}.`,
+            detail: "Observa si abre un nuevo ciclo antes de cerrar el mes.",
+          };
+        case "origin":
+        default:
+          return {
+            label: "Nuevo en diciembre",
+            message: "Aún sin repetición. Sigue la línea para detectar el primer regreso.",
+            detail: "",
+          };
+      }
+    };
+
+    const WATCH_TURN_LABELS = {
+      "11AM": "11 AM",
+      "3PM": "3 PM",
+      "9PM": "9 PM",
+    };
+    const MAX_WATCH_SCHEDULE_DAYS = 7;
+    const formatWatchDayLabel = (date) => {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+      const dowLabel = DOW_FULL_LABEL[date.getDay()] || "";
+      const shortDow = dowLabel ? `${dowLabel.slice(0, 3)}.` : "";
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = MONTH_ABBR[date.getMonth()] || "";
+      return `${shortDow ? `${shortDow} ` : ""}${day} ${month}`.trim();
+    };
+    const getWatcherHighlightTurns = (watcher) => {
+      const highlights = new Set();
+      const turnHints = watcher?.activeWindow?.turnHints || [];
+      turnHints.forEach((hint) => {
+        if (!hint?.pair) return;
+        const [, toTurn] = hint.pair.split("->");
+        const normalized = (toTurn || "").trim();
+        if (normalized && HORARIO_KEYS.includes(normalized)) {
+          highlights.add(normalized);
+        }
+      });
+      const hitTurn = watcher?.activeWindow?.hit?.horario;
+      if (hitTurn && HORARIO_KEYS.includes(hitTurn)) {
+        highlights.add(hitTurn);
+      }
+      return highlights;
+    };
+    const buildWatcherSchedule = (watcher) => {
+      if (!watcher?.activeWindow) {
+        return "<div class='december-watch__schedule'><div class='december-watch__schedule-empty'>Aún sin ventana estimada para este número.</div></div>";
+      }
+      const startIso = watcher.activeWindow.windowStart || watcher.activeWindow.expectedDate;
+      const endIso = watcher.activeWindow.windowEnd || watcher.activeWindow.windowStart || watcher.activeWindow.expectedDate;
+      const startDate = parseISODate(startIso);
+      const endDate = parseISODate(endIso);
+      if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime()) || !(endDate instanceof Date) || Number.isNaN(endDate.getTime())) {
+        return "<div class='december-watch__schedule'><div class='december-watch__schedule-empty'>No se pudo dibujar el calendario de esta ventana.</div></div>";
+      }
+      const days = [];
+      let cursor = new Date(startDate);
+      let guard = 0;
+      while (cursor.getTime() <= endDate.getTime() && guard < MAX_WATCH_SCHEDULE_DAYS) {
+        days.push({
+          label: formatWatchDayLabel(cursor),
+        });
+        cursor = new Date(cursor.getTime() + DAY_MS);
+        guard += 1;
+      }
+      if (!days.length) {
+        days.push({ label: formatWatchDayLabel(startDate) });
+      }
+      const highlights = getWatcherHighlightTurns(watcher);
+      const dayBlocks = days
+        .map((day) => `
+          <div class="december-watch__day">
+            <div class="december-watch__day-label">${day.label}</div>
+            <div class="december-watch__turns">
+              ${HORARIO_KEYS.map((turno) => {
+                const activeClass = highlights.has(turno) ? "is-highlighted" : "";
+                return `<span class="december-watch__turn ${activeClass}">${WATCH_TURN_LABELS[turno] || turno}</span>`;
+              }).join("")}
+            </div>
+          </div>
+        `)
+        .join("");
+      const toleranceText =
+        Number.isFinite(watcher.activeWindow?.gap) && Number.isFinite(watcher.activeWindow?.tolerance)
+          ? `+${watcher.activeWindow.gap}d · ±${watcher.activeWindow.tolerance}d`
+          : "";
+      const rangeLabel = formatWindowRange(startIso, endIso);
+      return `
+        <div class="december-watch__schedule">
+          <div class="december-watch__schedule-head">
+            <span>${rangeLabel && rangeLabel !== "—" ? `Ventana ${rangeLabel}` : "Ventana estimada"}</span>
+            ${toleranceText ? `<span class="hint small">${toleranceText}</span>` : ""}
+          </div>
+          <div class="december-watch__calendar">${dayBlocks}</div>
+        </div>
+      `;
+    };
+
+    function syncDecemberYearOptions() {
+      if (!decemberYearSelect) return;
+      const years = decemberStrategyData?.years || [];
+      decemberYearSelect.innerHTML = "";
+      if (!years.length) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "—";
+        decemberYearSelect.appendChild(option);
+        decemberYearSelect.disabled = true;
+        decemberSelectedYear = null;
+        return;
+      }
+      decemberYearSelect.disabled = false;
+      years.forEach((year) => {
+        const option = document.createElement("option");
+        option.value = String(year);
+        option.textContent = year;
+        if (year === decemberSelectedYear) option.selected = true;
+        decemberYearSelect.appendChild(option);
+      });
+      if (!decemberSelectedYear) {
+        decemberSelectedYear = years[0];
+        decemberYearSelect.value = years[0];
+      }
+    }
+
+    function renderDecemberSummary() {
+      if (!decemberSummaryEl) return;
+      if (!decemberStrategyData?.summary) {
+        decemberSummaryEl.innerHTML = "<span class='hint'>Registra sorteos de diciembre para iniciar el seguimiento.</span>";
+        return;
+      }
+      const { totalNumbers = 0, totalRepeats = 0, draws = 0, yearsTracked = 0 } = decemberStrategyData.summary;
+      decemberSummaryEl.innerHTML = `
+        <strong>${totalNumbers}</strong> números vigilados ·
+        <strong>${totalRepeats}</strong> repeticiones identificadas ·
+        ${yearsTracked} año(s) analizados (${draws} sorteos de diciembre)
+      `;
+    }
+
+    function renderDecemberWatchlist() {
+      if (!decemberWatchlistEl) return;
+      decemberWatchlistEl.innerHTML = "";
+      if (!decemberStrategyData || !decemberSelectedYear) {
+        decemberWatchlistEl.innerHTML = "<p class='december-empty'>Selecciona un año con datos para ver la vigilancia.</p>";
+        return;
+      }
+      const watchers =
+        decemberStrategyData.watchersByYear?.get(decemberSelectedYear) || [];
+      if (!watchers.length) {
+        decemberWatchlistEl.innerHTML = "<p class='december-empty'>Este año todavía no registra repeticiones en diciembre.</p>";
+        return;
+      }
+      const selectedExists = watchers.some((watcher) => watcher.numero === decemberSelectedNumero);
+      if (!selectedExists) {
+        decemberSelectedNumero = watchers[0]?.numero ?? null;
+      }
+      watchers.forEach((watcher) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        const statusClass = watcher.status ? `december-watch--${watcher.status}` : "";
+        const activeClass = watcher.numero === decemberSelectedNumero ? "december-watch--active" : "";
+        item.className = `december-watch ${statusClass} ${activeClass}`.trim();
+        item.dataset.decemberNum = watcher.numero;
+        const badgeClass = `december-badge december-badge--${watcher.status || "origin"}`;
+        const statusInfo = describeWatcherStatus(watcher);
+        const badgeLabel = statusInfo.label;
+        const turnHint = describeDecemberTurns(watcher.activeWindow?.turnHints);
+        const scheduleMarkup = buildWatcherSchedule(watcher);
+        item.innerHTML = `
+          <div class="december-watch__number">
+            <span>${formatNumber(watcher.numero)}</span>
+            <span class="december-watch__symbol">${watcher.symbol || ""}</span>
+          </div>
+          <div class="december-watch__status">
+            <span class="${badgeClass}">${badgeLabel}</span>
+            <span class="december-status-line">${statusInfo.message}</span>
+            ${statusInfo.detail ? `<small>${statusInfo.detail}</small>` : ""}
+            ${turnHint ? `<small>${turnHint}</small>` : ""}
+          </div>
+          ${scheduleMarkup}
+        `;
+        decemberWatchlistEl.appendChild(item);
+      });
+    }
+
+    function renderDecemberReminders() {
+      if (!decemberRemindersEl) return;
+      const entries = Object.values(decemberReminderStore || {}).sort(
+        (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
+      );
+      if (!entries.length) {
+        decemberRemindersEl.innerHTML =
+          "<p class='december-empty'>Sin recordatorios activos. Puedes guardar un número desde el panel de detalle.</p>";
+        return;
+      }
+      const head = document.createElement("div");
+      head.className = "december-panel-head";
+      head.innerHTML = `
+        <h4>Recordatorios activos</h4>
+        <p class="hint small">Se guardan localmente y en tus preferencias.</p>
+      `;
+      const list = document.createElement("div");
+      list.className = "december-reminders__list";
+      entries.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "december-reminder";
+        row.innerHTML = `
+          <div>
+            <strong>${formatNumber(item.numero)}</strong> <span>${item.symbol || ""}</span>
+            <div class="hint small">${item.note || ""}</div>
+          </div>
+        `;
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.textContent = "Quitar";
+        removeBtn.addEventListener("click", () => {
+          const key = formatNumber(item.numero);
+          if (decemberReminderStore[key]) {
+            delete decemberReminderStore[key];
+            saveDecemberReminderStore(decemberReminderStore);
+            renderDecemberReminders();
+            renderDecemberWatchlist();
+            if (decemberSelectedNumero === item.numero) renderDecemberDetail();
+          }
+        });
+        row.appendChild(removeBtn);
+        list.appendChild(row);
+      });
+      decemberRemindersEl.innerHTML = "";
+      decemberRemindersEl.append(head, list);
+    }
+
+    function renderDecemberDetail() {
+      if (!decemberDetailEl) return;
+      decemberDetailEl.innerHTML = "";
+      if (!decemberStrategyData || decemberSelectedNumero === null || decemberSelectedNumero === undefined) {
+        decemberDetailEl.innerHTML = "<p class='hint'>Selecciona un número para ver su seguimiento de diciembre.</p>";
+        return;
+      }
+      const entry = decemberStrategyData.perNumber?.get(decemberSelectedNumero);
+      if (!entry) {
+        decemberDetailEl.innerHTML = `<p class='hint'>El número ${formatNumber(decemberSelectedNumero)} no tiene historial de diciembre.</p>`;
+        return;
+      }
+      const watcher =
+        decemberStrategyData.watchersByYear?.get(decemberSelectedYear)?.find(
+          (item) => item.numero === entry.numero
+        ) || null;
+      const head = document.createElement("div");
+      head.className = "december-detail__head";
+      head.innerHTML = `
+        <div class="december-detail__number">
+          <span>${formatNumber(entry.numero)}</span>
+          <span>${entry.symbol || ""}</span>
+        </div>
+        <div class="hint">${entry.history?.length || 0} año(s) con actividad en diciembre.</div>
+      `;
+      const chips = document.createElement("div");
+      chips.className = "december-detail__chips";
+      const yearsChip = document.createElement("div");
+      yearsChip.className = "december-window-chip";
+      yearsChip.innerHTML = `<strong>${entry.history?.length || 0}</strong> años rastreados`;
+      const repeatsChip = document.createElement("div");
+      repeatsChip.className = "december-window-chip";
+      repeatsChip.innerHTML = `<strong>${entry.totalRepeats || 0}</strong> repeticiones históricas`;
+      chips.append(yearsChip, repeatsChip);
+      const windowsWrap = document.createElement("div");
+      windowsWrap.className = "december-detail__chips";
+      if (entry.windows?.length) {
+        entry.windows.slice(0, 3).forEach((window) => {
+          const chip = document.createElement("div");
+          chip.className = "december-window-chip";
+          const repeatsLabel =
+            window.count === 1 ? "1 repetición registrada" : `${window.count || 0} repeticiones registradas`;
+          const example = window.examples?.[0];
+          const exampleText =
+            example && example.from?.fecha && example.to?.fecha
+              ? `${formatFriendlyDate(example.from.fecha)} · ${example.from.horario || "—"} → ${formatFriendlyDate(example.to.fecha)} · ${
+                  example.to.horario || "—"
+                }`
+              : "";
+          const turnHint = window.turnHints?.length ? describeDecemberTurns(window.turnHints) : "";
+          chip.innerHTML = `
+            <strong>+${window.gap} días</strong>
+            <div class="hint small">${repeatsLabel}</div>
+            ${exampleText ? `<div class="hint">Ej: ${exampleText}</div>` : ""}
+            ${
+              turnHint
+                ? `<div class="hint small">Horarios frecuentes: ${turnHint}</div>`
+                : ""
+            }
+            <div class="hint small">Ventana estimada ±${window.tolerance || 0}d.</div>
+          `;
+          windowsWrap.appendChild(chip);
+        });
+      } else {
+        const chip = document.createElement("div");
+        chip.className = "december-window-chip";
+        chip.textContent = "Sin ventanas suficientes. Espera más repeticiones.";
+        windowsWrap.appendChild(chip);
+      }
+      const actions = document.createElement("div");
+      actions.className = "december-detail__actions";
+      const reminderKey = formatNumber(entry.numero);
+      const reminderActive = Boolean(decemberReminderStore?.[reminderKey]);
+      const reminderBtn = document.createElement("button");
+      reminderBtn.type = "button";
+      reminderBtn.className = reminderActive ? "btn-outline" : "btn-primary";
+      reminderBtn.textContent = reminderActive ? "Quitar recordatorio" : "Guardar recordatorio";
+      reminderBtn.addEventListener("click", () => {
+        toggleDecemberReminder(entry, watcher);
+      });
+      actions.appendChild(reminderBtn);
+      const sequences = document.createElement("div");
+      sequences.className = "december-sequences";
+      if (Array.isArray(entry.history) && entry.history.length) {
+        entry.history
+          .slice()
+          .sort((a, b) => b.year - a.year)
+          .forEach((segment) => {
+            const sequence = document.createElement("div");
+            sequence.className = "december-sequence";
+            const yearLabel = document.createElement("div");
+            yearLabel.className = "december-sequence__year";
+            yearLabel.textContent = `${segment.year} · ${segment.hits.length} aparición(es)`;
+            const timeline = document.createElement("div");
+            timeline.className = "december-sequence__timeline";
+            segment.hits.forEach((hit, index) => {
+              const row = document.createElement("div");
+              row.className = "december-timeline__row";
+              const title = document.createElement("div");
+              title.innerHTML = `<strong>${formatFriendlyDate(hit.fecha)}</strong> · ${hit.horario || ""} ${entry.symbol || ""}`;
+              const meta = document.createElement("div");
+              meta.className = "december-timeline__meta";
+              if (index === 0) {
+                meta.textContent = "Primer impacto del mes (origen).";
+              } else {
+                const event = segment.events?.[index - 1];
+                const gap = Number.isFinite(event?.gapFromPrev) ? event.gapFromPrev : null;
+                meta.textContent = gap
+                  ? `Reaparece ${gap === 1 ? "al día siguiente" : `tras ${gap} días`}.`
+                  : "Reaparece tras varios días.";
+              }
+              row.append(title, meta);
+              timeline.appendChild(row);
+            });
+            sequence.append(yearLabel, timeline);
+            sequences.appendChild(sequence);
+          });
+      } else {
+        const empty = document.createElement("p");
+        empty.className = "december-empty";
+        empty.textContent = "Este número aún no registra diciembre suficientes para dibujar una secuencia.";
+        sequences.appendChild(empty);
+      }
+      decemberDetailEl.append(head, chips, windowsWrap, actions, sequences);
+      if (watcher) {
+        const statusInfo = describeWatcherStatus(watcher);
+        const status = document.createElement("p");
+        status.className = "hint";
+        const windowText = watcher.activeWindow
+          ? `Ventana ${formatWindowRange(watcher.activeWindow.windowStart, watcher.activeWindow.windowEnd)} (+${watcher.activeWindow.gap || "?"}d)`
+          : "";
+        status.innerHTML = `<strong>${statusInfo.label}</strong> · ${statusInfo.message}${windowText ? ` · ${windowText}` : ""}${
+          statusInfo.detail ? ` <br />${statusInfo.detail}` : ""
+        }`;
+        decemberDetailEl.appendChild(status);
+      }
+    }
+
+    function toggleDecemberReminder(entry, watcher) {
+      if (!entry) return;
+      const key = formatNumber(entry.numero);
+      if (decemberReminderStore[key]) {
+        delete decemberReminderStore[key];
+      } else {
+        const windowInfo = watcher?.activeWindow;
+        decemberReminderStore[key] = {
+          numero: entry.numero,
+          symbol: entry.symbol || "",
+          note: windowInfo
+            ? `Ventana ${formatWindowRange(windowInfo.windowStart, windowInfo.windowEnd)} (+${windowInfo.gap}d)`
+            : "Seguimiento manual",
+          createdAt: Date.now(),
+          year: decemberSelectedYear,
+          windowStart: windowInfo?.windowStart || null,
+          windowEnd: windowInfo?.windowEnd || null,
+        };
+      }
+      saveDecemberReminderStore(decemberReminderStore);
+      renderDecemberReminders();
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    }
+
+    function handleDecemberSearch() {
+      const raw = (decemberSearchInput?.value || "").trim();
+      if (!raw) {
+        showToast("Ingresa un número para buscar en diciembre.", { variant: "info" });
+        return;
+      }
+      const numero = parseInt(raw, 10);
+      if (!Number.isFinite(numero) || numero < 0 || numero > 99) {
+        showToast("Ingresa un número válido entre 00 y 99.", { variant: "warning" });
+        return;
+      }
+      if (!decemberStrategyData?.perNumber?.has(numero)) {
+        showToast(`El número ${formatNumber(numero)} aún no aparece en diciembre.`, { variant: "info" });
+        return;
+      }
+      const entry = decemberStrategyData.perNumber.get(numero);
+      if (entry?.history?.length) {
+        const latestYear = entry.history[entry.history.length - 1].year;
+        if (latestYear && latestYear !== decemberSelectedYear) {
+          decemberSelectedYear = latestYear;
+          syncDecemberYearOptions();
+        }
+      }
+      decemberSelectedNumero = numero;
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    }
+
+    async function refreshDecemberStrategyPanel({ force = false } = {}) {
+      if (!decemberCard) return;
+      try {
+        const draws = await getCachedDraws({ force });
+        if (!draws.length) {
+          decemberStrategyData = null;
+          decemberSelectedYear = null;
+          decemberSelectedNumero = null;
+          renderDecemberSummary();
+          if (decemberWatchlistEl) {
+            decemberWatchlistEl.innerHTML = "<p class='december-empty'>Aún no hay sorteos de diciembre cargados.</p>";
+          }
+          if (decemberDetailEl) {
+            decemberDetailEl.innerHTML = "<p class='hint'>Cuando se registren sorteos en diciembre verás aquí la estrategia.</p>";
+          }
+          renderDecemberReminders();
+          return;
+        }
+        decemberStrategyData = computeDecemberStrategy(draws, {
+          referenceDate: new Date(),
+          getSymbol,
+        });
+        const years = decemberStrategyData?.years || [];
+        if (!years.length) {
+          decemberSelectedYear = null;
+          decemberSelectedNumero = null;
+        } else if (!decemberSelectedYear || !years.includes(decemberSelectedYear)) {
+          decemberSelectedYear = years[0];
+        }
+        syncDecemberYearOptions();
+        const activeWatchers =
+          decemberStrategyData.watchersByYear?.get(decemberSelectedYear) || [];
+        if (activeWatchers.length) {
+          const hasSelected = activeWatchers.some((watcher) => watcher.numero === decemberSelectedNumero);
+          if (!hasSelected) {
+            decemberSelectedNumero = activeWatchers[0].numero;
+          }
+        } else {
+          decemberSelectedNumero = null;
+        }
+        renderDecemberSummary();
+        renderDecemberWatchlist();
+        renderDecemberDetail();
+        renderDecemberReminders();
+      } catch (err) {
+        console.error("december panel error", err);
+        if (decemberSummaryEl) {
+          decemberSummaryEl.innerHTML =
+            "<span class='text-danger'>No se pudo calcular la estrategia de diciembre. Reintenta más tarde.</span>";
+        }
+      }
+    }
+
+    decemberWatchlistEl?.addEventListener("click", (event) => {
+      const item = event.target.closest("[data-december-num]");
+      if (!item) return;
+      const numero = Number(item.dataset.decemberNum);
+      if (!Number.isFinite(numero)) return;
+      decemberSelectedNumero = numero;
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    });
+
+    decemberYearSelect?.addEventListener("change", () => {
+      const year = parseInt(decemberYearSelect.value, 10);
+      if (!Number.isFinite(year)) return;
+      decemberSelectedYear = year;
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    });
+
+    decemberRefreshBtn?.addEventListener("click", () => {
+      refreshDecemberStrategyPanel({ force: true });
+    });
+
+    decemberSearchBtn?.addEventListener("click", handleDecemberSearch);
+    decemberSearchInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleDecemberSearch();
+      }
+    });
+    decemberClearBtn?.addEventListener("click", () => {
+      if (decemberSearchInput) decemberSearchInput.value = "";
+      const watchers =
+        decemberStrategyData?.watchersByYear?.get(decemberSelectedYear) || [];
+      decemberSelectedNumero = watchers[0]?.numero ?? null;
+      renderDecemberWatchlist();
+      renderDecemberDetail();
+    });
+
+    const TRIGGER_STATUS_LABELS = {
+      OPEN: "Abierto",
+      HIT: "Hit",
+      LATE_HIT: "Late hit",
+      MISS: "Miss",
+    };
+
+    function parseTriggerNumberValue(rawValue) {
+      const normalized = normalizeNumeroKey(rawValue || "");
+      return normalized ? parseInt(normalized, 10) : null;
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "—";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "—";
+      return date.toLocaleString("es-HN", {
+        dateStyle: "short",
+        timeStyle: "short",
+      });
+    }
+
+    function formatPercent(value) {
+      if (!Number.isFinite(value)) return "0%";
+      return `${(value * 100).toFixed(1)}%`;
+    }
+
+    function getTriggerRelationFilters() {
+      const origin = parseTriggerNumberValue(triggerFilterOriginInput?.value);
+      const target = parseTriggerNumberValue(triggerFilterTargetInput?.value);
+      const relationType = (triggerFilterTypeSelect?.value || "").toUpperCase();
+      const activeValue = triggerFilterActiveSelect?.value || "";
+      return {
+        origin,
+        target,
+        relationType: relationType || "",
+        isActive: activeValue === "true" ? true : activeValue === "false" ? false : null,
+      };
+    }
+
+    function getTriggerEventFilters() {
+      const status = (triggerEventsStatusSelect?.value || "").toUpperCase();
+      const origin = parseTriggerNumberValue(triggerEventsOriginInput?.value);
+      const target = parseTriggerNumberValue(triggerEventsTargetInput?.value);
+      const limit = parseInt(triggerEventsLimitInput?.value ?? "60", 10);
+      return {
+        status: status || "",
+        origin,
+        target,
+        limit: Number.isFinite(limit) ? Math.min(Math.max(limit, 10), 500) : 60,
+      };
+    }
+
+    function resetTriggerFormState() {
+      triggerEditingRelationId = null;
+      if (triggerFormLegend) triggerFormLegend.textContent = "Nueva relación";
+      triggerRelationForm?.reset();
+      if (triggerIsActiveInput) triggerIsActiveInput.checked = true;
+    }
+
+    function fillTriggerForm(relation) {
+      if (!relation) return;
+      triggerEditingRelationId = relation.id;
+      triggerOriginInput.value = formatNumber(relation.origin);
+      triggerTargetInput.value = formatNumber(relation.target);
+      triggerTypeSelect.value = relation.relationType || "DISPARA";
+      triggerWindowMinInput.value = relation.windowMinDays ?? 0;
+      triggerWindowMaxInput.value = relation.windowMaxDays ?? 5;
+      triggerNotesInput.value = relation.notes || "";
+      triggerIsActiveInput.checked = relation.isActive;
+      if (triggerFormLegend) triggerFormLegend.textContent = `Editando ${formatNumber(relation.origin)}→${formatNumber(relation.target)}`;
+    }
+
+    function renderTriggerRelations(list = []) {
+      if (!triggerRelationsList) return;
+      if (!list.length) {
+        triggerRelationsList.innerHTML = "<p class='hint'>No hay relaciones registradas con los filtros actuales.</p>";
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      list.forEach((relation) => {
+        const row = document.createElement("div");
+        row.className = "trigger-relation-row";
+        row.dataset.triggerRelationId = relation.id;
+        if (!relation.isActive) row.classList.add("trigger-relation-row--inactive");
+        const header = document.createElement("div");
+        header.className = "trigger-relation-head";
+        header.innerHTML = `
+          <strong>${formatNumber(relation.origin)} → ${formatNumber(relation.target)}</strong>
+          <span class="trigger-chip trigger-chip--type">${relation.relationType}</span>
+          <span class="trigger-chip">Ventana ${relation.windowMinDays}-${relation.windowMaxDays} días</span>
+          <span class="trigger-chip ${relation.isActive ? "trigger-chip--active" : "trigger-chip--inactive"}">
+            ${relation.isActive ? "Activa" : "Pausada"}
+          </span>
+        `;
+        row.appendChild(header);
+        if (relation.notes) {
+          const notes = document.createElement("p");
+          notes.className = "trigger-relation-notes";
+          notes.textContent = relation.notes;
+          row.appendChild(notes);
+        }
+        const actions = document.createElement("div");
+        actions.className = "trigger-relation-actions";
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "btn-ghost btn-compact";
+        editBtn.textContent = "Editar";
+        editBtn.dataset.triggerEdit = relation.id;
+        actions.appendChild(editBtn);
+        const toggleBtn = document.createElement("button");
+        toggleBtn.type = "button";
+        toggleBtn.className = "btn-outline btn-compact";
+        toggleBtn.textContent = relation.isActive ? "Pausar" : "Activar";
+        toggleBtn.dataset.triggerToggle = relation.id;
+        actions.appendChild(toggleBtn);
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn-ghost btn-compact trigger-danger";
+        deleteBtn.textContent = "Eliminar";
+        deleteBtn.dataset.triggerDelete = relation.id;
+        actions.appendChild(deleteBtn);
+        row.appendChild(actions);
+        fragment.appendChild(row);
+      });
+      triggerRelationsList.innerHTML = "";
+      triggerRelationsList.appendChild(fragment);
+    }
+
+    function renderTriggerStats(list = []) {
+      if (!triggerStatsList) return;
+      if (!list.length) {
+        triggerStatsList.innerHTML = "<p class='hint'>Aún no hay eventos suficientes para calcular métricas.</p>";
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      list.forEach((stat) => {
+        const item = document.createElement("div");
+        item.className = "trigger-stat-row";
+        item.innerHTML = `
+          <div class="trigger-stat-head">
+            <strong>${formatNumber(stat.origin)} → ${formatNumber(stat.target)}</strong>
+            <span class="trigger-chip trigger-chip--type">${stat.relationType}</span>
+            <span class="trigger-chip">${stat.totalEvents} eventos</span>
+          </div>
+          <div class="trigger-stat-body">
+            <div>
+              <span class="trigger-label">Hit rate</span>
+              <strong>${formatPercent(stat.hitRate)}</strong>
+            </div>
+            <div>
+              <span class="trigger-label">Miss</span>
+              <strong>${formatPercent(stat.missRate)}</strong>
+            </div>
+            <div>
+              <span class="trigger-label">Late hit</span>
+              <strong>${formatPercent(stat.lateRate)}</strong>
+            </div>
+            <div>
+              <span class="trigger-label">Promedio</span>
+              <strong>${stat.avgLagDays ?? "—"}d</strong>
+            </div>
+            <div>
+              <span class="trigger-label">Mediana</span>
+              <strong>${stat.medianLagDays ?? "—"}d</strong>
+            </div>
+            <div>
+              <span class="trigger-label">P80</span>
+              <strong>${stat.p80LagDays ?? "—"}d</strong>
+            </div>
+          </div>
+        `;
+        fragment.appendChild(item);
+      });
+      triggerStatsList.innerHTML = "";
+      triggerStatsList.appendChild(fragment);
+    }
+
+    function renderTriggerEvents(list = []) {
+      if (!triggerEventsList) return;
+      if (!list.length) {
+        triggerEventsList.innerHTML = "<p class='hint'>Sin eventos que coincidan con los filtros solicitados.</p>";
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      list.forEach((event) => {
+        const row = document.createElement("div");
+        row.className = "trigger-event-row";
+        row.dataset.triggerEventStatus = event.status;
+        const head = document.createElement("div");
+        head.className = "trigger-event-head";
+        const statusLabel = TRIGGER_STATUS_LABELS[event.status] || event.status;
+        head.innerHTML = `
+          <strong>${formatNumber(event.origin)} → ${formatNumber(event.target)}</strong>
+          <span class="trigger-chip trigger-chip--status trigger-chip--status-${event.status?.toLowerCase()}">${statusLabel}</span>
+          ${
+            Number.isFinite(event.lagDays)
+              ? `<span class="trigger-chip">Lag ${event.lagDays}d</span>`
+              : ""
+          }
+        `;
+        row.appendChild(head);
+        const meta = document.createElement("dl");
+        meta.className = "trigger-event-meta";
+        meta.innerHTML = `
+          <div>
+            <dt>Origin</dt>
+            <dd>${formatDateTime(event.originTs)}</dd>
+          </div>
+          <div>
+            <dt>Deadline</dt>
+            <dd>${formatDateTime(event.deadlineTs)}</dd>
+          </div>
+          <div>
+            <dt>Cierre</dt>
+            <dd>${formatDateTime(event.closedAt)}</dd>
+          </div>
+          <div>
+            <dt>Hit</dt>
+            <dd>${formatDateTime(event.hitTs)}</dd>
+          </div>
+        `;
+        row.appendChild(meta);
+        fragment.appendChild(row);
+      });
+      triggerEventsList.innerHTML = "";
+      triggerEventsList.appendChild(fragment);
+    }
+
+    async function refreshTriggerRelationsPanel({ showSpinner = true } = {}) {
+      if (!triggerRelationsList) return;
+      if (showSpinner) {
+        triggerRelationsList.innerHTML = "<p class='hint'>Cargando relaciones…</p>";
+      }
+      try {
+        const filters = getTriggerRelationFilters();
+        triggerRelationFilters = filters;
+        if (triggerFilterOriginInput) {
+          triggerFilterOriginInput.value = Number.isInteger(filters.origin)
+            ? formatNumber(filters.origin)
+            : (triggerFilterOriginInput.value || "").trim();
+        }
+        if (triggerFilterTargetInput) {
+          triggerFilterTargetInput.value = Number.isInteger(filters.target)
+            ? formatNumber(filters.target)
+            : (triggerFilterTargetInput.value || "").trim();
+        }
+        const queryFilters = {
+          origin: filters.origin ?? undefined,
+          target: filters.target ?? undefined,
+        };
+        if (filters.relationType) queryFilters.relationType = filters.relationType;
+        if (typeof filters.isActive === "boolean") queryFilters.isActive = filters.isActive;
+        triggerRelationsCache = await listTriggerRelations(queryFilters);
+        renderTriggerRelations(triggerRelationsCache);
+      } catch (err) {
+        console.error("trigger relations render error", err);
+        triggerRelationsList.innerHTML = `<p class='hint'>No se pudieron cargar las relaciones: ${err.message}</p>`;
+      }
+    }
+
+    async function refreshTriggerStatsPanel({ showSpinner = true } = {}) {
+      if (!triggerStatsList) return;
+      if (showSpinner) {
+        triggerStatsList.innerHTML = "<p class='hint'>Calculando métricas…</p>";
+      }
+      try {
+        const filters = triggerRelationFilters || getTriggerRelationFilters();
+        const queryFilters = {
+          origin: filters.origin ?? undefined,
+          target: filters.target ?? undefined,
+        };
+        if (filters.relationType) queryFilters.relationType = filters.relationType;
+        if (typeof filters.isActive === "boolean") queryFilters.isActive = filters.isActive;
+        const stats = await computeTriggerStats(queryFilters);
+        renderTriggerStats(stats);
+      } catch (err) {
+        console.error("trigger stats render error", err);
+        triggerStatsList.innerHTML = `<p class='hint'>Error al calcular métricas: ${err.message}</p>`;
+      }
+    }
+
+    async function refreshTriggerEventsPanel({ showSpinner = true } = {}) {
+      if (!triggerEventsList) return;
+      if (showSpinner) {
+        triggerEventsList.innerHTML = "<p class='hint'>Buscando eventos…</p>";
+      }
+      try {
+        const filters = getTriggerEventFilters();
+        triggerEventsFilters = filters;
+        if (triggerEventsLimitInput) triggerEventsLimitInput.value = filters.limit;
+        if (triggerEventsOriginInput) {
+          triggerEventsOriginInput.value = Number.isInteger(filters.origin)
+            ? formatNumber(filters.origin)
+            : (triggerEventsOriginInput.value || "").trim();
+        }
+        if (triggerEventsTargetInput) {
+          triggerEventsTargetInput.value = Number.isInteger(filters.target)
+            ? formatNumber(filters.target)
+            : (triggerEventsTargetInput.value || "").trim();
+        }
+        const queryFilters = {
+          origin: filters.origin ?? undefined,
+          target: filters.target ?? undefined,
+          limit: filters.limit,
+        };
+        if (filters.status) queryFilters.status = filters.status;
+        const events = await listTriggerEvents(queryFilters);
+        renderTriggerEvents(events);
+      } catch (err) {
+        console.error("trigger events render error", err);
+        triggerEventsList.innerHTML = `<p class='hint'>No se pudieron cargar los eventos: ${err.message}</p>`;
+      }
+    }
+
+    async function refreshTriggerModule({ force = false } = {}) {
+      if (!document.getElementById("view-triggers")) return;
+      if (!force && document.getElementById("view-triggers")?.classList.contains("hidden")) return;
+      await Promise.allSettled([
+        refreshTriggerRelationsPanel(),
+        refreshTriggerStatsPanel(),
+        refreshTriggerEventsPanel(),
+      ]);
+    }
+
+    triggerRelationForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const origin = parseTriggerNumberValue(triggerOriginInput?.value);
+      const target = parseTriggerNumberValue(triggerTargetInput?.value);
+      if (!Number.isInteger(origin) || !Number.isInteger(target)) {
+        showToast("Debes indicar un origin y disparado válidos (00–99).", { variant: "warning" });
+        return;
+      }
+      if (triggerOriginInput) triggerOriginInput.value = formatNumber(origin);
+      if (triggerTargetInput) triggerTargetInput.value = formatNumber(target);
+      const windowMin = parseInt(triggerWindowMinInput?.value ?? "0", 10);
+      const windowMax = parseInt(triggerWindowMaxInput?.value ?? "0", 10);
+      if (windowMax < windowMin) {
+        showToast("La ventana máxima debe ser mayor o igual a la mínima.", { variant: "warning" });
+        return;
+      }
+      const payload = {
+        origin,
+        target,
+        relationType: triggerTypeSelect?.value || "DISPARA",
+        windowMinDays: Number.isFinite(windowMin) ? windowMin : 0,
+        windowMaxDays: Number.isFinite(windowMax) ? windowMax : 5,
+        notes: triggerNotesInput?.value || "",
+        isActive: triggerIsActiveInput?.checked ?? true,
+      };
+      const submitBtn = triggerRelationForm.querySelector('button[type="submit"]');
+      const release = withButtonBusy(submitBtn, triggerEditingRelationId ? "Actualizando…" : "Guardando…");
+      try {
+        if (triggerEditingRelationId) {
+          await updateTriggerRelation(triggerEditingRelationId, payload);
+          showToast("Relación actualizada.", { variant: "success" });
+        } else {
+          await createTriggerRelation(payload);
+          showToast("Relación creada correctamente.", { variant: "success" });
+        }
+        resetTriggerFormState();
+        await refreshTriggerRelationsPanel({ showSpinner: false });
+        await refreshTriggerStatsPanel({ showSpinner: false });
+      } catch (err) {
+        console.error("trigger save error", err);
+        showToast(`No se pudo guardar la relación: ${err.message}`, { variant: "danger" });
+      } finally {
+        release();
+      }
+    });
+
+    triggerFormResetBtn?.addEventListener("click", resetTriggerFormState);
+    triggerApplyFiltersBtn?.addEventListener("click", () => refreshTriggerRelationsPanel());
+    triggerRefreshRelationsBtn?.addEventListener("click", () => refreshTriggerRelationsPanel({ showSpinner: true }));
+    triggerRefreshStatsBtn?.addEventListener("click", () => refreshTriggerStatsPanel({ showSpinner: true }));
+    triggerRefreshEventsBtn?.addEventListener("click", () => refreshTriggerEventsPanel({ showSpinner: true }));
+    triggerApplyEventFiltersBtn?.addEventListener("click", () => {
+      const filters = getTriggerEventFilters();
+      if (triggerEventsLimitInput) triggerEventsLimitInput.value = filters.limit;
+      refreshTriggerEventsPanel();
+    });
+
+    triggerRelationsList?.addEventListener("click", async (event) => {
+      const editBtn = event.target.closest("[data-trigger-edit]");
+      if (editBtn) {
+        const relation = triggerRelationsCache.find((item) => item.id === editBtn.dataset.triggerEdit);
+        if (relation) fillTriggerForm(relation);
+        return;
+      }
+      const toggleBtn = event.target.closest("[data-trigger-toggle]");
+      if (toggleBtn) {
+        const relation = triggerRelationsCache.find((item) => item.id === toggleBtn.dataset.triggerToggle);
+        if (!relation) return;
+        const release = withButtonBusy(toggleBtn, relation.isActive ? "Pausando…" : "Activando…");
+        try {
+          await updateTriggerRelation(relation.id, { isActive: !relation.isActive });
+          showToast(`Relación ${relation.isActive ? "pausada" : "activada"}.`, { variant: "info" });
+          await refreshTriggerRelationsPanel({ showSpinner: false });
+        } catch (err) {
+          console.error("trigger toggle error", err);
+          showToast(`No se pudo cambiar el estado: ${err.message}`, { variant: "danger" });
+        } finally {
+          release();
+        }
+        return;
+      }
+      const deleteBtn = event.target.closest("[data-trigger-delete]");
+      if (deleteBtn) {
+        const relation = triggerRelationsCache.find((item) => item.id === deleteBtn.dataset.triggerDelete);
+        if (!relation) return;
+        if (!await mostrarModal("Eliminar relación", `¿Eliminar la relación ${formatNumber(relation.origin)}→${formatNumber(relation.target)}?`, { okText: "Eliminar", okVariant: "danger" })) return;
+        const release = withButtonBusy(deleteBtn, "Eliminando…");
+        try {
+          await deleteTriggerRelation(relation.id);
+          showToast("Relación eliminada.", { variant: "info" });
+          if (triggerEditingRelationId === relation.id) resetTriggerFormState();
+          await refreshTriggerRelationsPanel({ showSpinner: false });
+          await refreshTriggerStatsPanel({ showSpinner: false });
+        } catch (err) {
+          console.error("trigger delete error", err);
+          showToast(`No se pudo eliminar: ${err.message}`, { variant: "danger" });
+        } finally {
+          release();
+        }
+      }
+    });
+
+    triggerCloseExpiredBtn?.addEventListener("click", async () => {
+      const release = withButtonBusy(triggerCloseExpiredBtn, "Cerrando…");
+      try {
+        const closed = await closeTriggerEvents();
+        if (closed) {
+          showToast(`Se cerraron ${closed} evento(s) vencidos.`, { variant: "success" });
+        } else {
+          showToast("No había eventos vencidos.", { variant: "info" });
+        }
+        await refreshTriggerEventsPanel({ showSpinner: false });
+        await refreshTriggerStatsPanel({ showSpinner: false });
+      } catch (err) {
+        console.error("close trigger events error", err);
+        showToast(`No se pudieron cerrar eventos: ${err.message}`, { variant: "danger" });
+      } finally {
+        release();
+      }
+    });
+
+    triggerSeedExamplesBtn?.addEventListener("click", async () => {
+      if (!await mostrarModal("Cargar ejemplos", "¿Cargar las relaciones de ejemplo (37→47, 37→96, 44→95)?", { okText: "Cargar" })) return;
+      const release = withButtonBusy(triggerSeedExamplesBtn, "Sembrando…");
+      try {
+        const { created, message } = await seedTriggerExamples();
+        if (created) {
+          showToast(`Se agregaron ${created} relaciones de ejemplo.`, { variant: "success" });
+        } else {
+          showToast(message || "Los ejemplos ya estaban registrados.", { variant: "info" });
+        }
+        await refreshTriggerRelationsPanel({ showSpinner: false });
+        await refreshTriggerStatsPanel({ showSpinner: false });
+      } catch (err) {
+        console.error("trigger seed error", err);
+        showToast(`No se pudieron crear los ejemplos: ${err.message}`, { variant: "danger" });
+      } finally {
+        release();
+      }
+    });
+
+    function navigateToView(key) {
+      const btn = document.querySelector(`.sidebar button[data-view="${key}"]`);
+      if (btn) {
+        btn.click();
+      } else {
+        document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
+        const id = views[key];
+        document.getElementById(id)?.classList.remove("hidden");
+      }
+    }
+
+    async function focusDayPanel(fecha, pais) {
+      if (!fecha) return;
+      if (dayFecha) {
+        dayFecha.value = fecha;
+        updateDayFechaDow(fecha);
+      }
+      if (dayPais && pais) {
+        dayPais.value = pais;
+        updateSlotVisibility(pais);
+      }
+      navigateToView("day");
+      try {
+        await refreshSlots();
+        updateCountdownDisplay?.();
+      } catch (err) {
+        console.error("focus day error", err);
+      }
+    }
+
+
+    if (historyDateInput && dayFecha?.value && !historyDateInput.value) historyDateInput.value = dayFecha.value;
+    if (historyLimitSelect && !historyLimitSelect.value) historyLimitSelect.value = "9";
+    updateLocalModeUI();
+
+    historySearchBtn?.addEventListener("click", () => {
+      refreshHistoryPanel();
+    });
+    historyRefreshBtn?.addEventListener("click", () => {
+      refreshHistoryPanel({ forceReload: true });
+    });
+    historyClearBtn?.addEventListener("click", () => {
+      if (historyDateInput) historyDateInput.value = "";
+      if (historyHourSelect) historyHourSelect.value = "";
+      if (historyCountrySelect) historyCountrySelect.value = "";
+      if (historyLimitSelect) historyLimitSelect.value = "9";
+      refreshHistoryPanel({ defaultView: true });
+    });
+    historyDateInput?.addEventListener("change", () => refreshHistoryPanel());
+    historyHourSelect?.addEventListener("change", () => refreshHistoryPanel());
+    historyCountrySelect?.addEventListener("change", () => refreshHistoryPanel());
+    historyLimitSelect?.addEventListener("change", () => refreshHistoryPanel());
+    drawsLocalToggle?.addEventListener("click", async () => {
+      const nextState = !preferLocalSnapshot;
+      if (nextState) {
+        const snapshot = ensureLocalSnapshotState();
+        if (!snapshot.draws.length) {
+          showToast(
+            "Aún no hay datos en el modo local. Pulsa “Actualizar” cuando tengas conexión para guardarlos.",
+            { variant: "warning" },
+          );
+          return;
+        }
+      }
+      preferLocalSnapshot = nextState;
+      setLocalDrawSnapshotMode(nextState);
+      updateLocalModeUI();
+      invalidateDrawCache();
+      await refreshSlots({ forceReload: !nextState });
+      await refreshHistoryPanel({ forceReload: !nextState });
+      showToast(
+        nextState
+          ? "Modo local activado: los slots del día usarán los sorteos guardados en este navegador."
+          : "Modo local desactivado: se volverá a consultar Supabase para los slots.",
+        { variant: "info" },
+      );
+    });
+
+    function compareDrawDesc(a, b) {
+      if (a.fecha && b.fecha && a.fecha !== b.fecha) {
+        return b.fecha.localeCompare(a.fecha);
+      }
+      const horarioDiff = (HORARIO_ORDER[b.horario] ?? 0) - (HORARIO_ORDER[a.horario] ?? 0);
+      if (horarioDiff !== 0) return horarioDiff;
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    }
+
+    function latestRealDate(draws = []) {
+      return draws
+        .filter((d) => d?.fecha)
+        .map((d) => d.fecha)
+        .sort((a, b) => b.localeCompare(a))[0] || null;
+    }
+
+    const renderHistoryBadge = (label, extraClass, title = "") =>
+      `<span class="history-pill ${extraClass}"${title ? ` title="${title}"` : ""}><span class="history-pill__dot"></span>${label}</span>`;
+
+    function historyBadges(draw, latestDate) {
+      const badges = [];
+      if (draw.fecha === todayISO) {
+        badges.push(renderHistoryBadge("Hoy", "history-pill--today", "Resultado registrado hoy"));
+      } else if (latestDate && draw.fecha === latestDate) {
+        badges.push(renderHistoryBadge("Reciente", "history-pill--recent", "Día más reciente con registros"));
+      }
+      return badges.join("");
+    }
+
+    function computeYearCoverage(draws = []) {
+      const map = new Map();
+      draws.forEach((draw) => {
+        const fecha = (draw?.fecha || "").trim();
+        if (!fecha) return;
+        const year = parseInt(fecha.slice(0, 4), 10);
+        if (!Number.isFinite(year)) return;
+        const entry = map.get(year) || { year, min: null, max: null, count: 0 };
+        entry.count += 1;
+        if (!entry.min || fecha < entry.min) entry.min = fecha;
+        if (!entry.max || fecha > entry.max) entry.max = fecha;
+        map.set(year, entry);
+      });
+      return Array.from(map.values()).sort((a, b) => b.year - a.year);
+    }
+
+    function renderHistoryCoverage(draws = []) {
+      if (!historyCoveragePanel) return;
+      const currentYear = new Date().getFullYear();
+      const coverage = computeYearCoverage(draws);
+      const pastYears = coverage.filter((entry) => entry.year < currentYear);
+      if (!pastYears.length) {
+        historyCoveragePanel.innerHTML =
+          "<p class='hint'>Aún no registras sorteos de años anteriores — importa o agrega uno para llevar control.</p>";
+        return;
+      }
+      const rows = [];
+      let cursorYear = currentYear - 1;
+      pastYears.forEach((record) => {
+        for (let year = cursorYear; year > record.year; year -= 1) {
+          rows.push({ year, missing: true });
+        }
+        rows.push({ ...record, missing: false });
+        cursorYear = record.year - 1;
+      });
+      const list = document.createElement("div");
+      list.className = "history-coverage__list";
+      rows.forEach((row) => {
+        if (!row.year || row.year >= currentYear) return;
+        const item = document.createElement("div");
+        item.className = "history-coverage__row";
+        if (row.missing) item.classList.add("history-coverage__row--missing");
+        const yearEl = document.createElement("div");
+        yearEl.className = "history-coverage__year";
+        yearEl.textContent = row.year;
+        const info = document.createElement("div");
+        info.className = "history-coverage__info";
+        if (row.missing) {
+          info.innerHTML = `
+            <div class="history-coverage__label">Pendiente</div>
+            <div class="history-coverage__range">Sin sorteos registrados para ${row.year}.</div>
+          `;
+        } else {
+          const countLabel = `${row.count} sorteo${row.count === 1 ? "" : "s"}`;
+          const lastLabel = row.max ? formatFriendlyDate(row.max) : "";
+          const firstLabel = row.min && row.min !== row.max ? formatFriendlyDate(row.min) : "";
+          const rangeText = firstLabel ? `Primer registro: ${firstLabel}` : "";
+          info.innerHTML = `
+            <div class="history-coverage__label">Último: ${lastLabel}</div>
+            <div class="history-coverage__range">${countLabel}${rangeText ? ` · ${rangeText}` : ""}</div>
+          `;
+        }
+        item.append(yearEl, info);
+        list.appendChild(item);
+      });
+      historyCoveragePanel.innerHTML = "";
+      historyCoveragePanel.appendChild(list);
+    }
+
+    async function refreshHistoryPanel({ forceReload = false, defaultView = false } = {}) {
+      if (!historyTableWrap) return;
+      if (defaultView && historySummary) {
+        historySummary.textContent = "Mostrando los últimos sorteos registrados.";
+      }
+      if (forceReload) {
+        historyTableWrap.innerHTML = "<p class='hint'>Actualizando sorteos…</p>";
+      }
+      const draws = await getCachedDraws({ force: forceReload });
+      renderHistoryCoverage(draws);
+      if (!draws.length) {
+        historyTableWrap.innerHTML = "<p class='hint'>Aún no hay sorteos almacenados.</p>";
+        if (historySummary) historySummary.textContent = "Sin registros.";
+        return;
+      }
+      const limitValue = parseInt(historyLimitSelect?.value, 10);
+      const limit = Number.isFinite(limitValue) ? limitValue : 9;
+      let filtered = draws.slice().sort(compareDrawDesc);
+      const fechaFiltro = defaultView ? "" : (historyDateInput?.value || "").trim();
+      const horarioFiltro = defaultView ? "" : historyHourSelect?.value || "";
+      const paisFiltro = defaultView ? "" : historyCountrySelect?.value || "";
+      if (fechaFiltro) filtered = filtered.filter((d) => d.fecha === fechaFiltro);
+      if (horarioFiltro) filtered = filtered.filter((d) => d.horario === horarioFiltro);
+      if (paisFiltro) filtered = filtered.filter((d) => d.pais === paisFiltro);
+      const rows = filtered.slice(0, Math.max(1, limit));
+      const latestDate = latestRealDate(draws);
+      if (!rows.length) {
+        historyTableWrap.innerHTML = "<p class='hint'>Sin resultados para esos filtros.</p>";
+        if (historySummary) {
+          historySummary.textContent = "No se encontraron sorteos que coincidan.";
+        }
+        return;
+      }
+      const table = document.createElement("table");
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Fecha</th>
+            <th>Horario</th>
+            <th>País</th>
+            <th>Número</th>
+            <th>Símbolo</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector("tbody");
+      rows.forEach((draw, idx) => {
+        const tr = document.createElement("tr");
+        const isToday = draw.fecha === todayISO;
+        if (isToday || (latestDate && draw.fecha === latestDate)) {
+          tr.classList.add("history-row--today");
+        }
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${formatFriendlyDate(draw.fecha)}</td>
+          <td>${draw.horario || "—"}</td>
+          <td>${draw.pais || "—"}</td>
+          <td class="history-number">${formatNumber(draw.numero)}</td>
+          <td>${getSymbol(draw.numero) || "—"}</td>
+          <td>${historyBadges(draw, latestDate)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      historyTableWrap.innerHTML = "";
+      historyTableWrap.appendChild(table);
+      if (historySummary) {
+        const totalMatches = filtered.length;
+        const scopeText =
+          fechaFiltro || horarioFiltro || paisFiltro
+            ? "con filtros aplicados"
+            : "del histórico general";
+        historySummary.textContent = `${rows.length} sorteos ${scopeText} (de ${totalMatches}).`;
+      }
+    }
+
+    async function handleDrawsMutated() {
+      invalidateDrawCache();
+      invalidateMemoryCache();
+      invalidatePulso();
+      await Promise.allSettled([
+        refreshHistoryPanel({ forceReload: true }),
+        renderMemoryBoard({ forceReload: true }),
+        renderGapPanel({ forceReload: true }),
+      ]);
+      if (Number.isFinite(memorySelectedNumero)) {
+        await openMemoryDetail(memorySelectedNumero);
+      }
+      // Refrescar Mesa de Análisis en background si está visible
+      const mesaEl = document.getElementById("view-mesa");
+      if (mesaEl && !mesaEl.classList.contains("hidden") && typeof renderMesa === "function") {
+        renderMesa();
+      }
+    }
+
+    async function bootstrapExtendedPanels() {
+      await Promise.allSettled([
+        refreshHistoryPanel(),
+      ]);
+    }
+
+    await bootstrapExtendedPanels();
+
+    // ── Refs para archivo de notas libres (historial antiguo) ────────────────
+    const hypoFechaInput = null;   // eliminado del formulario
+    const hypoTurnoSelect = null;  // eliminado del formulario
+    const hypoNumeroInput = null;  // eliminado del formulario
+    const hypoTextoInput = null;   // eliminado del formulario
+    const btnHipotesis = null;     // eliminado del formulario
+    const hypoSearchInput = document.getElementById("h-search");
+    const hypoSearchBtn = document.getElementById("h-search-btn");
+    const hypoSearchClearBtn = document.getElementById("h-search-clear");
+    let editingHypothesisId = null;
+    let lastHypoAutoKey = "";
+    let lastHypoAutoId = null;
+
+    hypoSearchBtn?.addEventListener("click", () => refreshHypotesis());
+    hypoSearchInput?.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); refreshHypotesis(); }
+    });
+    hypoSearchClearBtn?.addEventListener("click", () => {
+      if (hypoSearchInput) hypoSearchInput.value = "";
+      refreshHypotesis();
+    });
+
+    function resetHypothesisForm() {
+      editingHypothesisId = null;
+      lastHypoAutoKey = "";
+      lastHypoAutoId = null;
+    }
+
+    function setHypothesisFormMode(id) {
+      editingHypothesisId = id || null;
+    }
+
+    function findExistingHypothesis(list = [], { fecha, turno }) {
+      if (!fecha || !list.length) return null;
+      const turnoValue = (turno || "").trim();
+      const exact = list.filter(
+        (h) => h?.fecha === fecha && (!turnoValue || (h.turno || "") === turnoValue)
+      );
+      if (exact.length) {
+        return exact.slice().sort((a, b) =>
+          (b.createdAt || 0) - (a.createdAt || 0) || (b.id || 0) - (a.id || 0)
+        )[0];
+      }
+      if (!turnoValue) return null;
+      const fallback = list.filter((h) => h?.fecha === fecha);
+      if (!fallback.length) return null;
+      return fallback.slice().sort((a, b) =>
+        (b.createdAt || 0) - (a.createdAt || 0) || (b.id || 0) - (a.id || 0)
+      )[0];
+    }
+
+    async function autoFillHypothesisForm() { /* formulario eliminado */ }
+
+    // ── PARES VINCULADOS ──────────────────────────────────────────────────────
+
+    const PAIRS_SCOPE = "number_pairs";
+
+    function pairKey(a, b) {
+      return `pair:${Math.min(a, b)}:${Math.max(a, b)}`;
+    }
+
+    async function savePairToDb(pair) {
+      return DB.saveKnowledge([{
+        key: pairKey(pair.numA, pair.numB),
+        scope: PAIRS_SCOPE,
+        data: pair,
+        updatedAt: Date.now(),
+      }]);
+    }
+
+    async function listPairsFromDb() {
+      const rows = await DB.getKnowledgeByScope(PAIRS_SCOPE);
+      return rows.map((r) => r.data).filter(Boolean);
+    }
+
+    async function deletePairFromDb(numA, numB) {
+      return DB.deleteKnowledgeByKey(pairKey(numA, numB));
+    }
+
+    // Muestra el símbolo de un número en un elemento
+    function showPairNumInfo(elId, raw) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      const n = parseInt(raw, 10);
+      if (!Number.isFinite(n) || n < 0 || n > 99) { el.textContent = ""; return; }
+      const pad = String(n).padStart(2, "0");
+      const info = GUIA?.[pad];
+      el.textContent = info ? `${info.simbolo || ""}${info.familia ? ` · ${info.familia}` : ""}` : pad;
+    }
+
+    // Render de la lista de pares guardados
+    async function renderPairList() {
+      const listEl = document.getElementById("p-list");
+      if (!listEl) return;
+      listEl.innerHTML = "<p class='hint' style='font-size:.82rem'>Cargando…</p>";
+      let pairs;
+      try { pairs = await listPairsFromDb(); }
+      catch (err) {
+        listEl.innerHTML = `<p class='hint'>Error al cargar: ${escapeHtml(err.message)}</p>`;
+        return;
+      }
+      if (!pairs.length) {
+        listEl.innerHTML = "<p class='hint' style='font-size:.82rem'>Aún no hay pares registrados.</p>";
+        return;
+      }
+      listEl.innerHTML = "";
+      for (const pair of pairs) {
+        const padA = String(pair.numA).padStart(2, "0");
+        const padB = String(pair.numB).padStart(2, "0");
+        const simA = GUIA?.[padA]?.simbolo || padA;
+        const simB = GUIA?.[padB]?.simbolo || padB;
+        const card = document.createElement("div");
+        card.className = "pair-card";
+        card.innerHTML = `
+          <div class="pair-card__nums">
+            <span class="pair-card__num">${padA}</span>
+            <span class="pair-card__sim">${simA}</span>
+            <span class="pair-card__arrow">↔</span>
+            <span class="pair-card__num">${padB}</span>
+            <span class="pair-card__sim">${simB}</span>
+          </div>
+          ${pair.nota ? `<div class="pair-card__nota">${pair.nota}</div>` : ""}
+        `;
+        const delBtn = document.createElement("button");
+        delBtn.className = "pair-card__del btn-ghost";
+        delBtn.textContent = "Eliminar";
+        delBtn.addEventListener("click", async () => {
+          if (!await mostrarModal("Eliminar par", `¿Eliminar el par ${padA} ↔ ${padB}?`, { okText: "Eliminar", okVariant: "danger" })) return;
+          await deletePairFromDb(pair.numA, pair.numB);
+          invalidatePulso();
+          renderPairList();
+          renderPulso();
+        });
+        card.appendChild(delBtn);
+        listEl.appendChild(card);
+      }
+    }
+
+    // Bind del formulario de pares
+    (function bindPairForm() {
+      const pNumA = document.getElementById("p-numA");
+      const pNumB = document.getElementById("p-numB");
+      const pGuardar = document.getElementById("p-guardar");
+      const pStatus = document.getElementById("p-status");
+
+      const padOnBlur = (input, infoId) => {
+        if (!input) return;
+        input.addEventListener("blur", () => {
+          const raw = input.value.trim();
+          if (/^\d{1,2}$/.test(raw)) input.value = raw.padStart(2, "0");
+          showPairNumInfo(infoId, input.value);
+        });
+        input.addEventListener("input", () => showPairNumInfo(infoId, input.value));
+      };
+      padOnBlur(pNumA, "p-infoA");
+      padOnBlur(pNumB, "p-infoB");
+
+      pGuardar?.addEventListener("click", async () => {
+        const rawA = (pNumA?.value || "").trim();
+        const rawB = (pNumB?.value || "").trim();
+        if (!/^\d{1,2}$/.test(rawA) || !/^\d{1,2}$/.test(rawB)) {
+          if (pStatus) pStatus.textContent = "Ingresa dos números válidos.";
+          return;
+        }
+        const numA = parseInt(rawA, 10);
+        const numB = parseInt(rawB, 10);
+        if (numA === numB) {
+          if (pStatus) pStatus.textContent = "Los dos números deben ser distintos.";
+          return;
+        }
+        const nota = (document.getElementById("p-nota")?.value || "").trim();
+        const padA = String(numA).padStart(2, "0");
+        const padB = String(numB).padStart(2, "0");
+        const pair = {
+          numA,
+          numB,
+          simboloA: GUIA?.[padA]?.simbolo || "",
+          simboloB: GUIA?.[padB]?.simbolo || "",
+          nota,
+        };
+        try {
+          if (pGuardar) pGuardar.disabled = true;
+          await savePairToDb(pair);
+          if (pStatus) pStatus.textContent = `Par ${padA} ↔ ${padB} guardado.`;
+          if (pNumA) pNumA.value = "";
+          if (pNumB) pNumB.value = "";
+          document.getElementById("p-nota").value = "";
+          document.getElementById("p-infoA").textContent = "";
+          document.getElementById("p-infoB").textContent = "";
+          await renderPairList();
+          invalidatePulso();
+          renderPulso();
+        } catch (err) {
+          if (pStatus) pStatus.textContent = `Error: ${err.message}`;
+        } finally {
+          if (pGuardar) pGuardar.disabled = false;
+        }
+      });
+    })();
+
+    // ── CONSTELACIONES ────────────────────────────────────────────────────────
+
+    const CONST_SCOPE = "constellations";
+
+    function constKey(nombre) {
+      return `const:${nombre.toLowerCase().replace(/\s+/g, "_")}`;
+    }
+
+    async function saveConstellationToDb(c) {
+      return DB.saveKnowledge([{ key: constKey(c.nombre), scope: CONST_SCOPE, data: c, updatedAt: Date.now() }]);
+    }
+
+    async function listConstellationsFromDb() {
+      const rows = await DB.getKnowledgeByScope(CONST_SCOPE);
+      return rows.map(r => r.data).filter(Boolean);
+    }
+
+    async function deleteConstellationFromDb(nombre) {
+      return DB.deleteKnowledgeByKey(constKey(nombre));
+    }
+
+    /**
+     * Dado el listado de constelaciones y el historial (excl. test),
+     * devuelve las que están activas: disparadas dentro de su ventana
+     * y con miembros aún pendientes.
+     */
+    function detectActiveConstellations(constellations, draws) {
+      if (!constellations.length || !draws.length) return [];
+      const TURN_ORDER = { "11AM": 0, "12PM": 1, "3PM": 2, "6PM": 3, "9PM": 4 };
+      const sorted = [...draws].sort((a, b) => {
+        if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+        return (TURN_ORDER[a.horario] ?? 2) - (TURN_ORDER[b.horario] ?? 2);
+      });
+      const todayMs = Date.now();
+      const results = [];
+
+      for (const c of constellations) {
+        const ventanaDias = c.ventanaDias || 10;
+        const cutoff = new Date(todayMs - ventanaDias * 86_400_000).toISOString().slice(0, 10);
+        const recentDraws = sorted.filter(d => d.fecha >= cutoff);
+        const miembros = (c.miembros || []).map(Number);
+        if (!miembros.length) continue;
+
+        let activadoEn = null, activadoPor = null;
+
+        if (c.tipo === "disparador_fijo" && c.disparador != null) {
+          const trig = recentDraws.find(d => Number(d.numero) === Number(c.disparador));
+          if (trig) { activadoEn = trig.fecha; activadoPor = Number(c.disparador); }
+        } else {
+          // cualquier miembro dispara
+          const first = recentDraws.find(d => miembros.includes(Number(d.numero)));
+          if (first) { activadoEn = first.fecha; activadoPor = Number(first.numero); }
+        }
+        if (!activadoEn) continue;
+
+        const drawsSince = sorted.filter(d => d.fecha >= activadoEn);
+        const numsSince = new Set(drawsSince.map(d => Number(d.numero)));
+        const vistos    = miembros.filter(m => numsSince.has(m));
+        const faltantes = miembros.filter(m => !numsSince.has(m));
+        if (!faltantes.length) continue; // todos ya cayeron, ciclo completo
+
+        const diasActivo    = Math.round((todayMs - new Date(activadoEn).getTime()) / 86_400_000);
+        const diasRestantes = ventanaDias - diasActivo;
+        results.push({ c, activadoEn, activadoPor, vistos, faltantes, diasActivo, diasRestantes });
+      }
+      return results;
+    }
+
+    async function renderConstellationList() {
+      const listEl = document.getElementById("c-list");
+      if (!listEl) return;
+      const constellations = await listConstellationsFromDb();
+      if (!constellations.length) {
+        listEl.innerHTML = "<p class='hint' style='font-size:.82rem'>Sin constelaciones registradas aún.</p>";
+        return;
+      }
+      listEl.innerHTML = "";
+      for (const c of constellations) {
+        const card = document.createElement("div");
+        card.className = "const-card";
+        const miembros = (c.miembros || []).map(Number);
+        const chipsHtml = miembros.map(m => {
+          const pad = String(m).padStart(2, "0");
+          const sim = GUIA?.[pad]?.simbolo || "";
+          return `<span class="const-chip">${pad} <small>${sim}</small></span>`;
+        }).join("");
+        const tipoLabel = c.tipo === "disparador_fijo"
+          ? `Disparador: <strong>${String(c.disparador).padStart(2,"0")} ${GUIA?.[String(c.disparador).padStart(2,"0")]?.simbolo || ""}</strong>`
+          : "Grupo libre";
+        card.innerHTML = `
+          <div class="const-card__head">
+            <span class="const-card__name">${c.nombre}</span>
+            <span class="const-card__meta">${tipoLabel} · ${c.ventanaDias || 10}d</span>
+          </div>
+          <div class="const-card__members">${chipsHtml}</div>
+          ${c.nota ? `<div class="const-card__nota">${c.nota}</div>` : ""}
+        `;
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn-ghost small";
+        delBtn.textContent = "Eliminar";
+        delBtn.style.cssText = "margin-top:8px;font-size:.75rem;opacity:.5";
+        delBtn.addEventListener("click", async () => {
+          if (!await mostrarModal("Eliminar constelación", `¿Eliminar la constelación "${c.nombre}"?`, { okText: "Eliminar", okVariant: "danger" })) return;
+          await deleteConstellationFromDb(c.nombre);
+          invalidatePulso();
+          renderConstellationList();
+          renderPulso();
+        });
+        card.appendChild(delBtn);
+        listEl.appendChild(card);
+      }
+    }
+
+    // Bind del formulario de constelaciones
+    (function bindConstellationForm() {
+      let _members = [];
+
+      function renderMemberChips() {
+        const el = document.getElementById("c-members-chips");
+        if (!el) return;
+        el.innerHTML = _members.map((m, i) => {
+          const pad = String(m).padStart(2, "0");
+          const sim = GUIA?.[pad]?.simbolo || "";
+          return `<span class="const-chip const-chip--editable" data-i="${i}">${pad} <small>${sim}</small> <button class="const-chip__del" data-i="${i}">✕</button></span>`;
+        }).join("") || "<span style='color:var(--color-muted);font-size:.8rem'>Agrega al menos 2 números</span>";
+        el.querySelectorAll(".const-chip__del").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.dataset.i, 10);
+            _members.splice(idx, 1);
+            renderMemberChips();
+          });
+        });
+      }
+
+      // Mostrar/ocultar disparador según tipo
+      document.querySelectorAll("input[name='c-tipo']").forEach(r => {
+        r.addEventListener("change", () => {
+          const row = document.getElementById("c-disparador-row");
+          if (row) row.style.display = r.value === "disparador_fijo" && r.checked ? "" : "none";
+        });
+      });
+
+      // Info disparador
+      document.getElementById("c-disparador")?.addEventListener("input", (e) => {
+        const el = document.getElementById("c-info-disparador");
+        if (!el) return;
+        const n = parseInt(e.target.value.trim(), 10);
+        if (!Number.isFinite(n) || n < 0 || n > 99) { el.textContent = ""; return; }
+        const pad = String(n).padStart(2, "0");
+        el.textContent = GUIA?.[pad]?.simbolo || pad;
+      });
+
+      // Agregar miembro
+      function addMember() {
+        const raw = (document.getElementById("c-add-num")?.value || "").trim();
+        const n = parseInt(raw, 10);
+        if (!Number.isFinite(n) || n < 0 || n > 99) return;
+        if (_members.includes(n)) { showToast("Ese número ya está en el grupo.", { variant: "info" }); return; }
+        _members.push(n);
+        document.getElementById("c-add-num").value = "";
+        renderMemberChips();
+      }
+      document.getElementById("c-add-btn")?.addEventListener("click", addMember);
+      document.getElementById("c-add-num")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); addMember(); }
+      });
+
+      // Guardar
+      document.getElementById("c-guardar")?.addEventListener("click", async () => {
+        const nombre = (document.getElementById("c-nombre")?.value || "").trim();
+        const ventanaDias = parseInt(document.getElementById("c-ventana")?.value, 10) || 10;
+        const tipo = document.querySelector("input[name='c-tipo']:checked")?.value || "grupo_libre";
+        const disparadorRaw = (document.getElementById("c-disparador")?.value || "").trim();
+        const disparador = tipo === "disparador_fijo" ? parseInt(disparadorRaw, 10) : null;
+        const nota = (document.getElementById("c-nota")?.value || "").trim();
+        const statusEl = document.getElementById("c-status");
+
+        if (!nombre) { if (statusEl) statusEl.textContent = "Escribe un nombre."; return; }
+        if (_members.length < 2) { if (statusEl) statusEl.textContent = "Agrega al menos 2 miembros."; return; }
+        if (tipo === "disparador_fijo" && !Number.isFinite(disparador)) {
+          if (statusEl) statusEl.textContent = "Ingresa el número disparador."; return;
+        }
+
+        const constellation = { nombre, tipo, disparador, miembros: [..._members], ventanaDias, nota };
+        try {
+          await saveConstellationToDb(constellation);
+          if (statusEl) statusEl.textContent = `"${nombre}" guardada.`;
+          _members = [];
+          renderMemberChips();
+          document.getElementById("c-nombre").value = "";
+          document.getElementById("c-nota").value = "";
+          if (document.getElementById("c-disparador")) document.getElementById("c-disparador").value = "";
+          invalidatePulso();
+          renderConstellationList();
+          renderPulso();
+        } catch (err) {
+          if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+        }
+      });
+
+      renderMemberChips();
+    })();
+
+    // ── SUPER PREMIOS ─────────────────────────────────────────────────────────────
+
+    const SP_SCOPE = "super_premios";
+    const SP_RECOVERY_DAYS = 14;
+    const SP_PRE_EVENTO_DAYS = 3;
+    const MONTHS_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+    function spKey(fecha) { return `sp:${fecha}`; }
+
+    async function saveSpToDb(fecha) {
+      return DB.saveKnowledge([{ key: spKey(fecha), scope: SP_SCOPE, data: { fecha }, updatedAt: Date.now() }]);
+    }
+    async function deleteSpFromDb(fecha) {
+      return DB.deleteKnowledgeByKey(spKey(fecha));
+    }
+    async function listSpFromDb() {
+      const rows = await DB.getKnowledgeByScope(SP_SCOPE);
+      return rows.map(r => r.data?.fecha).filter(Boolean).sort();
+    }
+
+    /** Genera todas las fechas miércoles(3) y sábado(6) entre fromYear y toYear inclusive.
+     *  Retorna: { year: { month(0-11): ["YYYY-MM-DD", ...] } }
+     */
+    function generateWedSatDates(fromYear, toYear) {
+      const result = {};
+      const d = new Date(fromYear, 0, 1);
+      const end = new Date(toYear, 11, 31);
+      while (d <= end) {
+        const dow = d.getDay();
+        if (dow === 3 || dow === 6) {
+          const y = d.getFullYear();
+          const m = d.getMonth();
+          if (!result[y]) result[y] = {};
+          if (!result[y][m]) result[y][m] = [];
+          // Usar fecha local, NO toISOString (que convierte a UTC y desfasa el día)
+          const mm = String(m + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          result[y][m].push(`${y}-${mm}-${dd}`);
+        }
+        d.setDate(d.getDate() + 1);
+      }
+      return result;
+    }
+
+    /** Returns recovery mode status based on marked super premios */
+    function detectarModoRecuperacion(spFechas) {
+      if (!spFechas.length) return { activo: false, diasRestantes: 0, ultimoEvento: null };
+      const ultima = [...spFechas].sort().pop();
+      const dias = Math.round((Date.now() - new Date(ultima).getTime()) / 86_400_000);
+      return {
+        activo: dias <= SP_RECOVERY_DAYS,
+        diasRestantes: Math.max(0, SP_RECOVERY_DAYS - dias),
+        diasTranscurridos: dias,
+        ultimoEvento: ultima,
+      };
+    }
+
+    /** Numbers that appeared in the 3-7 days BEFORE the super premio (window of 5 days).
+     *  These are candidates for "the operator was hiding them" — pre-event boost.
+     *  Returns [{numero, veces}] sorted by frequency descending. */
+    function detectarNumerosPreEvento(spFecha, draws) {
+      const [fy, fm, fd] = spFecha.split("-").map(Number);
+      const spTime = new Date(fy, fm - 1, fd).getTime();
+      const startTime = spTime - 7 * 86_400_000; // 7 días antes
+      const endTime   = spTime - 3 * 86_400_000; // 3 días antes (no contar los más cercanos)
+      const sd = new Date(startTime);
+      const ed = new Date(endTime);
+      const startDate = `${sd.getFullYear()}-${String(sd.getMonth()+1).padStart(2,"0")}-${String(sd.getDate()).padStart(2,"0")}`;
+      const endDate   = `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2,"0")}-${String(ed.getDate()).padStart(2,"0")}`;
+      const preDraws = draws.filter(d => d.fecha >= startDate && d.fecha <= endDate);
+      const counts = {};
+      preDraws.forEach(d => { const n = Number(d.numero); counts[n] = (counts[n] || 0) + 1; });
+      return Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([n, veces]) => ({ numero: Number(n), veces: Number(veces) }));
+    }
+
+    /** Numbers that have appeared 2+ times in draws since the super premio date (within recovery window).
+     *  Returns [{numero, veces}] sorted by frequency descending. */
+    function detectarNumerosRepetidosPostEvento(spFecha, draws) {
+      const [fy, fm, fd] = spFecha.split("-").map(Number);
+      const spTime = new Date(fy, fm - 1, fd).getTime();
+      const endTime = spTime + SP_RECOVERY_DAYS * 86_400_000;
+      const ed = new Date(endTime);
+      const endDate = `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2,"0")}-${String(ed.getDate()).padStart(2,"0")}`;
+      const postDraws = draws.filter(d => d.fecha > spFecha && d.fecha <= endDate);
+      const counts = {};
+      postDraws.forEach(d => { const n = Number(d.numero); counts[n] = (counts[n] || 0) + 1; });
+      return Object.entries(counts)
+        .filter(([, c]) => c >= 2)
+        .sort((a, b) => b[1] - a[1])
+        .map(([n, veces]) => ({ numero: Number(n), veces: Number(veces) }));
+    }
+
+    /** Analyze what repeated in the SP_RECOVERY_DAYS days after a super premio date */
+    function analizarPostEvento(spFecha, draws) {
+      const [fy, fm, fd] = spFecha.split("-").map(Number);
+      const spTime = new Date(fy, fm - 1, fd).getTime();
+      const endTime = spTime + SP_RECOVERY_DAYS * 86_400_000;
+      const ed = new Date(endTime);
+      const endDate = `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2,"0")}-${String(ed.getDate()).padStart(2,"0")}`;
+      const postDraws = draws.filter(d => d.fecha > spFecha && d.fecha <= endDate);
+      const repetidos = detectarNumerosRepetidosPostEvento(spFecha, draws);
+      return {
+        fecha: spFecha,
+        repetidos,                          // [{numero, veces}]
+        totalPostSorteos: postDraws.length,
+      };
+    }
+
+    let _spMarkedSet = new Set(); // cache local de fechas marcadas
+    let _spCalendar = null;       // cache del calendario generado
+    let _spActiveYear = null;
+
+    async function renderSuperPremioPanel() {
+      const tabsEl = document.getElementById("sp-year-tabs");
+      const monthsEl = document.getElementById("sp-months");
+      const analysisEl = document.getElementById("sp-analysis-panel");
+      const badgeEl = document.getElementById("sp-modo-badge");
+      if (!tabsEl || !monthsEl) return;
+
+      // Load marked dates
+      const spFechas = await listSpFromDb();
+      _spMarkedSet = new Set(spFechas);
+
+      // Generate calendar if not cached
+      if (!_spCalendar) {
+        const currentYear = new Date().getFullYear();
+        _spCalendar = generateWedSatDates(2015, currentYear);
+      }
+
+      // Recovery mode badge
+      const rec = detectarModoRecuperacion(spFechas);
+      if (badgeEl) {
+        badgeEl.className = `sp-modo-badge sp-modo-badge--${rec.activo ? "on" : "off"}`;
+        badgeEl.textContent = rec.activo
+          ? `🔴 Modo recuperación activo — ${rec.diasRestantes} días restantes`
+          : "⚪ Modo recuperación inactivo";
+      }
+
+      // Year tabs
+      const years = Object.keys(_spCalendar).map(Number).sort((a, b) => b - a); // newest first
+      if (!_spActiveYear || !_spCalendar[_spActiveYear]) _spActiveYear = years[0];
+
+      tabsEl.innerHTML = years.map(y => {
+        const countYear = Object.values(_spCalendar[y] || {}).flat().filter(f => _spMarkedSet.has(f)).length;
+        return `<button class="sp-year-btn${y === _spActiveYear ? " sp-year-btn--active" : ""}" data-year="${y}">
+          ${y}${countYear ? `<span class="sp-year-count">${countYear}</span>` : ""}
+        </button>`;
+      }).join("");
+
+      tabsEl.querySelectorAll(".sp-year-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          _spActiveYear = parseInt(btn.dataset.year, 10);
+          renderSpYear(monthsEl);
+          // update active tab style
+          tabsEl.querySelectorAll(".sp-year-btn").forEach(b => b.classList.toggle("sp-year-btn--active", parseInt(b.dataset.year,10) === _spActiveYear));
+        });
+      });
+
+      renderSpYear(monthsEl);
+
+      // Analysis panel
+      if (analysisEl && spFechas.length && drawsCache?.length) {
+        const hist = drawsCache.filter(d => !d.esTest);
+        const analyses = spFechas.map(f => analizarPostEvento(f, hist)).filter(a => a.totalPostSorteos > 0);
+        if (analyses.length) {
+          // Aggregate: cuántas veces repitió cada número en todas las ventanas post-pago
+          const repFreq = {};
+          analyses.forEach(a => a.repetidos.forEach(({ numero, veces }) => {
+            repFreq[numero] = (repFreq[numero] || 0) + veces;
+          }));
+          const topReps = Object.entries(repFreq).sort((a,b) => b[1]-a[1]).slice(0, 10);
+          // Si hay modo recuperación activo, mostrar los que están repitiendo AHORA
+          const currentReps = rec.activo && rec.ultimoEvento
+            ? detectarNumerosRepetidosPostEvento(rec.ultimoEvento, hist)
+            : [];
+          analysisEl.innerHTML = `
+            <div class="sp-analysis-box">
+              <div class="sp-analysis-head">Análisis histórico — ${analyses.length} super premios registrados</div>
+              ${topReps.length ? `
+              <div class="sp-analysis-stat" style="margin-top:6px">Números que más repiten en los 14 días post-pago:</div>
+              <div class="sp-analysis-chips">
+                ${topReps.map(([n, c]) => {
+                  const pad = String(n).padStart(2,"0");
+                  const sim = GUIA?.[pad]?.simbolo || "";
+                  return `<span class="sp-rep-chip">${pad} <small>${sim}</small> <em>${c}×</em></span>`;
+                }).join("")}
+              </div>` : ""}
+              ${rec.activo ? `
+              <div class="sp-analysis-stat sp-analysis-stat--warning" style="margin-top:10px">
+                ⚠️ Modo recuperación activo. Último pago: <strong>${rec.ultimoEvento}</strong> (hace ${rec.diasTranscurridos} días · ${rec.diasRestantes}d restantes).
+              </div>
+              ${currentReps.length ? `
+              <div class="sp-analysis-stat" style="margin-top:6px">Repitiendo desde ese pago:</div>
+              <div class="sp-analysis-chips">
+                ${currentReps.map(({ numero, veces }) => {
+                  const pad = String(numero).padStart(2,"0");
+                  const sim = GUIA?.[pad]?.simbolo || "";
+                  return `<span class="sp-rep-chip sp-rep-chip--active">${pad} <small>${sim}</small> <em>${veces}×</em></span>`;
+                }).join("")}
+              </div>` : `<div class="sp-analysis-stat" style="margin-top:6px;color:var(--color-muted)">Aún no hay repeticiones desde ese pago.</div>`}
+              ` : ""}
+            </div>
+          `;
+        } else {
+          analysisEl.innerHTML = "";
+        }
+      } else if (analysisEl) {
+        analysisEl.innerHTML = "";
+      }
+    }
+
+    function renderSpYear(monthsEl) {
+      if (!_spCalendar || !_spActiveYear) return;
+      const months = _spCalendar[_spActiveYear] || {};
+      const sortedMonths = Object.keys(months).map(Number).sort((a,b) => a-b);
+
+      monthsEl.innerHTML = sortedMonths.map(m => {
+        const dates = months[m] || [];
+        const markedCount = dates.filter(f => _spMarkedSet.has(f)).length;
+        const chipsHtml = dates.map(fecha => {
+          const day = parseInt(fecha.slice(8), 10);
+          // Parsear en local para evitar desfase UTC
+          const [fy, fm, fd] = fecha.split("-").map(Number);
+          const dow = new Date(fy, fm - 1, fd).getDay();
+          const isSat = dow === 6;
+          const isMarked = _spMarkedSet.has(fecha);
+          return `<button class="sp-date-chip${isSat ? " sp-date-chip--sat" : " sp-date-chip--wed"}${isMarked ? " sp-date-chip--marked" : ""}"
+            data-fecha="${fecha}" title="${fecha}">
+            <span class="sp-chip-dow">${isSat ? "sáb" : "mié"}</span>
+            <span class="sp-chip-day">${day}</span>
+          </button>`;
+        }).join("");
+        return `<div class="sp-month-row">
+          <div class="sp-month-label">${MONTHS_ES[m]}<span class="sp-month-count">${markedCount ? markedCount + " ✓" : ""}</span></div>
+          <div class="sp-month-chips">${chipsHtml}</div>
+        </div>`;
+      }).join("");
+
+      monthsEl.querySelectorAll(".sp-date-chip").forEach(chip => {
+        chip.addEventListener("click", async () => {
+          const fecha = chip.dataset.fecha;
+          const wasMarked = _spMarkedSet.has(fecha);
+          if (wasMarked) {
+            _spMarkedSet.delete(fecha);
+            chip.classList.remove("sp-date-chip--marked");
+            try {
+              await deleteSpFromDb(fecha);
+            } catch {
+              _spMarkedSet.add(fecha);
+              chip.classList.add("sp-date-chip--marked");
+              showToast("Error al eliminar fecha del SP", { variant: "danger" });
+            }
+          } else {
+            _spMarkedSet.add(fecha);
+            chip.classList.add("sp-date-chip--marked");
+            try {
+              await saveSpToDb(fecha);
+            } catch {
+              _spMarkedSet.delete(fecha);
+              chip.classList.remove("sp-date-chip--marked");
+              showToast("Error al guardar fecha del SP", { variant: "danger" });
+            }
+          }
+          // Update month count
+          const row = chip.closest(".sp-month-row");
+          const countEl = row?.querySelector(".sp-month-count");
+          if (countEl) {
+            const monthDates = row.querySelectorAll(".sp-date-chip");
+            const cnt = [...monthDates].filter(c => c.classList.contains("sp-date-chip--marked")).length;
+            countEl.textContent = cnt ? cnt + " ✓" : "";
+          }
+          // Update year tab count
+          const allMarked = monthsEl.querySelectorAll(".sp-date-chip--marked").length;
+          const activeTab = document.querySelector(`.sp-year-btn[data-year="${_spActiveYear}"]`);
+          if (activeTab) {
+            let countSpan = activeTab.querySelector(".sp-year-count");
+            if (allMarked) {
+              if (!countSpan) { countSpan = document.createElement("span"); countSpan.className = "sp-year-count"; activeTab.appendChild(countSpan); }
+              countSpan.textContent = allMarked;
+            } else if (countSpan) countSpan.remove();
+          }
+          // Refresh analysis and badge
+          const spFechas = [..._spMarkedSet].sort();
+          const rec = detectarModoRecuperacion(spFechas);
+          const badgeEl = document.getElementById("sp-modo-badge");
+          if (badgeEl) {
+            badgeEl.className = `sp-modo-badge sp-modo-badge--${rec.activo ? "on" : "off"}`;
+            badgeEl.textContent = rec.activo
+              ? `🔴 Modo recuperación activo — ${rec.diasRestantes} días restantes`
+              : "⚪ Modo recuperación inactivo";
+          }
+          invalidatePulso();
+        });
+      });
+    }
+
+    function getHypothesisFilterNumero() {
+      const raw = (hypoSearchInput?.value || "").trim();
+      if (!raw) return "";
+      if (!/^\d{1,2}$/.test(raw)) return "";
+      return raw.padStart(2, "0");
+    }
+
+    const hypothesisWeekdayFormatter = new Intl.DateTimeFormat("es-ES", { weekday: "long" });
+
+    function formatHypothesisDateLabel(value) {
+      if (!value) return "(sin fecha)";
+      const parsed = parseDrawDate(value);
+      if (!parsed) return value;
+      const weekdayRaw = hypothesisWeekdayFormatter.format(parsed);
+      const weekday = `${weekdayRaw.charAt(0).toUpperCase()}${weekdayRaw.slice(1)}`;
+      const isoDate = formatDateISO(parsed);
+      return `${weekday} ${isoDate || value}`;
+    }
+
+    const uppercaseEmphasisRegex = /([A-ZÁÉÍÓÚÜÑ0-9]{2,})/g;
+
+    function buildHypoNotesLine(line = "") {
+      const frag = document.createDocumentFragment();
+      if (!line) return frag;
+      let lastIndex = 0;
+      let match;
+      while ((match = uppercaseEmphasisRegex.exec(line)) !== null) {
+        if (match.index > lastIndex) {
+          frag.appendChild(document.createTextNode(line.slice(lastIndex, match.index)));
+        }
+        const strongText = match[0];
+        const emphasis = document.createElement("span");
+        emphasis.className = "hypo-notes-emphasis";
+        emphasis.textContent = strongText;
+        frag.appendChild(emphasis);
+        lastIndex = match.index + strongText.length;
+      }
+      if (lastIndex < line.length) {
+        frag.appendChild(document.createTextNode(line.slice(lastIndex)));
+      }
+      return frag;
+    }
+
+    function createHypoNotesContent(text = "") {
+      const fragment = document.createDocumentFragment();
+      const lines = text.split(/\r?\n/);
+      lines.forEach((line, index) => {
+        fragment.appendChild(buildHypoNotesLine(line));
+        if (index < lines.length - 1) {
+          fragment.appendChild(document.createElement("br"));
+        }
+      });
+      return fragment;
+    }
+
+    async function refreshHypotesis() {
+      const cont = document.getElementById("h-list");
+      const numeroDisplay = document.getElementById("h-numero-display");
+      if (!cont) return;
+      cont.classList.add("cards", "hypo-list");
+
+      const filterNumero = getHypothesisFilterNumero();
+
+      if (!filterNumero) {
+        if (numeroDisplay) numeroDisplay.innerHTML = "";
+        cont.innerHTML = "<p class='hint'>Ingresa un número (00–99) y presiona «Ver hipótesis».</p>";
+        return;
+      }
+
+      const hyps = await DB._getAll("hypotheses");
+      seedHypothesisCache(hyps);
+      const filtered = hyps.filter((h) => formatNumber(h.numero) === filterNumero);
+
+      const simbolo = getSymbol(parseInt(filterNumero, 10)) || "";
+      if (numeroDisplay) {
+        numeroDisplay.innerHTML = `
+          <span class="hypo-num-big">${filterNumero}</span>
+          ${simbolo ? `<span class="hypo-sym-big">${simbolo}</span>` : ""}
+        `;
+      }
+
+      if (!filtered.length) {
+        cont.innerHTML = `<p class='hint'>Aún no hay hipótesis registradas para el ${filterNumero}.</p>`;
+        return;
+      }
+      filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      cont.innerHTML = "";
+      for (const h of filtered) {
+        const card = document.createElement("div");
+        card.className = "card hypo-card";
+
+        const simbolo = h.simbolo || getSymbol(h.numero) || "";
+        const estado = (h.estado || "pendiente").toLowerCase();
+        const fecha = formatHypothesisDateLabel(h.fecha || "");
+        const turno = h.turno || "";
+        const razonesTexto = (h.razones || []).filter(Boolean).join(" · ") || "Sin notas";
+
+        const nStr = String(h.numero).padStart(2, "0");
+
+        const head = document.createElement("div");
+        head.className = "card-head";
+
+        const topWrap = document.createElement("div");
+        topWrap.className = "hypo-card-top";
+
+        const img = document.createElement("img");
+        img.src = `data/img/${nStr}.png`;
+        img.alt = simbolo || nStr;
+        img.className = "hypo-card-img";
+        img.addEventListener("error", function onErr() {
+          img.removeEventListener("error", onErr);
+          img.src = `data/img/${nStr}.jpg`;
+          img.addEventListener("error", () => { img.style.display = "none"; }, { once: true });
+        }, { once: true });
+        topWrap.appendChild(img);
+
+        const titleWrap = document.createElement("div");
+        const title = document.createElement("span");
+        title.className = "hypo-title";
+        title.textContent = `${formatNumber(h.numero)} ${simbolo}`.trim();
+        titleWrap.appendChild(title);
+        topWrap.appendChild(titleWrap);
+
+        head.appendChild(topWrap);
+
+        const badge = document.createElement("span");
+        badge.className = `badge-state badge-${estado}`;
+        badge.textContent = estado;
+        head.appendChild(badge);
+
+        card.appendChild(head);
+
+        const body = document.createElement("div");
+        body.className = "card-body hypo-body";
+
+        const fechaSpan = document.createElement("span");
+        fechaSpan.innerHTML = `<strong>Fecha:</strong> ${fecha}${turno ? ` • ${turno}` : ""}`;
+        body.appendChild(fechaSpan);
+
+        const notaSpan = document.createElement("span");
+        const notaLabel = document.createElement("strong");
+        notaLabel.textContent = "Notas:";
+        const notaTexto = document.createElement("span");
+        notaTexto.className = "hypo-notes";
+        const notasFragment = createHypoNotesContent(razonesTexto);
+        notaTexto.appendChild(notasFragment);
+        notaSpan.appendChild(notaLabel);
+        notaSpan.appendChild(document.createTextNode(" "));
+        notaSpan.appendChild(notaTexto);
+        body.appendChild(notaSpan);
+
+        card.appendChild(body);
+
+        const actions = document.createElement("div");
+        actions.className = "hypo-actions";
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "btn-secondary";
+        editBtn.textContent = "Editar";
+        editBtn.addEventListener("click", () => {
+          editingHypothesisId = h.id;
+          if (hypoFechaInput) hypoFechaInput.value = h.fecha || "";
+          if (hypoTurnoSelect) hypoTurnoSelect.value = h.turno || "";
+          if (hypoNumeroInput) hypoNumeroInput.value = String(h.numero).padStart(2, "0");
+          if (hypoTextoInput) hypoTextoInput.value = (h.razones && h.razones[0]) || "";
+          if (btnHipotesis) btnHipotesis.textContent = "Actualizar hipótesis";
+          showToast(`Editando hipótesis ${formatNumber(h.numero)}`, { variant: "info", timeout: 2000 });
+        });
+        actions.appendChild(editBtn);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn-danger";
+        deleteBtn.textContent = "Eliminar";
+        deleteBtn.addEventListener("click", async () => {
+          const confirmDelete = await mostrarModal("Eliminar hipótesis", `¿Eliminar la hipótesis ${formatNumber(h.numero)}?`, { okText: "Eliminar", okVariant: "danger" });
+          if (!confirmDelete) return;
+          try {
+            await eliminarHipotesis(h.id);
+            invalidateHypothesisCache();
+            if (editingHypothesisId === h.id) {
+              resetHypothesisForm();
+            }
+            await refreshHypotesis();
+            showToast("Hipótesis eliminada.", { variant: "success", timeout: 2000 });
+          } catch (err) {
+            console.error("eliminar hipotesis error", err);
+            showToast(`No se pudo eliminar la hipótesis: ${err.message}`, { variant: "danger" });
+          }
+        });
+        actions.appendChild(deleteBtn);
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.className = "btn-ghost";
+        cancelBtn.textContent = "Cancelar";
+        cancelBtn.addEventListener("click", () => {
+          resetHypothesisForm();
+          showToast("Edición cancelada.", { variant: "warning", timeout: 1800 });
+        });
+        actions.appendChild(cancelBtn);
+
+        card.appendChild(actions);
+
+        cont.appendChild(card);
+      }
+    }
+
+    btnHipotesis?.addEventListener("click", async () => {
+      const fecha = hypoFechaInput?.value;
+      const turno = hypoTurnoSelect?.value;
+      const numeroRaw = hypoNumeroInput?.value.trim() ?? "";
+      const texto = hypoTextoInput?.value.trim() ?? "";
+      if (!/^\d{1,2}$/.test(numeroRaw)) {
+        showToast("Ingresa un número válido (00-99) para la hipótesis.", { variant: "warning" });
+        return;
+      }
+      const numero = parseInt(numeroRaw, 10);
+      try {
+        if (editingHypothesisId) {
+          await actualizarHipotesis(
+            editingHypothesisId,
+            numero,
+            getSymbol(numero),
+            texto,
+            { fecha, turno }
+          );
+          resetHypothesisForm();
+          showToast("Hipótesis actualizada.", { variant: "success" });
+        } else {
+          await crearHipotesis(numero, getSymbol(numero), texto, { fecha, turno });
+          resetHypothesisForm();
+          showToast("Hipótesis guardada.", { variant: "success" });
+        }
+        await refreshHypotesis();
+      } catch (err) {
+        console.error("hipotesis error", err);
+        showToast(`No se pudo guardar la hipótesis: ${err.message}`, { variant: "danger" });
+      }
+    });
+
+    const resultPulso = document.getElementById("result-pulso");
+
+    // ── PULSO: análisis de candidatos por conversión/equivalencia ──────────────
+
+    // ── Caché de Pulso ────────────────────────────────────────────────────────
+    // El panel solo se recalcula cuando hay nuevos datos, no al navegar.
+    let _pulsoStale = true;
+    function invalidatePulso() { _pulsoStale = true; }
+
+    // ── Helpers de UI para el motor de señales ────────────────────────────────
+
+    /** Crea un <img> del número con fallback silencioso */
+    function numImg(pad, alt = "") {
+      const img = document.createElement("img");
+      img.src = `data/img/${pad}.png`;
+      img.alt = alt;
+      img.className = "rezago-card__img";
+      img.addEventListener("error", function onErr() {
+        img.removeEventListener("error", onErr);
+        img.src = `data/img/${pad}.jpg`;
+        img.addEventListener("error", () => { img.style.display = "none"; }, { once: true });
+      }, { once: true });
+      return img;
+    }
+
+    /**
+     * Panel colapsable "Ver todos los caídos" — agrupa draws por día.
+     * Tabs: Hoy | Semana | Mes
+     * @param {Array}  sortedDraws — sorteos ordenados asc (el array `sorted` de renderPulso)
+     * @param {object} guia        — GUIA (para símbolo)
+     */
+    function buildVerCaidosPanel(sortedDraws, guia) {
+      const today = new Date().toISOString().slice(0, 10);
+      const msDay = 86400000;
+      const startOfWeek = new Date(Date.now() - 6 * msDay).toISOString().slice(0, 10);
+      const startOfMonth = today.slice(0, 7); // "YYYY-MM"
+
+      const HORARIO_ORD = { "11AM": 0, "3PM": 1, "9PM": 2 };
+      const DOW_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+      const MES_ES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+      function fmtFecha(f) {
+        const d = new Date(`${f}T12:00:00`);
+        return `${DOW_ES[d.getDay()]} ${d.getDate()}-${MES_ES[d.getMonth()]}`;
+      }
+
+      function filterDraws(mode) {
+        return [...sortedDraws]
+          .filter(d => {
+            if (!d.fecha || !d.numero) return false;
+            if (mode === "hoy")   return d.fecha === today;
+            if (mode === "semana") return d.fecha >= startOfWeek;
+            if (mode === "mes")   return d.fecha.startsWith(startOfMonth);
+            return true; // "todos"
+          })
+          .sort((a, b) => {
+            const dd = b.fecha.localeCompare(a.fecha);
+            if (dd !== 0) return dd;
+            return (HORARIO_ORD[b.horario] ?? 9) - (HORARIO_ORD[a.horario] ?? 9);
+          });
+      }
+
+      function buildDrawCard(d) {
+        const pad = String(parseInt(d.numero, 10)).padStart(2, "0");
+        const sym = guia?.[pad]?.simbolo || "";
+        const card = document.createElement("div");
+        card.className = "vc-card";
+        const img = numImg(pad, sym);
+        img.className = "vc-card__img";
+        card.appendChild(img);
+        const num = document.createElement("span");
+        num.className = "vc-card__num";
+        num.textContent = pad;
+        card.appendChild(num);
+        if (sym) {
+          const s = document.createElement("span");
+          s.className = "vc-card__sym";
+          s.textContent = sym;
+          card.appendChild(s);
+        }
+        const h = document.createElement("span");
+        h.className = "vc-card__hora";
+        h.textContent = d.horario || "";
+        card.appendChild(h);
+        return card;
+      }
+
+      // Calcula la semana del mes (1-based) para una fecha "YYYY-MM-DD"
+      function weekOfMonth(fecha) {
+        const d = new Date(`${fecha}T12:00:00`);
+        return Math.ceil(d.getDate() / 7);
+      }
+
+      function buildContent(mode) {
+        const draws = filterDraws(mode);
+        const content = document.createElement("div");
+        content.className = "vc-content";
+
+        if (!draws.length) {
+          content.innerHTML = `<p class="hint small" style="padding:10px 0">Sin sorteos en este período.</p>`;
+          return content;
+        }
+
+        if (mode === "mes") {
+          // Agrupar por semana del mes
+          const byWeek = new Map();
+          draws.forEach(d => {
+            const wk = weekOfMonth(d.fecha);
+            const list = byWeek.get(wk) || [];
+            list.push(d);
+            byWeek.set(wk, list);
+          });
+
+          // Ordenar semanas desc
+          const weeks = [...byWeek.keys()].sort((a, b) => b - a);
+          weeks.forEach(wk => {
+            const weekDraws = byWeek.get(wk);
+            // Rango de días de esa semana
+            const days = [...new Set(weekDraws.map(d => d.fecha))].sort();
+            const first = fmtFecha(days[0]);
+            const last  = days.length > 1 ? fmtFecha(days[days.length - 1]) : null;
+            const rangeLabel = last ? `Semana ${wk} · ${first} – ${last}` : `Semana ${wk} · ${first}`;
+
+            const group = document.createElement("div");
+            group.className = "vc-group";
+
+            const label = document.createElement("div");
+            label.className = "vc-group__label";
+            label.textContent = rangeLabel;
+            group.appendChild(label);
+
+            // Dentro de cada semana, agrupar por día
+            const byDate = new Map();
+            weekDraws.forEach(d => {
+              const list = byDate.get(d.fecha) || [];
+              list.push(d);
+              byDate.set(d.fecha, list);
+            });
+
+            const inner = document.createElement("div");
+            inner.className = "vc-week-inner";
+            byDate.forEach((dayDraws, fecha) => {
+              const dayWrap = document.createElement("div");
+              dayWrap.className = "vc-week-day";
+              const dayLabel = document.createElement("span");
+              dayLabel.className = "vc-week-day__label";
+              dayLabel.textContent = fmtFecha(fecha);
+              dayWrap.appendChild(dayLabel);
+              const row = document.createElement("div");
+              row.className = "vc-group__row";
+              dayDraws.forEach(d => row.appendChild(buildDrawCard(d)));
+              dayWrap.appendChild(row);
+              inner.appendChild(dayWrap);
+            });
+            group.appendChild(inner);
+            content.appendChild(group);
+          });
+        } else {
+          // Hoy / Semana — agrupar por fecha
+          const byDate = new Map();
+          draws.forEach(d => {
+            const list = byDate.get(d.fecha) || [];
+            list.push(d);
+            byDate.set(d.fecha, list);
+          });
+
+          byDate.forEach((dayDraws, fecha) => {
+            const group = document.createElement("div");
+            group.className = "vc-group";
+
+            const label = document.createElement("div");
+            label.className = "vc-group__label";
+            label.textContent = fmtFecha(fecha);
+            group.appendChild(label);
+
+            const row = document.createElement("div");
+            row.className = "vc-group__row";
+            dayDraws.forEach(d => row.appendChild(buildDrawCard(d)));
+            group.appendChild(row);
+
+            content.appendChild(group);
+          });
+        }
+
+        return content;
+      }
+
+      // ── Estructura principal ──
+      const wrap = document.createElement("div");
+      wrap.className = "vc-wrap";
+
+      const toggle = document.createElement("button");
+      toggle.className = "vc-toggle";
+      toggle.innerHTML = `<span class="vc-toggle__icon">▸</span> Ver todos los caídos`;
+      wrap.appendChild(toggle);
+
+      const panel = document.createElement("div");
+      panel.className = "vc-panel hidden";
+      wrap.appendChild(panel);
+
+      // Tabs
+      const tabs = document.createElement("div");
+      tabs.className = "vc-tabs";
+      const TABS = [
+        { id: "hoy",    label: "Hoy" },
+        { id: "semana", label: "Semana" },
+        { id: "mes",    label: "Mes" },
+      ];
+      let activeMode = "hoy";
+      let activeContent = null;
+
+      function switchTab(mode) {
+        activeMode = mode;
+        tabs.querySelectorAll(".vc-tab").forEach(b =>
+          b.classList.toggle("vc-tab--active", b.dataset.mode === mode));
+        if (activeContent) activeContent.remove();
+        activeContent = buildContent(mode);
+        panel.appendChild(activeContent);
+      }
+
+      TABS.forEach(({ id, label }) => {
+        const btn = document.createElement("button");
+        btn.className = "vc-tab";
+        btn.dataset.mode = id;
+        btn.textContent = label;
+        btn.addEventListener("click", () => switchTab(id));
+        tabs.appendChild(btn);
+      });
+
+      panel.appendChild(tabs);
+
+      // Toggle open/close
+      let open = false;
+      toggle.addEventListener("click", () => {
+        open = !open;
+        panel.classList.toggle("hidden", !open);
+        toggle.querySelector(".vc-toggle__icon").textContent = open ? "▾" : "▸";
+        if (open && !activeContent) switchTab(activeMode);
+      });
+
+      return wrap;
+    }
+
+    /**
+     * Construye una sección de cards para vencidos / en ventana / eliminados.
+     * @param {Array}  items   — array de {pad, simbolo, diasDesdeUltima, cicloPromedio, zScore, razon}
+     * @param {string} variant — "warn" | "ok" | "elim"
+     * @param {string} titulo
+     */
+    function buildRezagoSection(items, variant, titulo) {
+      const wrap = document.createElement("div");
+      wrap.className = `rezago-section rezago-section--${variant}`;
+
+      const head = document.createElement("div");
+      head.className = "rezago-section__head";
+      head.textContent = titulo;
+      wrap.appendChild(head);
+
+      const grid = document.createElement("div");
+      grid.className = "rezago-grid";
+
+      items.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = `rezago-card rezago-card--${variant}`;
+        // Solo quitar fondo blanco — el borde se conserva
+        card.style.setProperty("background", "none", "important");
+
+        card.appendChild(numImg(item.pad, item.simbolo));
+
+        const num = document.createElement("span");
+        num.className = "rezago-card__num";
+        num.textContent = item.pad;
+        card.appendChild(num);
+
+        const sim = document.createElement("span");
+        sim.className = "rezago-card__sim";
+        sim.textContent = item.simbolo || item.pad;
+        card.appendChild(sim);
+
+        if (item.badge) {
+          const badge = document.createElement("span");
+          badge.className = "rezago-card__badge";
+          badge.textContent = item.badge;
+          card.appendChild(badge);
+        }
+
+        if (item.diasDesdeUltima != null) {
+          const dias = document.createElement("span");
+          dias.className = "rezago-card__dias";
+          dias.textContent = item.diasDesdeUltima === 0 ? "hoy mismo" : `${item.diasDesdeUltima}d sin caer`;
+          card.appendChild(dias);
+        } else if (item.razon) {
+          const razon = document.createElement("span");
+          razon.className = "rezago-card__dias";
+          razon.textContent = item.razon;
+          card.appendChild(razon);
+        }
+
+        if (item.cicloPromedio) {
+          const ciclo = document.createElement("span");
+          ciclo.className = "rezago-card__ciclo";
+          ciclo.textContent = `ciclo: ${item.cicloPromedio}d`;
+          card.appendChild(ciclo);
+        } else if (item.subtext) {
+          const sub = document.createElement("span");
+          sub.className = "rezago-card__ciclo";
+          sub.textContent = item.subtext;
+          card.appendChild(sub);
+        }
+
+        if (item.tooltip) card.title = item.tooltip;
+        else if (item.razon) card.title = item.razon;
+        grid.appendChild(card);
+      });
+
+      wrap.appendChild(grid);
+      return wrap;
+    }
+
+    async function renderPulso() {
+      if (!resultPulso) return;
+      if (!_pulsoStale) return; // sin cambios en los datos, no recalcular
+      resultPulso.innerHTML = `
+        <div class="diaria-loader" role="status" aria-label="Cargando historial">
+          <div class="diaria-loader__stage">
+            <span class="diaria-loader__ring"></span>
+            <span class="diaria-loader__ring diaria-loader__ring--inner"></span>
+            <span class="diaria-loader__ball">
+              <span class="diaria-loader__reel diaria-loader__reel--tens">
+                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>0</span>
+              </span>
+              <span class="diaria-loader__reel diaria-loader__reel--ones">
+                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>0</span>
+              </span>
+            </span>
+          </div>
+          <div class="diaria-loader__text" aria-hidden="true">
+            <span style="--i:0">A</span><span style="--i:1">n</span><span style="--i:2">a</span><span style="--i:3">l</span><span style="--i:4">i</span><span style="--i:5">z</span><span style="--i:6">a</span><span style="--i:7">n</span><span style="--i:8">d</span><span style="--i:9">o</span><span class="diaria-loader__sp">·</span><span style="--i:10">s</span><span style="--i:11">o</span><span style="--i:12">r</span><span style="--i:13">t</span><span style="--i:14">e</span><span style="--i:15">o</span><span style="--i:16">s</span>
+          </div>
+          <div class="diaria-loader__sub">leyendo memoria del sistema</div>
+        </div>
+      `;
+      try {
+        const draws = await DB.listDraws({ excludeTest: true });
+        if (!draws.length) {
+          resultPulso.innerHTML = "<p class='pulso-empty'>Aún no hay sorteos registrados.</p>";
+          return;
+        }
+
+        // Ordenar para obtener el último sorteo
+        const sorted = [...draws].sort((a, b) => {
+          const d = (a.fecha || "").localeCompare(b.fecha || "");
+          if (d !== 0) return d;
+          const ord = ["11AM", "3PM", "9PM"];
+          return ord.indexOf(a.horario) - ord.indexOf(b.horario);
+        });
+        const last = sorted[sorted.length - 1];
+        const lastNum = parseInt(last.numero, 10);
+        const lastPad = String(lastNum).padStart(2, "0");
+        const lastInfo = GUIA?.[lastPad] || {};
+
+        // Turno siguiente estimado
+        const TURNOS = ["11AM", "3PM", "9PM"];
+        const nextHorarioIdx = (TURNOS.indexOf(last.horario) + 1) % 3;
+        const nextHorario = TURNOS[nextHorarioIdx];
+
+        // Estadísticas de relaciones
+        const stats = buildRelationStats(draws);
+        const groups = getCandidates(lastNum, stats, { horario: nextHorario });
+        const signal = getContextSignal(stats, { horario: nextHorario });
+
+        // ── render ────────────────────────────────────────────────────────────
+        const frag = document.createDocumentFragment();
+
+        // Fila 1: último número (compacto) + validación en vivo (ancho)
+        const topRow = document.createElement("div");
+        topRow.className = "pulso-top-row";
+        frag.appendChild(topRow);
+
+        // Fila 2: modo recuperación a todo ancho (se rellena si está activo)
+        const recRow = document.createElement("div");
+        recRow.className = "pulso-rec-row";
+        frag.appendChild(recRow);
+
+        // Fila 3: panel de Líneas — placeholder, se rellena más abajo cuando pais está disponible
+        const linRow = document.createElement("div");
+        frag.appendChild(linRow);
+
+        // Tarjeta del último sorteo
+        const lastCard = document.createElement("div");
+        lastCard.className = "pulso-last";
+        const dow = new Date(`${last.fecha}T12:00:00`).getDay();
+        const DOW = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+        lastCard.innerHTML = `
+          <div class="pulso-last__num">${lastPad}</div>
+          <div class="pulso-last__meta">
+            <span class="pulso-last__simbolo">${lastInfo.simbolo || "—"}${lastInfo.familia ? ` · ${lastInfo.familia}` : ""}</span>
+            <span class="pulso-last__sub">${last.horario} · ${DOW[dow]} ${last.fecha || ""} · ${(last.pais || "").toUpperCase()}</span>
+            <span class="pulso-last__sub" style="opacity:0.6">Siguiente estimado: turno ${nextHorario}</span>
+          </div>
+        `;
+        topRow.appendChild(lastCard);
+
+        // ── Hit-tracker live: cómo le está yendo el motor en producción real ──
+        try {
+          // Limpiar primero los pendientes fantasma de sesiones históricas
+          await DB.cleanStalePredictions(5).catch(() => {});
+          const hitStats = await computeHitTrackerStats({ topN: 8, recent: 30 });
+          const hitWrap = document.createElement("div");
+          hitWrap.innerHTML = renderHitTrackerHTML(hitStats, GUIA);
+          if (hitWrap.firstElementChild) topRow.appendChild(hitWrap.firstElementChild);
+        } catch (err) {
+          console.warn("hit-tracker render falló:", err?.message || err);
+        }
+
+        // ── Relativos: alerta de disparadores recientes + backtest ──────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const [alertas, backtest] = await Promise.all([
+            getRelativosEnAlerta(allDraws, { lookbackDays: 3, pais: pais || null }),
+            backtestRelativos(allDraws, { maxWindow: 3 }),
+          ]);
+          const relAlertaWrap = document.createElement("div");
+          relAlertaWrap.innerHTML = renderRelativosAlertaHTML(alertas, backtest, GUIA);
+          if (relAlertaWrap.firstElementChild) frag.appendChild(relAlertaWrap.firstElementChild);
+        } catch (err) {
+          console.warn("relativos-alerta falló:", err?.message || err);
+        }
+
+        // ── Convergencia: números apuntados por múltiples caídas del mismo día ──
+        try {
+          const allDraws = await DB.listDraws();
+          const [btConv, nodosActivos] = await Promise.all([
+            backtestConvergencia(allDraws, { maxWindow: 5 }),
+            getConvergenciaActiva(allDraws, { lookbackDays: 5, pais: pais || null }),
+          ]);
+          const convWrap = document.createElement("div");
+          convWrap.innerHTML = renderConvergenciaHTML(btConv, nodosActivos, GUIA);
+          if (convWrap.firstElementChild) frag.appendChild(convWrap.firstElementChild);
+        } catch (err) {
+          console.warn("convergencia falló:", err?.message || err);
+        }
+
+        // ── Régimen actual (etiquetado de contexto) ──────────────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const contextos = detectarContexto(allDraws, { pais: pais || null });
+          const ctxHtml = renderContextoHTML(contextos);
+          if (ctxHtml) {
+            const ctxWrap = document.createElement("div");
+            ctxWrap.innerHTML = ctxHtml;
+            if (ctxWrap.firstElementChild) frag.appendChild(ctxWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("contexto falló:", err?.message || err);
+        }
+
+        // ── Post-Repetición: candidatos estratégicos tras un repetido ────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const prResult = analizarPostRepeticion(allDraws, { pais: pais || null });
+          const prHtml   = renderPostRepeticionHTML(prResult, GUIA);
+          if (prHtml) {
+            const prWrap = document.createElement("div");
+            prWrap.innerHTML = prHtml;
+            if (prWrap.firstElementChild) frag.appendChild(prWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("post-repeticion falló:", err?.message || err);
+        }
+
+        // ── Déjà Vu: secuencias similares en el historial ──────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const dvResult = analizarDejaVu(allDraws, GUIA, { pais: pais || null });
+          const dvHtml   = renderDejaVuHTML(dvResult, GUIA);
+          if (dvHtml) {
+            const dvWrap = document.createElement("div");
+            dvWrap.innerHTML = dvHtml;
+            if (dvWrap.firstElementChild) frag.appendChild(dvWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("dejavu falló:", err?.message || err);
+        }
+
+        // ── Cadencias: ritmos activos por categoría ──────────────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const cadResult = analizarCadencias(allDraws, GUIA, { pais: pais || null });
+          const cadHtml   = renderCadenciasHTML(cadResult);
+          if (cadHtml) {
+            const cadWrap = document.createElement("div");
+            cadWrap.innerHTML = cadHtml;
+            if (cadWrap.firstElementChild) frag.appendChild(cadWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("cadencias falló:", err?.message || err);
+        }
+
+        // ── Ausencias y doble aparición (DAPA) ──────────────────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const ausResult = analizarAusencias(allDraws, GUIA, { pais: pais || null });
+          const ausHtml   = renderAusenciasHTML(ausResult, GUIA);
+          if (ausHtml) {
+            const ausWrap = document.createElement("div");
+            ausWrap.innerHTML = ausHtml;
+            if (ausWrap.firstElementChild) frag.appendChild(ausWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("ausencias falló:", err?.message || err);
+        }
+
+        // ── Vuelta del día: mismo número con dígitos invertidos en turno posterior ──
+        try {
+          const allDraws  = await DB.listDraws({ excludeTest: true });
+          const vltSpFech = await listSpFromDb().catch(() => []);
+          const vltResult = analizarVuelta(allDraws, { pais: pais || null, spFechas: vltSpFech });
+          const vltHtml   = renderVueltaHTML(vltResult, GUIA);
+          if (vltHtml) {
+            const vltWrap = document.createElement("div");
+            vltWrap.innerHTML = vltHtml;
+            if (vltWrap.firstElementChild) frag.appendChild(vltWrap.firstElementChild);
+          }
+        } catch (err) {
+          console.warn("vuelta-engine falló:", err?.message || err);
+        }
+
+        // ── Detector de anomalías estadísticas ───────────────────────────────────
+        try {
+          const allDraws = await DB.listDraws();
+          const anomalias = await detectarAnomalias(allDraws, { recentN: 35, pais: pais || null });
+          const anomWrap = document.createElement("div");
+          anomWrap.innerHTML = renderAnomaliasHTML(anomalias, 35);
+          if (anomWrap.firstElementChild) frag.appendChild(anomWrap.firstElementChild);
+        } catch (err) {
+          console.warn("anomalias falló:", err?.message || err);
+        }
+
+        // ── Relativos vencidos: pares (A→B) donde B está tardando más de lo normal ──
+        try {
+          const allDraws = await DB.listDraws();
+          const vencidos = await getVencidos(allDraws, {
+            maxDays: 45,
+            recentDays: 60,
+            minHits: 2,
+            threshold: 0.5,
+            pais: pais || null,
+          });
+          const relWrap = document.createElement("div");
+          relWrap.innerHTML = renderRelativosHTML(vencidos, GUIA, 10);
+          if (relWrap.firstElementChild) frag.appendChild(relWrap.firstElementChild);
+        } catch (err) {
+          console.warn("relativos-engine falló:", err?.message || err);
+        }
+
+        // Recovery mode banner
+        const spFechas = await listSpFromDb().catch(() => []);
+        const recoveryMode = detectarModoRecuperacion(spFechas);
+        if (recoveryMode.activo) {
+          const recBanner = document.createElement("div");
+          recBanner.className = "pulso-recovery-banner";
+          recBanner.innerHTML = `<span>🔴 Modo recuperación activo</span><span>Último super premio: ${recoveryMode.ultimoEvento} · ${recoveryMode.diasTranscurridos} días · ${recoveryMode.diasRestantes}d restantes · Motor ajustado para favorecer números pre-evento</span>`;
+          frag.appendChild(recBanner);
+        }
+
+        // Grupos de candidatos
+        if (groups.length) {
+          const groupsWrap = document.createElement("div");
+          groupsWrap.className = "pulso-groups";
+
+          for (const group of groups) {
+            const groupEl = document.createElement("div");
+            groupEl.className = "pulso-group";
+
+            const freqClass = group.pct >= 20 ? "" : "pulso-group__freq--low";
+            groupEl.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">${group.label}</span>
+                <span class="pulso-group__freq ${freqClass}">${group.pct}% histórico</span>
+              </div>
+            `;
+
+            const chips = document.createElement("div");
+            chips.className = "pulso-chips";
+            for (const item of group.items) {
+              const chip = document.createElement("div");
+              chip.className = "pulso-chip";
+              const numPad = String(item.numero).padStart(2, "0");
+              chip.appendChild(numImg(numPad, numPad));
+              const numEl = document.createElement("span");
+              numEl.className = "pulso-chip__num";
+              numEl.textContent = numPad;
+              chip.appendChild(numEl);
+              if (item.simbolo) {
+                const symEl = document.createElement("span");
+                symEl.className = "pulso-chip__sym";
+                symEl.textContent = item.simbolo;
+                chip.appendChild(symEl);
+              }
+              if (item.apariciones) {
+                const cntEl = document.createElement("span");
+                cntEl.className = "pulso-chip__count";
+                cntEl.textContent = `${item.apariciones}×`;
+                chip.appendChild(cntEl);
+              }
+              chips.appendChild(chip);
+            }
+            groupEl.appendChild(chips);
+            groupsWrap.appendChild(groupEl);
+          }
+          frag.appendChild(groupsWrap);
+        }
+
+        // Señal contextual
+        if (signal) {
+          const sigEl = document.createElement("div");
+          sigEl.className = "pulso-signal";
+          sigEl.textContent = signal;
+          frag.appendChild(sigEl);
+        }
+
+        // ── Motor de señales unificado ───────────────────────────────────────
+        try {
+          const pais = last.pais || "";
+
+          // ── Líneas: rellenar el placeholder creado al inicio del frag ──────
+          try {
+            const allDraws = await DB.listDraws();
+            const linResult = analizarLineas(allDraws, GUIA, { pais: pais || null });
+            const linHtml   = renderLineasHTML(linResult, GUIA);
+            if (linHtml) {
+              const linWrap = document.createElement("div");
+              linWrap.innerHTML = linHtml;
+              if (linWrap.firstElementChild) linRow.appendChild(linWrap.firstElementChild);
+            }
+          } catch (err) { console.warn("lineas falló:", err?.message || err); }
+
+          // Feedback adaptativo: ajusta topN según rendimiento reciente
+          const feedback = await computeFeedback().catch(() => null);
+          const adaptiveTopN = feedback?.adaptiveTopN ?? 10;
+          const fbHtml = feedback ? renderFeedbackHTML(feedback) : "";
+          if (fbHtml) {
+            const fbWrap = document.createElement("div");
+            fbWrap.innerHTML = fbHtml;
+            if (fbWrap.firstElementChild) frag.appendChild(fbWrap.firstElementChild);
+          }
+
+          const repetidosPostEvento = recoveryMode.activo && recoveryMode.ultimoEvento
+            ? detectarNumerosRepetidosPostEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
+            : [];
+          const preEvento = recoveryMode.activo && recoveryMode.ultimoEvento
+            ? detectarNumerosPreEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
+            : [];
+          const [motorResult, rezagoResult] = await Promise.allSettled([
+            loadSignalEngine().then(m => m.ejecutarMotorSeñales({
+              pais,
+              turno: nextHorario,
+              topN: adaptiveTopN,
+              recuperacion: recoveryMode.activo ? {
+                activo: true,
+                repetidosPostEvento,
+                preEvento,
+                diasTranscurridos: recoveryMode.diasTranscurridos,
+                ultimoEvento: recoveryMode.ultimoEvento,
+              } : null,
+            })),
+            loadSignalEngine().then(m => m.estadoRezago(pais)),
+          ]);
+
+          // Markov raw removido — ya está integrado en el motor unificado (evita duplicado con Mesa de Análisis)
+
+          // ── Candidatos del motor unificado ──
+          const motor = motorResult.status === "fulfilled" ? motorResult.value : null;
+          if (motor?.candidatos?.length) {
+            const motorSec = document.createElement("div");
+            motorSec.className = "pulso-group";
+            motorSec.innerHTML = `
+              <div class="pulso-group__head">
+                <span class="pulso-group__label">Motor unificado — candidatos para ${nextHorario}</span>
+                <span class="pulso-group__freq">${motor.universo} números tras filtros · ${motor.contexto.dataQuality === "alto" ? "datos sólidos" : motor.contexto.dataQuality === "medio" ? "datos moderados" : "datos limitados"}</span>
+              </div>`;
+            const motorChips = document.createElement("div");
+            motorChips.className = "pulso-chips";
+            // Normalizar barras relativas al líder del grupo
+            const _scores = motor.candidatos.map(cc => cc.score);
+            const _maxS = _scores[0] || 1;
+            const _minS = _scores[_scores.length - 1] || 0;
+            const _rng  = _maxS - _minS || _maxS;
+            motor.candidatos.forEach((c, ci) => {
+              const chip = document.createElement("div");
+              chip.className = `pulso-chip pulso-chip--motor${c.penalizado ? " pulso-chip--penalizado" : ""}`;
+              chip.appendChild(numImg(c.pad, c.simbolo));
+              const topSignal = c.signals[0];
+              const absScore  = Math.round(c.score * 100);
+              const relPct    = ci === 0 ? 100 : Math.round(30 + ((_scores[ci] - _minS) / _rng) * 70);
+              chip.insertAdjacentHTML("beforeend", `
+                <span class="pulso-chip__num">${c.pad}</span>
+                <span class="pulso-chip__sym">${c.simbolo}</span>
+                <div class="pulso-chip__bar" style="--pct:${relPct}%"></div>
+                <span class="pulso-chip__count" title="Score: ${absScore}/100">${absScore}</span>
+                ${topSignal ? `<span class="pulso-chip__hint" title="${topSignal.label}">${topSignal.source}</span>` : ""}`);
+              chip.title = c.signals.map((s) => s.label).join("\n");
+              motorChips.appendChild(chip);
+            });
+            motorSec.appendChild(motorChips);
+            frag.appendChild(motorSec);
+
+            // ── Hit-tracker: registrar la predicción para validar contra el sorteo real ──
+            try {
+              // Calcular fecha del próximo sorteo
+              // Si el último fue 9PM (idx 2), el próximo 11AM es de mañana; si no, mismo día.
+              let targetFecha = last.fecha;
+              if (nextHorarioIdx === 0 && last.fecha) {
+                const d = new Date(last.fecha + "T00:00:00");
+                d.setDate(d.getDate() + 1);
+                targetFecha = d.toISOString().slice(0, 10);
+              }
+              const targetPais = last.pais || pais || null;
+              const predictions = motor.candidatos.map((c) => ({
+                numero: c.numero,
+                score: Math.round(c.score * 1000) / 1000,
+                turno: nextHorario,
+              }));
+              // Fire-and-forget: no bloqueamos la UI si Supabase tarda o falla
+              DB.logPredictions(predictions, {
+                fecha: targetFecha,
+                pais: targetPais,
+                turno: nextHorario,
+              }).catch((err) => console.warn("logPredictions falló:", err?.message || err));
+            } catch (err) {
+              console.warn("logPredictions wrapper falló:", err?.message || err);
+            }
+
+            // ── Números eliminados (resumen) ──
+            if (motor.eliminados?.length) {
+              const recElim = motor.eliminados.filter((e) => e.regla === "reciente").slice(0, 6);
+              const sobElim = motor.eliminados.filter((e) => e.regla === "sobrecalentado").slice(0, 4);
+              if (recElim.length) {
+                frag.appendChild(buildRezagoSection(recElim, "elim", "✕ Excluidos — cayeron hace poco (baja probabilidad de repetición inmediata)"));
+                // ── Ver todos los caídos (colapsable) — justo bajo los Excluidos ──
+                frag.appendChild(buildVerCaidosPanel(sorted, GUIA));
+              }
+              if (sobElim.length) frag.appendChild(buildRezagoSection(sobElim, "warn", "⚠ Sobrecalentados — el sistema los evita porque el jugador los espera"));
+            }
+          }
+
+          // ── Calendario adversarial: bloqueos y boosts activos hoy (independiente de candidatos) ──
+          let calData = motor?.calendario;
+          if (!calData) {
+            try {
+              const calMod = await import("./popularity-calendar.js");
+              const fechaCal = (sorted[sorted.length - 1]?.fecha) || new Date().toISOString().slice(0, 10);
+              const efectos = calMod.getEfectosCalendarioPorNumero(fechaCal);
+              const proximos = calMod.getEventosProximos(fechaCal, 120);
+              const bloqueados = [], boosteados = [];
+              efectos.forEach(({ factor, motivos }, numero) => {
+                const item = { numero, pad: String(numero).padStart(2, "0"), factor: Math.round(factor * 100) / 100, motivo: motivos[0] };
+                if (factor < 1) bloqueados.push(item); else if (factor > 1) boosteados.push(item);
+              });
+              bloqueados.sort((a, b) => a.factor - b.factor);
+              boosteados.sort((a, b) => b.factor - a.factor);
+              calData = { bloqueados, boosteados, proximos };
+            } catch (e) { /* opcional */ }
+          }
+          if (calData && (calData.bloqueados?.length || calData.boosteados?.length || calData.proximos?.length)) {
+            if (calData.bloqueados?.length) {
+              const items = calData.bloqueados.map(b => ({
+                pad: b.pad,
+                simbolo: GUIA?.[b.pad]?.simbolo || "",
+                badge: `−${Math.round((1 - b.factor) * 100)}%`,
+                razon: b.motivo,
+              }));
+              frag.appendChild(buildRezagoSection(items, "cal-block", "📆 Calendario — números bloqueados por contexto (fechas patrias)"));
+            }
+            if (calData.boosteados?.length) {
+              const items = calData.boosteados.map(b => ({
+                pad: b.pad,
+                simbolo: GUIA?.[b.pad]?.simbolo || "",
+                badge: `+${Math.round((b.factor - 1) * 100)}%`,
+                razon: b.motivo,
+              }));
+              frag.appendChild(buildRezagoSection(items, "cal-boost", "📆 Calendario — boost por adyacencia de día del mes"));
+            }
+            const prox = calData.proximos?.slice(0, 4) || [];
+            if (prox.length) {
+              const items = [];
+              prox.forEach(p => {
+                p.numeros.slice(0, 6).forEach(n => {
+                  const pad = String(n).padStart(2, "0");
+                  items.push({
+                    pad,
+                    simbolo: GUIA?.[pad]?.simbolo || "",
+                    razon: p.label,
+                    subtext: `en ${p.diasFaltan}d`,
+                  });
+                });
+              });
+              frag.appendChild(buildRezagoSection(items, "cal-prox", "📅 Próximos eventos hondureños"));
+            }
+          }
+
+          // ── Modelo de popularidad: mercado caliente/frío + cadenas activas ──
+          let popData = motor?.popularidad;
+          if (!popData) {
+            try {
+              const popMod = await import("./popularity-model.js");
+              const popMap = popMod.calcularPopularidad(sorted, { lookback: 20 });
+              const mercado = popMod.getMercado(popMap, { topN: 8 });
+              const cadenas = popMod.getCadenasActivas(sorted, { lookback: 15 });
+              popData = {
+                calientes: mercado.calientes.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score, motivo: e.motivos[0] || "Popular" })),
+                frios:     mercado.frios.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score, dias: e.diasDesdeUltima })),
+                reprimidos: mercado.reprimidos.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score, dias: e.diasDesdeUltima, zScore: e.zScore, motivo: e.motivos[0] || "Popular reprimido" })),
+                libres:    mercado.frios.map(e => ({ numero: e.numero, pad: String(e.numero).padStart(2,"0"), score: e.score })),
+                mapaScores: Object.fromEntries([...popMap.entries()].map(([n, v]) => [n, v.score])),
+                mapaMotivos: Object.fromEntries([...popMap.entries()].map(([n, v]) => [n, (v.motivos||[]).slice(0,3).join(" · ")])),
+                reprimidosSet: new Set(mercado.reprimidos.map(e => e.numero)),
+                cadenasActivas: cadenas.slice(0, 6).map(c => ({
+                  cadena: c.cadena,
+                  triggers: c.triggers.map(n => ({ numero: n, pad: String(n).padStart(2,"0") })),
+                  targets:  c.targets.map(n => ({ numero: n, pad: String(n).padStart(2,"0") })),
+                  intensidad: Math.round(c.intensidad * 100),
+                })),
+              };
+            } catch (e) { /* opcional */ }
+          }
+          // ── Mapa de calor de mercado ─────────────────────────────────────
+          if (popData?.mapaScores) {
+            const scores  = popData.mapaScores;
+            const motivos = popData.mapaMotivos || {};
+            const repSet  = popData.reprimidosSet || new Set();
+            const allScores = Object.values(scores);
+            const maxScore  = Math.max(...allScores, 1);
+
+            // Interpola color: verde (libre) → amarillo → rojo (popular/peligroso)
+            function scoreColor(s, alpha = 1) {
+              const t = Math.min(s / maxScore, 1);
+              if (t < 0.5) {
+                // verde → amarillo
+                const r = Math.round(48  + (255 - 48)  * (t * 2));
+                const g = Math.round(209 + (213 - 209) * (t * 2));
+                const b = Math.round(88  + (10  - 88)  * (t * 2));
+                return `rgba(${r},${g},${b},${alpha})`;
+              } else {
+                // amarillo → rojo
+                const u = (t - 0.5) * 2;
+                const r = 255;
+                const g = Math.round(213 - 213 * u);
+                const b = 10;
+                return `rgba(${r},${g},${b},${alpha})`;
+              }
+            }
+
+            const cells = Array.from({length: 100}, (_, i) => {
+              const pd  = String(i).padStart(2, "0");
+              const sc  = scores[i] ?? 0;
+              const mot = motivos[i] || "Sin señal cultural";
+              const isRep = repSet.has(i);
+              const sym = GUIA?.[pd]?.simbolo || "";
+              const t   = Math.min(sc / maxScore, 1);
+              const textDark = t < 0.55;
+              return `<div class="mkt-cell${isRep ? " mkt-cell--rep" : ""}"
+                style="background:${scoreColor(sc, 0.85)};color:${textDark?"#1a1a1a":"#fff"}"
+                title="${pd}${sym?" · "+sym:""}\nScore: ${sc}\n${mot}${isRep?" · 🛑 REPRIMIDO":""}">
+                <span class="mkt-cell__num">${pd}</span>
+                ${sym ? `<span class="mkt-cell__sym">${sym}</span>` : ""}
+                ${isRep ? `<span class="mkt-cell__rep">🛑</span>` : ""}
+              </div>`;
+            }).join("");
+
+            const mapaEl = document.createElement("div");
+            mapaEl.className = "mkt-wrap";
+            mapaEl.innerHTML = `
+              <div class="mkt-header">
+                <span class="mkt-title">🗺 Mapa de mercado — popularidad estimada del público</span>
+                <span class="mkt-hint">Toca un número para ver por qué es popular o libre</span>
+              </div>
+              <div class="mkt-legend">
+                <span class="mkt-leg mkt-leg--free">■ Libre (poco comprado)</span>
+                <span class="mkt-leg mkt-leg--hot">■ Popular (la casa lo evita)</span>
+                <span class="mkt-leg mkt-leg--rep">🛑 Reprimido (popular + sin caer)</span>
+              </div>
+              <div class="mkt-grid">${cells}</div>
+              <div class="mkt-tooltip hidden" id="mkt-tt"></div>
+            `;
+            frag.insertBefore(mapaEl, frag.firstChild);
+
+            // Tooltip al hacer click en una celda
+            mapaEl.querySelectorAll(".mkt-cell").forEach((cell, i) => {
+              cell.onclick = () => {
+                const pd  = String(i).padStart(2, "0");
+                const sc  = scores[i] ?? 0;
+                const mot = motivos[i] || "Sin señal cultural";
+                const isRep = repSet.has(i);
+                const sym = GUIA?.[pd]?.simbolo || "";
+                const tt = mapaEl.querySelector("#mkt-tt");
+                const pct = Math.round((sc / maxScore) * 100);
+                const zona = pct >= 65 ? (isRep ? "🛑 Reprimido" : "🔥 Muy popular") : pct >= 35 ? "🟡 Popularidad media" : "✅ Libre — bajo interés";
+                tt.innerHTML = `
+                  <strong>${pd}${sym ? " · " + sym : ""}</strong>
+                  <span class="mkt-tt__zona">${zona}</span>
+                  <span class="mkt-tt__score">Score: ${sc} (${pct}% del máximo)</span>
+                  <span class="mkt-tt__mot">${mot}</span>
+                  ${isRep ? `<span class="mkt-tt__rep">El público lo compra masivamente pero lleva ${popData.reprimidos?.find(r=>r.numero===i)?.dias ?? "?"} días sin caer. La casa lo retiene.</span>` : ""}
+                `;
+                tt.classList.remove("hidden");
+                // posición relativa al grid
+                const cr = cell.getBoundingClientRect();
+                const wr = mapaEl.getBoundingClientRect();
+                tt.style.top  = (cr.bottom - wr.top + 6) + "px";
+                tt.style.left = Math.min(cr.left - wr.left, wr.width - 220) + "px";
+              };
+            });
+            // Cerrar tooltip al clickear fuera
+            document.addEventListener("click", e => {
+              if (!e.target.closest(".mkt-cell") && !e.target.closest("#mkt-tt")) {
+                mapaEl.querySelector("#mkt-tt")?.classList.add("hidden");
+              }
+            }, { passive: true });
+          }
+
+          if (popData && (popData.calientes?.length || popData.frios?.length || popData.libres?.length || popData.reprimidos?.length || popData.cadenasActivas?.length)) {
+            const cadenaLabels = {
+              mujer_madre: "Mujer / Madre", muerte: "Muerte", boda_novia: "Boda / Novia",
+              animales_casa: "Animales de casa", fiesta: "Fiesta", aves: "Aves",
+              vejez: "Vejez", dinero: "Dinero", armas_ley: "Armas / Ley",
+              infierno: "Infierno / Sombra", cocina: "Cocina", naturaleza: "Naturaleza",
+              joyeria: "Joyería", religion: "Religión", transporte: "Transporte",
+            };
+            // Cadenas activas → cards de targets agrupadas por cadena
+            popData.cadenasActivas?.forEach(c => {
+              const items = c.targets.map(t => ({
+                pad: t.pad,
+                simbolo: GUIA?.[t.pad]?.simbolo || "",
+                razon: `expectativa de ${cadenaLabels[c.cadena] || c.cadena}`,
+                subtext: `por ${c.triggers.map(x => x.pad).join("·")}`,
+              }));
+              if (items.length) {
+                const trigList = c.triggers.map(t => t.pad).join(", ");
+                frag.appendChild(buildRezagoSection(items, "pop-cadena",
+                  `🔗 Cadena ${cadenaLabels[c.cadena] || c.cadena} activa (${c.intensidad}%) — disparadores ${trigList}`));
+              }
+            });
+            // Calientes
+            if (popData.calientes?.length) {
+              const items = popData.calientes.map(c => {
+                const cayoReciente = c.ultimaMs && (Date.now() - c.ultimaMs) < 3 * 86400000;
+                return {
+                  pad: c.pad,
+                  simbolo: GUIA?.[c.pad]?.simbolo || "",
+                  badge: `${c.score}`,
+                  razon: cayoReciente
+                    ? `⚡ cayó ${formatTimeAgo(c.ultimaMs)} · ${c.motivo}`
+                    : c.motivo,
+                };
+              });
+              frag.appendChild(buildRezagoSection(items, "pop-hot", "🔥 Mercado caliente — La Diaria los evita"));
+            }
+            // Reprimidos: populares + ausencia anómala = el operador los retiene
+            const reprimidos = popData.reprimidos?.length ? popData.reprimidos : [];
+            if (reprimidos.length) {
+              const items = reprimidos.map(r => ({
+                pad: r.pad,
+                simbolo: GUIA?.[r.pad]?.simbolo || "",
+                badge: `${r.score}/${r.dias ?? "—"}d`,
+                razon: r.motivo || "Popular reprimido",
+                subtext: r.zScore != null ? `${r.zScore > 0 ? "+" : ""}${r.zScore}σ rezago` : (r.dias != null ? `${r.dias} días sin caer` : ""),
+                tooltip: "Número que el público sí compra pero el operador retiene. Candidato a explosión cuando se libere.",
+              }));
+              frag.appendChild(buildRezagoSection(items, "pop-hot", "🛑 Reprimidos — populares + ausencia anómala (operador los retiene)"));
+            }
+            // Zona fría real (antes "libres") — popularidad baja real, no reprimidos
+            const frios = popData.frios?.length ? popData.frios : popData.libres;
+            if (frios?.length) {
+              const items = frios.map(l => ({
+                pad: l.pad,
+                simbolo: GUIA?.[l.pad]?.simbolo || "",
+                badge: `${l.score}`,
+                razon: "popularidad baja real",
+                subtext: l.dias != null ? `${l.dias}d sin caer` : "",
+              }));
+              frag.appendChild(buildRezagoSection(items, "pop-cool", "❄️ Zona fría real — bajo interés del público (no necesariamente más probables)"));
+            }
+          }
+
+          // ── Motor de variantes: sustituciones probables ──────────────────
+          const varData = motor?.variantes;
+          if (varData && varData.variantes?.length) {
+            const TIPO_LBL = {
+              simple_d0: "conv. decena", simple_d1: "conv. unidad",
+              compound: "compuesta", compound_mirror: "espejo compuesta",
+              equiv_directa: "equivalencia", equiv_espejo: "espejo equiv.",
+              mirror: "espejo", encadenado: "encadenada",
+            };
+            // Semillas
+            if (varData.semillas?.length) {
+              const items = varData.semillas.slice(0, 6).map(s => ({
+                pad: s.pad,
+                simbolo: GUIA?.[s.pad]?.simbolo || "",
+                badge: `${Math.round(s.peso * 100)}%`,
+                razon: "semilla activa",
+              }));
+              frag.appendChild(buildRezagoSection(items, "variante-seed", "🔁 Motor de variantes — semillas activas"));
+            }
+            // Top variantes
+            const items = varData.variantes.map(v => {
+              const principal = v.fuentes[0];
+              const tipoLbl = TIPO_LBL[principal?.tipo] || principal?.tipo || "";
+              const allSrc = v.fuentes.map(f => `${f.pad} (${TIPO_LBL[f.tipo]||f.tipo})`).join(" · ");
+              return {
+                pad: v.pad,
+                simbolo: GUIA?.[v.pad]?.simbolo || "",
+                badge: `${Math.round(v.peso * 100)}%`,
+                razon: `${principal?.pad}→${tipoLbl}`,
+                tooltip: `desde: ${allSrc}`,
+              };
+            });
+            frag.appendChild(buildRezagoSection(items, "variante", "🔁 Variantes con mayor peso adversarial (sustituciones probables)"));
+          }
+
+          // ── Clusters de dígitos activos ──────────────────────────────────
+          const clustersData = motor?.clusters;
+          if (clustersData && clustersData.length) {
+            clustersData.slice(0, 3).forEach(c => {
+              const digitos = `{${c.digitos.join(",")}}`;
+              // Hits del cluster (cayeron recientes)
+              if (c.sorteos?.length) {
+                const items = c.sorteos.map(s => ({
+                  pad: s.pad,
+                  simbolo: GUIA?.[s.pad]?.simbolo || "",
+                  razon: `cayó · cluster ${digitos}`,
+                }));
+                frag.appendChild(buildRezagoSection(items, "cluster-hit",
+                  `🎯 Cluster #${c.rank} ${digitos} — ${c.cobertura}% cobertura · ${c.hits}/${c.total} sorteos`));
+              }
+              // Universo combinatorio
+              if (c.miembros?.length) {
+                const items = c.miembros.slice(0, 16).map(m => ({
+                  pad: m.pad,
+                  simbolo: GUIA?.[m.pad]?.simbolo || "",
+                  razon: `miembro ${digitos}`,
+                }));
+                frag.appendChild(buildRezagoSection(items, "cluster",
+                  `Universo combinatorio del cluster ${digitos} (${c.miembros.length} números)`));
+              }
+            });
+          }
+
+          // ── Recuperación: pre-evento + repetidos (con decay) ─────────────
+          const recData = motor?.recuperacion;
+          if (recData?.activo && (recData.preEvento?.length || recData.repetidos?.length)) {
+            const decayPct = Math.round((recData.decayFactor ?? 0) * 100);
+            if (recData.preEvento?.length) {
+              const items = recData.preEvento.map(p => ({
+                pad: p.pad,
+                simbolo: GUIA?.[p.pad]?.simbolo || "",
+                badge: `${p.veces}×`,
+                razon: "escondido pre-SP",
+              }));
+              frag.appendChild(buildRezagoSection(items, "recup-pre",
+                `🫥 Recuperación · escondidos pre-SP — día ${recData.diasTranscurridos}/14 · intensidad ${decayPct}%`));
+            }
+            if (recData.repetidos?.length) {
+              const items = recData.repetidos.map(r => ({
+                pad: r.pad,
+                simbolo: GUIA?.[r.pad]?.simbolo || "",
+                badge: `${r.veces}×`,
+                razon: "repetido post-SP",
+              }));
+              frag.appendChild(buildRezagoSection(items, "recup-rep",
+                `🔁 Recuperación · repetidos post-SP — la operadora insiste`));
+            }
+          }
+
+          // ── Indicador dominical ──────────────────────────────────────────
+          const domData = motor?.dominical;
+          if (domData?.esDomingo) {
+            const domSec = document.createElement("div");
+            domSec.className = "pulso-dominical";
+            domSec.innerHTML = `
+              <span class="pulso-dominical__icon">☀️</span>
+              <div class="pulso-dominical__text">
+                <strong>Factor dominical activo</strong>
+                <span>Domingo: menor volumen de juego → suavización +18% sobre populares (${domData.afectados} números afectados)</span>
+              </div>
+            `;
+            frag.appendChild(domSec);
+          }
+
+          // ── Números vencidos y en ventana (rezago) ──
+          const rez = rezagoResult.status === "fulfilled" ? rezagoResult.value : null;
+          if (rez?.vencidos?.length)  frag.appendChild(buildRezagoSection(rez.vencidos.slice(0, 6),  "warn", "Vencidos — llevan mucho más de su ciclo normal sin caer"));
+          if (rez?.enVentana?.length) frag.appendChild(buildRezagoSection(rez.enVentana.slice(0, 8), "ok",   "En ventana — están dentro de su ciclo histórico reciente (últimos 180 días)"));
+        } catch (motorErr) {
+          console.warn("signal-engine error (no bloquea)", motorErr);
+        }
+
+        // ── Constelaciones activas ────────────────────────────────────────────
+        try {
+          const constellations = await listConstellationsFromDb();
+          if (constellations.length) {
+            const active = detectActiveConstellations(constellations, sorted.filter(d => !d.esTest));
+            if (active.length) {
+              const constSec = document.createElement("div");
+              constSec.className = "pulso-group";
+              constSec.innerHTML = `<div class="pulso-group__head"><span class="pulso-group__label">Constelaciones activas</span><span class="pulso-group__freq">${active.length} en curso</span></div>`;
+              for (const { c, activadoPor, vistos, faltantes, diasActivo, diasRestantes } of active) {
+                const padTrig = String(activadoPor).padStart(2, "0");
+                const simTrig = GUIA?.[padTrig]?.simbolo || "";
+                const vencida = diasRestantes < 0;
+                const row = document.createElement("div");
+                row.className = `const-active-row${vencida ? " const-active-row--vencida" : ""}`;
+                row.innerHTML = `
+                  <div class="const-active-head">
+                    <span class="const-active-name">${c.nombre}</span>
+                    <span class="const-active-trigger">disparado por <strong>${padTrig} ${simTrig}</strong></span>
+                    <span class="const-active-dias ${vencida ? "const-active-dias--vencida" : ""}">día ${diasActivo}/${c.ventanaDias || 10}</span>
+                  </div>
+                  <div class="const-active-members">
+                    ${vistos.map(m => { const p = String(m).padStart(2,"0"); return `<span class="const-member const-member--visto" title="${GUIA?.[p]?.simbolo||""}">${p} <small>${GUIA?.[p]?.simbolo||""}</small></span>`; }).join("")}
+                    ${faltantes.map(m => { const p = String(m).padStart(2,"0"); return `<span class="const-member const-member--falta" title="${GUIA?.[p]?.simbolo||""}">${p} <small>${GUIA?.[p]?.simbolo||""}</small></span>`; }).join("")}
+                  </div>
+                `;
+                constSec.appendChild(row);
+              }
+              frag.appendChild(constSec);
+            }
+          }
+        } catch (_) { /* constelaciones opcionales */ }
+
+        // ── Modo Recuperación (Super Premio) — panel completo ────────────────
+        try {
+          const spFechas = await listSpFromDb();
+          const rec = detectarModoRecuperacion(spFechas);
+          if (rec && rec.activo) {
+            const diasDesde   = rec.diasTranscurridos;
+            const spFecha     = rec.ultimoEvento;
+            const hist2       = sorted.filter(d => !d.esTest);
+            const PAD2        = n => String(n).padStart(2,"0");
+            const DOW_REC     = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+            const MES_REC     = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+            // ── 1. Sorteos caídos desde el SP (por día, con imagen) ──────────
+            const endRecTime = new Date(spFecha).getTime() + SP_RECOVERY_DAYS * 86_400_000;
+            const endRecDate = new Date(endRecTime).toISOString().slice(0,10);
+            const drawsPost  = hist2
+              .filter(d => d.fecha > spFecha && d.fecha <= endRecDate)
+              .sort((a,b) => {
+                if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
+                const ord = {"11AM":0,"3PM":1,"9PM":2};
+                return (ord[a.horario]??9)-(ord[b.horario]??9);
+              });
+
+            // Agrupar por día
+            const byDay = new Map();
+            drawsPost.forEach(d => {
+              const list = byDay.get(d.fecha) || [];
+              list.push(d);
+              byDay.set(d.fecha, list);
+            });
+
+            const caídosHtml = drawsPost.length === 0
+              ? `<p class="rec-hint">Aún no hay sorteos registrados desde el pago del Super Premio.</p>`
+              : [...byDay.entries()].map(([fecha, dayDraws]) => {
+                  const dt  = new Date(`${fecha}T12:00:00`);
+                  const lbl = `${DOW_REC[dt.getDay()]} ${dt.getDate()}-${MES_REC[dt.getMonth()]}`;
+                  const chips = dayDraws.map(d => {
+                    const pd  = PAD2(parseInt(d.numero,10));
+                    const sym = GUIA?.[pd]?.simbolo || "";
+                    return `
+                      <div class="rec-card">
+                        <img class="rec-card__img" src="data/img/${pd}.png" alt="${pd}"
+                          onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
+                        <span class="rec-card__num">${pd}</span>
+                        ${sym ? `<span class="rec-card__sym">${sym}</span>` : ""}
+                        <span class="rec-card__hora">${d.horario}</span>
+                      </div>`;
+                  }).join("");
+                  return `
+                    <div class="rec-day">
+                      <span class="rec-day__label">${lbl}</span>
+                      <div class="rec-day__row">${chips}</div>
+                    </div>`;
+                }).join("");
+
+            // ── 2. Candidatos históricos: qué números cayeron en recuperaciones
+            //       anteriores y AÚN NO han caído en esta ─────────────────────
+            const numsCaidosAhora = new Set(drawsPost.map(d => parseInt(d.numero,10)));
+            const spHistoricas    = spFechas.filter(f => f !== spFecha).sort();
+
+            // Frecuencia de cada número en recuperaciones históricas
+            const histFreq = new Map();
+            let totalHistSP = 0;
+            spHistoricas.forEach(spH => {
+              const endH = new Date(new Date(spH).getTime() + SP_RECOVERY_DAYS * 86_400_000).toISOString().slice(0,10);
+              const wDraws = hist2.filter(d => d.fecha > spH && d.fecha <= endH);
+              totalHistSP++;
+              const seen = new Set(wDraws.map(d => parseInt(d.numero,10)));
+              seen.forEach(n => histFreq.set(n, (histFreq.get(n)||0) + 1));
+            });
+
+            // Candidatos = frecuentes en historial de SP pero que aún no cayeron ahora
+            const candidatos = [...histFreq.entries()]
+              .filter(([n]) => !numsCaidosAhora.has(n))
+              .sort((a,b) => b[1]-a[1])
+              .slice(0, 12);
+
+            const candidatosHtml = totalHistSP === 0
+              ? `<p class="rec-hint">No hay recuperaciones anteriores registradas para comparar.</p>`
+              : candidatos.length === 0
+              ? `<p class="rec-hint">✅ Todos los candidatos históricos ya han aparecido en esta recuperación.</p>`
+              : candidatos.map(([n, hits]) => {
+                  const pd   = PAD2(n);
+                  const sym  = GUIA?.[pd]?.simbolo || "";
+                  const pct  = Math.round((hits / totalHistSP) * 100);
+                  const str  = pct >= 60 ? "rec-cand--strong" : pct >= 35 ? "rec-cand--med" : "";
+                  return `
+                    <div class="rec-cand ${str}" title="Cayó en ${hits} de ${totalHistSP} recuperaciones anteriores">
+                      <img class="rec-cand__img" src="data/img/${pd}.png" alt="${pd}"
+                        onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
+                      <span class="rec-cand__num">${pd}</span>
+                      ${sym ? `<span class="rec-cand__sym">${sym}</span>` : ""}
+                      <span class="rec-cand__pct">${pct}%</span>
+                    </div>`;
+                }).join("");
+
+            // ── Hit-Tracker: validación estadística del pool histórico ────────
+            // Solo números que aparecieron en ≥50% de los ciclos de recuperación anteriores.
+            // Un pool de 91/100 es ruido puro (99% azar). Con ≥50% el pool es pequeño
+            // y significativo: cada hit confirma un patrón real, no coincidencia.
+            const minCiclosPool = totalHistSP > 0 ? Math.max(1, Math.ceil(totalHistSP * 0.5)) : 1;
+            const candPool      = new Set(
+              [...histFreq.entries()].filter(([,v]) => v >= minCiclosPool).map(([k]) => k)
+            );
+            const hitsEsteCiclo = [...candPool].filter(n => numsCaidosAhora.has(n));
+            const diasConHit    = new Set(
+              drawsPost.filter(d => candPool.has(parseInt(d.numero,10))).map(d => d.fecha)
+            ).size;
+            const diasMonitor   = new Set(drawsPost.map(d => d.fecha)).size;
+            const NPool         = candPool.size;
+            // P(≥1 del pool en 2 sorteos sin reemplazo)
+            const baseRandom    = NPool > 0
+              ? Math.round((1 - ((100-NPool)*(99-NPool))/(100*99)) * 100) : 0;
+            const hitRateActual = diasMonitor > 0
+              ? Math.round(diasConHit / diasMonitor * 100) : 0;
+
+            // Retroactivo: para cada SP histórico, calcular pool que tenía y cuántos días hubo hit
+            const ciclosHist = [];
+            for (let _ci = 0; _ci < spHistoricas.length; _ci++) {
+              const spH     = spHistoricas[_ci];
+              const pastOfH = spFechas.filter(f => f < spH);
+              if (pastOfH.length < 1) continue;
+              const freqH = new Map();
+              pastOfH.forEach(sp2 => {
+                const end2 = new Date(new Date(sp2).getTime() + SP_RECOVERY_DAYS * 86_400_000).toISOString().slice(0,10);
+                hist2.filter(d => d.fecha > sp2 && d.fecha <= end2).forEach(d => {
+                  const n = parseInt(d.numero,10);
+                  freqH.set(n, (freqH.get(n)||0)+1);
+                });
+              });
+              const minH  = Math.max(1, Math.ceil(pastOfH.length * 0.5));
+              const poolH = new Set([...freqH.entries()].filter(([,v]) => v >= minH).map(([k]) => k));
+              if (poolH.size === 0) continue;
+              const endH     = new Date(new Date(spH).getTime() + SP_RECOVERY_DAYS * 86_400_000).toISOString().slice(0,10);
+              const wH       = hist2.filter(d => d.fecha > spH && d.fecha <= endH);
+              const daysH    = new Set(wH.map(d => d.fecha));
+              const daysHitH = new Set(wH.filter(d => poolH.has(parseInt(d.numero,10))).map(d => d.fecha));
+              if (daysH.size > 0) ciclosHist.push({
+                sp: spH, poolSz: poolH.size,
+                dCon: daysHitH.size, dTotal: daysH.size,
+                rate: Math.round(daysHitH.size / daysH.size * 100)
+              });
+            }
+            const avgRate = ciclosHist.length > 0
+              ? Math.round(ciclosHist.reduce((s,c) => s + c.rate, 0) / ciclosHist.length) : null;
+
+            // Semáforo del pool: compara rendimiento real vs azar
+            // Verde  = supera al azar → el pool tiene valor predictivo
+            // Amarillo = dentro del rango del azar (±15%) → resultado neutro, seguir monitoreando
+            // Rojo   = por debajo del azar → el pool no está siendo útil este ciclo
+            const _poolSemaforo = diasMonitor === 0 ? "neutral"
+              : hitRateActual >= baseRandom           ? "good"
+              : hitRateActual >= baseRandom * 0.85    ? "warn"
+              : "bad";
+
+            const hitTrackerHtml = `
+              <div class="rec-ht">
+                <div class="rec-ht__head">
+                  📊 Validación del pool
+                  ${hitsEsteCiclo.length > 0 ? `<span class="rec-ht__badge--hit">✓ ${hitsEsteCiclo.length} caíd${hitsEsteCiclo.length===1?"o":"os"} del pool este ciclo</span>` : ""}
+                  ${avgRate !== null ? `<span class="rec-ht__badge--avg${avgRate >= baseRandom ? " rec-ht__badge--avg-good" : ""}">${avgRate}% prom. histórico vs ${baseRandom}% azar</span>` : ""}
+                </div>
+                <div class="rec-ht__stats">
+                  <div class="rec-ht__stat">
+                    <span class="rec-ht__val${hitRateActual >= baseRandom ? " rec-ht__val--good" : ""}">${hitRateActual}%</span>
+                    <span class="rec-ht__lbl">${diasConHit}/${diasMonitor} días con hit</span>
+                  </div>
+                  <div class="rec-ht__stat">
+                    <span class="rec-ht__val rec-ht__val--base">${baseRandom}%</span>
+                    <span class="rec-ht__lbl">línea base (azar)</span>
+                  </div>
+                  <div class="rec-ht__stat rec-ht__stat--${_poolSemaforo}">
+                    <span class="rec-ht__val rec-ht__val--${_poolSemaforo}">${hitsEsteCiclo.length}<small>/${NPool}</small></span>
+                    <span class="rec-ht__lbl">del pool cayeron</span>
+                  </div>
+                  ${avgRate !== null ? `<div class="rec-ht__stat${avgRate >= baseRandom ? " rec-ht__stat--good" : ""}">
+                    <span class="rec-ht__val${avgRate >= baseRandom ? " rec-ht__val--good" : ""}">${avgRate}%</span>
+                    <span class="rec-ht__lbl">${ciclosHist.length} ciclos previos</span>
+                  </div>` : ""}
+                </div>
+                ${ciclosHist.length > 0 ? `
+                <div class="rec-ht__cycles">
+                  ${ciclosHist.slice(-6).map(c => `
+                    <div class="rec-ht__cycle" title="SP ${c.sp} · pool ${c.poolSz} núms · ${c.dCon}/${c.dTotal} días con hit">
+                      <span class="rec-ht__cy-sp">${c.sp.slice(5)}</span>
+                      <div class="rec-ht__cy-track">
+                        <div class="rec-ht__cy-fill${c.rate >= baseRandom ? " rec-ht__cy-fill--good" : ""}" style="width:${Math.min(c.rate,100)}%"></div>
+                        <div class="rec-ht__cy-base" style="left:${Math.min(baseRandom,97)}%"></div>
+                      </div>
+                      <span class="rec-ht__cy-pct${c.rate >= baseRandom ? " rec-ht__cy-pct--good" : ""}">${c.rate}%</span>
+                    </div>`).join("")}
+                </div>` : ""}
+                ${hitsEsteCiclo.length > 0 ? `
+                <div class="rec-ht__hit-row">
+                  <span class="rec-ht__hit-lbl">Ya cayeron este ciclo:</span>
+                  ${hitsEsteCiclo.map(n => {
+                    const pd  = PAD2(n);
+                    const sym = GUIA?.[pd]?.simbolo || "";
+                    return `<div class="rec-ht__hit-chip">
+                      <img class="rec-ht__hit-img" src="data/img/${pd}.png" alt="${pd}"
+                        onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
+                      <span class="rec-ht__hit-num">${pd}</span>
+                      ${sym ? `<span class="rec-ht__hit-sym">${sym}</span>` : ""}
+                    </div>`;
+                  }).join("")}
+                </div>` : ""}
+              </div>`;
+
+            // ── 3. Números que ya repitieron (ya existía) ────────────────────
+            const reps = detectarNumerosRepetidosPostEvento(spFecha, hist2);
+            const repsHtml = reps.length
+              ? reps.map(({numero, veces}) => {
+                  const pd  = PAD2(numero);
+                  const sym = GUIA?.[pd]?.simbolo || "";
+                  return `
+                    <div class="rec-card rec-card--rep">
+                      <img class="rec-card__img" src="data/img/${pd}.png" alt="${pd}"
+                        onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
+                      <span class="rec-card__num">${pd}</span>
+                      ${sym ? `<span class="rec-card__sym">${sym}</span>` : ""}
+                      <span class="rec-card__hora">${veces}×</span>
+                    </div>`;
+                }).join("")
+              : `<p class="rec-hint">Sin repeticiones todavía.</p>`;
+
+            // ── Render del panel ─────────────────────────────────────────────
+            const recSec = document.createElement("div");
+            recSec.className = "rec-panel";
+            recSec.innerHTML = `
+              <div class="rec-panel__head">
+                <span class="rec-panel__title">⚡ Modo Recuperación — Día ${diasDesde} de ${SP_RECOVERY_DAYS}</span>
+                <span class="rec-panel__meta">SP pagado el ${spFecha} · ${rec.diasRestantes} días restantes</span>
+              </div>
+
+              <div class="rec-panel__body">
+                <div class="rec-section">
+                  <div class="rec-section__title">
+                    🎯 Candidatos históricos aún sin caer
+                    ${totalHistSP > 0 ? `<span class="rec-section__badge">Basado en ${totalHistSP} SP anteriores</span>` : ""}
+                  </div>
+                  <p class="rec-hint">Números que cayeron en <strong>al menos la mitad de los ciclos de recuperación anteriores</strong>. La validación del pool solo mide estos candidatos de alta frecuencia — los que tienen patrón real, no los que aparecieron por azar alguna vez.</p>
+                  ${hitTrackerHtml}
+                  <div class="rec-cands">${candidatosHtml}</div>
+                </div>
+
+                <div class="rec-section">
+                  <div class="rec-section__title">📅 Caídos desde el SP <span class="rec-section__badge">${drawsPost.length} sorteos</span></div>
+                  <div class="rec-days">${caídosHtml}</div>
+                </div>
+
+                <div class="rec-section">
+                  <div class="rec-section__title">🔁 Repitiendo en este período</div>
+                  <div class="rec-day__row" style="margin-top:6px">${repsHtml}</div>
+                </div>
+              </div>
+            `;
+            recRow.appendChild(recSec);
+          }
+        } catch (_) { /* recovery opcional */ }
+
+        resultPulso.innerHTML = "";
+        resultPulso.appendChild(frag);
+        _pulsoStale = false; // caché válido hasta el próximo cambio de datos
+      } catch (err) {
+        console.error("renderPulso error", err);
+        resultPulso.innerHTML = `<p class='pulso-empty'>No se pudo calcular: ${err.message}</p>`;
+      }
+    }
+
+    const pega3FechaInput = document.getElementById("pega3-fecha");
+    const pega3TurnoSelect = document.getElementById("pega3-turno");
+    const pega3PaisSelect = document.getElementById("pega3-pais");
+    const pega3ContextSyncBtn = document.getElementById("pega3-context-sync");
+    const pega3FormStatus = document.getElementById("pega3-form-status");
+    const pega3SaveBtn = document.getElementById("pega3-btn-registrar");
+    const pega3ParInputs = [
+      document.getElementById("pega3-par-1"),
+      document.getElementById("pega3-par-2"),
+      document.getElementById("pega3-par-3"),
+    ];
+    const pega3GeneratorBtn = document.getElementById("pega3-btn-generar-trio");
+    const pega3GeneratorOutput = document.getElementById("pega3-generator-output");
+    const pega3Historial = document.getElementById("pega3-historial");
+    const pega3Resumen = document.getElementById("pega3-resumen");
+    const pega3Sesgos = document.getElementById("pega3-sesgos");
+    const pega3Seleccion = document.getElementById("pega3-seleccion");
+    const pega3PendingDeletion = new Map();
+
+    const PEGA3_TURN_LABELS = {
+      "11AM": "11 AM",
+      "3PM": "3 PM",
+      "9PM": "9 PM",
+    };
+    const PEGA3_TURN_SEQUENCE = ["11AM", "3PM", "9PM"];
+    let pega3TurnPointer = 0;
+    const PEGA3_COUNTRY_LABELS = {
+      HN: "Honduras",
+    };
+    const PEGA3_COLOR_BUCKETS = 6;
+    const PEGA3_CONVERSION_LABELS = {
+      simple: "Conversión simple",
+      ajuste: "Ajuste (100−n)",
+      composite: "Conversión compuesta",
+    };
+
+    function detectPega3Turno(now = new Date()) {
+      const hour = now.getHours();
+      if (hour >= 20) return "9PM";
+      if (hour >= 14) return "3PM";
+      return "11AM";
+    }
+
+    function updatePega3TurnPointer(value) {
+      const idx = PEGA3_TURN_SEQUENCE.indexOf(value);
+      pega3TurnPointer = idx >= 0 ? idx : 0;
+    }
+
+    function normalizeTwoDigit(numero) {
+      if (!Number.isFinite(numero)) return null;
+      const mod = numero % 100;
+      return mod < 0 ? mod + 100 : mod;
+    }
+
+    function computePega3Ajuste(numero) {
+      const normalized = normalizeTwoDigit(numero);
+      if (normalized === null) return null;
+      return (100 - normalized) % 100;
+    }
+
+    function buildPega3ConversionPool(numero) {
+      const normalized = normalizeTwoDigit(numero);
+      if (normalized === null) return [];
+      const entries = new Map();
+      const pushCandidate = (value, label) => {
+        const candidate = normalizeTwoDigit(value);
+        if (candidate === null) return;
+        if (!entries.has(candidate)) {
+          entries.set(candidate, { numero: candidate, label });
+        }
+      };
+      const simpleList = getSimpleConversions(normalized) || [];
+      simpleList.forEach((value) => pushCandidate(value, PEGA3_CONVERSION_LABELS.simple));
+      const ajuste = computePega3Ajuste(normalized);
+      if (ajuste !== null) pushCandidate(ajuste, PEGA3_CONVERSION_LABELS.ajuste);
+      const compositeList = getCompositeConversions(normalized) || [];
+      compositeList.forEach((value) => pushCandidate(value, PEGA3_CONVERSION_LABELS.composite));
+      if (!entries.size) {
+        pushCandidate(normalized, "Base");
+      }
+      return Array.from(entries.values());
+    }
+
+    function pickRandomEntry(list = []) {
+      if (!Array.isArray(list) || !list.length) return null;
+      const idx = Math.floor(Math.random() * list.length);
+      return list[idx] || null;
+    }
+
+    function advancePega3TurnPointer({ rollDate = false } = {}) {
+      const prevPointer = pega3TurnPointer;
+      pega3TurnPointer = (pega3TurnPointer + 1) % PEGA3_TURN_SEQUENCE.length;
+      const loopedToStart =
+        prevPointer === PEGA3_TURN_SEQUENCE.length - 1 && pega3TurnPointer === 0;
+      if (pega3TurnoSelect) {
+        if (rollDate && loopedToStart && pega3FechaInput) {
+          const nextDate = incrementISODate(pega3FechaInput.value, 1);
+          if (nextDate) pega3FechaInput.value = nextDate;
+        }
+        pega3TurnoSelect.value = PEGA3_TURN_SEQUENCE[pega3TurnPointer];
+        prefillPega3Inputs({ forceClear: true });
+      }
+    }
+
+    function syncPega3Context({ force = false } = {}) {
+      if (!pega3FechaInput || !pega3TurnoSelect || !pega3PaisSelect) return;
+      const now = new Date();
+      if (force || !pega3FechaInput.value) {
+        pega3FechaInput.value = getTodayISODate();
+      }
+      if (force || !pega3TurnoSelect.value) {
+        pega3TurnoSelect.value = detectPega3Turno(now);
+      }
+      if (force || !pega3PaisSelect.value) {
+        pega3PaisSelect.value = "HN";
+      }
+      updatePega3TurnPointer(pega3TurnoSelect.value);
+      prefillPega3Inputs({ forceClear: true });
+    }
+
+    syncPega3Context();
+    pega3ContextSyncBtn?.addEventListener("click", () => syncPega3Context({ force: true }));
+    pega3TurnoSelect?.addEventListener("change", () => {
+      updatePega3TurnPointer(pega3TurnoSelect.value);
+      prefillPega3Inputs({ forceClear: true });
+    });
+    pega3FechaInput?.addEventListener("change", () => prefillPega3Inputs({ forceClear: true }));
+    pega3PaisSelect?.addEventListener("change", () => prefillPega3Inputs({ forceClear: true }));
+
+    async function handlePega3Save(event) {
+      event?.preventDefault();
+      const fecha = pega3FechaInput?.value;
+      const horario = pega3TurnoSelect?.value || "11AM";
+      const pais = (pega3PaisSelect?.value || "HN").toUpperCase();
+      const pares = pega3ParInputs
+        .map((input) => parseInt(input?.value ?? "", 10))
+        .filter((value) => Number.isFinite(value));
+      if (!fecha || pares.length !== 3) {
+        showToast("Completa la fecha y los tres pares antes de guardar.", { variant: "warning" });
+        return;
+      }
+      const cachedMatch = findCachedPega3Draw({ fecha, horario, pais });
+      if (cachedMatch && pega3ActiveDrawId !== cachedMatch.id) {
+        showToast("Ya tienes un sorteo registrado para ese turno y fecha. Usa la vista de historial o edita el registro actual.", {
+          variant: "warning",
+          timeout: 4000,
+        });
+        fillPega3InputsFromDraw(cachedMatch);
+        updatePega3FormStatus(cachedMatch);
+        return;
+      }
+      const isUpdating = Boolean(pega3ActiveDrawId);
+      const release = withButtonBusy(pega3SaveBtn, "Guardando…");
+      try {
+        await DB.savePega3Draw({ fecha, horario, pais, pares });
+        const toastMsg = isUpdating ? "Sorteo Pega3 actualizado." : "Sorteo Pega3 guardado.";
+        showToast(toastMsg, { variant: "success", timeout: 2000 });
+        pega3ParInputs.forEach((input) => {
+          if (input) input.value = "";
+        });
+        advancePega3TurnPointer({ rollDate: horario === "9PM" });
+        await refreshPega3Historial({ silent: true });
+      } catch (err) {
+        console.error("pega3 save error", err);
+        showToast(`No se pudo guardar el sorteo: ${err.message}`, { variant: "danger" });
+      } finally {
+        release();
+      }
+    }
+
+    async function refreshPega3Historial({ silent = false } = {}) {
+      if (!pega3Historial) return;
+      if (!silent) pega3Historial.innerHTML = "<p class='hint'>Cargando historial…</p>";
+      try {
+        const list = await DB.listPega3Draws();
+        pega3DrawCache = list
+          .slice()
+          .sort((a, b) => {
+            if (a.fecha === b.fecha) {
+              return TURNOS.indexOf(b.horario) - TURNOS.indexOf(a.horario);
+            }
+            return a.fecha > b.fecha ? -1 : 1;
+          });
+        renderPega3HistorialList(pega3DrawCache);
+        prefillPega3Inputs();
+      } catch (err) {
+        console.error("pega3 historial error", err);
+        pega3Historial.innerHTML = `<p class='hint'>No se pudo leer el historial: ${err.message}</p>`;
+      }
+    }
+
+    function clearPega3Inputs() {
+      pega3ParInputs.forEach((input) => {
+        if (input) input.value = "";
+      });
+    }
+
+    function updatePega3FormStatus(draw = null) {
+      pega3ActiveDrawId = draw?.id ?? null;
+      const statusEl = pega3FormStatus;
+      if (statusEl) {
+        if (draw) {
+          const friendlyDate = draw.fecha ? formatFriendlyDate(draw.fecha) : "";
+          const turnoLabel = PEGA3_TURN_LABELS[draw.horario] || draw.horario || "";
+          const paisCode = (draw.pais || "HN").toUpperCase();
+          const paisLabel = PEGA3_COUNTRY_LABELS[paisCode] || paisCode;
+          const descriptor = [friendlyDate || draw.fecha || "", turnoLabel, paisLabel]
+            .filter(Boolean)
+            .join(" · ");
+          statusEl.textContent = descriptor ? `Sorteo registrado: ${descriptor}` : "Sorteo registrado.";
+          statusEl.dataset.state = "filled";
+        } else {
+          statusEl.textContent = "";
+          statusEl.dataset.state = "empty";
+        }
+      }
+      if (pega3SaveBtn) {
+        pega3SaveBtn.textContent = draw ? "Actualizar sorteo" : "Guardar sorteo";
+      }
+    }
+
+    function normalizePega3Value(value) {
+      if (typeof value === "number") {
+        return Number.isFinite(value) ? value : null;
+      }
+      if (typeof value === "string" && value.trim() !== "") {
+        const parsed = parseInt(value, 10);
+        return Number.isNaN(parsed) ? null : parsed;
+      }
+      return null;
+    }
+
+    function fillPega3InputsFromDraw(draw) {
+      if (!draw) return;
+      pega3ParInputs.forEach((input, idx) => {
+        if (!input) return;
+        const rawValue = Array.isArray(draw.pares) ? draw.pares[idx] : null;
+        const normalized = normalizePega3Value(rawValue);
+        input.value = normalized === null ? "" : formatNumber(normalized);
+      });
+    }
+
+    function computePega3DateColorIndex(key) {
+      if (!key || !PEGA3_COLOR_BUCKETS) return 0;
+      let hash = 0;
+      for (let i = 0; i < key.length; i += 1) {
+        hash = (hash * 31 + key.charCodeAt(i)) | 0;
+      }
+      return Math.abs(hash) % PEGA3_COLOR_BUCKETS;
+    }
+
+    function findCachedPega3Draw({ fecha, horario, pais }) {
+      if (!fecha || !horario) return null;
+      const targetPais = (pais || "HN").toUpperCase();
+      return (pega3DrawCache || []).find(
+        (draw) =>
+          draw.fecha === fecha &&
+          draw.horario === horario &&
+          ((draw.pais || "HN").toUpperCase() === targetPais),
+      );
+    }
+
+    function prefillPega3Inputs({ forceClear = false } = {}) {
+      if (!pega3FechaInput || !pega3TurnoSelect) return;
+      const fecha = pega3FechaInput.value;
+      const turno = pega3TurnoSelect.value;
+      const paisValue = (pega3PaisSelect?.value || "HN").toUpperCase();
+      if (!fecha || !turno) {
+        if (forceClear) {
+          clearPega3Inputs();
+          updatePega3FormStatus(null);
+        }
+        return;
+      }
+      const match = findCachedPega3Draw({ fecha, horario: turno, pais: paisValue });
+      if (match) {
+        fillPega3InputsFromDraw(match);
+        updatePega3FormStatus(match);
+      } else {
+        if (forceClear || pega3ParInputs.every((input) => !input || !input.value?.trim())) {
+          clearPega3Inputs();
+        }
+        updatePega3FormStatus(null);
+      }
+    }
+
+    function renderPega3HistorialList(draws = []) {
+      if (!pega3Historial) return;
+      const pager = document.getElementById("pega3-hist-pager");
+      const pagerInfo = document.getElementById("pega3-pager-info");
+      const prevBtn = document.getElementById("pega3-pager-prev");
+      const nextBtn = document.getElementById("pega3-pager-next");
+
+      const q = _pega3Filter.toLowerCase().trim();
+      const filtered = q
+        ? draws.filter((r) => {
+            const nums = (r.pares || []).join(" ");
+            return (
+              (r.fecha || "").includes(q) ||
+              nums.includes(q) ||
+              (PEGA3_TURN_LABELS[r.horario] || r.horario || "").toLowerCase().includes(q) ||
+              ((r.pais || "HN").toLowerCase()).includes(q)
+            );
+          })
+        : draws;
+
+      if (!filtered.length) {
+        pega3Historial.innerHTML = q
+          ? "<p class='hint'>Sin resultados para esa búsqueda.</p>"
+          : "<p class='hint'>Aún no registras sorteos Pega3.</p>";
+        if (pager) pager.style.display = "none";
+        return;
+      }
+
+      const totalPages = Math.ceil(filtered.length / PEGA3_PAGE_SIZE);
+      if (_pega3Page >= totalPages) _pega3Page = totalPages - 1;
+      if (_pega3Page < 0) _pega3Page = 0;
+      const start = _pega3Page * PEGA3_PAGE_SIZE;
+      const page = filtered.slice(start, start + PEGA3_PAGE_SIZE);
+
+      const TURN_STYLE = { "11AM": "p3hr-turn--am", "3PM": "p3hr-turn--pm", "9PM": "p3hr-turn--night" };
+      const COUNTRY_STYLE = { HN: "p3hr-country--hn" };
+
+      const list = document.createElement("div");
+      list.className = "p3hr-list";
+      page.forEach((row) => {
+        const paisCode = (row.pais || "HN").toUpperCase();
+        const pares = row.pares || [];
+        const fmt = (n) => (n != null ? String(n).padStart(2, "0") : "—");
+
+        const item = document.createElement("div");
+        item.className = "p3hr-row";
+
+        const meta = document.createElement("div");
+        meta.className = "p3hr-meta";
+        meta.innerHTML = `
+          <span class="p3hr-fecha">${row.fecha || "—"}</span>
+          <span class="p3hr-turn ${TURN_STYLE[row.horario] || ""}">${PEGA3_TURN_LABELS[row.horario] || row.horario || "—"}</span>
+        `;
+
+        const nums = document.createElement("div");
+        nums.className = "p3hr-nums";
+        pares.forEach((n) => {
+          const chip = document.createElement("span");
+          chip.className = "p3hr-chip";
+          chip.textContent = fmt(n);
+          nums.appendChild(chip);
+        });
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "p3hr-del";
+        del.title = "Eliminar";
+        del.innerHTML = "✕";
+        del.addEventListener("click", () => handlePega3Delete(row));
+
+        item.appendChild(meta);
+        item.appendChild(nums);
+        item.appendChild(del);
+        list.appendChild(item);
+      });
+      pega3Historial.innerHTML = "";
+      pega3Historial.appendChild(list);
+
+      if (pager) {
+        pager.style.display = "flex";
+        if (pagerInfo) pagerInfo.textContent = `Página ${_pega3Page + 1} de ${totalPages}  (${filtered.length} registros)`;
+        if (prevBtn) prevBtn.disabled = _pega3Page === 0;
+        if (nextBtn) nextBtn.disabled = _pega3Page >= totalPages - 1;
+      }
+    }
+
+    async function handlePega3Delete(row) {
+      if (!row?.id) return;
+      const labelDate = row.fecha ? formatFriendlyDate(row.fecha) || row.fecha : "este registro";
+      const labelTurn = PEGA3_TURN_LABELS[row.horario] || row.horario || "";
+      if (!pega3PendingDeletion.has(row.id)) {
+        const timer = setTimeout(() => pega3PendingDeletion.delete(row.id), 5000);
+        pega3PendingDeletion.set(row.id, timer);
+        showToast(`Presiona eliminar otra vez para borrar el sorteo de ${labelDate}${labelTurn ? ` (${labelTurn})` : ""}.`, {
+          variant: "warning",
+          timeout: 3500,
+        });
+        return;
+      }
+      clearTimeout(pega3PendingDeletion.get(row.id));
+      pega3PendingDeletion.delete(row.id);
+      if (typeof DB.deletePega3Draw !== "function") {
+        showToast("Esta versión no soporta eliminar sorteos. Actualiza la aplicación.", { variant: "danger" });
+        return;
+      }
+      try {
+        await DB.deletePega3Draw(row.id);
+        showToast("Sorteo Pega3 eliminado.", { variant: "success" });
+        await refreshPega3Historial({ silent: true });
+      } catch (err) {
+        console.error("pega3 delete error", err);
+        showToast(`No se pudo eliminar: ${err.message}`, { variant: "danger" });
+      }
+    }
+
+    async function runPega3Analysis() {
+      if (!pega3DrawCache.length) {
+        showToast("Registra sorteos Pega3 para analizar.", { variant: "info" });
+        return;
+      }
+      pega3Resumen.innerHTML = "<p class='hint'>Analizando patrones…</p>";
+      pega3Sesgos.innerHTML = "<p class='hint'>Calculando sesgos…</p>";
+      pega3Seleccion.innerHTML = "<p class='hint'>Calculando selección…</p>";
+      try {
+        const diariaDraws = await DB.listDraws({ excludeTest: true });
+        const resultado = evaluarMotorPega3(pega3DrawCache, { externa: diariaDraws });
+        pega3AnalysisCache = resultado;
+        renderPega3Panels();
+      } catch (err) {
+        console.error("pega3 analysis error", err);
+        pega3Resumen.innerHTML = `<p class='hint'>No se pudo completar el análisis: ${err.message}</p>`;
+      }
+    }
+
+    function renderPega3Panels() {
+      if (!pega3Resumen) return;
+      if (!pega3AnalysisCache?.stats) {
+        pega3Resumen.innerHTML = "<p class='hint'>Registra sorteos y ejecuta el análisis para ver los hallazgos.</p>";
+        pega3Sesgos.innerHTML = "<p class='hint'>Sin datos. Ejecuta el análisis para calcular sesgos.</p>";
+        pega3Seleccion.innerHTML = "<p class='hint'>Sin datos. Ejecuta el análisis para generar candidatos.</p>";
+        return;
+      }
+      renderPega3Summary(pega3AnalysisCache.stats);
+      renderPega3Sesgos(pega3AnalysisCache.sesgos);
+      renderPega3Seleccion(pega3AnalysisCache.seleccion);
+    }
+
+    function renderPega3Summary(stats) {
+      if (!pega3Resumen) return;
+      const totalDraws = stats.totalDraws || 0;
+      const topN  = stats.numeroList?.[0];
+      const topP  = stats.pairList?.[0];
+      const pat   = stats.patternSummary || {};
+      const cross = stats.crossTurn || {};
+      const ext   = stats.externalSummary || [];
+
+      const metric = (label, value, sub = "") => `
+        <div class="p3res-metric">
+          <span class="p3res-metric__val">${value}</span>
+          <span class="p3res-metric__lbl">${label}</span>
+          ${sub ? `<span class="p3res-metric__sub">${sub}</span>` : ""}
+        </div>`;
+
+      const row = (label, value) => `
+        <div class="p3res-row">
+          <span class="p3res-row__lbl">${label}</span>
+          <span class="p3res-row__val">${value}</span>
+        </div>`;
+
+      const topExtStr = ext.length
+        ? ext.slice(0, 2).map(e => `${formatNumber(e.numero)} (${Math.round(e.coef * 100)}%)`).join(" · ")
+        : null;
+
+      pega3Resumen.innerHTML = `
+        <div class="p3res-wrap">
+          <div class="p3res-metrics">
+            ${metric("sorteos", totalDraws)}
+            ${topN  ? metric("núm. dominante", formatNumber(topN.numero), `${(topN.freq*100).toFixed(1)}% · ${topN.turnoFuerte}`) : ""}
+            ${topP  ? metric("par destacado", topP.numeros.map(n=>formatNumber(n)).join("–"), `${topP.total} reps`) : ""}
+          </div>
+          <div class="p3res-rows">
+            ${row("Patrones", `espejo ${pat.espejos||0} · vecino ${pat.vecinos||0} · progresión ${pat.escaleras||0} · repetido ${pat.repetidos||0}`)}
+            ${row("Arrastres entre turnos", `directas ${cross.directas||0} · espejos ${cross.espejos||0} · reps ${cross.repeticiones||0}`)}
+            ${topExtStr ? row("Correlación c/ La Diaria", topExtStr) : ""}
+          </div>
+        </div>`;
+    }
+
+    function renderPega3Sesgos({ fuertes = [], moderados = [], debiles = [] } = {}) {
+      if (!pega3Sesgos) return;
+      const allScores = [...fuertes, ...moderados, ...debiles].map(e => (e.score || 0) * 100);
+      const maxScore  = Math.max(...allScores, 1);
+
+      const build = (titulo, lista) => {
+        if (!lista.length) return `<p class="hint small">${titulo}: sin datos.</p>`;
+        const items = lista.slice(0, 8).map(entry => {
+          const score = Math.round((entry.score || 0) * 100);
+          const bar   = Math.round((score / maxScore) * 100);
+          return `<li>
+            <span>${formatNumber(entry.numero)}</span>
+            <div class="p3seg-bar-wrap"><div class="p3seg-bar" style="width:${bar}%"></div></div>
+            <span>${score}%</span>
+          </li>`;
+        }).join("");
+        return `<div class="pega3-sesgo"><h5>${titulo}</h5><ul>${items}</ul></div>`;
+      };
+
+      pega3Sesgos.innerHTML = `
+        <div class="pega3-sesgos-grid">
+          ${build("Sesgos fuertes", fuertes)}
+          ${build("Sesgos moderados", moderados)}
+          ${build("Sesgos débiles", debiles)}
+        </div>
+      `;
+    }
+
+    function renderPega3Seleccion(seleccion) {
+      if (!pega3Seleccion) return;
+      if (!seleccion?.top?.length) {
+        pega3Seleccion.innerHTML = "<p class='hint'>Calcula los sesgos para generar candidatos finales.</p>";
+        return;
+      }
+
+      const buildRow = (item, rank) => {
+        const num   = formatNumber(item.numero);
+        const score = Math.round(item.score * 100);
+        const bar   = Math.min(score, 100);
+        return `
+          <li class="p3sel-row">
+            ${rank != null ? `<span class="p3sel-rank">${rank + 1}</span>` : `<span class="p3sel-rank p3sel-rank--sec">·</span>`}
+            <span class="p3sel-num">${num}</span>
+            <div class="p3sel-bar-wrap"><div class="p3sel-bar" style="width:${bar}%"></div></div>
+            <span class="p3sel-score">${score}%</span>
+          </li>`;
+      };
+
+      const topList = seleccion.top.map((item, i) => buildRow(item, i)).join("");
+      const secList = (seleccion.secundarios || []).map(item => buildRow(item, null)).join("");
+      const comodin = formatNumber(seleccion.comodin ?? seleccion.top[seleccion.top.length - 1].numero);
+
+      pega3Seleccion.innerHTML = `
+        <div class="p3sel-wrap">
+          <div class="p3sel-header">
+            <span class="p3sel-title">Selección final Pega3</span>
+            <span class="p3sel-turno">Turno objetivo: ${seleccion.turnoObjetivo?.label || "pendiente"}</span>
+          </div>
+
+          <div class="p3sel-section">
+            <div class="p3sel-section__label">🏆 Top Picks</div>
+            <ul class="p3sel-list">${topList}</ul>
+          </div>
+
+          ${secList ? `
+          <div class="p3sel-section">
+            <div class="p3sel-section__label">📌 Secundarios</div>
+            <ul class="p3sel-list p3sel-list--sec">${secList}</ul>
+          </div>` : ""}
+
+          <div class="p3sel-comodin">
+            <span class="p3sel-comodin__lbl">🃏 Comodín disruptor</span>
+            <span class="p3sel-comodin__num">${comodin}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function resetPega3GeneratorOutput(message = "Ingresa los tres pares para desbloquear una propuesta.") {
+      if (!pega3GeneratorOutput) return;
+      pega3GeneratorOutput.innerHTML = `<p class='hint small'>${message}</p>`;
+    }
+
+    function renderPega3ConversionResult(result = []) {
+      if (!pega3GeneratorOutput) return;
+      if (!result.length) {
+        resetPega3GeneratorOutput("No hay conversiones suficientes. Revisa los pares ingresados.");
+        return;
+      }
+      const summary = document.createElement("div");
+      summary.className = "pega3-generator__summary";
+      summary.innerHTML = `
+        <strong>${result.map((entry) => formatNumber(entry.numero)).join(" – ")}</strong>
+        <span>Trío sugerido con conversiones aleatorias.</span>
+      `;
+      const grid = document.createElement("div");
+      grid.className = "pega3-generator__trio";
+      result.forEach((entry, idx) => {
+        const block = document.createElement("div");
+        block.className = "pega3-generator__item";
+        const badge = document.createElement("span");
+        badge.className = "pega3-generator__badge";
+        badge.textContent = `Par ${idx + 1}`;
+        const strong = document.createElement("strong");
+        strong.textContent = formatNumber(entry.numero);
+        const detail = document.createElement("small");
+        detail.textContent = entry.label || "Conversión";
+        const base = document.createElement("span");
+        base.className = "pega3-generator__base";
+        base.textContent = `Base ${formatNumber(entry.base)}`;
+        block.append(badge, strong, detail, base);
+        grid.appendChild(block);
+      });
+      pega3GeneratorOutput.innerHTML = "";
+      pega3GeneratorOutput.append(summary, grid);
+    }
+
+    function generatePega3ConversionTrio() {
+      if (!pega3GeneratorOutput) return;
+      const bases = pega3ParInputs
+        .map((input) => normalizePega3Value(input?.value))
+        .map((value) => (Number.isFinite(value) ? value : null));
+      if (bases.some((value) => value === null)) {
+        showToast("Completa los tres pares para generar el trío de conversiones.", { variant: "warning" });
+        resetPega3GeneratorOutput("Completa los tres pares para poder calcular el trío.");
+        return;
+      }
+      const trio = bases.map((numero) => {
+        const pool = buildPega3ConversionPool(numero);
+        const pick = pickRandomEntry(pool) || { numero, label: "Base" };
+        return { ...pick, base: numero };
+      });
+      renderPega3ConversionResult(trio);
+    }
+
+    resetPega3GeneratorOutput();
+    pega3SaveBtn?.addEventListener("click", handlePega3Save);
+    document.getElementById("pega3-btn-cargar")?.addEventListener("click", () => refreshPega3Historial());
+    document.getElementById("pega3-btn-analizar")?.addEventListener("click", () => runPega3Analysis());
+    document.getElementById("pega3-hist-search")?.addEventListener("input", debounce((e) => {
+      _pega3Filter = e.target.value;
+      _pega3Page = 0;
+      renderPega3HistorialList(pega3DrawCache);
+    }));
+    document.getElementById("pega3-pager-prev")?.addEventListener("click", () => {
+      if (_pega3Page > 0) { _pega3Page--; renderPega3HistorialList(pega3DrawCache); }
+    });
+    document.getElementById("pega3-pager-next")?.addEventListener("click", () => {
+      _pega3Page++; renderPega3HistorialList(pega3DrawCache);
+    });
+    pega3GeneratorBtn?.addEventListener("click", () => generatePega3ConversionTrio());
+    pega3ParInputs.forEach((input) => {
+      input?.addEventListener("input", () => resetPega3GeneratorOutput("Vuelve a generar el trío para reflejar los cambios."));
+    });
+
+    // ── Trío del Día ────────────────────────────────────────────────────────────
+    const HORARIO_ORDER_P3 = { "11AM": 0, "3PM": 1, "9PM": 2 };
+    const TIPO_LABELS = {
+      simple:        "Conv. simple",
+      compound:      "Conv. compuesta",
+      compound_mirror:"Espejo compuesta",
+      equiv_directa: "Equivalencia",
+      equiv_espejo:  "Equiv. espejo",
+      mirror:        "Espejo",
+      encadenado:    "Encadenado",
+    };
+
+    async function jumpToDayView(fecha, pais) {
+      if (!fecha) return;
+      if (dayFecha) {
+        dayFecha.value = fecha;
+        updateDayFechaDow(fecha);
+      }
+      if (pais && dayPais) {
+        dayPais.value = pais;
+        updateSlotVisibility(pais);
+      }
+      const dayBtn = Array.from(sidebarButtons || []).find((btn) => btn.dataset.view === "day");
+      dayBtn?.click();
+      await refreshSlots();
+      updateCountdownDisplay?.();
+      await refreshHistoryPanel({ forceReload: true });
+    }
+
+    const MEMORY_RELATION_LABELS = {
+      mismo: "Directo",
+      invertido: "Invertido",
+      "100-n": "Ajuste (100−n)",
+      vecino: "Ajuste ±1",
+      "mapa simple": "Mapa simple",
+      "mapa compuesta": "Mapa compuesta",
+    };
+    const MEMORY_RELATION_VALUES = {
+      mismo: (profile) => [profile.base],
+      invertido: (profile) => (profile.ctx?.mirror !== null ? [profile.ctx.mirror] : []),
+      "100-n": (profile) => (profile.ctx?.adjust !== null ? [profile.ctx.adjust] : []),
+      vecino: (profile) => profile.ctx?.neighbors ?? [],
+      "mapa simple": (profile) => profile.ctx?.simpleConversions ?? [],
+      "mapa compuesta": (profile) => profile.ctx?.compositeConversions ?? [],
+    };
+
+    const formatDaysGap = (value) => {
+      if (value === null || typeof value === "undefined") return "—";
+      const abs = Math.abs(value);
+      if (abs < 0.5) return "<1 día";
+      if (abs < 2) return `${abs.toFixed(1)} días`;
+      return `${Math.round(abs)} días`;
+    };
+    const formatGapText = (value) => formatDaysGap(value);
+
+    /**
+     * Convierte milisegundos de "hace X tiempo" a texto legible con minutos/horas/días.
+     * @param {number} ms — timestamp pasado (Date.now() al momento del evento)
+     */
+    function formatTimeAgo(ms) {
+      if (!ms) return "—";
+      const diff = Date.now() - ms;
+      if (diff < 0) return "ahora mismo";
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return "ahora mismo";
+      if (mins < 60) return `hace ${mins} min`;
+      const hours = Math.floor(diff / 3600000);
+      if (hours < 24) return `hace ${hours} h`;
+      const days = Math.floor(diff / 86400000);
+      if (days === 1) return "hace 1 día";
+      return `hace ${days} días`;
+    }
+
+    const relativeDaysLabel = (value) => {
+      if (value === null || typeof value === "undefined") return "Nunca";
+      // value es float en días — convertir a granularidad fina
+      const totalMins = Math.round(value * 24 * 60);
+      if (totalMins < 2) return "Ahora mismo";
+      if (totalMins < 60) return `Hace ${totalMins} min`;
+      const totalHours = Math.round(value * 24);
+      if (totalHours < 24) return `Hace ${totalHours} h`;
+      if (value < 1.5) return "Ayer";
+      if (value < 7) return `Hace ${Math.round(value)} días`;
+      if (value < 30) return `Hace ${Math.round(value)} días`;
+      const months = Math.round(value / 30);
+      if (months < 12) return `Hace ${months} mes${months === 1 ? "" : "es"}`;
+      const years = Math.round(months / 12);
+      return `Hace ${years} año${years === 1 ? "" : "s"}`;
+    };
+
+    const formatShortSpan = (value) => {
+      if (!Number.isFinite(value)) return "—";
+      const abs = Math.abs(value);
+      if (abs >= 1) return `${Math.round(abs)} d`;
+      const hours = abs * 24;
+      if (hours >= 1) return `${Math.round(hours)} h`;
+      const minutes = Math.max(1, Math.round(hours * 60));
+      return `${minutes} m`;
+    };
+
+    const getGapState = (avg, current) => {
+      if (!Number.isFinite(avg) || !Number.isFinite(current) || avg <= 0) {
+        return { status: "unknown", remaining: null, diff: Infinity };
+      }
+      const remaining = avg - current;
+      const diffAbs = Math.abs(remaining);
+      if (diffAbs <= 2) {
+        return { status: "window", remaining, diff: diffAbs };
+      }
+      if (remaining > 2) {
+        return { status: "waiting", remaining, diff: diffAbs };
+      }
+      return { status: "overdue", remaining, diff: diffAbs };
+    };
+
+    function updateGapCard(card, nowMs = Date.now()) {
+      if (!card) return;
+      const valueEl = card.querySelector("[data-gap-value]");
+      const metaEl = card.querySelector("[data-gap-meta]");
+      const avgAttr = card.dataset.avgGap;
+      const lastAttr = card.dataset.lastTs;
+      const avgGap = avgAttr ? Number(avgAttr) : null;
+      const lastTs = lastAttr ? Number(lastAttr) : null;
+      const currentDays =
+        Number.isFinite(lastTs) && lastTs > 0 ? (nowMs - lastTs) / DAY_MS : null;
+      const state = getGapState(avgGap, currentDays);
+      card.dataset.status = state.status;
+
+      const countdownLabel = (() => {
+        if (state.status === "unknown") return "Sin historial";
+        if (!Number.isFinite(avgGap) || !Number.isFinite(currentDays)) return "—";
+        const remaining = avgGap - currentDays;
+        if (remaining >= 0) {
+          if (remaining >= 1) return `${Math.round(remaining)} día(s) restantes`;
+          return `${Math.round(remaining * 24)} hora(s) restantes`;
+        }
+        const overdue = Math.abs(remaining);
+        if (overdue >= 1) return `Atrasado ${Math.round(overdue)} día(s)`;
+        return `Atrasado ${Math.round(overdue * 24)} hora(s)`;
+      })();
+
+      const formattedValue = (() => {
+        if (state.status === "unknown") return "Sin historial";
+        if (state.status === "window") {
+          const delta = formatShortSpan(state.remaining);
+          return `En ventana (${state.remaining >= 0 ? "−" : "+"}${delta})`;
+        }
+        if (state.status === "waiting") {
+          return `Faltan ${formatShortSpan(state.remaining)}`;
+        }
+        return `Atrasado ${formatShortSpan(Math.abs(state.remaining))}`;
+      })();
+      const formattedMeta = (() => {
+        const current = Number.isFinite(currentDays) ? formatShortSpan(currentDays) : "—";
+        const avg = Number.isFinite(avgGap) ? formatShortSpan(avgGap) : "—";
+        const lastTxt = card.dataset.lastLabel || "";
+        return `Actual: ${current} · Prom: ${avg}${lastTxt ? ` · Últ: ${lastTxt}` : ""}`;
+      })();
+      if (valueEl) valueEl.textContent = formattedValue;
+      if (metaEl) metaEl.textContent = formattedMeta;
+      const countdownEl = card.querySelector("[data-gap-countdown]");
+      if (countdownEl) countdownEl.textContent = countdownLabel;
+    }
+
+    function updateGapCardsTime() {
+      if (!memoryGapGrid) return;
+      const now = Date.now();
+      memoryGapGrid.querySelectorAll("[data-gap-card='true']").forEach((card) => {
+        updateGapCard(card, now);
+      });
+    }
+
+    function scheduleGapTimer() {
+      if (memoryGapTimer) clearInterval(memoryGapTimer);
+      if (!memoryGapGrid) return;
+      if (!memoryGapGrid.querySelector("[data-gap-card='true']")) return;
+      memoryGapTimer = setInterval(updateGapCardsTime, 60 * 1000);
+    }
+
+    function highlightMemoryNode(numero) {
+      if (!memoryBoardGrid) return;
+      memoryBoardGrid.querySelectorAll(".memory-node").forEach((node) => {
+        const nodeNum = parseInt(node.dataset.numero, 10);
+        node.classList.toggle("active", Number.isFinite(numero) && nodeNum === numero);
+      });
+    }
+
+    function renderMemoryDetailEmpty(message) {
+      if (!memoryDetail) return;
+      memoryDetail.innerHTML = `<p class="hint">${message}</p>`;
+    }
+
+    function buildRelationCards(profile, limitValues = 4) {
+      const cards = [];
+      Object.entries(MEMORY_RELATION_LABELS).forEach(([key, label]) => {
+        const count = profile.relationCounts[key] || 0;
+        if (!count) return;
+        const resolver = MEMORY_RELATION_VALUES[key];
+        const values = resolver ? resolver(profile) : [profile.base];
+        const uniqueValues = Array.from(new Set(values.filter((val) => Number.isFinite(val))));
+        cards.push({
+          key,
+          label,
+          count,
+          values: uniqueValues.slice(0, limitValues),
+          extraValues: uniqueValues.length > limitValues ? uniqueValues.length - limitValues : 0,
+        });
+      });
+      return cards;
+    }
+
+function buildVariantEntries(profile) {
+      const variants = [];
+      const ctx = profile.ctx;
+      if (!ctx) return variants;
+      const pushVariant = (key, label, value, extra = "") => {
+        if (value === null || typeof value === "undefined") return;
+        const variantKey = `${key}-${value}`;
+        variants.push({
+          key,
+          label,
+          value,
+          extra,
+          last: profile.variantStats[variantKey] || null,
+        });
+      };
+      pushVariant("invertido", "Invertido", ctx.mirror);
+      pushVariant("100-n", "100 − n", ctx.adjust);
+      ctx.neighbors.forEach((value) => {
+        const delta = ((value - ctx.base + 100) % 100) === 1 ? "+1" : "-1";
+        pushVariant("vecino", `Ajuste ${delta}`, value, delta);
+      });
+      ctx.simpleConversions.forEach((value) => pushVariant("mapa simple", "Mapa simple", value));
+      ctx.compositeConversions.forEach((value) =>
+        pushVariant("mapa compuesta", "Mapa compuesta", value)
+      );
+      return variants;
+}
+
+    async function renderGapPanel({ forceReload = false } = {}) {
+      if (!memoryGapGrid) return;
+      memoryGapGrid.innerHTML = "<p class='hint'>Calculando huecos…</p>";
+      if (memoryGapTimer) {
+        clearInterval(memoryGapTimer);
+        memoryGapTimer = null;
+      }
+      try {
+        const draws = await getMemoryDraws({ force: forceReload });
+        const summary = construirGapSummary(draws, { referenceDate: new Date() });
+        memoryGapData = summary;
+        const sorted = summary
+          .slice()
+          .sort((a, b) => {
+            const stateA = getGapState(a.avgGap, a.currentGap);
+            const stateB = getGapState(b.avgGap, b.currentGap);
+            const priority = { window: 0, waiting: 1, overdue: 2, unknown: 3 };
+            const diffPriority =
+              (priority[stateA.status] ?? 3) - (priority[stateB.status] ?? 3);
+            if (diffPriority !== 0) return diffPriority;
+            return (stateA.diff ?? Infinity) - (stateB.diff ?? Infinity);
+          });
+
+        const hasHistory = summary.some((entry) => entry.count > 0);
+        if (!hasHistory) {
+          memoryGapGrid.innerHTML =
+            "<p class='hint'>Aún no hay suficientes registros para calcular huecos.</p>";
+          return;
+        }
+        const fragment = document.createDocumentFragment();
+        sorted.forEach((entry) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "memory-gap-card";
+          card.dataset.gapCard = "true";
+          card.dataset.numero = entry.numero;
+          if (Number.isFinite(entry.avgGap)) card.dataset.avgGap = String(entry.avgGap);
+          else card.dataset.avgGap = "";
+          if (Number.isFinite(entry.lastTimestamp))
+            card.dataset.lastTs = String(entry.lastTimestamp);
+          else card.dataset.lastTs = "";
+          const state = getGapState(entry.avgGap, entry.currentGap);
+          card.dataset.status = state.status;
+          if (entry.lastFecha) {
+            const lastLabel = `${formatFriendlyDate(entry.lastFecha)}${
+              entry.lastHorario ? ` ${entry.lastHorario}` : ""
+            }`.trim();
+            card.dataset.lastLabel = lastLabel;
+          } else {
+            card.dataset.lastLabel = "";
+          }
+          const rawSymbol = getSymbol(entry.numero);
+          const symbol = rawSymbol && rawSymbol.trim().length ? rawSymbol : "Sin símbolo";
+          card.innerHTML = `
+            <div class="memory-gap-card__head">
+              <div class="memory-gap-card__identity">
+                <span class="memory-gap-card__number">${formatNumber(entry.numero)}</span>
+                <span class="memory-gap-card__symbol">${symbol}</span>
+              </div>
+              <div class="memory-gap-card__stats">
+                <span class="memory-gap-card__label">Apariciones</span>
+                <span class="memory-gap-card__count">${entry.count || 0}</span>
+              </div>
+            </div>
+            <div class="memory-gap-card__value" data-gap-value>—</div>
+            <div class="memory-gap-card__countdown" data-gap-countdown>—</div>
+            <div class="memory-gap-card__meta" data-gap-meta>Actual: — · Promedio: —</div>
+          `;
+          card.addEventListener("click", () => openMemoryDetail(entry.numero));
+          fragment.appendChild(card);
+        });
+        memoryGapGrid.innerHTML = "";
+        memoryGapGrid.appendChild(fragment);
+        updateGapCardsTime();
+        scheduleGapTimer();
+      } catch (err) {
+        console.error("memory gap error", err);
+        memoryGapGrid.innerHTML = "<p class='hint'>No se pudo generar el monitor de huecos.</p>";
+      }
+    }
+
+    function renderMemoryDetail(profile) {
+      if (!memoryDetail) return;
+      if (!profile || profile.base === null) {
+        renderMemoryDetailEmpty("Selecciona un número válido.");
+        return;
+      }
+      if (!profile.timeline.length) {
+        renderMemoryDetailEmpty("Aún no hay registros para este número.");
+        return;
+      }
+      const symbol = getSymbol(profile.base);
+      const last = profile.timeline[profile.timeline.length - 1];
+      const variants = buildVariantEntries(profile);
+      const relationCards = buildRelationCards(profile);
+      const gapAverage = formatDaysGap(profile.gaps.average);
+      const gapMax = formatDaysGap(profile.gaps.max);
+      const gapCurrent = formatDaysGap(profile.gaps.current);
+      const turnItems = Object.entries(profile.turnStats)
+        .map(([turno, stats]) => ({
+          turno,
+          order: HORARIO_ORDER[turno] ?? 99,
+          count: stats.count || 0,
+          lastFecha: stats.lastFecha || null,
+          lastPais: stats.lastPais || "",
+        }))
+        .sort((a, b) => a.order - b.order);
+      const recentTimeline = profile.timeline.slice(-8).reverse();
+
+      memoryDetail.innerHTML = `
+        <div class="memory-detail__header">
+          <div>
+            <div class="memory-detail__number">${formatNumber(profile.base)}</div>
+            <div class="memory-detail__symbol">${symbol || "Sin símbolo registrado"}</div>
+          </div>
+          <div class="memory-tag">Última vez: ${last ? formatFriendlyDate(last.fecha) : "—"}</div>
+        </div>
+        <div class="memory-stats">
+          <div class="memory-stat">
+            <strong>${profile.totals.total}</strong>
+            <span>Apariciones</span>
+          </div>
+          <div class="memory-stat">
+            <strong>${profile.totals.direct}</strong>
+            <span>Directos</span>
+          </div>
+          <div class="memory-stat">
+            <strong>${profile.totals.transforms}</strong>
+            <span>Transformaciones</span>
+          </div>
+          <div class="memory-stat">
+            <strong>${gapAverage}</strong>
+            <span>Promedio</span>
+          </div>
+        </div>
+        <div class="memory-stats">
+          <div class="memory-stat">
+            <strong>${gapMax}</strong>
+            <span>Hueco máximo</span>
+          </div>
+          <div class="memory-stat">
+            <strong>${gapCurrent}</strong>
+            <span>Hueco actual</span>
+          </div>
+        </div>
+        <div>
+          <h4>Transformaciones activas</h4>
+          <div class="memory-transform-grid">
+            ${
+              relationCards.length
+                ? relationCards
+                    .map(
+                      (card) => `<div class="memory-transform-card">
+                        <div class="memory-transform-count">${card.count}</div>
+                        <div class="memory-transform-label">${card.label}</div>
+                        <div class="memory-transform-values">
+                          ${
+                            card.values
+                              .map(
+                                (value) =>
+                                  `<span class="memory-transform-chip">${formatNumber(value)}</span>`
+                              )
+                              .join("")
+                          }
+                          ${
+                            card.extraValues
+                              ? `<span class="memory-transform-chip">+${card.extraValues}</span>`
+                              : ""
+                          }
+                        </div>
+                      </div>`
+                    )
+                    .join("")
+                : "<p class='hint'>Aún no hay conversiones registradas.</p>"
+            }
+          </div>
+        </div>
+        <div>
+          <h4>Variantes rastreadas</h4>
+          <div class="memory-variant-grid">
+            ${
+              variants.length
+                ? variants
+                    .map((variant) => {
+                      const lastSeen = variant.last
+                        ? `${formatFriendlyDate(variant.last.fecha)} · ${variant.last.horario || "—"}`
+                        : "Sin registro";
+                      return `<div class="memory-variant-card">
+                        <strong>${formatNumber(variant.value)}</strong>
+                        <div>${variant.label}</div>
+                        <small>${lastSeen}</small>
+                      </div>`;
+                    })
+                    .join("")
+                : "<p class='hint'>No hay variantes configuradas para este número.</p>"
+            }
+          </div>
+        </div>
+        <div>
+          <h4>Actividad por turno</h4>
+          <div class="memory-turns">
+            ${
+              turnItems.length
+                ? turnItems
+                    .map(
+                      (item) => `<div class="memory-turn">
+                        <strong>${item.turno}</strong>
+                        <div>${item.count} registro(s)</div>
+                        <small>${item.lastFecha ? formatFriendlyDate(item.lastFecha) : "—"}</small>
+                      </div>`
+                    )
+                    .join("")
+                : "<p class='hint'>Sin datos por turno.</p>"
+            }
+          </div>
+        </div>
+        <div>
+          <h4>Línea temporal</h4>
+          <div class="memory-timeline" id="memory-timeline-list"></div>
+        </div>
+      `;
+      const timelineContainer = memoryDetail.querySelector("#memory-timeline-list");
+      if (timelineContainer) {
+        if (!recentTimeline.length) {
+          timelineContainer.innerHTML = "<p class='hint'>Sin registros aún.</p>";
+        } else {
+          recentTimeline.forEach((entry) => {
+            const relText = entry.relaciones
+              .map((key) => MEMORY_RELATION_LABELS[key] || key)
+              .join(" · ");
+            const meta = `${formatFriendlyDate(entry.fecha)} · ${entry.horario || "—"} · ${entry.pais || "—"}`;
+            const gapText = entry.gapToNextDays !== null
+              ? `Próx. aparición después de ${formatGapText(entry.gapToNextDays)}`
+              : "Último registro";
+            const row = document.createElement("div");
+            row.className = "memory-timeline-entry";
+            row.innerHTML = `
+              <div class="memory-timeline-head">
+                <strong>${formatNumber(entry.numero)}</strong>
+                <span class="memory-gap-badge">${gapText}</span>
+              </div>
+              <div>${relText || "—"}</div>
+              <div class="memory-timeline-meta">${meta}</div>
+            `;
+            const actions = document.createElement("div");
+            actions.className = "memory-timeline-actions";
+            const jumpBtn = document.createElement("button");
+            jumpBtn.type = "button";
+            jumpBtn.className = "btn-ghost";
+            jumpBtn.textContent = "Ver día";
+            jumpBtn.addEventListener("click", () => {
+              jumpToDayView(entry.fecha, entry.pais || dayPais?.value || "HN");
+            });
+            actions.appendChild(jumpBtn);
+            row.appendChild(actions);
+            timelineContainer.appendChild(row);
+          });
+        }
+      }
+    }
+
+    async function openMemoryDetail(numero) {
+      if (!Number.isFinite(numero)) return;
+      memorySelectedNumero = numero;
+      highlightMemoryNode(numero);
+      if (memoryDetail) {
+        memoryDetail.innerHTML = "<p class='hint'>Calculando expediente…</p>";
+      }
+      try {
+        const draws = await getMemoryDraws();
+        const profile = construirPerfilNumero(draws, numero, { referenceDate: new Date() });
+        renderMemoryDetail(profile);
+        memoryDetail?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (err) {
+        console.error("memory detail error", err);
+        renderMemoryDetailEmpty("No se pudo cargar el perfil de este número.");
+      }
+    }
+
+    async function renderMemoryBoard({ forceReload = false } = {}) {
+      if (!memoryBoardGrid) return;
+      memoryBoardGrid.innerHTML = "<p class='hint'>Procesando historial…</p>";
+      try {
+        const draws = await getMemoryDraws({ force: forceReload });
+        const summary = resumirActividadNumeros(draws, { referenceDate: new Date() });
+        memorySummary = summary;
+        const maxCount = summary.reduce((max, entry) => Math.max(max, entry.total), 0);
+        if (!summary.length || maxCount === 0) {
+          memoryBoardGrid.innerHTML =
+            "<p class='hint'>Aún no hay sorteos registrados. Guarda resultados para activar esta vista.</p>";
+          renderMemoryDetailEmpty("Selecciona un número para ver su bitácora.");
+          return;
+        }
+        const fragment = document.createDocumentFragment();
+        summary.forEach((entry) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "memory-node";
+          btn.dataset.numero = entry.numero;
+          const ratio = maxCount ? entry.total / maxCount : 0;
+          btn.style.setProperty("--memory-node-intensity", Math.min(1, ratio).toFixed(2));
+          if (entry.numero === memorySelectedNumero) btn.classList.add("active");
+          btn.innerHTML = `
+            <span class="memory-node__number">${formatNumber(entry.numero)}</span>
+            <span class="memory-node__count">${entry.total || "—"}</span>
+            <span class="memory-node__meta">${relativeDaysLabel(entry.daysSinceLast)}</span>
+          `;
+          fragment.appendChild(btn);
+        });
+        memoryBoardGrid.innerHTML = "";
+        memoryBoardGrid.appendChild(fragment);
+      } catch (err) {
+        console.error("memory board error", err);
+        memoryBoardGrid.innerHTML = "<p class='hint'>No se pudo generar el mapa.</p>";
+      }
+    }
+
+    memoryRefreshBtn?.addEventListener("click", async () => {
+      await renderMemoryBoard({ forceReload: true });
+      await renderGapPanel({ forceReload: true });
+      if (Number.isFinite(memorySelectedNumero)) openMemoryDetail(memorySelectedNumero);
+    });
+
+    memoryGapRefreshBtn?.addEventListener("click", async () => {
+      await renderGapPanel({ forceReload: true });
+    });
+
+    memoryBoardGrid?.addEventListener("click", (event) => {
+      const target = event.target.closest(".memory-node");
+      if (!target) return;
+      const numero = parseInt(target.dataset.numero, 10);
+      if (!Number.isFinite(numero)) return;
+      openMemoryDetail(numero);
+    });
+
+    await renderMemoryBoard();
+    await renderGapPanel();
+
+    const toggleTech = document.getElementById("toggle-tech");
+    const memOut = document.getElementById("mem-out");
+    toggleTech?.addEventListener("click", async () => {
+      if (!memOut) return;
+      memOut.classList.toggle("hidden");
+      if (!memOut.classList.contains("hidden")) {
+        const draws = await DB.listDraws({ excludeTest: false });
+        memOut.textContent = JSON.stringify(draws.slice(-50), null, 2);
+      }
+    });
+
+    const btnTransform = document.getElementById("t-ver");
+    btnTransform?.addEventListener("click", () => {
+      const raw = document.getElementById("t-numero")?.value.trim() ?? "";
+      const numero = parseInt(raw, 10);
+      mostrarTransformaciones(numero);
+    });
+
+    // ── Modo Consulta histórica ──────────────────────────────────────────────
+    async function ejecutarConsulta() {
+      const raw     = document.getElementById("cq-numero")?.value.trim() ?? "";
+      const horario = document.getElementById("cq-horario")?.value || null;
+      const output  = document.getElementById("cq-output");
+      if (!output) return;
+
+      const num = parseInt(raw, 10);
+      if (isNaN(num) || num < 0 || num > 99) {
+        output.innerHTML = `<p class="hint small">Ingresá un número entre 00 y 99.</p>`;
+        return;
+      }
+
+      output.innerHTML = `<p class="hint small">Consultando historial…</p>`;
+      try {
+        const draws      = await getCachedDraws({ excludeTest: true });
+        const rezagoMap  = (await loadSignalEngine()).calcularRezago(draws);
+        const result     = consultarNumero(num, draws, GUIA, { horario, rezagoMap });
+        output.innerHTML = renderConsultaHTML(result, GUIA);
+      } catch (err) {
+        output.innerHTML = `<p class="hint small">Error: ${err.message}</p>`;
+      }
+    }
+
+    document.getElementById("cq-btn")?.addEventListener("click", ejecutarConsulta);
+    document.getElementById("cq-numero")?.addEventListener("keydown", e => {
+      if (e.key === "Enter") ejecutarConsulta();
+    });
+
+    const btnGeometria = document.getElementById("g-generar");
+    btnGeometria?.addEventListener("click", async () => {
+      const fecha = geometryDateInput?.value;
+      const paisSeleccionado = geometryPaisSelect?.value || dayPais?.value || "HN";
+      if (!fecha) {
+        showToast("Selecciona una fecha para generar la cruceta/triángulo.", { variant: "warning" });
+        return;
+      }
+      const cruceta = generarCruceta(fecha);
+      renderCruceta(cruceta);
+      const niveles = generarTrianguloInvertido(fecha);
+      const contTri = document.getElementById("g-tri");
+      if (contTri) dibujarTrianguloInvertido(contTri, niveles);
+      await renderTurnoCruceta(fecha, paisSeleccionado);
+    });
+
+    function renderCruceta(data) {
+      const cont = document.getElementById("g-cruceta");
+      if (!cont) return;
+      cont.innerHTML = `
+        <div class="c-row">
+          <div class="ball small">${formatNumber(data.norte)}</div>
+        </div>
+        <div class="c-row">
+          <div class="ball small">${formatNumber(data.oeste)}</div>
+          <div class="ball small">${formatNumber(data.centro)}</div>
+          <div class="ball small">${formatNumber(data.este)}</div>
+        </div>
+        <div class="c-row">
+          <div class="ball small">${formatNumber(data.sur)}</div>
+        </div>
+      `;
+    }
+
+    async function renderTurnoCruceta(fecha, pais) {
+      const cont = document.getElementById("g-turnos");
+      const candWrap = document.getElementById("g-turnos-cands");
+      if (!cont || !candWrap) return;
+      cont.innerHTML = "<p class='hint'>Calculando cruceta con los sorteos de 11 AM y 3 PM…</p>";
+      candWrap.innerHTML = "";
+      try {
+        const draws = await getCachedDraws();
+        const draw11 = pickDraw(draws, fecha, pais, "11AM");
+        const draw3 = pickDraw(draws, fecha, pais, "3PM");
+        if (!draw11 || !draw3) {
+          cont.innerHTML = `<p class='hint'>Registra los sorteos reales de 11 AM y 3 PM para ${fecha} (${pais}).</p>`;
+          return;
+        }
+        const cruceta = generarCrucetaTurnos(draw11.numero, draw3.numero);
+        const formatNode = (value) => `${value}`;
+        cont.innerHTML = `
+          <div class="c-row">
+            <div class="ball small">${formatNode(cruceta.north)}</div>
+          </div>
+          <div class="c-row">
+            <div class="ball small">${formatNode(cruceta.west)}</div>
+            <div class="ball small">${formatNode(cruceta.center)}</div>
+            <div class="ball small">${formatNode(cruceta.east)}</div>
+          </div>
+          <div class="c-row">
+            <div class="ball small">${formatNode(cruceta.south)}</div>
+          </div>
+          <p class="geom-note">11 AM: ${formatNumber(draw11.numero)} · 3 PM: ${formatNumber(
+            draw3.numero,
+          )} · ${pais}</p>
+        `;
+        if (cruceta.candidates.length) {
+          candWrap.innerHTML = `
+            <p class="geom-note">Candidatos sugeridos para las 9 PM</p>
+            <div class="geom-candidate-chips">
+              ${cruceta.candidates
+                .map(
+                  (num) =>
+                    `<span class="geom-chip"><strong>${formatNumber(num)}</strong><small>${getSymbol(num) || ""}</small></span>`,
+                )
+                .join("")}
+            </div>
+            ${
+              cruceta.candidateNotes?.length
+                ? `<ul class="geom-steps">${cruceta.candidateNotes
+                    .map((note) => `<li>${note.detail}</li>`)
+                    .join("")}</ul>`
+                : ""
+            }
+            ${
+              cruceta.steps?.length
+                ? `<details class="geom-steps-details"><summary>Ver operaciones</summary><ul class="geom-steps">${cruceta.steps
+                    .map((step) => `<li><strong>${step.label}:</strong> ${step.expr} ⇒ ${step.result}</li>`)
+                    .join("")}</ul></details>`
+                : ""
+            }
+          `;
+        } else {
+          candWrap.innerHTML = "<p class='hint'>Sin candidatos suficientes con estos datos.</p>";
+        }
+      } catch (err) {
+        console.error("cruceta turnos error", err);
+        cont.innerHTML = `<p class='hint'>No se pudo calcular la cruceta de turnos: ${err.message}</p>`;
+      }
+    }
+
+    const btnDup = document.getElementById("btn-list-dup");
+    const btnMarkTestDup = document.getElementById("btn-marktest-dup");
+    const btnDeleteDup = document.getElementById("btn-delete-dup");
+    const dupOut = document.getElementById("dup-out");
+    const btnFixDates = document.getElementById("btn-fix-dates");
+    const fixDatesOut = document.getElementById("fix-dates-out");
+
+    btnDup?.addEventListener("click", refreshDuplicados);
+
+    btnMarkTestDup?.addEventListener("click", async () => {
+      const ids = getSelectedDupIds();
+      if (!ids.length) {
+        showToast("Selecciona al menos un registro duplicado.", { variant: "warning" });
+        return;
+      }
+      try {
+        await marcarGrupoComoTest(ids);
+        await refreshDuplicados();
+        await refreshSlots();
+        showToast("Marcados como prueba.", { variant: "success" });
+        await rebuildKnowledge();
+        await handleDrawsMutated();
+      } catch (err) {
+        console.error("mark dup error", err);
+        showToast(`No se pudo marcar como prueba: ${err.message}`, { variant: "danger" });
+      }
+    });
+
+    btnDeleteDup?.addEventListener("click", async () => {
+      const ids = getSelectedDupIds();
+      if (!ids.length) {
+        showToast("Selecciona registros para eliminar.", { variant: "warning" });
+        return;
+      }
+      const confirmar = await mostrarModal(
+        "Eliminar registros",
+        "¿Eliminar los registros seleccionados?",
+        { okText: "Eliminar", cancelText: "Cancelar", okVariant: "danger" }
+      );
+      if (!confirmar) return;
+      try {
+        await borrarIds(ids);
+        await refreshDuplicados();
+        await refreshSlots();
+        showToast("Registros eliminados.", { variant: "success" });
+        await rebuildKnowledge();
+        await handleDrawsMutated();
+      } catch (err) {
+        console.error("delete dup error", err);
+        showToast(`No se pudieron eliminar los registros: ${err.message}`, { variant: "danger" });
+      }
+    });
+
+    async function refreshDuplicados() {
+      if (!dupOut) return;
+      dupOut.innerHTML = "<p class='hint'>Buscando duplicados…</p>";
+      try {
+        const grupos = await revisarDuplicados();
+        if (!grupos.length) {
+          dupOut.innerHTML = "<p class='hint'>Sin duplicados detectados.</p>";
+          return;
+        }
+        dupOut.innerHTML = "";
+        grupos.forEach((group, idx) => {
+          const box = document.createElement("div");
+          box.className = "card";
+          box.style.width = "100%";
+          box.style.marginBottom = "10px";
+          const head = document.createElement("div");
+          head.className = "card-head";
+          head.textContent = `Grupo #${idx + 1}`;
+          const list = document.createElement("div");
+          list.className = "card-body";
+          list.style.flexDirection = "column";
+          list.style.alignItems = "flex-start";
+          group.forEach((reg) => {
+            const label = document.createElement("label");
+            label.className = "symbol-tag";
+            label.innerHTML = `
+              <input type="checkbox" value="${reg.id}" />
+              <span>${formatNumber(reg.numero)}</span>
+              <span>${reg.fecha} ${reg.horario} ${reg.pais}</span>
+              <span class="hint">${reg.isTest ? "test" : "real"}</span>
+            `;
+            list.appendChild(label);
+          });
+          box.appendChild(head);
+          box.appendChild(list);
+          dupOut.appendChild(box);
+        });
+      } catch (err) {
+        console.error("dup error", err);
+        dupOut.innerHTML = `<p class='hint'>No se pudieron obtener duplicados: ${err.message}</p>`;
+      }
+    }
+
+    function getSelectedDupIds() {
+      if (!dupOut) return [];
+      return Array.from(dupOut.querySelectorAll("input[type='checkbox']:checked"))
+        .map((el) => parseInt(el.value, 10))
+        .filter((n) => !Number.isNaN(n));
+    }
+
+    btnFixDates?.addEventListener("click", async () => {
+      if (!fixDatesOut) return;
+      btnFixDates.disabled = true;
+      fixDatesOut.innerHTML = "<p class='hint'>Revisando registros…</p>";
+      try {
+        const cambios = await corregirFechasDesfasadas({ maxAheadDays: 1 });
+        if (!cambios.length) {
+          fixDatesOut.innerHTML = "<p class='hint'>No se detectaron sorteos adelantados.</p>";
+          showToast("No se encontraron registros con desfase.", { variant: "info" });
+          return;
+        }
+        const detailItems = cambios
+          .map(
+            (reg) =>
+              `<li>${reg.before} → ${reg.after} • ${reg.horario || ""} ${reg.pais || ""} #${formatNumber(reg.numero)}</li>`
+          )
+          .join("");
+        fixDatesOut.innerHTML = `
+          <p class='hint'>Se corrigieron ${cambios.length} registro(s) con desfase:</p>
+          <ul class="analysis-note">${detailItems}</ul>
+        `;
+        await refreshSlots();
+        await handleDrawsMutated();
+        await rebuildKnowledge();
+        showToast(`Listo: ${cambios.length} registro(s) corrigieron su fecha.`, { variant: "success" });
+      } catch (err) {
+        console.error("fix dates error", err);
+        fixDatesOut.innerHTML = `<p class='hint'>No se pudo completar la corrección: ${err.message}</p>`;
+        showToast(`Error al corregir fechas: ${err.message}`, { variant: "danger" });
+      } finally {
+        btnFixDates.disabled = false;
+      }
+    });
+
+    // ✅ Navegación lateral
+    const sidebar = document.getElementById("sidebar");
+    const toggleBtn = document.getElementById("btn-toggle-sidebar");
+    const logoutBtn = document.getElementById("btn-logout");
+
+    async function cerrarSesion() {
+      try {
+        await supabaseLogout();
+      } catch (err) {
+        console.error("logout error", err);
+      } finally {
+        window.location.href = "./login.html";
+      }
+    }
+
+    logoutBtn?.addEventListener("click", cerrarSesion);
+
+    const syncRemoteBtn = document.getElementById("btn-sync-remote");
+
+    async function runRemoteSync({ silent = false } = {}) {
+      const btn = syncRemoteBtn;
+      if (btn) { btn.disabled = true; }
+      try {
+        const prevCount = (pendingDayQueue || []).length;
+        pendingDayQueue = await loadPendingDayQueue();
+        updatePendingIndicator();
+        await refreshSlots({ forceReload: true });
+        await handleDrawsMutated();
+        if (!silent) {
+          const newCount = (pendingDayQueue || []).length;
+          const diff = newCount - prevCount;
+          if (diff > 0) {
+            showToast(`Sincronizado — ${diff} sorteo${diff > 1 ? "s" : ""} nuevo${diff > 1 ? "s" : ""} encontrado${diff > 1 ? "s" : ""}.`, { variant: "success" });
+          } else {
+            showToast("Sistema al día — sin nuevos sorteos.", { variant: "info" });
+          }
+        }
+      } catch (err) {
+        if (!silent) showToast("No se pudo sincronizar: " + err.message, { variant: "danger" });
+      } finally {
+        if (btn) { btn.disabled = false; }
+      }
+    }
+
+    syncRemoteBtn?.addEventListener("click", () => runRemoteSync());
+
+    // Auto-sync al iniciar: espera a que todo se asiente y consulta Supabase
+    setTimeout(() => runRemoteSync(), 1500);
+
+    const closeSidebarMobile = () => {
+      if (!sidebar) return;
+      sidebar.classList.remove("show-mobile");
+      if (toggleBtn) {
+        toggleBtn.classList.remove("sidebar-open");
+        toggleBtn.setAttribute("aria-expanded", "false");
+      }
+    };
+
+    const openSidebarMobile = () => {
+      if (!sidebar) return;
+      sidebar.classList.add("show-mobile");
+      if (toggleBtn) {
+        toggleBtn.classList.add("sidebar-open");
+        toggleBtn.setAttribute("aria-expanded", "true");
+      }
+    };
+
+    // ✅ Cambio de vistas
+    const views = {
+      day: "view-day",
+      mesa: "view-mesa",
+      hypo: "view-hypo",
+      analysis: "view-analysis",
+      temporal: "view-temporal",
+      transform: "view-transform",
+      pega3: "view-pega3",
+      geometry: "view-geometry",
+      memory: "view-memory",
+      guide: "view-guide",
+      config: "view-config",
+      maint: "view-maint",
+      modes: "view-modes",
+      calc:  "view-calc",
+      wiki:  "view-wiki",
+      superpremio: "view-superpremio",
+      suerte: "view-suerte",
+    };
+    const sidebarButtons = document.querySelectorAll(".sidebar button");
+    sidebarButtons.forEach((b) => {
+      b.onclick = () => {
+        if (b.dataset.view === "login") {
+          window.location.href = "./login.html?mode=switch";
+          return;
+        }
+        document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
+        const id = views[b.dataset.view];
+        const el = document.getElementById(id);
+        if (!el) return logWarn("Vista no encontrada:", id);
+        el.classList.remove("hidden");
+        if (id === "view-guide") mostrarGuia();
+        if (id === "view-wiki")  initWiki();
+        if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
+        if (id === "view-mesa")     renderMesa().catch(() => {});
+        if (id === "view-analysis") renderPulso().catch(() => {});
+        if (id === "view-superpremio") renderSuperPremioPanel().catch(() => {});
+        if (id === "view-temporal") renderVerificador().catch(() => {});
+        if (id === "view-maint") {
+          refreshDuplicados();
+          getCachedDraws().then((draws) => renderHistoryCoverage(draws)).catch(() => {});
+        }
+        if (id === "view-modes") refreshModesPanel();
+        if (id === "view-calc")  initCalc();
+        if (id === "view-pega3") {
+          syncPega3Context();
+          refreshPega3Historial();
+          renderPega3Panels();
+        }
+        if (id === "view-memory") {
+          renderMemoryBoard();
+          renderGapPanel();
+        }
+        if (id === "view-suerte") initSuerte();
+        if (window.innerWidth <= 768) closeSidebarMobile();
+      };
+    });
+
+    // ════════════════════════════════════════════════════════════════
+    // VERIFICADOR ESTADÍSTICO — renderVerificador
+    // ════════════════════════════════════════════════════════════════
+    async function renderVerificador() {
+      const PAD2 = n => String(n).padStart(2, "0");
+      const draws = (await getCachedDraws({ excludeTest: true })).filter(d => !d.esTest);
+      const spFechas = await listSpFromDb().catch(() => []);
+
+      // ── Helpers de render ─────────────────────────────────────────
+      function verdictBadge(v) {
+        const cfg = {
+          CONFIRMADO:  { cls: "vt-badge--ok",      label: "✓ Confirmado"         },
+          TENDENCIA:   { cls: "vt-badge--tend",     label: "⚠ Tendencia"          },
+          SIN_EFECTO:  { cls: "vt-badge--no",       label: "✗ Sin efecto"         },
+          insuficiente:{ cls: "vt-badge--ins",      label: "? Datos insuficientes" },
+        };
+        const c = cfg[v] || cfg.insuficiente;
+        return `<span class="vt-badge ${c.cls}">${c.label}</span>`;
+      }
+
+      function numChip(n, extra = "") {
+        const pd  = PAD2(n);
+        const sym = GUIA?.[pd]?.simbolo || "";
+        return `<span class="vt-num-chip ${extra}" title="${sym}">${pd}<small>${sym}</small></span>`;
+      }
+
+      // ── Panel 1: Afirmaciones ─────────────────────────────────────
+      const claims = verificarAfirmaciones(draws, spFechas);
+      const claimsEl = document.getElementById("vt-claims-out");
+
+      if (!claims.length) {
+        claimsEl.innerHTML = `<p class="hint">Datos insuficientes para verificar hipótesis.</p>`;
+      } else {
+        claimsEl.innerHTML = claims.map(c => {
+          let extra = "";
+          if (c.id === "diciembre" && (c.numsSobre?.length || c.numsBajo?.length)) {
+            extra = `
+              <div class="vt-claim__nums">
+                ${c.numsSobre?.length ? `<div class="vt-claim__nums-row">
+                  <span class="vt-nums-lbl vt-nums-lbl--sobre">↑ Sobre-representados</span>
+                  ${c.numsSobre.map(a => numChip(a.num, "vt-num-chip--sobre")).join("")}
+                </div>` : ""}
+                ${c.numsBajo?.length ? `<div class="vt-claim__nums-row">
+                  <span class="vt-nums-lbl vt-nums-lbl--bajo">↓ Bajo-representados</span>
+                  ${c.numsBajo.map(a => numChip(a.num, "vt-num-chip--bajo")).join("")}
+                </div>` : ""}
+              </div>`;
+          }
+          if (c.id === "anio_anio" && c.correlaciones?.length) {
+            extra = `<div class="vt-corr-row">
+              ${c.correlaciones.map(cr => `
+                <span class="vt-corr-chip ${cr.r < 0.3 ? "vt-corr-chip--low" : cr.r < 0.6 ? "vt-corr-chip--mid" : "vt-corr-chip--high"}">
+                  ${cr.pair}<br><strong>r=${cr.r}</strong>
+                </span>`).join("")}
+            </div>`;
+          }
+          return `
+          <div class="vt-claim ${c.verdict === "CONFIRMADO" ? "vt-claim--ok" : c.verdict === "TENDENCIA" ? "vt-claim--tend" : ""}">
+            <div class="vt-claim__head">
+              ${verdictBadge(c.verdict)}
+              <span class="vt-claim__hipotesis">${c.hipotesis}</span>
+            </div>
+            <p class="vt-claim__fuente">Fuente de la afirmación: ${c.fuente}</p>
+            <p class="vt-claim__muestra">Muestra: ${c.muestra}</p>
+            <p class="vt-claim__evidencia">${c.evidencia}</p>
+            ${extra}
+            <p class="vt-claim__conclusion">${c.conclusion}</p>
+          </div>`;
+        }).join("");
+      }
+
+      // ── Panel 2: Mapa estacional ──────────────────────────────────
+      const { months } = verificarEstacionalidad(draws);
+      const seasonEl   = document.getElementById("vt-seasonal-out");
+      seasonEl.innerHTML = months.map(mo => {
+        const lvlCls = {
+          atipico:      "vt-month--atipico",
+          tendencia:    "vt-month--tend",
+          normal:       "vt-month--normal",
+          insuficiente: "vt-month--ins"
+        }[mo.verdictLevel] || "";
+        const badgeTxt = {
+          atipico:      "Atípico",
+          tendencia:    "Tendencia",
+          normal:       "Normal",
+          insuficiente: "Pocos datos"
+        }[mo.verdictLevel] || "";
+
+        const sobreChips = mo.topOver.slice(0,4).map(a =>
+          `<span class="vt-sm-chip vt-sm-chip--sobre" title="z=${a.z}">${PAD2(a.num)}</span>`
+        ).join("");
+        const bajoChips = mo.topUnder.slice(0,4).map(a =>
+          `<span class="vt-sm-chip vt-sm-chip--bajo" title="z=${a.z}">${PAD2(a.num)}</span>`
+        ).join("");
+
+        return `
+        <div class="vt-month ${lvlCls}">
+          <div class="vt-month__name">${mo.nameFull}</div>
+          <div class="vt-month__badge">${badgeTxt}</div>
+          <div class="vt-month__meta">${mo.total} sorteos · χ²=${mo.chi}</div>
+          <div class="vt-month__pval">${mo.pLabel}</div>
+          ${sobreChips || bajoChips ? `
+          <div class="vt-month__chips">
+            ${sobreChips}${bajoChips}
+          </div>` : `<div class="vt-month__chips" style="opacity:.35">sin anomalías</div>`}
+        </div>`;
+      }).join("");
+
+      // ── Panel 3: Índice ROBOTELSA ─────────────────────────────────
+      const robo    = indexRobotelsa(draws);
+      const roboEl  = document.getElementById("vt-robotelsa-out");
+
+      if (!robo.globalAvg) {
+        roboEl.innerHTML = `<p class="hint">Datos insuficientes para calcular entropía.</p>`;
+      } else {
+        const maxH   = Math.max(...robo.monthAvg.filter(m=>m.avg!==null).map(m=>m.avg), 1);
+        const minH   = Math.min(...robo.monthAvg.filter(m=>m.avg!==null).map(m=>m.avg), 0);
+        const range  = Math.max(maxH - minH, 0.01);
+        const globalPct = ((robo.globalAvg - minH) / range * 100).toFixed(0);
+
+        roboEl.innerHTML = `
+          <div class="vt-robo-bars">
+            ${robo.monthAvg.map(m => {
+              if (m.avg === null) return `<div class="vt-robo-bar"><div class="vt-robo-fill vt-robo-fill--ins" style="height:20%"></div><span class="vt-robo-label">${m.name}</span></div>`;
+              const pct = ((m.avg - minH) / range * 100).toFixed(0);
+              const aboveGlobal = m.relToGlobal > 2;
+              const belowGlobal = m.relToGlobal < -2;
+              return `
+              <div class="vt-robo-bar" title="${m.name}: H=${m.avg} (${m.relToGlobal > 0 ? "+" : ""}${m.relToGlobal}% vs promedio) · ${m.samples} muestras">
+                <div class="vt-robo-fill ${aboveGlobal ? "vt-robo-fill--high" : belowGlobal ? "vt-robo-fill--low" : ""}" style="height:${pct}%"></div>
+                <span class="vt-robo-label">${m.name}</span>
+              </div>`;
+            }).join("")}
+            <div class="vt-robo-baseline" style="bottom:${globalPct}%" title="Promedio global H=${robo.globalAvg}"></div>
+          </div>
+          <div class="vt-robo-legend">
+            <span class="vt-robo-leg vt-robo-leg--high">Más impredecible (+2%)</span>
+            <span class="vt-robo-leg">Promedio (línea naranja)</span>
+            <span class="vt-robo-leg vt-robo-leg--low">Más predecible (−2%)</span>
+          </div>`;
+      }
+
+      // ── Panel 4: Año vs año ───────────────────────────────────────
+      const ayaSelect = document.getElementById("vt-aya-mes");
+      const ayaOut    = document.getElementById("vt-aya-out");
+
+      function renderAya(month) {
+        const data       = compararAnioAnio(draws, month);
+        const recurSet   = new Set(data.recurring.map(r => r.num));
+        if (!data.years.length) {
+          ayaOut.innerHTML = `<p class="hint">Sin datos para ${data.monthName}.</p>`;
+          return;
+        }
+        ayaOut.innerHTML = `
+          <div class="vt-aya-grid">
+            ${data.years.map(y => `
+            <div class="vt-aya-year">
+              <div class="vt-aya-year__head">${y.year} <span class="vt-aya-year__total">${y.total} sorteos</span></div>
+              <div class="vt-aya-year__chips">
+                ${y.top.map(t => `
+                  <span class="vt-sm-chip ${recurSet.has(t.num) ? "vt-sm-chip--recur" : ""}" title="${t.count}× en ${y.year}">
+                    ${PAD2(t.num)}<small>×${t.count}</small>
+                  </span>`).join("")}
+              </div>
+            </div>`).join("")}
+          </div>
+          ${data.recurring.length ? `
+          <div class="vt-aya-recur">
+            <div class="vt-aya-recur__head">🔁 Presentes en ≥2 años — candidatos estacionales</div>
+            <div class="vt-aya-recur__chips">
+              ${data.recurring.map(r => `
+                <span class="vt-aya-chip" title="${r.years.join(", ")}">
+                  <img class="vt-aya-img" src="data/img/${PAD2(r.num)}.png"
+                    onerror="this.src='data/img/${PAD2(r.num)}.jpg';this.onerror=()=>this.style.display='none'">
+                  <span class="vt-aya-num">${PAD2(r.num)}</span>
+                  <span class="vt-aya-sym">${GUIA?.[PAD2(r.num)]?.simbolo || ""}</span>
+                  <span class="vt-aya-yrs">${r.years.length} años</span>
+                </span>`).join("")}
+            </div>
+          </div>` : ""}`;
+      }
+
+      ayaSelect.onchange = () => renderAya(parseInt(ayaSelect.value, 10));
+      renderAya(parseInt(ayaSelect.value, 10));
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TIRADA DE SUERTE — generador sin sesgo con crypto.getRandomValues
+    // ════════════════════════════════════════════════════════════════
+    function initSuerte() {
+      // ── Generador sin sesgo (rejection sampling) ─────────────────
+      function randInt(max) {
+        // Descarta valores que causarían sesgo de módulo
+        const limit = 256 - (256 % max);
+        let v;
+        do { v = crypto.getRandomValues(new Uint8Array(1))[0]; } while (v >= limit);
+        return v % max;
+      }
+
+      // ── Estado ───────────────────────────────────────────────────
+      let lineaActual = null;   // 0-9
+
+      // ── Referencias DOM ──────────────────────────────────────────
+      const stepNum   = document.getElementById("suerte-step-num");
+      const btnLinea  = document.getElementById("suerte-btn-linea");
+      const btnNum    = document.getElementById("suerte-btn-num");
+      const resLinea  = document.getElementById("suerte-linea-result");
+      const resNum    = document.getElementById("suerte-num-result");
+      const numHint   = document.getElementById("suerte-num-hint");
+      const histWrap  = document.getElementById("suerte-hist-wrap");
+      const histEl    = document.getElementById("suerte-hist");
+      const histClear = document.getElementById("suerte-hist-clear");
+      if (!btnLinea || !btnNum) return;
+
+      // ── Animación de dados ────────────────────────────────────────
+      function animarYMostrar(el, duración, fnValor, fnRender) {
+        el.classList.add("suerte-result--rolling");
+        let ticks = 0;
+        const total = Math.floor(duración / 60);
+        const iv = setInterval(() => {
+          el.innerHTML = `<span class="suerte-result__roll">${fnValor()}</span>`;
+          ticks++;
+          if (ticks >= total) {
+            clearInterval(iv);
+            el.classList.remove("suerte-result--rolling");
+            el.classList.add("suerte-result--done");
+            setTimeout(() => el.classList.remove("suerte-result--done"), 600);
+            fnRender(el);
+          }
+        }, 60);
+      }
+
+      // ── Render de resultado de línea ─────────────────────────────
+      function renderLinea(el, linea) {
+        const pad = n => String(n).padStart(2, "0");
+        el.innerHTML = `
+          <div class="suerte-linea-card">
+            <span class="suerte-linea-card__num">${linea}</span>
+            <span class="suerte-linea-card__range">Línea ${pad(linea * 10)} — del ${pad(linea*10)} al ${pad(linea*10+9)}</span>
+          </div>`;
+      }
+
+      // ── Render de resultado de número ────────────────────────────
+      function renderNumero(el, num) {
+        const pad = String(num).padStart(2, "0");
+        const info = GUIA?.[pad] || {};
+        const sym  = info.simbolo || "";
+        const fam  = info.familia || "";
+        el.innerHTML = `
+          <div class="suerte-num-card">
+            <img class="suerte-num-card__img" src="data/img/${pad}.png" alt="${pad}"
+              onerror="this.src='data/img/${pad}.jpg';this.onerror=()=>this.style.display='none'">
+            <span class="suerte-num-card__num">${pad}</span>
+            ${sym ? `<span class="suerte-num-card__sym">${sym}</span>` : ""}
+            ${fam ? `<span class="suerte-num-card__fam">${fam}</span>` : ""}
+          </div>`;
+      }
+
+      // ── Añadir al historial ───────────────────────────────────────
+      function agregarHistorial(linea, num) {
+        const pad  = String(num).padStart(2, "0");
+        const info = GUIA?.[pad] || {};
+        const sym  = info.simbolo || "";
+        const item = document.createElement("div");
+        item.className = "suerte-hist-item";
+        item.innerHTML = `
+          <img class="suerte-hist-item__img" src="data/img/${pad}.png" alt="${pad}"
+            onerror="this.src='data/img/${pad}.jpg';this.onerror=()=>this.style.display='none'">
+          <span class="suerte-hist-item__num">${pad}</span>
+          ${sym ? `<span class="suerte-hist-item__sym">${sym}</span>` : ""}
+          <span class="suerte-hist-item__linea">L${linea}</span>`;
+        histEl.prepend(item);
+        histWrap.style.display = "";
+      }
+
+      // ── Botón 1: tirar línea ──────────────────────────────────────
+      btnLinea.onclick = () => {
+        btnLinea.disabled = true;
+        lineaActual = null;
+        // Desbloquear paso 2 solo cuando termine
+        btnNum.disabled = true;
+        btnNum.classList.add("suerte-btn--disabled");
+        stepNum.classList.add("suerte-step--locked");
+        resNum.innerHTML = `<span class="suerte-result__dash">—</span>`;
+        numHint.textContent = "Primero tira la línea";
+
+        animarYMostrar(
+          resLinea, 900,
+          () => randInt(10),       // valor intermedio durante animación
+          el => {
+            lineaActual = randInt(10);
+            renderLinea(el, lineaActual);
+            numHint.textContent = `Rango: ${String(lineaActual*10).padStart(2,"0")} – ${String(lineaActual*10+9).padStart(2,"0")}`;
+            stepNum.classList.remove("suerte-step--locked");
+            btnNum.disabled = false;
+            btnNum.classList.remove("suerte-btn--disabled");
+            btnLinea.disabled = false;
+          }
+        );
+      };
+
+      // ── Botón 2: elegir número ────────────────────────────────────
+      btnNum.onclick = () => {
+        if (lineaActual === null) return;
+        btnNum.disabled = true;
+
+        const base = lineaActual * 10;
+        animarYMostrar(
+          resNum, 700,
+          () => base + randInt(10),  // valor intermedio durante animación
+          el => {
+            const num = base + randInt(10);
+            renderNumero(el, num);
+            agregarHistorial(lineaActual, num);
+            btnNum.disabled = false;
+          }
+        );
+      };
+
+      // ── Limpiar historial ─────────────────────────────────────────
+      if (histClear) {
+        histClear.onclick = () => {
+          histEl.innerHTML = "";
+          histWrap.style.display = "none";
+        };
+      }
+    }
+
+    // ✅ Modo claro / oscuro macOS
+    (function initTheme() {
+      const saved = localStorage.getItem("ld-theme") || "dark";
+      document.documentElement.setAttribute("data-theme", saved);
+      const themeIcon = document.getElementById("theme-icon");
+      if (themeIcon) themeIcon.className = saved === "light" ? "fa-solid fa-sun" : "fa-solid fa-moon";
+
+      const themeBtn = document.getElementById("btn-toggle-theme");
+      if (themeBtn) {
+        themeBtn.addEventListener("click", () => {
+          const current = document.documentElement.getAttribute("data-theme") || "dark";
+          const next = current === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          localStorage.setItem("ld-theme", next);
+          const icon = document.getElementById("theme-icon");
+          if (icon) icon.className = next === "light" ? "fa-solid fa-sun" : "fa-solid fa-moon";
+          themeBtn.classList.toggle("active", next === "light");
+        });
+        // Marcar activo si ya está en light
+        if (saved === "light") themeBtn.classList.add("active");
+      }
+    })();
+
+    // ✅ Tab flotante para revelar sidebar
+    const revealBtn = document.getElementById("btn-reveal-sidebar");
+    if (revealBtn && sidebar) {
+      revealBtn.addEventListener("click", (e) => {
+        // Detener propagación para que handleOutside no lo vuelva a colapsar
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        document.body.classList.remove("sidebar-collapsed");
+        if (toggleBtn) {
+          toggleBtn.classList.add("sidebar-open");
+          toggleBtn.setAttribute("aria-expanded", "true");
+        }
+      });
+      // También detener pointerdown para que handleOutside no dispare antes
+      revealBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+      revealBtn.addEventListener("mousedown",   (e) => e.stopPropagation());
+    }
+
+    // ✅ Toggle de sidebar móvil
+    if (toggleBtn && sidebar) {
+      toggleBtn.setAttribute("aria-controls", "sidebar");
+      toggleBtn.setAttribute("aria-expanded", "false");
+      if (window.innerWidth > 768 && !document.body.classList.contains("sidebar-collapsed")) {
+        toggleBtn.classList.add("sidebar-open");
+        toggleBtn.setAttribute("aria-expanded", "true");
+      }
+
+      toggleBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (window.innerWidth <= 768) {
+          const shouldOpen = !sidebar.classList.contains("show-mobile");
+          if (shouldOpen) {
+            openSidebarMobile();
+          } else {
+            closeSidebarMobile();
+          }
+        } else {
+          const collapsed = document.body.classList.toggle("sidebar-collapsed");
+          const expanded = !collapsed;
+          toggleBtn.classList.toggle("sidebar-open", expanded);
+          toggleBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
+        }
+      });
+
+      const handleOutside = (event) => {
+        // Nunca cerrar si el click vino del reveal tab o del toggle btn
+        if (revealBtn && revealBtn.contains(event.target)) return;
+        if (toggleBtn && toggleBtn.contains(event.target)) return;
+        // Móvil: cerrar drawer si está abierto y el click es fuera
+        if (sidebar.classList.contains("show-mobile")) {
+          if (sidebar.contains(event.target)) return;
+          closeSidebarMobile();
+          return;
+        }
+        // Desktop: si el sidebar está expandido y el click es fuera, colapsar
+        if (window.innerWidth > 768 && !document.body.classList.contains("sidebar-collapsed")) {
+          if (sidebar.contains(event.target)) return;
+          document.body.classList.add("sidebar-collapsed");
+          toggleBtn.classList.remove("sidebar-open");
+          toggleBtn.setAttribute("aria-expanded", "false");
+        }
+      };
+
+      const outsideEvents = window.PointerEvent
+        ? ["pointerdown"]
+        : ["mousedown", "touchstart"];
+      outsideEvents.forEach((evt) => {
+        document.addEventListener(evt, handleOutside);
+      });
+      document.addEventListener("click", handleOutside);
+      document.addEventListener("focusin", handleOutside);
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeSidebarMobile();
+      });
+      sidebar.addEventListener("focusout", (event) => {
+        if (!sidebar.contains(event.relatedTarget)) closeSidebarMobile();
+      });
+      window.addEventListener("resize", () => {
+        if (window.innerWidth > 768) {
+          sidebar.classList.remove("show-mobile");
+          const collapsed = document.body.classList.contains("sidebar-collapsed");
+          toggleBtn.classList.toggle("sidebar-open", !collapsed);
+          toggleBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        } else {
+          toggleBtn.classList.remove("sidebar-open");
+          toggleBtn.setAttribute("aria-expanded", sidebar.classList.contains("show-mobile") ? "true" : "false");
+        }
+      });
+    }
+
+    // ── Notificaciones del navegador ──
+    initNotifications().catch(() => {});
+
+    // ── Super Premio Picker: inyectar en panel Números Rápidos al arranque ──
+    try {
+      const spDraws = await DB.listDraws({ excludeTest: true });
+      initSuperPremioPicker(spDraws, GUIA);
+    } catch (err) {
+      console.warn("[superpremio-picker] No se pudo inicializar:", err?.message || err);
+    }
+
+    try {
+      await refreshHypotesis();
+      await refreshSlots();
+      await rebuildKnowledge();
+      await refreshModesPanel();
+    } catch (err) {
+      console.error("initial load error", err);
+      showToast("La app no pudo cargar completamente. Revisa la consola para más detalles.", { variant: "danger" });
+    } finally {
+      hideSavingModal();
+      await waitForFirstPaint();
+      hideBootLoader();
+    }
+
+    // === Presencia en tiempo real ===
+    (async () => {
+      try {
+        const { supabase: _sb } = await import("./supabaseClient.js");
+        const { data: { session } } = await _sb.auth.getSession();
+        if (!session?.user) return;
+
+        const myEmail   = session.user.email;
+        const myProfile = await (await import("./roles.js")).getMyProfile();
+        const myRole    = myProfile?.role ?? "lector";
+        const myNombre  = myProfile?.nombre || myEmail.split("@")[0];
+        const amAdmin   = myRole === "admin";
+
+        const presenceBar   = document.getElementById("presence-bar");
+        const presenceCount = document.getElementById("presence-count");
+        const presencePanel = document.getElementById("presence-panel");
+
+        const ROLE_COLOR = { admin: "#f2c44a", editor: "#5ec47e", lector: "#a89e88" };
+        const ROLE_LABEL = { admin: "Admin", editor: "Editor", lector: "Lector" };
+
+        function renderPresence(state) {
+          const users = Object.values(state).flat();
+          const count = users.length;
+
+          presenceCount.textContent = count;
+          presenceBar.classList.toggle("presence-bar--many", count > 1);
+
+          if (!amAdmin || !presencePanel) return;
+          presencePanel.innerHTML = users.map((u) => {
+            const c = ROLE_COLOR[u.role] || "#888";
+            const l = ROLE_LABEL[u.role] || u.role;
+            const isMe = u.email === myEmail;
+            const displayName = u.nombre || u.email.split("@")[0];
+            return `
+              <div class="presence-user">
+                <span class="presence-user__dot" style="background:${c}"></span>
+                <span class="presence-user__name">${displayName}${isMe ? ' <em>(tú)</em>' : ""}</span>
+                <span class="presence-user__role" style="color:${c}">${l}</span>
+              </div>`;
+          }).join("") || "<p class='presence-empty'>Solo tú</p>";
+        }
+
+        const channel = _sb.channel("ld-presence", {
+          config: { presence: { key: session.user.id } }
+        });
+
+        channel
+          .on("presence", { event: "sync" }, () => renderPresence(channel.presenceState()))
+          .on("presence", { event: "join" }, () => renderPresence(channel.presenceState()))
+          .on("presence", { event: "leave" }, () => renderPresence(channel.presenceState()))
+          .subscribe(async (status) => {
+            if (status === "SUBSCRIBED") {
+              await channel.track({ email: myEmail, nombre: myNombre, role: myRole, online_at: new Date().toISOString() });
+            }
+          });
+
+        // Toggle del panel (solo admin)
+        if (amAdmin && presencePanel) {
+          presenceBar.style.cursor = "pointer";
+          presenceBar.title = "Ver usuarios conectados";
+          presenceBar.addEventListener("click", () => {
+            presencePanel.classList.toggle("hidden");
+          });
+          document.addEventListener("click", (e) => {
+            if (!presenceBar.contains(e.target) && !presencePanel.contains(e.target)) {
+              presencePanel.classList.add("hidden");
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("[presencia] Error al iniciar presencia:", err?.message);
+      }
+    })();
+
+    // === Panel de gestión de usuarios (solo admin) ===
+    async function renderAdminUsersPanel() {
+      const container = document.getElementById("admin-users-list");
+      if (!container) return;
+      const myRole = await getMyRole();
+      if (myRole !== "admin") {
+        container.innerHTML = "<p class='hint'>⛔ Solo el administrador puede ver esto.</p>";
+        return;
+      }
+      container.innerHTML = "<p class='hint'>Cargando…</p>";
+      try {
+        const { data: { session } } = await (await import("./supabaseClient.js")).supabase.auth.getSession();
+        const myId = session?.user?.id;
+        const profiles = await getAllProfiles();
+        if (!profiles.length) {
+          container.innerHTML = "<p class='hint'>No hay usuarios registrados.</p>";
+          return;
+        }
+        container.innerHTML = "";
+        profiles.forEach((p) => {
+          const isMe = p.user_id === myId;
+          const isBanned = !!p.banned;
+          const row = document.createElement("div");
+          row.className = `admin-user-row${isBanned ? " admin-user-row--banned" : ""}`;
+          row.innerHTML = `
+            <div class="admin-user-info">
+              <span class="admin-user-email">${p.email}</span>
+              ${isMe ? '<span class="admin-user-you">Tú</span>' : ""}
+              ${isBanned ? '<span class="admin-user-banned-tag">BANEADO</span>' : ""}
+            </div>
+            <div class="admin-user-name-row">
+              <input class="admin-name-input" type="text" placeholder="Nombre de usuario…" value="${p.nombre || ""}" maxlength="40" />
+              <button class="admin-name-save btn-outline" data-uid="${p.user_id}">Guardar nombre</button>
+            </div>
+            <div class="admin-user-controls">
+              <select class="admin-role-select" data-uid="${p.user_id}" ${isMe || isBanned ? "disabled" : ""}>
+                ${VALID_ROLES.map((r) => `<option value="${r}" ${r === p.role ? "selected" : ""}>${roleLabel(r)}</option>`).join("")}
+              </select>
+              <span class="admin-role-badge" style="background:${roleColor(p.role)}22;color:${roleColor(p.role)};border-color:${roleColor(p.role)}55">${roleLabel(p.role)}</span>
+              <button class="admin-role-save btn-outline" data-uid="${p.user_id}" ${isMe || isBanned ? "disabled" : ""}>Guardar rol</button>
+              ${!isMe ? `<button class="admin-ban-btn ${isBanned ? "admin-ban-btn--unban" : "admin-ban-btn--ban"}" data-uid="${p.user_id}" data-banned="${isBanned}">${isBanned ? "✅ Desbanear" : "🚫 Banear"}</button>` : ""}
+            </div>
+          `;
+          // Color del badge al cambiar el select
+          const sel = row.querySelector(".admin-role-select");
+          const badge = row.querySelector(".admin-role-badge");
+          sel?.addEventListener("change", () => {
+            const r = sel.value;
+            badge.textContent = roleLabel(r);
+            badge.style.background = `${roleColor(r)}22`;
+            badge.style.color = roleColor(r);
+            badge.style.borderColor = `${roleColor(r)}55`;
+          });
+          // Guardar rol
+          const saveBtn = row.querySelector(".admin-role-save");
+          saveBtn?.addEventListener("click", async () => {
+            const newRole = sel?.value;
+            if (!newRole) return;
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Guardando…";
+            try {
+              await updateUserRole(p.user_id, newRole);
+              saveBtn.textContent = "✓ Guardado";
+              saveBtn.style.color = "var(--color-success)";
+              setTimeout(() => { saveBtn.textContent = "Guardar"; saveBtn.style.color = ""; saveBtn.disabled = false; }, 2000);
+            } catch (err) {
+              saveBtn.textContent = "Error";
+              saveBtn.style.color = "var(--color-danger)";
+              showToast(`No se pudo guardar el rol: ${err.message}`, { variant: "danger" });
+              setTimeout(() => { saveBtn.textContent = "Guardar"; saveBtn.style.color = ""; saveBtn.disabled = false; }, 2500);
+            }
+          });
+          // Guardar nombre
+          const nameInput = row.querySelector(".admin-name-input");
+          const nameSaveBtn = row.querySelector(".admin-name-save");
+          nameSaveBtn?.addEventListener("click", async () => {
+            const newName = nameInput?.value?.trim() ?? "";
+            nameSaveBtn.disabled = true;
+            nameSaveBtn.textContent = "Guardando…";
+            try {
+              await updateUserName(p.user_id, newName);
+              nameSaveBtn.textContent = "✓ Guardado";
+              nameSaveBtn.style.color = "var(--color-success)";
+              setTimeout(() => { nameSaveBtn.textContent = "Guardar nombre"; nameSaveBtn.style.color = ""; nameSaveBtn.disabled = false; }, 2000);
+            } catch (err) {
+              nameSaveBtn.textContent = "Error";
+              nameSaveBtn.style.color = "var(--color-danger)";
+              showToast(`No se pudo guardar el nombre: ${err.message}`, { variant: "danger" });
+              setTimeout(() => { nameSaveBtn.textContent = "Guardar nombre"; nameSaveBtn.style.color = ""; nameSaveBtn.disabled = false; }, 2500);
+            }
+          });
+
+          // Banear / Desbanear
+          const banBtn = row.querySelector(".admin-ban-btn");
+          banBtn?.addEventListener("click", async () => {
+            const currentBanned = banBtn.dataset.banned === "true";
+            const action = currentBanned ? "desbanear" : "banear";
+            if (!await mostrarModal(`¿Confirmas ${action}?`, `${action === "banear" ? "Banear" : "Desbanear"} a ${p.email}?`, { okText: action === "banear" ? "Banear" : "Desbanear", okVariant: action === "banear" ? "danger" : "secondary" })) return;
+            banBtn.disabled = true;
+            banBtn.textContent = "…";
+            try {
+              await setBanStatus(p.user_id, !currentBanned);
+              showToast(`Usuario ${currentBanned ? "desbaneado" : "baneado"}: ${p.email}`, { variant: currentBanned ? "success" : "warning" });
+              // Re-renderizar el panel para reflejar el cambio
+              await renderAdminUsersPanel();
+            } catch (err) {
+              banBtn.disabled = false;
+              banBtn.textContent = currentBanned ? "✅ Desbanear" : "🚫 Banear";
+              showToast(`Error: ${err.message}`, { variant: "danger" });
+            }
+          });
+          container.appendChild(row);
+        });
+      } catch (err) {
+        container.innerHTML = `<p class='hint'>Error al cargar usuarios: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    // Cargar panel cuando se abre Configuración
+    document.querySelector('[data-view="config"]')?.addEventListener("click", () => {
+      setTimeout(renderAdminUsersPanel, 80);
+    });
+
+    // === SISTEMA DE MODALES UNIFICADO ===
+    function mostrarModal(titulo, mensaje, opciones = {}) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById("sys-modal");
+        const tEl = document.getElementById("modal-title");
+        const mEl = document.getElementById("modal-msg");
+        const okBtn = document.getElementById("modal-ok");
+        const cancelBtn = document.getElementById("modal-cancel");
+
+        if (!modal) return resolve(false);
+
+        // Personalizar texto
+        tEl.textContent = titulo || "Confirmar acción";
+        mEl.textContent = mensaje || "¿Deseas continuar?";
+        okBtn.textContent = opciones.okText || "Aceptar";
+        cancelBtn.textContent = opciones.cancelText || "Cancelar";
+        okBtn.className = "";
+        cancelBtn.className = "";
+        if (opciones.okVariant === "danger") okBtn.classList.add("btn-danger");
+        else if (opciones.okVariant === "secondary") okBtn.classList.add("btn-secondary");
+        cancelBtn.classList.add("btn-ghost");
+
+        // Mostrar modal
+        modal.classList.remove("hidden");
+
+        // Manejo de cierre
+        const cerrar = (res) => {
+          modal.classList.add("hidden");
+          okBtn.onclick = cancelBtn.onclick = null;
+          resolve(res);
+        };
+
+        okBtn.onclick = () => cerrar(true);
+        cancelBtn.onclick = () => cerrar(false);
+      });
+    }
+
+    // === Notificación breve (sin botones, tipo toast simple) ===
+    function mostrarAviso(mensaje, opciones = {}) {
+      showToast(mensaje, opciones);
+    }
+
+
+    // === NUEVA FUNCIÓN COMPLETA: Mostrar/Ocultar y eliminar sorteos individualmente ===
+    // === Mostrar/Ocultar y eliminar sorteos individualmente (versión robusta) ===
+    const btnListAll = document.getElementById("btn-list-all");
+    const allOut = document.getElementById("all-out");
+    const allFilterDate = document.getElementById("all-filter-date");
+    const allFilterText = document.getElementById("all-filter-text");
+    const allFilterClear = document.getElementById("all-filter-clear");
+    let allDrawsCache = null;
+
+    const hasActiveAllFilters = () => {
+      const dateValue = (allFilterDate?.value || "").trim();
+      const textValue = (allFilterText?.value || "").trim();
+      return Boolean(dateValue || textValue);
+    };
+
+    function filterAllDraws(draws = []) {
+      const dateValue = (allFilterDate?.value || "").trim();
+      const textValue = (allFilterText?.value || "").trim().toLowerCase();
+      if (!dateValue && !textValue) return draws;
+      return draws.filter((draw) => {
+        if (dateValue && draw.fecha !== dateValue) return false;
+        if (textValue) {
+          const numero = String(draw.numero).padStart(2, "0");
+          const simbolo = GUIA[numero]?.simbolo || "";
+          const haystack = `${draw.fecha} ${draw.pais} ${draw.horario} ${numero} ${simbolo} ${
+            draw.isTest ? "prueba" : "real"
+          }`.toLowerCase();
+          if (!haystack.includes(textValue)) return false;
+        }
+        return true;
+      });
+    }
+
+    async function renderAllTable({ forceReload = false } = {}) {
+      if (!allOut) return;
+      const shouldReload = forceReload || !Array.isArray(allDrawsCache);
+      if (shouldReload) {
+        allOut.innerHTML = "<p class='hint'>Cargando todos los sorteos…</p>";
+        allDrawsCache = await DB.listDraws({ excludeTest: false });
+      }
+
+      const draws = Array.isArray(allDrawsCache) ? allDrawsCache : [];
+      if (!draws.length && !hasActiveAllFilters()) {
+        allOut.innerHTML = "<p class='hint'>No hay sorteos registrados aún.</p>";
+        return;
+      }
+
+      const filtered = filterAllDraws(draws);
+      if (!filtered.length) {
+        const message = hasActiveAllFilters()
+          ? "No hay sorteos que coincidan con los filtros aplicados."
+          : "No hay sorteos registrados aún.";
+        allOut.innerHTML = `<p class='hint'>${message}</p>`;
+        return;
+      }
+
+      const table = document.createElement("table");
+      table.className = "table-history";
+      table.innerHTML = `
+    <thead>
+      <tr>
+        <th>#</th><th>Fecha</th><th>País</th><th>Horario</th>
+        <th>Número</th><th>Símbolo</th><th>Tipo</th><th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+      const tbody = table.querySelector("tbody");
+
+      filtered.forEach((draw, idx) => {
+        const numero = String(draw.numero).padStart(2, "0");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+      <td>${idx + 1}</td>
+      <td>${draw.fecha}</td>
+      <td>${draw.pais}</td>
+      <td>${draw.horario}</td>
+      <td class="num">${numero}</td>
+      <td class="sym">${GUIA[numero]?.simbolo || "—"}</td>
+      <td class="${draw.isTest ? "test" : ""}">${draw.isTest ? "prueba" : "real"}</td>
+      <td>
+        <button type="button" class="btn-del" data-id="${draw.id}">🗑</button>
+      </td>
+    `;
+        tbody.appendChild(tr);
+      });
+
+      const meta = document.createElement("div");
+      meta.className = "panel-meta";
+      if (filtered.length === draws.length) {
+        meta.textContent = `Mostrando ${filtered.length} sorteos registrados.`;
+      } else {
+        meta.textContent = `Mostrando ${filtered.length} de ${draws.length} sorteos (aplicando filtros).`;
+      }
+
+      allOut.innerHTML = "";
+      allOut.appendChild(meta);
+      allOut.appendChild(table);
+    }
+
+    const refreshAllTableIfVisible = (options) => {
+      if (allOut?.dataset.visible === "true") {
+        renderAllTable(options);
+      }
+    };
+
+    btnListAll?.addEventListener("click", async () => {
+      if (!allOut) return;
+
+      if (allOut.dataset.visible === "true") {
+        allOut.innerHTML = "";
+        allOut.dataset.visible = "false";
+        btnListAll.textContent = "Ver todos";
+        return;
+      }
+
+      await renderAllTable({ forceReload: true });
+      allOut.dataset.visible = "true";
+      btnListAll.textContent = "Ocultar tabla";
+    });
+
+    allFilterDate?.addEventListener("input", () => refreshAllTableIfVisible());
+    allFilterText?.addEventListener("input", () => refreshAllTableIfVisible());
+    allFilterClear?.addEventListener("click", () => {
+      if (allFilterDate) allFilterDate.value = "";
+      if (allFilterText) allFilterText.value = "";
+      refreshAllTableIfVisible();
+    });
+
+    // 🔒 Delegación de eventos sobre el contenedor (funciona aunque se regenere la tabla)
+    allOut?.addEventListener("click", async (ev) => {
+      const delBtn = ev.target.closest?.(".btn-del");
+      if (!delBtn) return;
+
+      const id = Number(delBtn.dataset.id);
+      if (!Number.isFinite(id)) return;
+
+      const confirmar = await mostrarModal(
+        "Eliminar sorteo",
+        "¿Seguro que deseas eliminar este sorteo permanentemente?",
+        { okText: "Eliminar", cancelText: "Cancelar", okVariant: "danger" }
+      );
+      if (!confirmar) return;
+
+      try {
+        await DB.deleteDrawById(id);
+        if (Array.isArray(allDrawsCache)) {
+          allDrawsCache = allDrawsCache.filter((draw) => draw.id !== id);
+        }
+        await handleDrawsMutated();
+        await renderAllTable();
+        // Si queda la tabla vacía, no forzamos recarga; el usuario puede pulsar "Ocultar" y "Ver todos".
+        mostrarAviso("Sorteo eliminado correctamente.", { variant: "success" });
+      } catch (err) {
+        console.error("delete draw error", err);
+        mostrarAviso(`Error al eliminar: ${err.message}`, { variant: "danger" });
+      }
+    });
+
+
+
+    // === Botón para reiniciar completamente la base ===
+    const btnNuke = document.getElementById("btn-nuke");
+    btnNuke?.addEventListener("click", async () => {
+      const confirmar = await mostrarModal(
+        "Reiniciar base de datos",
+        "¿Seguro que deseas borrar TODOS los datos del sistema?",
+        { okText: "Borrar todo", cancelText: "Cancelar", okVariant: "danger" }
+      );
+      if (!confirmar) return;
+      const release = withButtonBusy(btnNuke, "Borrando…");
+      try {
+        await DB.nuke();
+        showToast("Base de datos vaciada correctamente. Reinicia la página para comenzar desde cero.", {
+          variant: "success",
+          timeout: 6000,
+        });
+        await rebuildKnowledge();
+        await handleDrawsMutated();
+      } catch (err) {
+        console.error("nuke error", err);
+        showToast(`Error al intentar limpiar la base: ${err.message}`, { variant: "danger" });
+      } finally {
+        release();
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // BACKTEST — Validación honesta del motor
+    // ═══════════════════════════════════════════════════════════
+    const btnBacktestRun = document.getElementById("btn-backtest-run");
+    const btnBacktestCancel = document.getElementById("btn-backtest-cancel");
+    const btProgress = document.getElementById("bt-progress");
+    const btOut = document.getElementById("bt-out");
+    let btAbortCtl = null;
+
+    function fmtPct(x) { return (x * 100).toFixed(2) + "%"; }
+    function fmtLift(x) {
+      const c = x >= 1.5 ? "#7adda1" : x >= 1.15 ? "#a8e0c0" : x >= 1.0 ? "#c8c8c8" : x >= 0.85 ? "#e0a888" : "#ff8080";
+      return `<span style="color:${c};font-weight:700;">${x.toFixed(2)}×</span>`;
+    }
+
+    function renderBacktest(res) {
+      if (res.error) {
+        btOut.innerHTML = `<div class="hint" style="color:#ff8080;">${escapeHtml(res.error)}</div>`;
+        return;
+      }
+      if (res.aborted) {
+        btOut.innerHTML += `<div class="hint" style="color:#e0a888;">⚠ Cancelado tras ${res.evaluados} sorteos.</div>`;
+        return;
+      }
+      const filas = res.resultados.map(r => `
+        <tr>
+          <td><strong>Top-${r.k}</strong></td>
+          <td>${r.hits} / ${r.evaluados}</td>
+          <td>${fmtPct(r.hitRate)}</td>
+          <td>${fmtPct(r.baseline)}</td>
+          <td>${fmtLift(r.lift)}</td>
+          <td>${r.pctMejor >= 0 ? "+" : ""}${r.pctMejor.toFixed(1)}%</td>
+        </tr>
+      `).join("");
+
+      const filasAño = (res.porAño || []).map(y => `
+        <tr>
+          <td>${y.año}</td>
+          <td>${y.evaluados}</td>
+          <td>${y.hitsK[10]} (${fmtLift(y.liftK10)})</td>
+          <td>${y.hitsK[20]} (${fmtLift(y.liftK20)})</td>
+        </tr>
+      `).join("");
+
+      const fuentesItems = (res.fuentesTop10 || []).slice(0, 8).map(f =>
+        `<li><code>${f.source}</code> — contrib. ${f.totalContribucion}</li>`
+      ).join("");
+
+      const veredicto = (() => {
+        const k10 = res.resultados.find(r => r.k === 10);
+        if (!k10) return "";
+        if (k10.lift >= 1.3) return `<div style="color:#7adda1;font-weight:700;margin-top:8px;">✅ El motor supera al azar de forma significativa en top-10 (${k10.lift.toFixed(2)}× la baseline). Hay señal real.</div>`;
+        if (k10.lift >= 1.05) return `<div style="color:#c8c8c8;font-weight:700;margin-top:8px;">≈ Lift modesto en top-10 (${k10.lift.toFixed(2)}×). Hay señal pero pequeña — usar como filtro complementario, no como oráculo.</div>`;
+        if (k10.lift >= 0.95) return `<div style="color:#e0a888;font-weight:700;margin-top:8px;">⚠ El motor está al nivel del azar en top-10 (${k10.lift.toFixed(2)}×). No hay ventaja demostrable todavía.</div>`;
+        return `<div style="color:#ff8080;font-weight:700;margin-top:8px;">❌ El motor rinde POR DEBAJO del azar en top-10 (${k10.lift.toFixed(2)}×). Algo del modelo está mal calibrado.</div>`;
+      })();
+
+      btOut.innerHTML = `
+        <div class="hint small">
+          Evaluados: <strong>${res.evaluados}</strong> sorteos
+          (${res.desde || "?"} → ${res.hasta || "?"})<br>
+          Rank promedio del número que cayó: <strong>${res.meanRank}</strong> (mediana ${res.medianRank}) — ideal: lo más bajo posible<br>
+          Sorteos donde el actual no recibió score alguno: <strong>${res.noScoredCount}</strong>
+        </div>
+        ${veredicto}
+        <h4 style="margin-top:12px;">Hit-rate global por K</h4>
+        <table style="width:100%;border-collapse:collapse;font-size:0.9em;">
+          <thead>
+            <tr style="background:rgba(255,255,255,0.05);">
+              <th style="text-align:left;padding:4px;">K</th>
+              <th style="text-align:left;padding:4px;">Hits</th>
+              <th style="text-align:left;padding:4px;">Hit-rate</th>
+              <th style="text-align:left;padding:4px;">Baseline (azar)</th>
+              <th style="text-align:left;padding:4px;">Lift</th>
+              <th style="text-align:left;padding:4px;">Mejor que azar</th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>
+        ${filasAño ? `
+          <h4 style="margin-top:14px;">Hit-rate por año (Top-10 / Top-20)</h4>
+          <table style="width:100%;border-collapse:collapse;font-size:0.85em;">
+            <thead>
+              <tr style="background:rgba(255,255,255,0.05);">
+                <th style="text-align:left;padding:4px;">Año</th>
+                <th style="text-align:left;padding:4px;">Evaluados</th>
+                <th style="text-align:left;padding:4px;">Top-10 hits (lift)</th>
+                <th style="text-align:left;padding:4px;">Top-20 hits (lift)</th>
+              </tr>
+            </thead>
+            <tbody>${filasAño}</tbody>
+          </table>` : ""}
+        ${fuentesItems ? `
+          <h4 style="margin-top:14px;">Fuentes de señal que más contribuyen a aciertos top-10</h4>
+          <ul style="font-size:0.85em;">${fuentesItems}</ul>` : ""}
+      `;
+    }
+
+    btnBacktestRun?.addEventListener("click", async () => {
+      try {
+        const warmup = parseInt(document.getElementById("bt-warmup").value, 10) || 300;
+        const usePopularity = document.getElementById("bt-use-pop").checked;
+        btnBacktestRun.disabled = true;
+        btnBacktestCancel.disabled = false;
+        btOut.innerHTML = "";
+        btProgress.textContent = "Cargando sorteos…";
+
+        const rawDraws = await DB.listDraws({ excludeTest: true });
+        if (!rawDraws?.length) {
+          btProgress.textContent = "Sin sorteos en la base.";
+          return;
+        }
+        btProgress.textContent = `Cargados ${rawDraws.length} sorteos. Iniciando backtest…`;
+
+        btAbortCtl = new AbortController();
+        const { backtest } = await import("./backtest.js");
+        const res = await backtest(rawDraws, {
+          warmup,
+          usePopularity,
+          signal: btAbortCtl.signal,
+          onProgress: ({ done, total, hits }) => {
+            const pct = total ? Math.round((done / total) * 100) : 0;
+            btProgress.textContent = `Procesando… ${done}/${total} (${pct}%) · top-10 hits: ${hits[10] || 0}`;
+          },
+        });
+        btProgress.textContent = `Listo: ${res.evaluados || 0} sorteos evaluados.`;
+        renderBacktest(res);
+      } catch (err) {
+        console.error("backtest error", err);
+        btProgress.textContent = `Error: ${err.message}`;
+      } finally {
+        btnBacktestRun.disabled = false;
+        btnBacktestCancel.disabled = true;
+        btAbortCtl = null;
+      }
+    });
+
+    btnBacktestCancel?.addEventListener("click", () => {
+      btAbortCtl?.abort();
+      btProgress.textContent = "Cancelando…";
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // WIKI — Guía del sistema
+    // ═══════════════════════════════════════════════════════════
+
+    const WIKI_ARTICLES = [
+      {
+        id: "markov1",
+        categoria: "Motor de señales",
+        titulo: "Markov Orden 1 — ¿Qué suele seguir a un número?",
+        contenido: `
+          <h2>Markov Orden 1</h2>
+          <p class="wiki-lead">Responde a la pregunta: <em>"Históricamente, después de que cayó el 37, ¿qué número apareció con más frecuencia en el siguiente sorteo?"</em></p>
+
+          <h3>Cómo funciona</h3>
+          <p>El sistema recorre todo el historial de sorteos y registra, para cada número, cuál fue el siguiente en caer. Con eso construye una tabla de probabilidades real:</p>
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> El 37 cayó 80 veces en el historial.<br>
+            De esas 80 veces, el siguiente sorteo fue:<br>
+            &nbsp;· 96 en 12 ocasiones → <strong>15%</strong><br>
+            &nbsp;· 14 en 8 ocasiones → <strong>10%</strong><br>
+            &nbsp;· 55 en 5 ocasiones → <strong>6%</strong>
+          </div>
+          <p>Esos porcentajes no son inventados — son frecuencias reales del historial de La Diaria.</p>
+
+          <h3>Cómo leerlo en el panel</h3>
+          <p>En <strong>Escenarios → "Markov — tras XX"</strong> verás chips con barra de color azul. La barra más larga = mayor probabilidad histórica. El número al pie muestra el porcentaje y cuántas veces ocurrió.</p>
+
+          <h3>Lo que NO significa</h3>
+          <p>No predice el próximo número con certeza. Te dice cuál ha salido más veces después del número anterior. Es una tendencia estadística, no una garantía.</p>
+
+          <h3>Cuándo confiar más en él</h3>
+          <p>Cuando el porcentaje es alto (>20%) y la cantidad de veces (×) es mayor a 10. Con pocos datos el porcentaje puede ser engañoso.</p>
+        `,
+      },
+      {
+        id: "markov2",
+        categoria: "Motor de señales",
+        titulo: "Markov Orden 2 — Secuencias de dos números",
+        contenido: `
+          <h2>Markov Orden 2</h2>
+          <p class="wiki-lead">Igual que Markov O1 pero considera los <em>dos últimos números</em> para predecir el siguiente. Es más preciso cuando hay suficiente historial.</p>
+
+          <h3>Diferencia con Orden 1</h3>
+          <p>Markov O1 pregunta: <em>"¿Qué sigue al 37?"</em><br>
+          Markov O2 pregunta: <em>"¿Qué sigue a la secuencia 14 → 37?"</em></p>
+          <p>El contexto de dos números reduce las coincidencias aleatorias y detecta patrones más específicos del comportamiento del sorteo.</p>
+
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> La secuencia 14 → 37 ocurrió 15 veces.<br>
+            De esas 15, el siguiente fue:<br>
+            &nbsp;· 96 en 6 ocasiones → <strong>40%</strong><br>
+            Eso ya es una señal fuerte.
+          </div>
+
+          <h3>Limitación</h3>
+          <p>Necesita más datos que O1. Si la secuencia específica A→B no ocurrió muchas veces en el historial, el porcentaje no es confiable. El sistema solo muestra O2 cuando hay al menos 2 ocurrencias de esa secuencia.</p>
+        `,
+      },
+      {
+        id: "rezago",
+        categoria: "Motor de señales",
+        titulo: "Rezago y ciclo histórico — ¿Cuándo le toca a un número?",
+        contenido: `
+          <h2>Análisis de Rezago</h2>
+          <p class="wiki-lead">Calcula cuántos días lleva cada número sin caer y lo compara contra su ciclo promedio real de los <strong>últimos 180 días</strong>.</p>
+
+          <h3>Por qué 180 días y no todo el historial</h3>
+          <p>Usar todo el historial mezcla períodos donde el sistema de La Diaria podía comportarse diferente. Los últimos 180 días reflejan el comportamiento actual y son inmunes a huecos en el historial antiguo.</p>
+
+          <h3>Qué es el ciclo promedio</h3>
+          <p>Si el 22 Ataúd apareció 18 veces en los últimos 180 días, su ciclo promedio es 180/18 = <strong>10 días entre aparición y aparición</strong>.</p>
+
+          <h3>Estados de un número</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok">
+              <strong>En ventana</strong>
+              <span>Lleva más días sin caer de lo normal pero todavía dentro del rango esperado. Es candidato natural.</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>Vencido</strong>
+              <span>Lleva muchísimo más de su ciclo sin caer (más de 2 desviaciones estándar). El jugador lo espera — y si el sistema tiene control, lo evita.</span>
+            </div>
+            <div class="wiki-state wiki-state--muted">
+              <strong>Reciente</strong>
+              <span>Cayó hace 3 días o menos. Baja probabilidad de repetición inmediata.</span>
+            </div>
+            <div class="wiki-state wiki-state--muted">
+              <strong>Ausente</strong>
+              <span>No apareció en los últimos 180 días. El sistema lo ignora — sin datos recientes no hay ciclo calculable.</span>
+            </div>
+          </div>
+        `,
+      },
+      {
+        id: "eliminacion",
+        categoria: "Motor de señales",
+        titulo: "Enfoque de eliminación — qué quitar antes de elegir",
+        contenido: `
+          <h2>Enfoque de eliminación</h2>
+          <p class="wiki-lead">En lugar de buscar <em>"el número ganador"</em>, el motor primero descarta los que <strong>no pueden o no deben salir</strong> según el historial. Lo que queda es el universo de candidatos.</p>
+
+          <h3>Por qué eliminar primero</h3>
+          <p>De 100 números posibles, el historial permite descartar con argumentos sólidos entre 20 y 40. El jugador elige dentro de un universo reducido con lógica, no de 100 opciones ciegas.</p>
+
+          <h3>Reglas de eliminación actuales</h3>
+          <div class="wiki-example">
+            <strong>1. Recientes</strong> — cayeron hace 3 días o menos. Repetición inmediata es estadísticamente rara (excepto en diciembre, donde el sistema relaja esta regla).<br><br>
+            <strong>2. Sobrecalentados</strong> — llevan más de 3 desviaciones estándar sobre su ciclo sin caer. Tanta gente los espera que si el sistema tiene control, los evita deliberadamente.<br><br>
+            <strong>3. Penalización por familia</strong> — si la familia simbólica del último número ya cayó en los últimos 2 turnos, los demás de esa familia reciben un peso reducido (no eliminados, pero bajan en el ranking).
+          </div>
+
+          <h3>Lo que aparece en el panel</h3>
+          <p>En Escenarios verás <em>"Excluidos"</em> y <em>"Sobrecalentados"</em> con sus cards. Esos números el motor no los considera candidatos.</p>
+        `,
+      },
+      {
+        id: "motor-unificado",
+        categoria: "Motor de señales",
+        titulo: "Motor unificado — cómo se combina todo",
+        contenido: `
+          <h2>Motor unificado de señales</h2>
+          <p class="wiki-lead">Es el cerebro central del sistema. Toma las señales de todos los motores, les asigna un peso, y produce un ranking de candidatos con un score del 0 al 100%.</p>
+
+          <h3>Fuentes que combina</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Fuente</th><th>Peso</th><th>Qué aporta</th></tr></thead>
+            <tbody>
+              <tr><td>Markov O1</td><td>28%</td><td>Sucesor directo del último número</td></tr>
+              <tr><td>Markov O2</td><td>18%</td><td>Sucesor de la última secuencia de dos</td></tr>
+              <tr><td>Modos de juego</td><td>18%</td><td>Transformaciones configuradas por el usuario</td></tr>
+              <tr><td>Patrones heurísticos</td><td>12%</td><td>Gaps, repeticiones, transiciones detectadas</td></tr>
+              <tr><td>Rezago</td><td>14%</td><td>Números en su ventana de ciclo</td></tr>
+              <tr><td>Patrones semanales</td><td>6%</td><td>Ciclos por día de semana y turno</td></tr>
+              <tr><td>Patrones mensuales</td><td>4%</td><td>Tendencias del mes actual</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Cómo interpretar el score</h3>
+          <p>Un score de 75% no significa que el número vaya a salir con 75% de probabilidad. Significa que <strong>ese número concentra el 75% de las señales históricas favorables</strong> en este momento. Es un ranking relativo, no una probabilidad absoluta.</p>
+
+          <h3>El tooltip</h3>
+          <p>Si pasas el cursor sobre un chip del motor, verás qué señales específicas lo pusieron ahí y por qué.</p>
+        `,
+      },
+      {
+        id: "pares-vinculados",
+        categoria: "Herramientas",
+        titulo: "Pares vinculados — números que se siguen entre sí",
+        contenido: `
+          <h2>Pares vinculados</h2>
+          <p class="wiki-lead">Te permite registrar relaciones simbólicas o históricas entre dos números, con ventanas de tiempo para cada dirección.</p>
+
+          <h3>La idea base</h3>
+          <p>En La Diaria, los jugadores conocen relaciones entre números por tradición o por observación propia. Por ejemplo: <em>"Cuando cae 37 Suerte, suele seguirle 96 Dinero en pocos días"</em>. El sistema formaliza esa observación con datos.</p>
+
+          <h3>Cómo registrar un par</h3>
+          <p>Hay dos formas:</p>
+          <ol>
+            <li>Desde <strong>Hipótesis</strong> → formulario de pares: ingresas ambos números y configuras las ventanas</li>
+            <li>Desde el <strong>Panel del día</strong> → botón "Vincular par" bajo cada slot: el número A se pre-rellena con el que acaba de caer, solo ingresas el B</li>
+          </ol>
+
+          <h3>Ventanas de tiempo</h3>
+          <div class="wiki-example">
+            <strong>A cae → esperar B en X–Y días:</strong> si cayó A, el sistema vigilará si B aparece dentro de esa ventana.<br><br>
+            <strong>B cae → esperar A en X–Y días:</strong> la relación funciona en ambas direcciones, porque cualquiera puede caer primero.
+          </div>
+
+          <h3>Dónde lo verás activo</h3>
+          <p>En <strong>Escenarios → "Pares vinculados activos"</strong> aparecerán los pares cuyo número A o B cayó recientemente y cuyo compañero todavía está dentro de la ventana de espera.</p>
+        `,
+      },
+      {
+        id: "panel-pulso",
+        categoria: "Paneles",
+        titulo: "Panel Escenarios — qué muestra y en qué orden",
+        contenido: `
+          <h2>Panel Escenarios</h2>
+          <p class="wiki-lead">Es el panel principal de recomendaciones. Muestra todo lo que el sistema sabe sobre el momento actual, organizado de arriba hacia abajo por tipo de señal.</p>
+
+          <h3>Secciones en orden</h3>
+          <ol>
+            <li><strong>Último sorteo</strong> — el número que cayó más recientemente, su símbolo, turno y fecha</li>
+            <li><strong>Candidatos por conversión</strong> — números que se derivan del último por transformaciones matemáticas (espejo, suma de dígitos, etc.)</li>
+            <li><strong>Markov — tras XX</strong> — qué suele seguir históricamente al último número (chips azules)</li>
+            <li><strong>Motor unificado</strong> — ranking combinado de todas las señales (chips verdes)</li>
+            <li><strong>Excluidos y sobrecalentados</strong> — números que el motor descartó y por qué</li>
+            <li><strong>Vencidos</strong> — llevan demasiados días sin caer, el sistema los evita</li>
+            <li><strong>En ventana</strong> — están dentro de su ciclo histórico reciente, candidatos naturales</li>
+            <li><strong>Pares vinculados activos</strong> — pares registrados cuyo contador de días está activo</li>
+          </ol>
+
+          <h3>Cuándo se actualiza</h3>
+          <p>El panel se calcula una sola vez y queda en caché. Solo se recalcula cuando ingresas nuevos sorteos o modificas pares. Navegar fuera y volver no lo recalcula innecesariamente.</p>
+        `,
+      },
+      {
+        id: "modos-juego",
+        categoria: "Herramientas",
+        titulo: "Modos de juego — transformaciones personalizadas",
+        contenido: `
+          <h2>Modos de juego</h2>
+          <p class="wiki-lead">Te permiten definir reglas matemáticas propias basadas en tu conocimiento del juego. El sistema las evalúa contra el historial para saber si funcionan.</p>
+
+          <h3>Operaciones disponibles</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Operación</th><th>Ejemplo</th></tr></thead>
+            <tbody>
+              <tr><td>Espejo</td><td>37 → 73</td></tr>
+              <tr><td>Suma de dígitos</td><td>37 → 3+7 = 10 → 0</td></tr>
+              <tr><td>Sumar constante</td><td>37 + 10 = 47</td></tr>
+              <tr><td>Restar constante</td><td>37 − 5 = 32</td></tr>
+              <tr><td>Vecino</td><td>37 → 36 y 38</td></tr>
+              <tr><td>Mapa de dígitos</td><td>Sustituye cada dígito según tu tabla</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Cómo el sistema los califica</h3>
+          <p>Por cada modo, el sistema revisa el historial: cada vez que cayó el número base, ¿apareció el número resultado en los siguientes 2 sorteos? La tasa de acierto determina la confianza del modo.</p>
+
+          <h3>Ejemplos propios</h3>
+          <p>También puedes agregar ejemplos manuales: <em>"Cuando cayó 14, yo esperaba 69 y cayó"</em>. El sistema los incorpora como evidencia adicional.</p>
+        `,
+      },
+      {
+        id: "panel-dia",
+        categoria: "Paneles",
+        titulo: "Panel del día — registrar sorteos diarios",
+        contenido: `
+          <h2>Panel del día</h2>
+          <p class="wiki-lead">Aquí registras los resultados de cada sorteo del día. Es la fuente principal de datos de todo el sistema.</p>
+
+          <h3>Flujo de trabajo</h3>
+          <ol>
+            <li>Selecciona la <strong>fecha</strong> y el <strong>país</strong></li>
+            <li>Ingresa el número en el slot del turno correspondiente (11AM, 3PM, 9PM)</li>
+            <li>Clic en <strong>"Agregar a pendientes"</strong> — el sorteo queda en cola local</li>
+            <li>Clic en <strong>"Sincronizar con Supabase"</strong> — confirma y guarda en la base de datos</li>
+          </ol>
+
+          <h3>Botón "Vincular par"</h3>
+          <p>Aparece bajo cada slot. Al hacer clic con un número ya ingresado, abre un formulario para registrar el número compañero esperado (par vinculado), con ambas ventanas de tiempo configurables.</p>
+
+          <h3>Modo prueba</h3>
+          <p>El checkbox "Modo prueba" en cada slot marca el sorteo como test. No se incluye en los análisis reales del motor. Útil para probar el sistema sin contaminar el historial.</p>
+        `,
+      },
+      {
+        id: "diciembre",
+        categoria: "Comportamiento estacional",
+        titulo: "Factor Diciembre — el sistema juega diferente",
+        contenido: `
+          <h2>Factor Diciembre</h2>
+          <p class="wiki-lead">En diciembre, el comportamiento observado de La Diaria cambia: el sistema tiende a <strong>repetir números</strong> en lugar de buscar los que llevan más tiempo sin caer.</p>
+
+          <h3>Por qué es contraintuitivo</h3>
+          <p>En condiciones normales, el motor penaliza los números recientes (cayeron hace poco). En diciembre hace lo contrario: prioriza los que salieron recientemente porque el patrón histórico muestra mayor repetición en ese mes.</p>
+
+          <h3>Cómo lo aplica el sistema</h3>
+          <p>El motor detecta automáticamente si la fecha actual es diciembre. Si es así, relaja el filtro de eliminación de números recientes — no los descarta aunque hayan caído hace 1-2 días.</p>
+
+          <h3>Hipótesis detrás del patrón</h3>
+          <p>En quincenas y fechas especiales (Navidad, fin de año), el volumen de apuestas sube. Si el sistema tiene algún control, puede preferir repetir números para distribuir los premios en lugar de concentrarlos.</p>
+        `,
+      },
+      {
+        id: "adv-tesis",
+        categoria: "Sistema adversarial",
+        titulo: "Tesis adversarial — qué es y por qué",
+        contenido: `
+          <h2>Sistema adversarial</h2>
+          <p class="wiki-lead">El motor del sistema NO intenta predecir el número ganador como si fuera azar puro. Modela el <em>comportamiento estratégico de La Diaria</em> — la operadora que decide qué número paga y cuál no.</p>
+
+          <h3>El supuesto base</h3>
+          <p>La Diaria es un negocio. Su objetivo es <strong>cobrar mucho y pagar poco</strong>. Por eso, cuando un número está siendo comprado masivamente por el público, la operadora prefiere tirar otro — uno equivalente, parecido o relacionado — pero NO el que el público espera.</p>
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> Si esta semana medio Honduras está comprando el <strong>16 Anillo</strong> porque soñaron con boda, La Diaria probablemente tira el <strong>61</strong> (espejo), el <strong>10</strong> (de la cadena boda), o el <strong>17</strong> (adyacente al día). Paga poco, mantiene el "guiño" para que el público siga jugando.
+          </div>
+
+          <h3>Las 6 capas del motor adversarial</h3>
+          <p>El sistema aplica seis filtros encadenados al score base de cada número:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok">
+              <strong>1. Calendario adversarial</strong>
+              <span>Bloquea o boostea según fechas patrias, día del mes y eventos próximos.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>2. Modelo de popularidad</strong>
+              <span>Penaliza números calientes (muy comprados), favorece libres.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>3. Modo recuperación post-SP</strong>
+              <span>Detecta el ciclo post super premio: repetidos y escondidos pre-evento.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>4. Motor de variantes</strong>
+              <span>Genera todas las sustituciones matemáticas de los números calientes.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>5. Detector de clusters</strong>
+              <span>Identifica conjuntos pequeños de dígitos que la operadora está minando.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>6. Factor dominical</strong>
+              <span>Suaviza penalty a populares los domingos (menor volumen de juego).</span>
+            </div>
+          </div>
+
+          <h3>Cómo verlo en el panel Escenarios</h3>
+          <p>Cada capa aparece como una sección con tarjetas de número. El borde y el badge de color te dicen qué tipo de señal es:</p>
+          <ul>
+            <li><strong>Rojo</strong> — penalización adversarial (la operadora lo evita)</li>
+            <li><strong>Verde</strong> — boost positivo (favorable para que caiga)</li>
+            <li><strong>Morado</strong> — variante derivada por sustitución matemática</li>
+            <li><strong>Teal/Verde agua</strong> — miembro de cluster activo</li>
+            <li><strong>Naranja</strong> — popular caliente o cadena semántica activa</li>
+            <li><strong>Azul</strong> — calendario / próximos eventos</li>
+          </ul>
+
+          <h3>Lo que NO promete</h3>
+          <p>Esto no es predicción mística ni garantía. Es modelado de comportamiento. El sistema dice: <em>"si la operadora se está comportando así, estos números tienen ventaja contextual"</em>. Tú tomas la decisión final con esta información.</p>
+        `,
+      },
+      {
+        id: "adv-calendario",
+        categoria: "Sistema adversarial",
+        titulo: "📆 Calendario adversarial — fechas patrias y día del mes",
+        contenido: `
+          <h2>Calendario adversarial</h2>
+          <p class="wiki-lead">Aplica dos reglas de evasión basadas en el calendario hondureño: bloqueo por fechas patrias y boost por adyacencia de día.</p>
+
+          <h3>Regla 1: Fechas patrias y eventos culturales</h3>
+          <p>Cuando se acerca un evento cultural fuerte (Día de la Madre, Independencia, Navidad, etc.), el público compra masivamente los números asociados al evento. La operadora los <strong>bloquea</strong> durante una ventana pre y post evento.</p>
+          <div class="wiki-example">
+            <strong>Ejemplo Día de la Madre (2do domingo de mayo):</strong><br>
+            Números asociados: <strong>2, 5, 19, 42</strong> (cadena mujer/madre).<br>
+            Ventana de bloqueo: 10 días antes y 5 días después.<br>
+            Durante esa ventana esos números reciben penalty <strong>−45%</strong>.
+          </div>
+          <p>El sistema cataloga 14 eventos hondureños con su fecha (fija o movible), números asociados, intensidad y forma de la curva de bloqueo (trapezoidal o campana).</p>
+
+          <h3>Regla 2: Adyacencia de día del mes</h3>
+          <p>Una observación tuya muy concreta: si hoy es <strong>17</strong>, La Diaria casi nunca tira el <strong>17</strong>. Lo tira el <strong>16 o el 18</strong> (un día antes o después). Es el "guiño" sin pagar el evidente.</p>
+          <div class="wiki-example">
+            <strong>Hoy 17 de abril:</strong><br>
+            · Número 17 → penalty <strong>−45%</strong> (es el día exacto)<br>
+            · Números 16 y 18 → boost <strong>+25%</strong> (adyacentes)<br>
+            · Resto → sin efecto
+          </div>
+
+          <h3>Próximos eventos</h3>
+          <p>El panel también muestra los próximos eventos en una ventana de 120 días con sus números asociados, para que sepas qué se viene en el horizonte adversarial.</p>
+
+          <h3>Lo que ves en el panel</h3>
+          <p>Tres secciones:</p>
+          <ul>
+            <li><strong>📆 Bloqueados</strong> (rojo) — números penalizados ahora mismo, con el motivo y % de reducción.</li>
+            <li><strong>📆 Boost por adyacencia</strong> (azul claro) — D±1 del día actual.</li>
+            <li><strong>📅 Próximos eventos</strong> (azul) — qué viene en los próximos meses.</li>
+          </ul>
+        `,
+      },
+      {
+        id: "adv-popularidad",
+        categoria: "Sistema adversarial",
+        titulo: "🎭 Modelo de popularidad — qué compra el público",
+        contenido: `
+          <h2>Modelo de popularidad del público</h2>
+          <p class="wiki-lead">Calcula qué números está comprando masivamente el público hondureño en este momento. Cuanto más popular, más lo evita la operadora.</p>
+
+          <h3>De qué se nutre el modelo</h3>
+          <p>Cuatro fuentes de popularidad:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--warn">
+              <strong>1. Cadenas semánticas activas</strong>
+              <span>15 cadenas culturales (mujer/madre, muerte, boda, animales, fiesta, aves, vejez, dinero, armas, infierno, cocina, naturaleza, joyería, religión, transporte). Si cae un número de la cadena, el público sale a comprar el resto.</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>2. Saladitos estéticos</strong>
+              <span>Dobles populares (11, 22, 33, 55, 66, 77, 88, 99 — el 44 está excluido por ti), redondos (terminan en 0) y múltiplos de 5. El público los adora porque son "bonitos".</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>3. Piso cultural (terminales bajos + fechas + clásicos)</strong>
+              <span>Terminales 00–09 (sueños básicos: agua, dinero, muerto…), días del mes 01–31 (la gente apuesta cumpleaños), y clásicos del jugador (07, 13, 22, 33, 50, 69, 77, 99). Sin este piso el modelo confundía números HIPER-jugados con "fríos libres".</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>4. Activaciones recientes</strong>
+              <span>~60 reglas trigger→targets extraídas de tus respuestas. Ej.: si cae el 03, dispara la cadena muerte; si cae el 37, dispara dinero.</span>
+            </div>
+            <div class="wiki-state wiki-state--muted">
+              <strong>5. Supersticiones evitadas</strong>
+              <span>Algunos números (como 22 y 66) son evitados culturalmente — bajan en popularidad.</span>
+            </div>
+          </div>
+
+          <h3>Cómo se traduce a peso adversarial</h3>
+          <p>Cada número recibe un score de popularidad de 0 a 100. Ese score se convierte en factor multiplicativo:</p>
+          <div class="wiki-example">
+            · <strong>Popularidad 0</strong>   → factor <strong>1.35×</strong> (libre, la operadora puede pagarlo)<br>
+            · <strong>Popularidad 50</strong>  → factor <strong>1.00×</strong> (neutral)<br>
+            · <strong>Popularidad 100</strong> → factor <strong>0.65×</strong> (caliente, la operadora lo evita)
+          </div>
+
+          <h3>Lo que ves en el panel</h3>
+          <ul>
+            <li><strong>🔗 Cadena X activa</strong> (ámbar) — los disparadores cayeron recientemente, estos son los targets que el público espera.</li>
+            <li><strong>🔥 Mercado caliente</strong> (naranja) — top 8 más populares ahora mismo. La operadora los evita.</li>
+            <li><strong>🛑 Reprimidos</strong> (naranja oscuro) — populares Y con ausencia anómala (≥14 días sin caer + score ≥55). Estos son los que el público sí compra pero el operador retiene activamente. <em>NO son "más probables" — son candidatos a explosión cuando la represión termine, pero mientras dure es probable que sigan retenidos.</em></li>
+            <li><strong>❄️ Zona fría real</strong> (verde) — popularidad baja real (score ≤50). El público no los compra mucho, así que la operadora no tiene motivo para retenerlos. Pero "no retenidos" tampoco significa "más probables" automáticamente — solo significa que no son adversariales.</li>
+          </ul>
+
+          <h3>El bug conceptual que se corrigió</h3>
+          <p>Antes existía un único panel "💎 Números libres — más probables" que mezclaba dos cosas muy distintas:</p>
+          <ul>
+            <li><strong>Fríos reales</strong> (popularidad baja) — neutros adversarialmente.</li>
+            <li><strong>Reprimidos</strong> (popularidad alta + ausencia anómala) — la operadora los está conteniendo.</li>
+          </ul>
+          <p>Etiquetar a los reprimidos como "más probables porque nadie los juega" era falso: la gente sí los juega, por eso están reprimidos. Ahora se separan en paneles distintos para que la lectura sea correcta.</p>
+
+          <h3>Por qué es importante</h3>
+          <p>Un número con buen score Markov o buen rezago, pero con popularidad alta, no es buen candidato — porque la operadora hará lo posible por evitarlo. El modelo ajusta el ranking final por este factor.</p>
+        `,
+      },
+      {
+        id: "adv-variantes",
+        categoria: "Sistema adversarial",
+        titulo: "🔁 Motor de variantes — sustituciones matemáticas",
+        contenido: `
+          <h2>Motor de variantes</h2>
+          <p class="wiki-lead">Cuando un número está caliente o acaba de caer, La Diaria a menudo no lo paga. En su lugar, tira una <em>variante</em> matemática: conversión, equivalencia o espejo.</p>
+
+          <h3>Las reglas matemáticas oficiales</h3>
+          <div class="wiki-example">
+            <strong>Conversión:</strong> 0↔1 · 2↔5 · 3↔8 · 4↔7 · 6↔9<br>
+            <strong>Equivalencia:</strong> 0↔5 · 1↔6 · 2↔7 · 3↔8 · 4↔9<br>
+            <strong>Espejo:</strong> invierte los dos dígitos (23 ↔ 32)
+          </div>
+
+          <h3>Las 8 categorías de variantes</h3>
+          <p>Para cada número semilla el motor genera todas las variantes posibles, cada una con un peso adversarial calibrado:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok">
+              <strong>Conversión simple decena/unidad — peso 0.95</strong>
+              <span>Solo se cambia un dígito. Es la sustitución más reconocible.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Conversión compuesta — peso 0.85</strong>
+              <span>Ambos dígitos se convierten. Ej.: 23 → 58.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Espejo de compuesta — peso 0.70</strong>
+              <span>La conversión compuesta y luego invertir. Ej.: 23 → 85.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Equivalencia directa — peso 0.80</strong>
+              <span>Ambos dígitos por equivalencia. Ej.: 23 → 78.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Espejo de equivalencia — peso 0.65</strong>
+              <span>Equivalencia y luego invertir. Ej.: 23 → 87.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Espejo simple — peso 0.75</strong>
+              <span>Solo invertir dígitos. Ej.: 23 → 32.</span>
+            </div>
+            <div class="wiki-state wiki-state--muted">
+              <strong>Encadenado — peso 0.45</strong>
+              <span>Composición: aplicar conversión y luego equivalencia (o viceversa). Más sutil, peso menor.</span>
+            </div>
+          </div>
+
+          <h3>Las semillas que activan el motor</h3>
+          <p>El motor trabaja sobre tres tipos de semillas, con pesos decrecientes:</p>
+          <ul>
+            <li><strong>Último número</strong> (peso 1.0) — la semilla más fuerte</li>
+            <li><strong>Últimos 4 sorteos</strong> (peso 0.4–0.8) — contexto reciente</li>
+            <li><strong>Top 4 calientes del mercado</strong> (peso 0.6) — lo que el público espera</li>
+          </ul>
+
+          <h3>Cómo se acumula</h3>
+          <p>Si una variante aparece desde múltiples semillas (ej.: el 78 es variante simultánea del 23 y del 87), su peso se acumula con saturación suave (cap a 1.0). Cuanto más caminos llevan a un número, más alto su boost.</p>
+
+          <h3>Lo que ves en el panel</h3>
+          <ul>
+            <li><strong>🔁 Semillas activas</strong> (morado fuerte) — los números que están "irradiando" variantes con sus pesos.</li>
+            <li><strong>🔁 Variantes con mayor peso</strong> (morado suave) — top 10 sustituciones probables. El badge muestra el peso acumulado, la línea de motivo dice de qué semilla viene y qué tipo de transformación es.</li>
+          </ul>
+
+          <h3>Lectura práctica</h3>
+          <p>Si ves <strong>78</strong> con badge <strong>87%</strong> y motivo <strong>"23→compuesta"</strong>, significa: el 23 cayó recientemente, su conversión compuesta es 78, y el sistema te dice que es muy probable que la operadora tire el 78 en lugar del 23 nuevo.</p>
+        `,
+      },
+      {
+        id: "adv-clusters",
+        categoria: "Sistema adversarial",
+        titulo: "🎯 Clusters de dígitos — cuando se mina un set pequeño",
+        contenido: `
+          <h2>Detector de clusters de dígitos</h2>
+          <p class="wiki-lead">A veces La Diaria se "estanca" durante varios sorteos en un conjunto pequeño de dígitos. Si los últimos 12 sorteos solo usan 3-4 dígitos, hay un cluster activo y los próximos sorteos saldrán del mismo universo.</p>
+
+          <h3>Ejemplo real</h3>
+          <div class="wiki-example">
+            <strong>Sorteos recientes:</strong> 09, 91, 16, 60, 61, 90, 06<br>
+            <strong>Cluster detectado:</strong> {0, 1, 6, 9} — solo 4 dígitos cubren todos esos sorteos.<br>
+            <strong>Universo combinatorio:</strong> 16 números posibles (00, 01, 06, 09, 10, 11, 16, 19, 60, 61, 66, 69, 90, 91, 96, 99).<br>
+            <strong>Lectura:</strong> los siguientes sorteos probablemente saldrán de esos 16.
+          </div>
+
+          <h3>Cómo lo detecta el algoritmo</h3>
+          <ol>
+            <li>Toma los últimos 12 sorteos.</li>
+            <li>Identifica qué dígitos aparecen al menos una vez (universo).</li>
+            <li>Prueba <strong>todas las combinaciones</strong> de dígitos de tamaño 2 a 5.</li>
+            <li>Para cada combinación, mide la <strong>cobertura</strong>: % de sorteos cuyos DOS dígitos están en el set.</li>
+            <li>Reporta solo los clusters con cobertura ≥ <strong>65%</strong>.</li>
+            <li>Filtra clusters dominados (si {0,1,6,9} captura lo mismo que {0,1,3,6,9}, gana el más pequeño).</li>
+          </ol>
+
+          <h3>El score</h3>
+          <p>Cada cluster recibe un score que combina dos factores:</p>
+          <div class="wiki-example">
+            <strong>Score = cobertura × 0.7 + eficiencia × 0.3</strong><br>
+            donde <em>eficiencia = 1 − (k/10)</em> (cluster pequeño = más eficiente)
+          </div>
+          <p>Un cluster con 90% de cobertura y solo 3 dígitos es mejor que uno con 70% de cobertura y 5 dígitos.</p>
+
+          <h3>Cómo se usa en el motor</h3>
+          <p>Los miembros del cluster reciben boost <strong>+0% a +40%</strong> sobre su score adversarial, escalado por el rank del cluster (el #1 pesa más que el #2 o #3).</p>
+
+          <h3>Lo que ves en el panel</h3>
+          <ul>
+            <li><strong>🎯 Cluster #1 {0,1,6,9}</strong> (teal fuerte) — los sorteos recientes que cayeron del cluster.</li>
+            <li><strong>Universo combinatorio</strong> (teal suave) — los 16 números que componen el cluster, todos candidatos.</li>
+          </ul>
+          <p>Se muestran hasta 3 clusters distintos, ordenados por score.</p>
+
+          <h3>Cuándo confiar más</h3>
+          <p>Si la cobertura es ≥ 80% con un cluster pequeño (k=2 o k=3), la señal es muy fuerte. Si la cobertura está cerca del umbral (65%) y el cluster es grande (k=5), trátalo como pista débil — puede ser ruido.</p>
+        `,
+      },
+      {
+        id: "adv-recuperacion",
+        categoria: "Sistema adversarial",
+        titulo: "🩹 Modo recuperación — el ciclo post super premio",
+        contenido: `
+          <h2>Modo recuperación post super premio</h2>
+          <p class="wiki-lead">Después de pagar un super premio, La Diaria entra en una fase de "recuperación de caja" donde su comportamiento cambia. El sistema lo detecta y ajusta el motor.</p>
+
+          <h3>Cuándo se activa</h3>
+          <p>El modo se activa automáticamente durante <strong>14 días</strong> después de cualquier fecha marcada como super premio en la sección de Super Premios. El banner rojo en el Panel del día te lo indica.</p>
+
+          <h3>Decay temporal — la intensidad se atenúa</h3>
+          <p>El boost no es plano durante los 14 días. Decae linealmente:</p>
+          <div class="wiki-example">
+            · Día 0  → intensidad <strong>100%</strong> (máximo efecto)<br>
+            · Día 7  → intensidad <strong>50%</strong><br>
+            · Día 14 → intensidad <strong>0%</strong> (modo se apaga solo)
+          </div>
+          <p>Esto refleja que el efecto del super premio se diluye con el tiempo. Sin decay, los últimos días del modo darían señales falsamente fuertes.</p>
+
+          <h3>Dos señales distintas</h3>
+
+          <h4>🫥 Escondidos pre-SP (verde)</h4>
+          <p>Números que cayeron 3-7 días <strong>antes</strong> del super premio y NO han vuelto a caer desde. Hipótesis: la operadora los estaba "guardando" durante la fase de acumulación porque iban a ser parte del super premio.</p>
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> El 47 cayó 2 veces entre el día −7 y −3 antes del SP, y desde entonces no ha vuelto. El sistema lo marca como candidato natural a regresar — el operador lo "soltó" después del pago.
+          </div>
+
+          <h4>🔁 Repetidos post-SP (rojo)</h4>
+          <p>Números que han caído 2 o más veces desde el super premio. La operadora insiste en ellos — probablemente porque tiene poco capital expuesto en esos números.</p>
+          <p>El boost se escala por el número de repeticiones: más repeticiones = más boost.</p>
+
+          <h3>Lo que ves en el panel</h3>
+          <ul>
+            <li><strong>Banner rojo</strong> en Panel del día indicando que el modo está activo, con días transcurridos y restantes.</li>
+            <li><strong>🫥 Escondidos pre-SP</strong> (verde) — candidatos que el sistema cree que la operadora "soltará" pronto.</li>
+            <li><strong>🔁 Repetidos post-SP</strong> (rojo) — números insistentes de esta fase.</li>
+            <li>El header muestra <strong>día X/14 · intensidad Y%</strong>.</li>
+          </ul>
+
+          <h3>Cómo marcar un super premio</h3>
+          <p>Ve a la sección "Super Premios" en el sidebar y marca con click la fecha del miércoles o sábado donde se pagó un super premio. El modo se activa automáticamente.</p>
+        `,
+      },
+      {
+        id: "adv-dominical",
+        categoria: "Sistema adversarial",
+        titulo: "☀️ Factor dominical — los domingos juegan diferente",
+        contenido: `
+          <h2>Factor adversarial dominical</h2>
+          <p class="wiki-lead">Los domingos el volumen de juego de La Diaria es menor (menos ventanillas activas, menos tiempo, menos público). Eso cambia el cálculo de riesgo de la operadora.</p>
+
+          <h3>La intuición</h3>
+          <p>Cuando hay mucho volumen (entre semana), pagar un número popular es caro porque MUCHA gente lo compró. Cuando hay poco volumen (domingos), pagar el mismo número popular cuesta menos. Por eso la operadora se "relaja" un poco con los populares los domingos.</p>
+
+          <h3>Cómo se aplica</h3>
+          <p>Solo se activa cuando la fecha objetivo es <strong>domingo</strong> (día de la semana = 0). Para todos los números que recibieron penalty por popularidad caliente:</p>
+          <div class="wiki-example">
+            · Penalty original: −20% a −35% (popularidad alta)<br>
+            · Compensación dominical: <strong>+18%</strong> sobre el score ajustado<br>
+            · Resultado: el penalty queda en aprox. −5% a −20%
+          </div>
+          <p>Es un rebote que NO elimina el penalty — solo lo suaviza.</p>
+
+          <h3>Cuándo ves el banner</h3>
+          <p>Cuando el sistema detecta que la próxima fecha objetivo cae en domingo, aparece el banner amarillo <strong>"☀️ Factor dominical activo"</strong> con el número de candidatos afectados.</p>
+
+          <h3>Lo que NO hace</h3>
+          <ul>
+            <li>No afecta el calendario adversarial.</li>
+            <li>No afecta clusters ni variantes.</li>
+            <li>No promueve números libres adicionalmente.</li>
+            <li>Solo "perdona" parcialmente el penalty a populares calientes.</li>
+          </ul>
+
+          <h3>Por qué es importante</h3>
+          <p>Sin este factor el motor sería demasiado pesimista los domingos sobre números populares que SÍ pueden caer porque la operadora tiene menor exposición ese día. Con el factor, los rankings dominicales reflejan la realidad de menor volumen.</p>
+        `,
+      },
+      {
+        id: "backtest",
+        categoria: "Sistema adversarial",
+        titulo: "🧪 Backtest — la prueba honesta de si el motor funciona",
+        contenido: `
+          <h2>Backtest del motor</h2>
+          <p class="wiki-lead">Un sistema serio se mide a sí mismo. El backtest simula que el motor se corrió cada día desde el warmup, usando solo los datos disponibles HASTA ESE MOMENTO, y compara la predicción contra lo que realmente cayó al día siguiente.</p>
+
+          <h3>Cómo funciona</h3>
+          <ol>
+            <li>Se ordenan todos los sorteos cronológicamente.</li>
+            <li>Se reserva el "warmup" inicial (por defecto 300 sorteos) para que el modelo tenga base.</li>
+            <li>Para cada sorteo posterior, se reconstruye el motor con la historia anterior y se obtiene un ranking 0–99.</li>
+            <li>Se busca en qué posición del ranking quedó el número que efectivamente cayó.</li>
+            <li>Se cuenta cuántas veces estuvo en top-5, top-10, top-20, top-30.</li>
+          </ol>
+
+          <h3>La métrica clave: lift</h3>
+          <p>El <strong>lift</strong> compara la tasa de aciertos del motor contra el azar puro:</p>
+          <div class="wiki-example">
+            · Top-10 al azar: 10/100 = <strong>10%</strong> de hit-rate esperado<br>
+            · Si el motor acierta 15 veces de cada 100 → 15% / 10% = <strong>1.5× lift</strong><br>
+            · Lift &gt; 1.0 = mejor que azar · Lift = 1.0 = igual al azar · Lift &lt; 1.0 = peor
+          </div>
+
+          <h3>Cómo interpretar los resultados</h3>
+          <ul>
+            <li><strong>Lift ≥ 1.30</strong> en top-10 → ✅ señal real fuerte. El motor te da ventaja medible.</li>
+            <li><strong>Lift 1.05–1.30</strong> → señal modesta. Útil como filtro, no como oráculo.</li>
+            <li><strong>Lift 0.95–1.05</strong> → ⚠ ruido. El motor está al nivel del azar.</li>
+            <li><strong>Lift &lt; 0.95</strong> → ❌ algo está mal calibrado. Las "señales" están metiendo ruido.</li>
+          </ul>
+
+          <h3>Limitaciones honestas</h3>
+          <p>El backtest mide solo el <strong>núcleo determinista</strong> del motor: Markov O1 + O2, rezago/Poisson y popularidad adversarial. NO simula:</p>
+          <ul>
+            <li><code>evaluarModos</code> ni <code>detectarPatrones</code> (son async/DB-bound).</li>
+            <li>Calendario adversarial completo (depende de fechas patrias).</li>
+            <li>Recovery mode (depende de eventos super premio).</li>
+            <li>Variantes ni clusters (los podemos añadir en una v2 si el núcleo demuestra ventaja).</li>
+          </ul>
+          <p>Eso significa que si el backtest da lift bajo, no quiere decir que el motor en producción no funcione, sino que las partes núcleo no rinden. Si esas partes no rinden, las partes adicionales tampoco van a salvarlo.</p>
+
+          <h3>Por año</h3>
+          <p>El reporte separa el lift por año. Si el lift es alto en años recientes pero bajo en 2015, significa que el comportamiento del operador cambió y el modelo se adapta mejor a la dinámica actual. Si es alto en 2015 y bajo ahora, el modelo está sobreajustado al pasado.</p>
+
+          <h3>Fuentes que más contribuyen</h3>
+          <p>Cuando el actual cae en top-10, se suman las contribuciones de cada fuente de señal (markov1, markov2, rezago…). Esto te dice cuáles componentes del motor están aportando aciertos reales y cuáles solo aportan ruido.</p>
+
+          <h3>Por qué es importante</h3>
+          <p>Sin backtesting, ambos estaríamos adivinando si el sistema funciona. Con backtesting, sabemos. El motor cambia constantemente: cada vez que agreguemos una técnica nueva, hay que volver a correr el backtest y verificar que el lift no bajó. Si bajó, esa técnica nueva está metiendo ruido y se descarta.</p>
+        `,
+      },
+      // ── Estadística y verificación ──────────────────────────────────────────
+      {
+        id: "hipotesis-vs-afirmacion",
+        categoria: "Estadística y verificación",
+        titulo: "Hipótesis vs. afirmación — por qué el sistema no te cree",
+        contenido: `
+          <h2>Hipótesis vs. afirmación</h2>
+          <p class="wiki-lead">El sistema trata todo lo que el jugador o el analista afirman como una <strong>hipótesis a falsificar</strong>, no como una verdad. Esta es la regla más importante del Verificador estadístico.</p>
+
+          <h3>¿Por qué no creerte?</h3>
+          <p>Las observaciones humanas sobre La Diaria llegan de dos fuentes problemáticas:</p>
+          <div class="wiki-example">
+            <strong>1. Ingreso manual de datos</strong> — quien carga los sorteos uno a uno desarrolla inevitablemente la sensación de ver patrones que el azar normal produciría de todas formas.<br><br>
+            <strong>2. Boca a boca entre jugadores</strong> — los "pronosticadores" con años de experiencia comparten observaciones que se viralizan, pero ninguna ha sido verificada estadísticamente con todos los datos.
+          </div>
+          <p>Ambas fuentes producen <em>sesgo de confirmación</em>: recordamos los casos donde el patrón se cumplió y olvidamos los que no.</p>
+
+          <h3>Lo que hace el sistema</h3>
+          <p>Convierte la afirmación en una hipótesis estadística, aplica una prueba objetiva (chi-cuadrado, correlación de Pearson, entropía), y devuelve un veredicto con evidencia:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>CONFIRMADO</strong><span>La prueba estadística supera el umbral de significancia. El patrón es real en los datos.</span></div>
+            <div class="wiki-state wiki-state--warn"><strong>TENDENCIA</strong><span>Hay una señal pero los datos aún no son suficientes para confirmar con certeza.</span></div>
+            <div class="wiki-state wiki-state--muted"><strong>SIN EFECTO</strong><span>Los datos no muestran evidencia del patrón. La percepción es probablemente sesgo.</span></div>
+          </div>
+
+          <h3>Principio general</h3>
+          <p>Si el sistema devuelve "Sin efecto", no significa que el jugador esté equivocado — significa que los datos actuales no tienen suficiente evidencia. Se necesitan más datos o la afirmación simplemente no es cierta.</p>
+        `,
+      },
+      {
+        id: "chi-cuadrado",
+        categoria: "Estadística y verificación",
+        titulo: "Chi-cuadrado (χ²) — ¿La distribución es uniforme?",
+        contenido: `
+          <h2>Chi-cuadrado (χ²)</h2>
+          <p class="wiki-lead">Prueba si una distribución de frecuencias se aleja significativamente de lo que esperaría el azar puro. Es la herramienta principal del Verificador estadístico.</p>
+
+          <h3>El concepto en simple</h3>
+          <p>Si La Diaria fuera completamente aleatoria, cada uno de los 100 números debería aparecer con la misma frecuencia. El χ² mide qué tan lejos está la distribución real de esa uniformidad perfecta.</p>
+
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> En 300 sorteos de diciembre, el número 07 apareció 12 veces y el 54 apareció 0 veces. Lo esperado por azar sería 3 veces cada uno.<br>
+            Esas desviaciones se suman (al cuadrado, normalizadas) para todos los 100 números → ese total es el χ².
+          </div>
+
+          <h3>Cómo interpretar el valor</h3>
+          <p>El χ² tiene 99 grados de libertad (100 números − 1). Los umbrales para este sistema son:</p>
+          <div class="wiki-example">
+            χ² &gt; 123.2 → <strong>p &lt; 0.05</strong> — resultado improbable por azar (1 en 20)<br>
+            χ² &gt; 135.8 → <strong>p &lt; 0.01</strong> — muy improbable por azar (1 en 100)<br>
+            χ² &gt; 149.5 → <strong>p &lt; 0.001</strong> — extremadamente improbable (1 en 1000)
+          </div>
+          <p>Si el χ² está por debajo de estos umbrales, la distribución es estadísticamente compatible con el azar — no hay evidencia de patrón real.</p>
+
+          <h3>Limitación importante</h3>
+          <p>El χ² necesita suficientes datos. Con menos de ~50 sorteos en el período analizado, los resultados no son confiables aunque el número parezca alto.</p>
+        `,
+      },
+      {
+        id: "p-valor",
+        categoria: "Estadística y verificación",
+        titulo: "p-valor — ¿Qué tan improbable es esto por azar?",
+        contenido: `
+          <h2>p-valor (nivel de significancia)</h2>
+          <p class="wiki-lead">El p-valor responde: <em>"Si La Diaria fuera completamente aleatoria, ¿qué tan probable sería observar esta distribución tan extrema?"</em></p>
+
+          <h3>Cómo leerlo</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>p &lt; 0.05</strong><span>Hay menos de 5% de probabilidad de que sea azar. Resultado significativo. El patrón probablemente es real.</span></div>
+            <div class="wiki-state wiki-state--warn"><strong>p &lt; 0.10</strong><span>Hay menos de 10% de probabilidad de que sea azar. Tendencia, pero no conclusiva.</span></div>
+            <div class="wiki-state wiki-state--muted"><strong>p &gt; 0.10</strong><span>Más de 10% de probabilidad de que sea azar. No hay evidencia estadística del patrón.</span></div>
+          </div>
+
+          <h3>El error común</h3>
+          <p>Un p-valor bajo NO dice "el patrón es grande o importante". Solo dice que el patrón es estadísticamente real, no producto del azar. Un patrón puede ser real pero pequeño (inútil para jugar) o puede ser grande pero con pocos datos (no confiable).</p>
+
+          <h3>En el sistema</h3>
+          <p>El Verificador estadístico muestra el p-valor calculado a partir del chi-cuadrado con 99 grados de libertad. Los valores críticos están tabulados — no se calculan exactamente sino que se clasifican en categorías (p&lt;0.001, p&lt;0.01, p&lt;0.05, etc.).</p>
+        `,
+      },
+      {
+        id: "entropia-shannon",
+        categoria: "Estadística y verificación",
+        titulo: "Entropía de Shannon — ¿Qué tan predecible es un período?",
+        contenido: `
+          <h2>Entropía de Shannon normalizada</h2>
+          <p class="wiki-lead">Mide el <em>desorden</em> o <em>imprevisibilidad</em> de una distribución. Es la base del <strong>Índice ROBOTELSA</strong> que identifica meses o períodos donde La Diaria se vuelve más adversarial.</p>
+
+          <h3>La intuición</h3>
+          <p>Imagina dos casos extremos:</p>
+          <div class="wiki-example">
+            <strong>Entropía = 0 (mínima):</strong> Un solo número cae en todos los sorteos. Distribución completamente concentrada. Máxima predecibilidad (pero también máxima anomalía).<br><br>
+            <strong>Entropía = 1 (máxima):</strong> Todos los 100 números aparecen exactamente con la misma frecuencia. Distribución perfectamente uniforme. Azar puro — imposible predecir.
+          </div>
+          <p>En la práctica, los valores de La Diaria oscilan entre 0.90 y 0.99. Las diferencias pequeñas entre meses son significativas.</p>
+
+          <h3>Fórmula</h3>
+          <p>H = −Σ p·log₂(p) / log₂(100)</p>
+          <p>Donde p es la frecuencia relativa de cada número. El resultado se normaliza dividiéndolo por log₂(100) para que quede en el rango [0, 1].</p>
+
+          <h3>Cómo usarlo</h3>
+          <p>En el Índice ROBOTELSA, meses con entropía <em>más baja que el promedio</em> son períodos donde pocos números concentran los sorteos — más fácil de analizar. Meses con entropía <em>más alta</em> son caóticos — el sistema parece dispersar los resultados intencionalmente.</p>
+        `,
+      },
+      {
+        id: "z-score",
+        categoria: "Estadística y verificación",
+        titulo: "Z-score — ¿Qué tan anómala es la frecuencia de un número?",
+        contenido: `
+          <h2>Z-score por número</h2>
+          <p class="wiki-lead">Mide en unidades de desviación estándar qué tan lejos está la frecuencia real de un número respecto de lo esperado por azar.</p>
+
+          <h3>Fórmula</h3>
+          <p>z = (observado − esperado) / √esperado</p>
+          <p>Donde "esperado" es total_sorteos / 100 (distribución uniforme sobre 100 números).</p>
+
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> En 500 sorteos de enero, el número 33 apareció 12 veces.<br>
+            Esperado = 500 / 100 = 5<br>
+            z = (12 − 5) / √5 = 7 / 2.24 = <strong>+3.1</strong><br>
+            Eso significa que el 33 apareció 3.1 desviaciones estándar por encima de lo normal en enero.
+          </div>
+
+          <h3>Umbrales de interpretación</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>|z| ≥ 2.0</strong><span>Sobre-representado o sub-representado de forma notable. Vale la pena considerar.</span></div>
+            <div class="wiki-state wiki-state--warn"><strong>1.3 ≤ |z| &lt; 2.0</strong><span>Anomalía leve. Tendencia a vigilar pero no estadísticamente fuerte.</span></div>
+            <div class="wiki-state wiki-state--muted"><strong>|z| &lt; 1.3</strong><span>Dentro del rango normal del azar. Sin señal relevante.</span></div>
+          </div>
+
+          <h3>En el sistema</h3>
+          <p>El Verificador estacional muestra los números con mayor |z| por mes. En el mapa de calor, chips en rojo son números con z alto (sobre-representados ese mes); chips en azul tienen z bajo (sub-representados).</p>
+        `,
+      },
+      {
+        id: "pearson-r",
+        categoria: "Estadística y verificación",
+        titulo: "Correlación de Pearson (r) — ¿Dos períodos se parecen?",
+        contenido: `
+          <h2>Correlación de Pearson entre distribuciones</h2>
+          <p class="wiki-lead">Mide qué tan similares son las distribuciones de frecuencias de dos períodos distintos. Se usa para detectar si La Diaria "cambia de sistema" de un año a otro.</p>
+
+          <h3>Cómo funciona aquí</h3>
+          <p>Para cada número (0–99), se calcula su frecuencia relativa en el período A y en el período B. Pearson mide la correlación entre esos 100 pares de valores.</p>
+
+          <div class="wiki-example">
+            <strong>r cercano a 1:</strong> Las distribuciones son casi idénticas. Los mismos números son frecuentes en ambos años.<br><br>
+            <strong>r cercano a 0:</strong> Las distribuciones son independientes. Los patrones de un año no se repiten en el otro.<br><br>
+            <strong>r negativo:</strong> Lo que era frecuente en un año tiende a ser raro en el otro (inversión de patrones).
+          </div>
+
+          <h3>Interpretación en el Verificador</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>r promedio &lt; 0.25</strong><span>Baja correlación entre años consecutivos → La Diaria cambia significativamente de año en año. Hipótesis CONFIRMADA.</span></div>
+            <div class="wiki-state wiki-state--warn"><strong>0.25 ≤ r &lt; 0.55</strong><span>Correlación moderada → hay cambios pero también continuidad. Hipótesis en TENDENCIA.</span></div>
+            <div class="wiki-state wiki-state--muted"><strong>r ≥ 0.55</strong><span>Alta correlación → los patrones son relativamente estables entre años. Hipótesis SIN EFECTO.</span></div>
+          </div>
+        `,
+      },
+      {
+        id: "robotelsa",
+        categoria: "Estadística y verificación",
+        titulo: "ROBOTELSA — el sobrenombre de diciembre y recuperaciones",
+        contenido: `
+          <h2>ROBOTELSA</h2>
+          <p class="wiki-lead">Sobrenombre popular que los jugadores de La Diaria le dan a LOTELHSA durante diciembre y los períodos de recuperación post-Super Premio, cuando incluso los pronosticadores con años de experiencia fallan consistentemente.</p>
+
+          <h3>El origen</h3>
+          <p>La combinación de "ROBO" + "LOTELHSA" refleja la percepción de que en ciertos períodos el sistema parece actuar de forma mecánica y adversarial: evitando los números más esperados, repitiendo combinaciones inusuales, y comportándose de una forma que "ningún humano predice".</p>
+
+          <h3>¿Es real o sesgo?</h3>
+          <p>Aquí entra el Verificador estadístico. La percepción del ROBOTELSA se viraliza por boca a boca y es amplificada por el sesgo de confirmación: recordamos los meses de diciembre malos y olvidamos los normales. El sistema verifica con chi-cuadrado si la distribución de diciembre realmente difiere de los demás meses.</p>
+
+          <h3>Índice ROBOTELSA</h3>
+          <p>El sistema calcula una medida objetiva del "efecto ROBOTELSA" usando ventanas deslizantes de 30 sorteos y calculando la entropía de Shannon de cada ventana. Un índice bajo (entropía baja) indica que el período es más predecible; un índice alto indica dispersión caótica — el comportamiento adversarial percibido por los jugadores.</p>
+
+          <h3>Dónde verlo</h3>
+          <p>En el panel <strong>Verificador estadístico → Índice ROBOTELSA</strong>. Las barras muestran la entropía promedio por mes. Los meses por encima del promedio global (línea punteada) son los más "robóticos" según los datos.</p>
+        `,
+      },
+      {
+        id: "indice-robotelsa",
+        categoria: "Estadística y verificación",
+        titulo: "Índice ROBOTELSA — entropía mensual por ventana deslizante",
+        contenido: `
+          <h2>Índice ROBOTELSA (técnico)</h2>
+          <p class="wiki-lead">Métrica cuantitativa que calcula la entropía de Shannon en ventanas deslizantes de 30 sorteos y agrupa los resultados por mes del año.</p>
+
+          <h3>Cómo se calcula</h3>
+          <ol>
+            <li>Se ordenan todos los sorteos cronológicamente.</li>
+            <li>Se avanzan ventanas de 30 sorteos en pasos de ~7 sorteos (1/4 de la ventana).</li>
+            <li>Para cada ventana se calcula la entropía normalizada de Shannon.</li>
+            <li>Cada entropía se asigna al mes del último sorteo de esa ventana.</li>
+            <li>Se promedian todas las entropías de cada mes → valor del índice por mes.</li>
+          </ol>
+
+          <h3>El índice relativo</h3>
+          <p>El valor que se muestra en el panel es la <em>desviación porcentual respecto al promedio global</em>:</p>
+          <div class="wiki-example">
+            Si el promedio global es 0.9500 y diciembre tiene 0.9617, el índice relativo de diciembre es:<br>
+            (0.9617 − 0.9500) / 0.9500 × 100 = <strong>+1.2%</strong><br>
+            Diciembre está 1.2% por encima del promedio global → más caótico.
+          </div>
+
+          <h3>Interpretación</h3>
+          <p>Un índice positivo significa que ese mes tiende a ser más disperso/caótico que el promedio anual. Un índice negativo significa que ese mes tiende a concentrarse en menos números — más predecible, o al menos más estructurado.</p>
+        `,
+      },
+      {
+        id: "pool-historico",
+        categoria: "Estadística y verificación",
+        titulo: "Pool histórico — candidatos de recuperación basados en SP anteriores",
+        contenido: `
+          <h2>Pool histórico de recuperación</h2>
+          <p class="wiki-lead">Conjunto de números que aparecieron en períodos de recuperación de Super Premios anteriores. Sirve como "universo de candidatos" para el ciclo de recuperación actual.</p>
+
+          <h3>Construcción del pool</h3>
+          <p>Para cada Super Premio registrado en el historial (excepto el actual):</p>
+          <ol>
+            <li>Se toman los sorteos de los 14 días siguientes al pago del SP.</li>
+            <li>Se extraen todos los números únicos que cayeron en esa ventana.</li>
+            <li>La unión de todos esos números forma el pool histórico.</li>
+          </ol>
+          <p>Típicamente el pool contiene entre 60 y 80 números únicos sobre 100 posibles.</p>
+
+          <h3>Candidatos aún sin caer</h3>
+          <p>De ese pool, el panel muestra los números que <em>todavía no han aparecido</em> en el ciclo de recuperación actual. Son candidatos porque el historial sugiere que suelen aparecer en este tipo de períodos.</p>
+
+          <h3>Importante</h3>
+          <p>El pool es grande por construcción — no es una lista de 10 números seleccionados. La utilidad está en los <strong>candidatos que no han caído aún</strong> y en el <strong>hit-tracker</strong> que valida si el pool está siendo efectivo en el ciclo actual.</p>
+        `,
+      },
+      {
+        id: "hit-tracker",
+        categoria: "Estadística y verificación",
+        titulo: "Hit-tracker — validación estadística del pool de candidatos",
+        contenido: `
+          <h2>Hit-tracker</h2>
+          <p class="wiki-lead">Mide qué tan efectivo está siendo el pool histórico en el ciclo de recuperación actual, comparándolo contra la <strong>línea base de azar</strong>.</p>
+
+          <h3>Qué mide</h3>
+          <p>Para cada día del período de recuperación actual:</p>
+          <ul>
+            <li>¿El número que cayó ese día estaba en el pool histórico?</li>
+            <li>Suma los días con al menos un hit.</li>
+            <li>Divide entre el total de días del período → <strong>tasa de acierto actual</strong>.</li>
+          </ul>
+
+          <h3>Línea base de azar</h3>
+          <p>Si el pool tiene N números, la probabilidad de que al menos uno de los 2 sorteos diarios (sin reposición) sea del pool es:</p>
+          <div class="wiki-example">
+            P(≥1 hit) = 1 − ((100−N) × (99−N)) / (100 × 99)
+          </div>
+          <p>Esta es la línea base: lo que conseguiría una estrategia aleatoria con ese pool del mismo tamaño. Si el hit-tracker supera esta línea, el pool tiene valor predictivo real.</p>
+
+          <h3>Ciclos históricos</h3>
+          <p>El tracker también calcula retroactivamente la tasa de acierto para cada SP anterior, mostrando la consistencia del pool a través del tiempo. Si la tasa histórica promedio está sistemáticamente por encima de la línea base, el pool tiene evidencia estadística de utilidad.</p>
+
+          <h3>Cómo leerlo en el panel</h3>
+          <p>Las barras de cada ciclo muestran la tasa de acierto (azul) vs la línea base de azar (gris punteada). La barra se vuelve verde cuando supera la línea base. El promedio histórico aparece como un badge arriba del tracker.</p>
+        `,
+      },
+      {
+        id: "linea-base-azar",
+        categoria: "Estadística y verificación",
+        titulo: "Línea base de azar — referencia para evaluar el pool",
+        contenido: `
+          <h2>Línea base de azar</h2>
+          <p class="wiki-lead">La probabilidad teórica mínima que tendría cualquier pool del mismo tamaño <em>elegido al azar</em>. Es el umbral que debe superar el pool histórico para tener valor real.</p>
+
+          <h3>La pregunta que responde</h3>
+          <p><em>"Si yo eligiera N números al azar entre 100, ¿cuántos días esperaría que alguno de ellos cayera en los 2 sorteos del día?"</em></p>
+
+          <h3>Fórmula</h3>
+          <div class="wiki-example">
+            P(al menos 1 hit en 2 sorteos sin reposición) = 1 − ((100−N) × (99−N)) / (100 × 99)
+          </div>
+          <p>Donde N es el tamaño del pool.</p>
+
+          <div class="wiki-example">
+            <strong>Ejemplo:</strong> Si el pool tiene 70 números:<br>
+            P(hit) = 1 − (30 × 29) / (100 × 99) = 1 − 870/9900 = 1 − 0.088 = <strong>91.2%</strong><br>
+            Con 70 números, hasta el azar puro acertaría el 91% de los días. Para que el pool sea útil, su tasa real debe superar notablemente ese umbral.
+          </div>
+
+          <h3>Por qué importa</h3>
+          <p>Sin esta referencia, un pool de 80 números con 85% de acierto parecería impresionante — pero el azar puro con 80 números aleatorios lograría ~93%. La línea base convierte porcentajes absolutos en información útil.</p>
+        `,
+      },
+      {
+        id: "candidatos-estacionales",
+        categoria: "Estadística y verificación",
+        titulo: "Candidatos estacionales — números recurrentes en el mismo mes",
+        contenido: `
+          <h2>Candidatos estacionales</h2>
+          <p class="wiki-lead">Números que aparecen en el mismo mes calendario en <strong>al menos 2 años distintos</strong> del historial. Son candidatos con señal de estacionalidad.</p>
+
+          <h3>La lógica detrás</h3>
+          <p>Si el número 45 aparece todos los meses de marzo sin importar el año, eso podría ser coincidencia o podría ser un patrón real. El Verificador año-vs-año detecta estos números y los separa de los que solo aparecen de forma aislada.</p>
+
+          <h3>Cómo se identifican</h3>
+          <ol>
+            <li>Se agrupan los sorteos por mes y por año.</li>
+            <li>Para el mes seleccionado, se construye la frecuencia de cada número por año.</li>
+            <li>Los números presentes en ≥2 años distintos son "recurrentes" (candidatos estacionales).</li>
+            <li>Se ordenan por número de años en que aparecieron, luego por frecuencia total.</li>
+          </ol>
+
+          <h3>Dónde verlos</h3>
+          <p>En <strong>Verificador estadístico → Año vs. Año</strong>. Selecciona el mes que te interesa y verás la tabla comparativa por año más el panel de candidatos estacionales con chips marcados en color.</p>
+
+          <h3>Caveat</h3>
+          <p>Un candidato estacional recurrente en 2 de 3 años disponibles puede ser azar puro. Con 5+ años de historial, la señal se vuelve mucho más sólida. El panel muestra cuántos años lo respaldan para que puedas evaluarlo.</p>
+        `,
+      },
+      {
+        id: "verificador-estadistico",
+        categoria: "Estadística y verificación",
+        titulo: "Verificador estadístico — el panel de hipótesis",
+        contenido: `
+          <h2>Verificador estadístico</h2>
+          <p class="wiki-lead">Panel dedicado a verificar con evidencia estadística las afirmaciones más comunes sobre el comportamiento de La Diaria, en lugar de asumir que son verdad.</p>
+
+          <h3>Las 3 hipótesis que verifica</h3>
+          <div class="wiki-example">
+            <strong>1. "Diciembre es diferente — el mes del ROBOTELSA"</strong><br>
+            Prueba: chi-cuadrado de los sorteos de diciembre vs distribución uniforme.<br><br>
+            <strong>2. "Los períodos post-SP usan una distribución diferente"</strong><br>
+            Prueba: chi-cuadrado de períodos de recuperación + correlación de Pearson entre recuperación y período normal.<br><br>
+            <strong>3. "La Diaria cambia su sistema de año en año"</strong><br>
+            Prueba: correlación de Pearson promedio entre años consecutivos.
+          </div>
+
+          <h3>Los 4 sub-paneles</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok"><strong>Verificación de afirmaciones</strong><span>Veredicto (CONFIRMADO / TENDENCIA / SIN EFECTO) con evidencia y números sobre/bajo-representados.</span></div>
+            <div class="wiki-state wiki-state--ok"><strong>Mapa estacional</strong><span>Chi-cuadrado y entropía mes a mes. Cada mes coloreado según su nivel de atipicidad.</span></div>
+            <div class="wiki-state wiki-state--ok"><strong>Índice ROBOTELSA</strong><span>Entropía de Shannon por mes en ventanas deslizantes de 30 sorteos.</span></div>
+            <div class="wiki-state wiki-state--ok"><strong>Año vs. Año</strong><span>Comparación por mes entre diferentes años. Candidatos estacionales recurrentes.</span></div>
+          </div>
+
+          <h3>Principio fundamental</h3>
+          <p>El Verificador está diseñado para ser escéptico por defecto. Si los datos no son suficientes o no muestran evidencia clara, devuelve "Sin efecto" o "Datos insuficientes" — nunca inventa un patrón para satisfacer una expectativa.</p>
+        `,
+      },
+      // ── Referencia ───────────────────────────────────────────────────────────
+      {
+        id: "guia-suenos",
+        categoria: "Referencia",
+        titulo: "Guía de los sueños — símbolos y familias",
+        contenido: `
+          <h2>Guía de los sueños</h2>
+          <p class="wiki-lead">El diccionario de los 100 números de La Diaria. Cada número tiene un símbolo, una familia y una polaridad.</p>
+
+          <h3>Qué es la familia</h3>
+          <p>Agrupa números por categoría simbólica: Naturaleza, Personas, Animales, Objetos, etc. El motor usa las familias para penalizar números cuando su familia ya apareció recientemente.</p>
+
+          <h3>Qué es la polaridad</h3>
+          <p>Indica si el número se asocia a energía positiva, negativa o neutra según la tradición del juego. El motor la usa como señal de contexto para el análisis de Escenarios.</p>
+
+          <h3>Las imágenes</h3>
+          <p>Cada número tiene una imagen ilustrativa guardada en <code>data/img/</code>. Aparecen en las cards del panel Escenarios, en el historial y en la guía visual. Si un número no tiene imagen todavía, simplemente no se muestra.</p>
+        `,
+      },
+      // ── Módulos de inteligencia adversarial (Sprints 1-7) ─────────────────
+      {
+        id: "conversiones",
+        categoria: "Conversiones y variantes",
+        titulo: "Conversiones, equivalencias y variantes matemáticas",
+        contenido: `
+          <h2>Conversiones y variantes matemáticas</h2>
+          <p class="wiki-lead">El sistema conoce el "vocabulario" matemático de La Diaria: cuando no quiere pagar un número, tira uno <em>relacionado</em>. Aquí están todas las relaciones que el sistema calcula.</p>
+
+          <h3>Las dos reglas base</h3>
+          <div class="wiki-example">
+            <strong>CONVERSIÓN:</strong> &nbsp;0↔1 &nbsp; 2↔5 &nbsp; 3↔8 &nbsp; 4↔7 &nbsp; 6↔9<br>
+            <strong>EQUIVALENCIA:</strong> 0↔5 &nbsp; 1↔6 &nbsp; 2↔7 &nbsp; 3↔8 &nbsp; 4↔9
+          </div>
+          <p>Nota: 3↔8 aparece en <em>ambas</em> tablas — es la única relación compartida.</p>
+
+          <h3>Las 8 categorías de variante</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Tipo</th><th>Operación</th><th>Peso</th><th>Ejemplo desde 80 ☕ Café</th></tr></thead>
+            <tbody>
+              <tr><td>Conversión simple decena</td><td>Solo convierte el dígito izquierdo</td><td>0.95</td><td>80 → <strong>30</strong> 🎳 Bolo (8→3)</td></tr>
+              <tr><td>Conversión simple unidad</td><td>Solo convierte el dígito derecho</td><td>0.95</td><td>80 → <strong>81</strong> 🚂 Rieles (0→1)</td></tr>
+              <tr><td>Conversión compuesta</td><td>Convierte ambos dígitos</td><td>0.85</td><td>80 → <strong>31</strong> 🦂 Alacrán (8→3, 0→1)</td></tr>
+              <tr><td>Equivalencia directa</td><td>Equivalencia en ambos dígitos</td><td>0.80</td><td>80 → <strong>35</strong> 🕍 Virgen (8↔3, 0↔5)</td></tr>
+              <tr><td>Espejo simple</td><td>Invierte los dos dígitos</td><td>0.75</td><td>80 → <strong>08</strong> 🐇 Conejo</td></tr>
+              <tr><td>Espejo de compuesta</td><td>Espejo del número convertido compuesto</td><td>0.70</td><td>80 → <strong>13</strong> 🐱 Gato (espejo del 31)</td></tr>
+              <tr><td>Espejo de equivalencia</td><td>Espejo del número equivalente</td><td>0.65</td><td>80 → <strong>53</strong> 🛞 Llanta (espejo del 35)</td></tr>
+              <tr><td>Encadenado</td><td>Dos transformaciones seguidas</td><td>0.45</td><td>80→31→<strong>86</strong> ⌚ Reloj, 80→35→<strong>82</strong> 🏫 Escuela</td></tr>
+            </tbody>
+          </table>
+
+          <h3>¿Qué son los encadenados?</h3>
+          <p>Son transformaciones de segundo nivel: se aplica una conversión sobre el resultado de otra conversión. Por ejemplo:</p>
+          <div class="wiki-example">
+            <strong>80</strong> → conversión compuesta → <strong>31</strong> → equivalencia directa → <strong>86</strong> ⌚ Reloj<br>
+            <strong>80</strong> → equivalencia directa → <strong>35</strong> → conversión compuesta → <strong>82</strong> 🏫 Escuela
+          </div>
+          <p>La hipótesis: cuando La Diaria "disfrazó" un número dos veces seguidas, el encadenado es el resultado. Tienen el peso más bajo (0.45) porque son menos frecuentes en la práctica.</p>
+
+          <h3>Los relativos oficiales</h3>
+          <p>Además de las variantes matemáticas, el sistema tiene un catálogo de <em>relativos</em> — pares establecidos por la tradición del juego, no por fórmula. Son relaciones semánticas o culturales.</p>
+          <div class="wiki-example">
+            <strong>80 ☕ Café</strong> tiene como relativos oficiales:<br>
+            &nbsp;· <strong>27</strong> 🎮 Juego<br>
+            &nbsp;· <strong>61</strong> ⚔️ Guerra
+          </div>
+          <p>Estos relativos están guardados en <code>data/relativos_diaria.json</code> y tienen el peso más alto (0.95) porque son las relaciones más directas del juego.</p>
+        `,
+      },
+      {
+        id: "presion-publica",
+        categoria: "Sistema adversarial",
+        titulo: "🌡️ Presión pública — lo que el público espera y La Casa evita",
+        contenido: `
+          <h2>Presión pública</h2>
+          <p class="wiki-lead">La presión de un número es una estimación de <em>cuánta gente lo está comprando ahora mismo</em>. Cuanto más alta, más lo evita La Diaria.</p>
+
+          <h3>Por qué no se mide directamente</h3>
+          <p>No hay acceso al volumen real de ventas. El sistema <em>infiere</em> la presión pública a partir de señales observables en el historial:</p>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--warn">
+              <strong>Gap largo sin caer</strong>
+              <span>Si un número lleva más de 2.2× su ciclo promedio sin aparecer, el público lo sigue esperando. Presión alta.</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>Es saladito</strong>
+              <span>Dobles (11, 22…), redondos (10, 20…) y terminales en 5 siempre tienen presión base alta porque el público los adora.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Cayó hace poco</strong>
+              <span>Si cayó en los últimos 5 días, la presión baja — el jugador "ya cobró" o dejó de esperarlo.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Se pagó la variante</strong>
+              <span>Si La Casa tiró la variante del número, parte del público migró. Presión baja temporalmente.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Rebound de variante</strong>
+              <span>Si la variante se pagó hace 3-10 sorteos (no ayer, pero tampoco olvidado), el directo recibe un boost de liberación. La Casa desvió la atención y ahora puede pagarlo sin que cueste tanto.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Preferencia de turno</strong>
+              <span>Si el número históricamente cae el 60%+ de las veces en un turno específico y es ese turno ahora, recibe presión ligeramente menor (señal de que La Casa puede aprovecharlo en ese momento).</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Cluster activo</strong>
+              <span>Si La Casa está minando un conjunto de dígitos (ej: últimos 12 sorteos con muchos números de {0,1,6,9}), los números de ese cluster reciben presión reducida — son candidatos reales del patrón activo.</span>
+            </div>
+          </div>
+
+          <h3>Cómo afecta al score</h3>
+          <p>La presión se convierte en un <strong>factor multiplicativo adversarial</strong>:</p>
+          <div class="wiki-example">
+            · Presión 0.0 (libre) → factor <strong>1.50×</strong> — La Casa puede pagarlo tranquilo<br>
+            · Presión 0.5 (media) → factor <strong>~0.90×</strong> — reducción moderada<br>
+            · Presión 1.0 (máxima) → factor <strong>0.30×</strong> — La Casa lo evita activamente
+          </div>
+
+          <h3>Momento de liberación</h3>
+          <p>Cuando la presión lleva tanto tiempo alta que el jugador se "cansa" de esperar y deja de comprar el número — ese es el <strong>momento de liberación</strong>. El sistema detecta ese punto (umbral de cansancio: 2.2× el ciclo) como la señal más fuerte para que el número finalmente caiga.</p>
+
+          <h3>Dónde verlo</h3>
+          <p>En el panel <strong>Mesa de Análisis → Posibles Liberaciones</strong>: números cercanos al momento de liberación, con su score de presión y el tiempo sin caer.</p>
+        `,
+      },
+      {
+        id: "secuencias",
+        categoria: "Sistema adversarial",
+        titulo: "🔗 Secuencias activas — cuando un número 'está corriendo'",
+        contenido: `
+          <h2>Secuencias activas</h2>
+          <p class="wiki-lead">Una secuencia es una relación A→B que se detectó en el historial: después de que cayó A, suele aparecer B en los siguientes sorteos. El sistema las monitorea en tiempo real.</p>
+
+          <h3>Cómo se detecta una secuencia</h3>
+          <p>El sistema analiza cada sorteo contra los últimos 45 anteriores buscando si el número nuevo es variante, relativo o equivalente de alguno previo. Si el patrón se repitió suficientes veces históricamente, abre una "secuencia activa".</p>
+
+          <h3>La proyección con distribución normal</h3>
+          <p>Para cada secuencia activa, el sistema calcula cuántos sorteos faltan para que se resuelva, usando estadística real:</p>
+          <div class="wiki-example">
+            Históricamente, la secuencia A→B se resuelve en promedio en <strong>8 sorteos</strong> con desviación de 3.<br>
+            Si ya van 6 sorteos desde que cayó A:<br>
+            &nbsp;· Probabilidad de que B caiga en el siguiente sorteo: <strong>~24%</strong><br>
+            &nbsp;· Probabilidad de que B caiga en los próximos 3: <strong>~52%</strong>
+          </div>
+
+          <h3>La barra de progreso</h3>
+          <p>En <strong>Mesa de Análisis → Secuencias Activas</strong> verás una barra por cada secuencia. La longitud de la barra = qué tan cerca está de su ventana histórica de resolución. Una barra llena = el sistema proyecta resolución inminente.</p>
+
+          <h3>Cuándo confiar más</h3>
+          <p>Cuando la secuencia tiene al menos 3 instancias históricas con estadística confirmada. Las secuencias con 1 o 2 casos se marcan con baja confianza.</p>
+        `,
+      },
+      {
+        id: "regimen",
+        categoria: "Sistema adversarial",
+        titulo: "🎭 Régimen de juego — cuándo La Casa cambió su estilo",
+        contenido: `
+          <h2>Régimen de juego</h2>
+          <p class="wiki-lead">El régimen describe el <em>estado estratégico actual</em> de La Diaria. Cuando detecta que el patrón de sorteos cambió significativamente, clasifica en qué modo está jugando la operadora.</p>
+
+          <h3>Cómo se detecta el cambio</h3>
+          <p>Cada 10 sorteos el sistema compara la distribución de los últimos 30 contra los 30 anteriores usando <strong>divergencia KL</strong> — una medida de qué tan diferente es la nueva distribución. Si el KL ≥ 0.08, hay cambio de régimen.</p>
+
+          <h3>Los 7 regímenes</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Régimen</th><th>Qué significa</th><th>Señal característica</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Normal</strong></td><td>Distribución histórica típica</td><td>KL bajo, sin anomalías</td></tr>
+              <tr><td><strong>Post superpremio</strong></td><td>Tras pagar premio mayor, La Casa se vuelve impredecible</td><td>Entropía alta, saladitos ↓</td></tr>
+              <tr><td><strong>Bloqueo de saladitos</strong></td><td>Período donde evita dobles y redondos</td><td>% saladitos muy por debajo del histórico</td></tr>
+              <tr><td><strong>Liberación masiva</strong></td><td>Varios números vencidos caen en ventana corta</td><td>Ratio de números "nuevos" muy alto</td></tr>
+              <tr><td><strong>Secuencia activa</strong></td><td>Patrón de variantes/secuencias dominando</td><td>Ratio variante alto + repetición baja</td></tr>
+              <tr><td><strong>Modo camuflaje</strong></td><td>La Casa usa variantes matemáticas más de lo normal</td><td>Ratio variante muy por encima del baseline</td></tr>
+              <tr><td><strong>Fin de mes</strong></td><td>Cambio en últimos 5 días del mes</td><td>Patrones mensuales dominantes</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Por qué importa el régimen</h3>
+          <p>Cada régimen ajusta automáticamente los pesos del motor. Ejemplo: en <em>post superpremio</em> el peso de Markov baja (porque el historial ya no es fiable) y el de modos/patrones sube. El sistema se adapta sin que tengas que tocarlo.</p>
+
+          <h3>Dónde verlo</h3>
+          <p>En <strong>Mesa de Análisis → Régimen Activo</strong>: badge con el nombre, nivel de confianza y descripción del cambio detectado.</p>
+        `,
+      },
+      {
+        id: "pesos-dinamicos",
+        categoria: "Sistema adversarial",
+        titulo: "⚖️ Pesos dinámicos — el motor se ajusta solo",
+        contenido: `
+          <h2>Pesos dinámicos del motor</h2>
+          <p class="wiki-lead">Los 7 motores de señal no siempre tienen el mismo peso. El sistema los ajusta automáticamente según qué motores están acertando en los últimos 30 sorteos.</p>
+
+          <h3>Los pesos por defecto</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Motor</th><th>Peso inicial</th><th>Rango permitido</th></tr></thead>
+            <tbody>
+              <tr><td>Markov O1</td><td>28%</td><td>3% – 42%</td></tr>
+              <tr><td>Markov O2</td><td>18%</td><td>3% – 42%</td></tr>
+              <tr><td>Rezago</td><td>14%</td><td>3% – 42%</td></tr>
+              <tr><td>Modos</td><td>18%</td><td>3% – 42%</td></tr>
+              <tr><td>Patrones</td><td>12%</td><td>3% – 42%</td></tr>
+              <tr><td>Semanal</td><td>6%</td><td>3% – 42%</td></tr>
+              <tr><td>Mensual</td><td>4%</td><td>3% – 42%</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Cómo se ajustan (gradient ascent)</h3>
+          <p>Después de cada bloque de 30 evaluaciones, el sistema aplica un "paso de gradiente":</p>
+          <div class="wiki-example">
+            · Si Rezago señaló el número ganador → su peso sube.<br>
+            · Si Markov O1 falló consistentemente → su peso baja.<br>
+            · Los ajustes son pequeños (1.5% por paso) para no sobrereaccionar a ruido.
+          </div>
+
+          <h3>Ajuste adicional por régimen</h3>
+          <p>Encima del gradient, el régimen activo aplica multiplicadores. Ejemplo en <em>modo camuflaje</em>: Markov × 0.80, Patrones × 1.30. Los dos ajustes se combinan.</p>
+
+          <h3>Crisis y reset</h3>
+          <p>Si el hit rate top-3 cae por debajo del 20%, el sistema entra en modo crisis y ejecuta el optimizador automáticamente. Si nada mejora, puedes hacer reset manual a los pesos por defecto.</p>
+        `,
+      },
+      {
+        id: "mesa-analisis",
+        categoria: "Paneles",
+        titulo: "🧠 Mesa de Análisis — el centro de mando",
+        contenido: `
+          <h2>Mesa de Análisis</h2>
+          <p class="wiki-lead">Es el panel más completo del sistema. Reúne en una sola vista todos los módulos de inteligencia adversarial, organizados para que veas el contexto completo antes de decidir.</p>
+
+          <h3>Los 7 paneles de la Mesa</h3>
+          <div class="wiki-states">
+            <div class="wiki-state wiki-state--ok">
+              <strong>Top Candidatos</strong>
+              <span>Los 5 números con mayor score combinado (señales + presión + secuencias). Haz clic en uno para ver su análisis detallado.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Régimen Activo</strong>
+              <span>El estado estratégico actual de La Casa, con nivel de confianza y descripción del cambio detectado.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Salud del Sistema</strong>
+              <span>Score global de las últimas 30 evaluaciones, hit rates por posición (top-1, top-3, top-5) y diagnóstico de problemas.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Secuencias Activas</strong>
+              <span>Secuencias A→B en curso, con barra de progreso hacia su ventana histórica de resolución y probabilidad calculada.</span>
+            </div>
+            <div class="wiki-state wiki-state--warn">
+              <strong>Alertas</strong>
+              <span>Hasta 10 alertas automáticas: cambio de régimen, números extremadamente vencidos, sin dobles en 15 sorteos, repeticiones sospechosas.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Posibles Liberaciones</strong>
+              <span>Números que superaron el umbral de cansancio del jugador (2.2× su ciclo). La presión empezó a bajar — posible momento de caída.</span>
+            </div>
+            <div class="wiki-state wiki-state--ok">
+              <strong>Intra-Día</strong>
+              <span>Si ya cayó un número hoy (turno 11AM o 3PM), muestra los candidatos más probables para el turno siguiente del mismo día.</span>
+            </div>
+          </div>
+
+          <h3>Análisis detallado de candidato</h3>
+          <p>Al hacer clic en cualquier número del Top Candidatos, el sistema responde 4 preguntas:</p>
+          <ol>
+            <li>¿Qué secuencias activas apuntan a este número?</li>
+            <li>¿Cuál es su nivel de presión pública ahora mismo?</li>
+            <li>¿Se pagó alguna variante suya recientemente?</li>
+            <li>¿Hay conflicto por familia simbólica?</li>
+          </ol>
+        `,
+      },
+      {
+        id: "autoevaluacion",
+        categoria: "Sistema adversarial",
+        titulo: "📊 Autoevaluación — el sistema se califica a sí mismo",
+        contenido: `
+          <h2>Loop de autoevaluación</h2>
+          <p class="wiki-lead">Cada vez que registras un sorteo real, el sistema compara el número ganador contra las predicciones que hizo antes. Eso le permite saber si está funcionando bien o necesita ajustarse.</p>
+
+          <h3>Los 4 tipos de resultado</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Tipo</th><th>Qué significa</th><th>Acción del sistema</th></tr></thead>
+            <tbody>
+              <tr><td><strong>C — Acierto</strong></td><td>El número cayó dentro del top-5 predicho</td><td>Refuerza los motores que lo señalaron</td></tr>
+              <tr><td><strong>A — Ranking</strong></td><td>El número estaba en la lista pero fuera del top-5</td><td>Ajusta el peso de ranking de los motores</td></tr>
+              <tr><td><strong>B — Ausente</strong></td><td>El número no estaba en ninguna posición de la lista</td><td>Señal de alerta: el motor no está captando esa señal</td></tr>
+              <tr><td><strong>D — Falso positivo</strong></td><td>El motor predijo con alta confianza un número que no cayó</td><td>Penaliza los motores que sobreconfiaron</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Score global</h3>
+          <p>La salud del sistema se mide con esta fórmula sobre las últimas 30 evaluaciones:</p>
+          <div class="wiki-example">
+            Score = (hit top-1 × 40%) + (hit top-3 × 35%) + (hit top-5 × 15%) + (cobertura × 10%)
+          </div>
+
+          <h3>Crisis automática</h3>
+          <p>Si el hit rate top-3 cae por debajo del 20%, el sistema entra en modo crisis y ejecuta el optimizador de pesos automáticamente. El panel Salud muestra el badge rojo "CRISIS — Ajustando pesos".</p>
+
+          <h3>Diagnóstico de causa raíz</h3>
+          <p>Cuando hay muchos errores tipo B (ausente), el sistema intenta diagnosticar por qué:</p>
+          <ul>
+            <li>¿La distribución cambió de régimen y los pesos están desactualizados?</li>
+            <li>¿Un motor específico tiene desempeño sistemáticamente bajo?</li>
+            <li>¿Hay concentración de errores en una decena particular (posible bloqueo selectivo)?</li>
+            <li>¿El score está en tendencia de caída acelerada?</li>
+          </ul>
+        `,
+      },
+      {
+        id: "backtest-v4",
+        categoria: "Estadística y verificación",
+        titulo: "🆚 Backtest V3 vs V4 — prueba honesta de la mejora",
+        contenido: `
+          <h2>Backtest V3 vs V4</h2>
+          <p class="wiki-lead">Una comparación directa entre el motor clásico (solo Markov + rezago) y el motor v4 completo (+ presión adversarial + régimen dinámico + pesos auto-ajustados), corrida sobre el mismo historial real.</p>
+
+          <h3>Por qué existe esta prueba</h3>
+          <p>Agregar módulos nuevos no significa mejorar. Este backtest verifica con datos reales si la inteligencia adversarial realmente sube el hit rate o solo agrega ruido.</p>
+
+          <h3>La metodología</h3>
+          <p>Para cada punto en el historial, el sistema simula que el motor se corrió <em>el día anterior</em> usando solo datos hasta ese momento (sin mirar el futuro). Luego comprueba si el número que cayó estaba en el top-K predicho.</p>
+          <div class="wiki-example">
+            <strong>V3:</strong> Markov + Rezago + Popularidad (motor base)<br>
+            <strong>V4:</strong> V3 + Presión adversarial + Régimen dinámico + Pesos gradient rolling
+          </div>
+
+          <h3>Qué mide el resultado</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Métrica</th><th>Qué significa</th></tr></thead>
+            <tbody>
+              <tr><td>Hit rate top-5</td><td>% de veces que el número ganador estaba en los primeros 5</td></tr>
+              <tr><td>Lift</td><td>Hit rate ÷ azar puro. Lift 1.5× = 50% mejor que adivinar</td></tr>
+              <tr><td>Δ Lift</td><td>Mejora de V4 respecto a V3. Positivo = V4 es mejor</td></tr>
+              <tr><td>Rank medio</td><td>Posición promedio del número ganador en el ranking predicho</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Cómo ejecutarlo</h3>
+          <p>En <strong>Mesa de Análisis → Validación Histórica V3 vs V4</strong>, haz clic en "▶ Correr Backtest". Tarda 30–90 segundos. Puedes cancelarlo con el mismo botón.</p>
+
+          <h3>Importante: el backtest no garantiza nada</h3>
+          <p>Un lift alto en el historial no promete que el sistema seguirá funcionando igual en el futuro. Lo que sí dice es que <em>en los sorteos pasados</em>, el motor tenía ventaja real sobre el azar. Es la mejor evidencia disponible sin adivinar.</p>
+        `,
+      },
+    ];
+
+    let _wikiIniciada = false;
+
+    function initWiki() {
+      if (_wikiIniciada) return; // solo construir el índice una vez
+      _wikiIniciada = true;
+
+      const toc     = document.getElementById("wiki-toc");
+      const content = document.getElementById("wiki-content");
+      const search  = document.getElementById("wiki-search");
+
+      // Agrupar por categoría
+      const categorias = [...new Set(WIKI_ARTICLES.map((a) => a.categoria))];
+
+      function buildToc(filter = "") {
+        toc.innerHTML = "";
+        const q = filter.toLowerCase();
+        let totalMatches = 0;
+        categorias.forEach((cat) => {
+          const arts = WIKI_ARTICLES.filter(
+            (a) => a.categoria === cat && (!q || a.titulo.toLowerCase().includes(q) || a.contenido.toLowerCase().includes(q))
+          );
+          if (!arts.length) return;
+          totalMatches += arts.length;
+
+          const li = document.createElement("li");
+          li.className = "wiki-toc__cat";
+          li.textContent = cat;
+          toc.appendChild(li);
+
+          arts.forEach((art) => {
+            const item = document.createElement("li");
+            item.className = "wiki-toc__item";
+            item.textContent = art.titulo;
+            item.dataset.id = art.id;
+            item.addEventListener("click", () => {
+              document.querySelectorAll(".wiki-toc__item").forEach((i) => i.classList.remove("active"));
+              item.classList.add("active");
+              content.innerHTML = `<div class="wiki-body">${art.contenido}</div>`;
+            });
+            toc.appendChild(item);
+          });
+        });
+        if (q && !totalMatches) {
+          const empty = document.createElement("li");
+          empty.className = "hint";
+          empty.style.padding = "0.75rem 0.5rem";
+          empty.textContent = `Sin resultados para "${filter}".`;
+          toc.appendChild(empty);
+        }
+      }
+
+      buildToc();
+      search.addEventListener("input", debounce((e) => buildToc(e.target.value)));
+
+      // Abrir el primer artículo por defecto
+      const first = WIKI_ARTICLES[0];
+      content.innerHTML = `<div class="wiki-body">${first.contenido}</div>`;
+      setTimeout(() => {
+        const firstItem = toc.querySelector(".wiki-toc__item");
+        if (firstItem) firstItem.classList.add("active");
+      }, 0);
+    }
+
+  
+    // ── Importar histórico 2014 ──────────────────────────────────────────────
+    const import2014Btn = document.getElementById("btn-import-2014");
+    if (import2014Btn) {
+      import2014Btn.addEventListener("click", async () => {
+        const out = document.getElementById("import-2014-out");
+        import2014Btn.disabled = true;
+        import2014Btn.textContent = "Importando…";
+        out.innerHTML = "<p>Iniciando importación de 839 sorteos...</p>";
+
+        const draws = [
+  {f:"2014-01-01",h:"11AM",n:15},
+  {f:"2014-01-01",h:"3PM",n:4},
+  {f:"2014-01-01",h:"9PM",n:8},
+  {f:"2014-01-02",h:"11AM",n:11},
+  {f:"2014-01-02",h:"3PM",n:34},
+  {f:"2014-01-02",h:"9PM",n:52},
+  {f:"2014-01-03",h:"11AM",n:67},
+  {f:"2014-01-03",h:"3PM",n:58},
+  {f:"2014-01-03",h:"9PM",n:25},
+  {f:"2014-01-04",h:"11AM",n:59},
+  {f:"2014-01-04",h:"3PM",n:96},
+  {f:"2014-01-04",h:"9PM",n:64},
+  {f:"2014-01-05",h:"11AM",n:41},
+  {f:"2014-01-05",h:"3PM",n:32},
+  {f:"2014-01-05",h:"9PM",n:99},
+  {f:"2014-01-06",h:"11AM",n:1},
+  {f:"2014-01-06",h:"3PM",n:11},
+  {f:"2014-01-06",h:"9PM",n:15},
+  {f:"2014-01-07",h:"11AM",n:40},
+  {f:"2014-01-07",h:"3PM",n:21},
+  {f:"2014-01-07",h:"9PM",n:93},
+  {f:"2014-01-08",h:"11AM",n:42},
+  {f:"2014-01-08",h:"3PM",n:86},
+  {f:"2014-01-08",h:"9PM",n:27},
+  {f:"2014-01-09",h:"11AM",n:67},
+  {f:"2014-01-09",h:"3PM",n:24},
+  {f:"2014-01-09",h:"9PM",n:43},
+  {f:"2014-01-10",h:"11AM",n:36},
+  {f:"2014-01-10",h:"3PM",n:0},
+  {f:"2014-01-10",h:"9PM",n:72},
+  {f:"2014-01-11",h:"11AM",n:29},
+  {f:"2014-01-11",h:"3PM",n:35},
+  {f:"2014-01-11",h:"9PM",n:96},
+  {f:"2014-01-12",h:"11AM",n:76},
+  {f:"2014-01-12",h:"3PM",n:53},
+  {f:"2014-01-12",h:"9PM",n:78},
+  {f:"2014-01-13",h:"11AM",n:80},
+  {f:"2014-01-13",h:"3PM",n:89},
+  {f:"2014-01-13",h:"9PM",n:61},
+  {f:"2014-01-14",h:"11AM",n:31},
+  {f:"2014-01-14",h:"3PM",n:73},
+  {f:"2014-01-14",h:"9PM",n:41},
+  {f:"2014-01-15",h:"11AM",n:5},
+  {f:"2014-01-15",h:"3PM",n:13},
+  {f:"2014-01-15",h:"9PM",n:64},
+  {f:"2014-01-16",h:"11AM",n:19},
+  {f:"2014-01-16",h:"3PM",n:74},
+  {f:"2014-01-16",h:"9PM",n:82},
+  {f:"2014-01-17",h:"11AM",n:80},
+  {f:"2014-01-17",h:"3PM",n:14},
+  {f:"2014-01-17",h:"9PM",n:57},
+  {f:"2014-01-18",h:"11AM",n:73},
+  {f:"2014-01-18",h:"3PM",n:51},
+  {f:"2014-01-18",h:"9PM",n:60},
+  {f:"2014-01-19",h:"11AM",n:97},
+  {f:"2014-01-19",h:"3PM",n:56},
+  {f:"2014-01-19",h:"9PM",n:7},
+  {f:"2014-01-20",h:"11AM",n:72},
+  {f:"2014-01-20",h:"3PM",n:93},
+  {f:"2014-01-20",h:"9PM",n:54},
+  {f:"2014-01-21",h:"11AM",n:81},
+  {f:"2014-01-21",h:"3PM",n:77},
+  {f:"2014-01-21",h:"9PM",n:97},
+  {f:"2014-01-22",h:"11AM",n:79},
+  {f:"2014-01-22",h:"3PM",n:86},
+  {f:"2014-01-22",h:"9PM",n:17},
+  {f:"2014-01-23",h:"11AM",n:29},
+  {f:"2014-01-23",h:"3PM",n:22},
+  {f:"2014-01-23",h:"9PM",n:48},
+  {f:"2014-01-24",h:"11AM",n:79},
+  {f:"2014-01-24",h:"3PM",n:15},
+  {f:"2014-01-24",h:"9PM",n:62},
+  {f:"2014-01-25",h:"11AM",n:89},
+  {f:"2014-01-25",h:"3PM",n:74},
+  {f:"2014-01-25",h:"9PM",n:59},
+  {f:"2014-01-26",h:"11AM",n:19},
+  {f:"2014-01-26",h:"3PM",n:60},
+  {f:"2014-01-26",h:"9PM",n:11},
+  {f:"2014-01-27",h:"11AM",n:20},
+  {f:"2014-01-27",h:"3PM",n:68},
+  {f:"2014-01-27",h:"9PM",n:65},
+  {f:"2014-01-28",h:"11AM",n:63},
+  {f:"2014-01-28",h:"3PM",n:26},
+  {f:"2014-01-28",h:"9PM",n:23},
+  {f:"2014-01-29",h:"11AM",n:73},
+  {f:"2014-01-29",h:"3PM",n:67},
+  {f:"2014-01-29",h:"9PM",n:85},
+  {f:"2014-01-30",h:"11AM",n:81},
+  {f:"2014-01-30",h:"3PM",n:7},
+  {f:"2014-01-30",h:"9PM",n:77},
+  {f:"2014-01-31",h:"11AM",n:30},
+  {f:"2014-01-31",h:"3PM",n:56},
+  {f:"2014-01-31",h:"9PM",n:45},
+  {f:"2014-02-01",h:"11AM",n:69},
+  {f:"2014-02-01",h:"3PM",n:53},
+  {f:"2014-02-01",h:"9PM",n:54},
+  {f:"2014-02-02",h:"11AM",n:26},
+  {f:"2014-02-02",h:"3PM",n:76},
+  {f:"2014-02-02",h:"9PM",n:54},
+  {f:"2014-02-03",h:"11AM",n:58},
+  {f:"2014-02-03",h:"3PM",n:66},
+  {f:"2014-02-03",h:"9PM",n:29},
+  {f:"2014-02-04",h:"11AM",n:59},
+  {f:"2014-02-04",h:"3PM",n:90},
+  {f:"2014-02-04",h:"9PM",n:6},
+  {f:"2014-02-05",h:"11AM",n:96},
+  {f:"2014-02-05",h:"3PM",n:65},
+  {f:"2014-02-05",h:"9PM",n:26},
+  {f:"2014-02-06",h:"11AM",n:55},
+  {f:"2014-02-06",h:"3PM",n:0},
+  {f:"2014-02-06",h:"9PM",n:30},
+  {f:"2014-02-07",h:"11AM",n:6},
+  {f:"2014-02-07",h:"3PM",n:87},
+  {f:"2014-02-07",h:"9PM",n:53},
+  {f:"2014-02-08",h:"11AM",n:2},
+  {f:"2014-02-08",h:"3PM",n:28},
+  {f:"2014-02-08",h:"9PM",n:57},
+  {f:"2014-02-09",h:"11AM",n:60},
+  {f:"2014-02-09",h:"3PM",n:29},
+  {f:"2014-02-09",h:"9PM",n:70},
+  {f:"2014-02-10",h:"11AM",n:2},
+  {f:"2014-02-10",h:"3PM",n:19},
+  {f:"2014-02-10",h:"9PM",n:42},
+  {f:"2014-02-11",h:"11AM",n:92},
+  {f:"2014-02-11",h:"3PM",n:34},
+  {f:"2014-02-11",h:"9PM",n:14},
+  {f:"2014-02-12",h:"11AM",n:19},
+  {f:"2014-02-12",h:"3PM",n:67},
+  {f:"2014-02-12",h:"9PM",n:90},
+  {f:"2014-02-13",h:"11AM",n:99},
+  {f:"2014-02-13",h:"3PM",n:13},
+  {f:"2014-02-13",h:"9PM",n:3},
+  {f:"2014-02-14",h:"11AM",n:45},
+  {f:"2014-02-14",h:"3PM",n:9},
+  {f:"2014-02-14",h:"9PM",n:78},
+  {f:"2014-02-15",h:"11AM",n:14},
+  {f:"2014-02-15",h:"3PM",n:49},
+  {f:"2014-02-15",h:"9PM",n:0},
+  {f:"2014-02-16",h:"11AM",n:35},
+  {f:"2014-02-16",h:"3PM",n:99},
+  {f:"2014-02-16",h:"9PM",n:27},
+  {f:"2014-02-17",h:"11AM",n:56},
+  {f:"2014-02-17",h:"3PM",n:63},
+  {f:"2014-02-17",h:"9PM",n:42},
+  {f:"2014-02-18",h:"11AM",n:7},
+  {f:"2014-02-18",h:"3PM",n:71},
+  {f:"2014-02-18",h:"9PM",n:18},
+  {f:"2014-02-19",h:"11AM",n:46},
+  {f:"2014-02-19",h:"3PM",n:2},
+  {f:"2014-02-19",h:"9PM",n:84},
+  {f:"2014-02-20",h:"11AM",n:55},
+  {f:"2014-02-20",h:"3PM",n:73},
+  {f:"2014-02-20",h:"9PM",n:51},
+  {f:"2014-02-21",h:"11AM",n:58},
+  {f:"2014-02-21",h:"3PM",n:27},
+  {f:"2014-02-21",h:"9PM",n:30},
+  {f:"2014-02-22",h:"11AM",n:79},
+  {f:"2014-02-22",h:"3PM",n:28},
+  {f:"2014-02-22",h:"9PM",n:63},
+  {f:"2014-02-23",h:"11AM",n:89},
+  {f:"2014-02-23",h:"3PM",n:60},
+  {f:"2014-02-23",h:"9PM",n:14},
+  {f:"2014-02-24",h:"11AM",n:58},
+  {f:"2014-02-24",h:"3PM",n:89},
+  {f:"2014-02-24",h:"9PM",n:4},
+  {f:"2014-02-25",h:"11AM",n:85},
+  {f:"2014-02-25",h:"3PM",n:71},
+  {f:"2014-02-25",h:"9PM",n:39},
+  {f:"2014-02-26",h:"11AM",n:97},
+  {f:"2014-02-26",h:"3PM",n:74},
+  {f:"2014-02-26",h:"9PM",n:17},
+  {f:"2014-02-27",h:"11AM",n:16},
+  {f:"2014-02-27",h:"3PM",n:8},
+  {f:"2014-02-27",h:"9PM",n:53},
+  {f:"2014-02-28",h:"11AM",n:72},
+  {f:"2014-02-28",h:"3PM",n:83},
+  {f:"2014-02-28",h:"9PM",n:65},
+  {f:"2014-03-01",h:"11AM",n:60},
+  {f:"2014-03-01",h:"3PM",n:1},
+  {f:"2014-03-01",h:"9PM",n:3},
+  {f:"2014-03-02",h:"11AM",n:9},
+  {f:"2014-03-02",h:"3PM",n:87},
+  {f:"2014-03-02",h:"9PM",n:33},
+  {f:"2014-03-03",h:"11AM",n:61},
+  {f:"2014-03-03",h:"3PM",n:33},
+  {f:"2014-03-03",h:"9PM",n:16},
+  {f:"2014-03-04",h:"11AM",n:86},
+  {f:"2014-03-04",h:"3PM",n:97},
+  {f:"2014-03-04",h:"9PM",n:29},
+  {f:"2014-03-05",h:"11AM",n:66},
+  {f:"2014-03-05",h:"3PM",n:8},
+  {f:"2014-03-05",h:"9PM",n:56},
+  {f:"2014-03-06",h:"11AM",n:13},
+  {f:"2014-03-06",h:"3PM",n:44},
+  {f:"2014-03-06",h:"9PM",n:29},
+  {f:"2014-03-07",h:"11AM",n:45},
+  {f:"2014-03-07",h:"3PM",n:16},
+  {f:"2014-03-07",h:"9PM",n:54},
+  {f:"2014-03-08",h:"11AM",n:26},
+  {f:"2014-03-08",h:"3PM",n:31},
+  {f:"2014-03-08",h:"9PM",n:4},
+  {f:"2014-03-09",h:"11AM",n:94},
+  {f:"2014-03-09",h:"3PM",n:87},
+  {f:"2014-03-09",h:"9PM",n:45},
+  {f:"2014-03-10",h:"11AM",n:26},
+  {f:"2014-03-10",h:"3PM",n:7},
+  {f:"2014-03-10",h:"9PM",n:6},
+  {f:"2014-03-11",h:"11AM",n:6},
+  {f:"2014-03-11",h:"3PM",n:61},
+  {f:"2014-03-11",h:"9PM",n:77},
+  {f:"2014-03-12",h:"11AM",n:13},
+  {f:"2014-03-12",h:"3PM",n:72},
+  {f:"2014-03-12",h:"9PM",n:38},
+  {f:"2014-03-13",h:"11AM",n:96},
+  {f:"2014-03-13",h:"3PM",n:48},
+  {f:"2014-03-13",h:"9PM",n:33},
+  {f:"2014-03-14",h:"11AM",n:44},
+  {f:"2014-03-14",h:"3PM",n:42},
+  {f:"2014-03-14",h:"9PM",n:46},
+  {f:"2014-03-15",h:"11AM",n:62},
+  {f:"2014-03-15",h:"3PM",n:3},
+  {f:"2014-03-15",h:"9PM",n:82},
+  {f:"2014-03-16",h:"11AM",n:21},
+  {f:"2014-03-16",h:"3PM",n:74},
+  {f:"2014-03-16",h:"9PM",n:71},
+  {f:"2014-03-17",h:"11AM",n:99},
+  {f:"2014-03-17",h:"3PM",n:76},
+  {f:"2014-03-17",h:"9PM",n:92},
+  {f:"2014-03-18",h:"11AM",n:46},
+  {f:"2014-03-18",h:"3PM",n:76},
+  {f:"2014-03-18",h:"9PM",n:10},
+  {f:"2014-03-19",h:"11AM",n:89},
+  {f:"2014-03-19",h:"3PM",n:31},
+  {f:"2014-03-19",h:"9PM",n:33},
+  {f:"2014-03-20",h:"11AM",n:65},
+  {f:"2014-03-20",h:"3PM",n:31},
+  {f:"2014-03-20",h:"9PM",n:30},
+  {f:"2014-03-21",h:"11AM",n:85},
+  {f:"2014-03-21",h:"3PM",n:92},
+  {f:"2014-03-21",h:"9PM",n:98},
+  {f:"2014-03-22",h:"11AM",n:66},
+  {f:"2014-03-22",h:"3PM",n:87},
+  {f:"2014-03-22",h:"9PM",n:42},
+  {f:"2014-03-23",h:"11AM",n:90},
+  {f:"2014-03-23",h:"3PM",n:21},
+  {f:"2014-03-23",h:"9PM",n:38},
+  {f:"2014-03-24",h:"11AM",n:70},
+  {f:"2014-03-24",h:"3PM",n:41},
+  {f:"2014-03-24",h:"9PM",n:60},
+  {f:"2014-03-25",h:"11AM",n:12},
+  {f:"2014-03-25",h:"3PM",n:67},
+  {f:"2014-03-25",h:"9PM",n:71},
+  {f:"2014-03-26",h:"11AM",n:14},
+  {f:"2014-03-26",h:"3PM",n:23},
+  {f:"2014-03-26",h:"9PM",n:91},
+  {f:"2014-03-27",h:"11AM",n:48},
+  {f:"2014-03-27",h:"3PM",n:64},
+  {f:"2014-03-27",h:"9PM",n:97},
+  {f:"2014-03-28",h:"11AM",n:38},
+  {f:"2014-03-28",h:"3PM",n:9},
+  {f:"2014-03-28",h:"9PM",n:53},
+  {f:"2014-03-29",h:"11AM",n:22},
+  {f:"2014-03-29",h:"3PM",n:82},
+  {f:"2014-03-29",h:"9PM",n:56},
+  {f:"2014-03-30",h:"11AM",n:44},
+  {f:"2014-03-30",h:"3PM",n:81},
+  {f:"2014-03-30",h:"9PM",n:73},
+  {f:"2014-03-31",h:"11AM",n:87},
+  {f:"2014-03-31",h:"3PM",n:15},
+  {f:"2014-03-31",h:"9PM",n:18},
+  {f:"2014-04-01",h:"11AM",n:84},
+  {f:"2014-04-01",h:"3PM",n:19},
+  {f:"2014-04-01",h:"9PM",n:3},
+  {f:"2014-04-02",h:"11AM",n:19},
+  {f:"2014-04-02",h:"3PM",n:60},
+  {f:"2014-04-02",h:"9PM",n:31},
+  {f:"2014-04-03",h:"11AM",n:72},
+  {f:"2014-04-03",h:"3PM",n:71},
+  {f:"2014-04-03",h:"9PM",n:12},
+  {f:"2014-04-04",h:"11AM",n:49},
+  {f:"2014-04-04",h:"3PM",n:49},
+  {f:"2014-04-04",h:"9PM",n:7},
+  {f:"2014-04-05",h:"11AM",n:62},
+  {f:"2014-04-05",h:"3PM",n:78},
+  {f:"2014-04-05",h:"9PM",n:57},
+  {f:"2014-04-06",h:"11AM",n:23},
+  {f:"2014-04-06",h:"3PM",n:0},
+  {f:"2014-04-06",h:"9PM",n:28},
+  {f:"2014-04-07",h:"11AM",n:7},
+  {f:"2014-04-07",h:"3PM",n:29},
+  {f:"2014-04-07",h:"9PM",n:92},
+  {f:"2014-04-08",h:"11AM",n:52},
+  {f:"2014-04-08",h:"3PM",n:90},
+  {f:"2014-04-08",h:"9PM",n:61},
+  {f:"2014-04-09",h:"11AM",n:39},
+  {f:"2014-04-09",h:"3PM",n:34},
+  {f:"2014-04-09",h:"9PM",n:27},
+  {f:"2014-04-10",h:"11AM",n:57},
+  {f:"2014-04-10",h:"3PM",n:74},
+  {f:"2014-04-10",h:"9PM",n:61},
+  {f:"2014-04-11",h:"11AM",n:23},
+  {f:"2014-04-11",h:"3PM",n:85},
+  {f:"2014-04-11",h:"9PM",n:33},
+  {f:"2014-04-12",h:"11AM",n:36},
+  {f:"2014-04-12",h:"3PM",n:31},
+  {f:"2014-04-12",h:"9PM",n:36},
+  {f:"2014-04-13",h:"11AM",n:86},
+  {f:"2014-04-13",h:"3PM",n:64},
+  {f:"2014-04-13",h:"9PM",n:45},
+  {f:"2014-04-14",h:"11AM",n:95},
+  {f:"2014-04-14",h:"3PM",n:33},
+  {f:"2014-04-14",h:"9PM",n:53},
+  {f:"2014-04-15",h:"11AM",n:60},
+  {f:"2014-04-15",h:"3PM",n:79},
+  {f:"2014-04-15",h:"9PM",n:0},
+  {f:"2014-04-16",h:"11AM",n:17},
+  {f:"2014-04-16",h:"3PM",n:15},
+  {f:"2014-04-16",h:"9PM",n:5},
+  {f:"2014-04-17",h:"11AM",n:33},
+  {f:"2014-04-17",h:"3PM",n:14},
+  {f:"2014-04-17",h:"9PM",n:69},
+  {f:"2014-04-18",h:"11AM",n:28},
+  {f:"2014-04-18",h:"3PM",n:70},
+  {f:"2014-04-18",h:"9PM",n:65},
+  {f:"2014-04-19",h:"11AM",n:59},
+  {f:"2014-04-19",h:"3PM",n:23},
+  {f:"2014-04-19",h:"9PM",n:24},
+  {f:"2014-04-20",h:"11AM",n:75},
+  {f:"2014-04-20",h:"3PM",n:65},
+  {f:"2014-04-20",h:"9PM",n:93},
+  {f:"2014-04-21",h:"11AM",n:64},
+  {f:"2014-04-21",h:"3PM",n:2},
+  {f:"2014-04-21",h:"9PM",n:94},
+  {f:"2014-04-22",h:"11AM",n:77},
+  {f:"2014-04-22",h:"3PM",n:90},
+  {f:"2014-04-22",h:"9PM",n:13},
+  {f:"2014-04-23",h:"11AM",n:6},
+  {f:"2014-04-23",h:"3PM",n:75},
+  {f:"2014-04-23",h:"9PM",n:87},
+  {f:"2014-04-24",h:"11AM",n:67},
+  {f:"2014-04-24",h:"3PM",n:78},
+  {f:"2014-04-24",h:"9PM",n:64},
+  {f:"2014-04-25",h:"11AM",n:64},
+  {f:"2014-04-25",h:"3PM",n:33},
+  {f:"2014-04-25",h:"9PM",n:57},
+  {f:"2014-04-26",h:"11AM",n:3},
+  {f:"2014-04-26",h:"3PM",n:58},
+  {f:"2014-04-26",h:"9PM",n:40},
+  {f:"2014-04-27",h:"11AM",n:27},
+  {f:"2014-04-27",h:"3PM",n:13},
+  {f:"2014-04-27",h:"9PM",n:22},
+  {f:"2014-04-28",h:"11AM",n:59},
+  {f:"2014-04-28",h:"3PM",n:95},
+  {f:"2014-04-28",h:"9PM",n:8},
+  {f:"2014-04-29",h:"11AM",n:67},
+  {f:"2014-04-29",h:"3PM",n:39},
+  {f:"2014-04-29",h:"9PM",n:73},
+  {f:"2014-04-30",h:"11AM",n:12},
+  {f:"2014-04-30",h:"3PM",n:50},
+  {f:"2014-04-30",h:"9PM",n:26},
+  {f:"2014-05-01",h:"11AM",n:80},
+  {f:"2014-05-01",h:"3PM",n:16},
+  {f:"2014-05-01",h:"9PM",n:5},
+  {f:"2014-05-02",h:"11AM",n:78},
+  {f:"2014-05-02",h:"3PM",n:93},
+  {f:"2014-05-02",h:"9PM",n:9},
+  {f:"2014-05-03",h:"11AM",n:32},
+  {f:"2014-05-03",h:"3PM",n:62},
+  {f:"2014-05-03",h:"9PM",n:91},
+  {f:"2014-05-04",h:"11AM",n:46},
+  {f:"2014-05-04",h:"3PM",n:77},
+  {f:"2014-05-04",h:"9PM",n:88},
+  {f:"2014-05-05",h:"11AM",n:46},
+  {f:"2014-05-05",h:"3PM",n:15},
+  {f:"2014-05-05",h:"9PM",n:65},
+  {f:"2014-05-06",h:"11AM",n:15},
+  {f:"2014-05-06",h:"3PM",n:27},
+  {f:"2014-05-06",h:"9PM",n:71},
+  {f:"2014-05-07",h:"11AM",n:94},
+  {f:"2014-05-07",h:"3PM",n:35},
+  {f:"2014-05-07",h:"9PM",n:93},
+  {f:"2014-05-08",h:"11AM",n:36},
+  {f:"2014-05-08",h:"3PM",n:33},
+  {f:"2014-05-08",h:"9PM",n:70},
+  {f:"2014-05-09",h:"11AM",n:89},
+  {f:"2014-05-09",h:"3PM",n:54},
+  {f:"2014-05-09",h:"9PM",n:71},
+  {f:"2014-05-10",h:"11AM",n:40},
+  {f:"2014-05-10",h:"3PM",n:45},
+  {f:"2014-05-10",h:"9PM",n:87},
+  {f:"2014-05-11",h:"11AM",n:27},
+  {f:"2014-05-11",h:"3PM",n:27},
+  {f:"2014-05-11",h:"9PM",n:25},
+  {f:"2014-05-12",h:"11AM",n:51},
+  {f:"2014-05-12",h:"3PM",n:32},
+  {f:"2014-05-12",h:"9PM",n:39},
+  {f:"2014-05-13",h:"11AM",n:18},
+  {f:"2014-05-13",h:"3PM",n:85},
+  {f:"2014-05-13",h:"9PM",n:61},
+  {f:"2014-05-14",h:"11AM",n:41},
+  {f:"2014-05-14",h:"3PM",n:3},
+  {f:"2014-05-14",h:"9PM",n:86},
+  {f:"2014-05-15",h:"11AM",n:7},
+  {f:"2014-05-15",h:"3PM",n:35},
+  {f:"2014-05-15",h:"9PM",n:24},
+  {f:"2014-05-16",h:"11AM",n:30},
+  {f:"2014-05-16",h:"3PM",n:80},
+  {f:"2014-05-16",h:"9PM",n:59},
+  {f:"2014-05-17",h:"11AM",n:75},
+  {f:"2014-05-17",h:"3PM",n:24},
+  {f:"2014-05-17",h:"9PM",n:42},
+  {f:"2014-05-18",h:"11AM",n:51},
+  {f:"2014-05-18",h:"3PM",n:0},
+  {f:"2014-05-18",h:"9PM",n:68},
+  {f:"2014-05-19",h:"11AM",n:62},
+  {f:"2014-05-19",h:"3PM",n:81},
+  {f:"2014-05-19",h:"9PM",n:83},
+  {f:"2014-05-20",h:"11AM",n:23},
+  {f:"2014-05-20",h:"3PM",n:2},
+  {f:"2014-05-20",h:"9PM",n:20},
+  {f:"2014-05-21",h:"11AM",n:6},
+  {f:"2014-05-21",h:"3PM",n:4},
+  {f:"2014-05-21",h:"9PM",n:8},
+  {f:"2014-05-22",h:"11AM",n:91},
+  {f:"2014-05-22",h:"3PM",n:87},
+  {f:"2014-05-22",h:"9PM",n:83},
+  {f:"2014-05-23",h:"11AM",n:13},
+  {f:"2014-05-23",h:"3PM",n:51},
+  {f:"2014-05-23",h:"9PM",n:64},
+  {f:"2014-05-24",h:"11AM",n:91},
+  {f:"2014-05-24",h:"3PM",n:26},
+  {f:"2014-05-24",h:"9PM",n:59},
+  {f:"2014-05-25",h:"11AM",n:92},
+  {f:"2014-05-25",h:"3PM",n:98},
+  {f:"2014-05-25",h:"9PM",n:60},
+  {f:"2014-05-26",h:"11AM",n:94},
+  {f:"2014-05-26",h:"3PM",n:82},
+  {f:"2014-05-26",h:"9PM",n:88},
+  {f:"2014-05-27",h:"11AM",n:0},
+  {f:"2014-05-27",h:"3PM",n:29},
+  {f:"2014-05-27",h:"9PM",n:6},
+  {f:"2014-05-28",h:"11AM",n:83},
+  {f:"2014-05-28",h:"3PM",n:16},
+  {f:"2014-05-28",h:"9PM",n:34},
+  {f:"2014-05-29",h:"11AM",n:34},
+  {f:"2014-05-29",h:"3PM",n:68},
+  {f:"2014-05-29",h:"9PM",n:2},
+  {f:"2014-05-30",h:"11AM",n:61},
+  {f:"2014-05-30",h:"3PM",n:74},
+  {f:"2014-05-30",h:"9PM",n:75},
+  {f:"2014-05-31",h:"11AM",n:47},
+  {f:"2014-05-31",h:"3PM",n:93},
+  {f:"2014-05-31",h:"9PM",n:69},
+  {f:"2014-06-01",h:"11AM",n:44},
+  {f:"2014-06-01",h:"3PM",n:61},
+  {f:"2014-06-01",h:"9PM",n:55},
+  {f:"2014-06-02",h:"11AM",n:43},
+  {f:"2014-06-02",h:"3PM",n:7},
+  {f:"2014-06-02",h:"9PM",n:90},
+  {f:"2014-06-03",h:"11AM",n:27},
+  {f:"2014-06-03",h:"3PM",n:48},
+  {f:"2014-06-03",h:"9PM",n:90},
+  {f:"2014-06-04",h:"11AM",n:50},
+  {f:"2014-06-04",h:"3PM",n:1},
+  {f:"2014-06-04",h:"9PM",n:96},
+  {f:"2014-06-05",h:"11AM",n:26},
+  {f:"2014-06-05",h:"3PM",n:95},
+  {f:"2014-06-05",h:"9PM",n:24},
+  {f:"2014-06-06",h:"11AM",n:56},
+  {f:"2014-06-06",h:"3PM",n:49},
+  {f:"2014-06-06",h:"9PM",n:91},
+  {f:"2014-06-07",h:"11AM",n:60},
+  {f:"2014-06-07",h:"3PM",n:74},
+  {f:"2014-06-07",h:"9PM",n:19},
+  {f:"2014-06-08",h:"11AM",n:46},
+  {f:"2014-06-08",h:"3PM",n:90},
+  {f:"2014-06-08",h:"9PM",n:75},
+  {f:"2014-06-09",h:"11AM",n:72},
+  {f:"2014-06-09",h:"3PM",n:70},
+  {f:"2014-06-09",h:"9PM",n:5},
+  {f:"2014-06-10",h:"11AM",n:86},
+  {f:"2014-06-10",h:"3PM",n:14},
+  {f:"2014-06-10",h:"9PM",n:95},
+  {f:"2014-06-11",h:"11AM",n:73},
+  {f:"2014-06-11",h:"3PM",n:95},
+  {f:"2014-06-11",h:"9PM",n:44},
+  {f:"2014-06-12",h:"11AM",n:84},
+  {f:"2014-06-12",h:"3PM",n:71},
+  {f:"2014-06-12",h:"9PM",n:73},
+  {f:"2014-06-13",h:"11AM",n:6},
+  {f:"2014-06-13",h:"3PM",n:79},
+  {f:"2014-06-13",h:"9PM",n:86},
+  {f:"2014-06-14",h:"11AM",n:56},
+  {f:"2014-06-14",h:"3PM",n:7},
+  {f:"2014-06-14",h:"9PM",n:63},
+  {f:"2014-06-15",h:"11AM",n:79},
+  {f:"2014-06-15",h:"3PM",n:81},
+  {f:"2014-06-15",h:"9PM",n:47},
+  {f:"2014-06-16",h:"11AM",n:88},
+  {f:"2014-06-16",h:"3PM",n:54},
+  {f:"2014-06-16",h:"9PM",n:51},
+  {f:"2014-06-17",h:"11AM",n:59},
+  {f:"2014-06-17",h:"3PM",n:41},
+  {f:"2014-06-17",h:"9PM",n:17},
+  {f:"2014-06-18",h:"11AM",n:10},
+  {f:"2014-06-18",h:"3PM",n:62},
+  {f:"2014-06-18",h:"9PM",n:79},
+  {f:"2014-06-19",h:"11AM",n:50},
+  {f:"2014-06-19",h:"3PM",n:97},
+  {f:"2014-06-19",h:"9PM",n:95},
+  {f:"2014-06-20",h:"11AM",n:78},
+  {f:"2014-06-20",h:"3PM",n:21},
+  {f:"2014-06-20",h:"9PM",n:10},
+  {f:"2014-06-21",h:"11AM",n:62},
+  {f:"2014-06-21",h:"3PM",n:40},
+  {f:"2014-06-21",h:"9PM",n:91},
+  {f:"2014-06-22",h:"11AM",n:75},
+  {f:"2014-06-22",h:"3PM",n:21},
+  {f:"2014-06-22",h:"9PM",n:62},
+  {f:"2014-06-23",h:"11AM",n:64},
+  {f:"2014-06-23",h:"3PM",n:65},
+  {f:"2014-06-23",h:"9PM",n:33},
+  {f:"2014-06-24",h:"11AM",n:66},
+  {f:"2014-06-24",h:"3PM",n:21},
+  {f:"2014-06-24",h:"9PM",n:59},
+  {f:"2014-06-25",h:"11AM",n:98},
+  {f:"2014-06-25",h:"3PM",n:30},
+  {f:"2014-06-25",h:"9PM",n:12},
+  {f:"2014-06-26",h:"11AM",n:43},
+  {f:"2014-06-26",h:"3PM",n:46},
+  {f:"2014-06-26",h:"9PM",n:49},
+  {f:"2014-06-27",h:"11AM",n:53},
+  {f:"2014-06-27",h:"3PM",n:36},
+  {f:"2014-06-27",h:"9PM",n:46},
+  {f:"2014-06-28",h:"11AM",n:81},
+  {f:"2014-06-28",h:"3PM",n:71},
+  {f:"2014-06-28",h:"9PM",n:91},
+  {f:"2014-06-29",h:"11AM",n:57},
+  {f:"2014-06-29",h:"3PM",n:6},
+  {f:"2014-06-29",h:"9PM",n:84},
+  {f:"2014-06-30",h:"11AM",n:96},
+  {f:"2014-06-30",h:"3PM",n:13},
+  {f:"2014-06-30",h:"9PM",n:32},
+  {f:"2014-07-01",h:"11AM",n:90},
+  {f:"2014-07-01",h:"3PM",n:19},
+  {f:"2014-07-01",h:"9PM",n:48},
+  {f:"2014-07-02",h:"11AM",n:85},
+  {f:"2014-07-02",h:"3PM",n:33},
+  {f:"2014-07-02",h:"9PM",n:88},
+  {f:"2014-07-03",h:"11AM",n:33},
+  {f:"2014-07-03",h:"3PM",n:7},
+  {f:"2014-07-03",h:"9PM",n:53},
+  {f:"2014-07-04",h:"11AM",n:80},
+  {f:"2014-07-04",h:"3PM",n:81},
+  {f:"2014-07-04",h:"9PM",n:89},
+  {f:"2014-07-05",h:"11AM",n:0},
+  {f:"2014-07-05",h:"3PM",n:45},
+  {f:"2014-07-05",h:"9PM",n:42},
+  {f:"2014-07-06",h:"11AM",n:29},
+  {f:"2014-07-06",h:"3PM",n:56},
+  {f:"2014-07-06",h:"9PM",n:23},
+  {f:"2014-07-07",h:"11AM",n:93},
+  {f:"2014-07-07",h:"3PM",n:58},
+  {f:"2014-07-07",h:"9PM",n:69},
+  {f:"2014-07-08",h:"11AM",n:42},
+  {f:"2014-07-08",h:"3PM",n:30},
+  {f:"2014-07-08",h:"9PM",n:49},
+  {f:"2014-07-09",h:"11AM",n:15},
+  {f:"2014-07-09",h:"3PM",n:65},
+  {f:"2014-07-09",h:"9PM",n:19},
+  {f:"2014-07-10",h:"11AM",n:43},
+  {f:"2014-07-10",h:"3PM",n:11},
+  {f:"2014-07-10",h:"9PM",n:8},
+  {f:"2014-07-11",h:"11AM",n:89},
+  {f:"2014-07-11",h:"3PM",n:98},
+  {f:"2014-07-11",h:"9PM",n:3},
+  {f:"2014-07-12",h:"11AM",n:17},
+  {f:"2014-07-12",h:"3PM",n:18},
+  {f:"2014-07-12",h:"9PM",n:28},
+  {f:"2014-07-13",h:"11AM",n:83},
+  {f:"2014-07-13",h:"3PM",n:58},
+  {f:"2014-07-13",h:"9PM",n:82},
+  {f:"2014-07-14",h:"11AM",n:90},
+  {f:"2014-07-14",h:"3PM",n:63},
+  {f:"2014-07-14",h:"9PM",n:55},
+  {f:"2014-07-15",h:"11AM",n:58},
+  {f:"2014-07-15",h:"3PM",n:8},
+  {f:"2014-07-15",h:"9PM",n:59},
+  {f:"2014-07-16",h:"11AM",n:39},
+  {f:"2014-07-16",h:"3PM",n:21},
+  {f:"2014-07-16",h:"9PM",n:85},
+  {f:"2014-07-17",h:"11AM",n:72},
+  {f:"2014-07-17",h:"3PM",n:20},
+  {f:"2014-07-17",h:"9PM",n:88},
+  {f:"2014-07-18",h:"11AM",n:86},
+  {f:"2014-07-18",h:"3PM",n:92},
+  {f:"2014-07-18",h:"9PM",n:78},
+  {f:"2014-07-19",h:"11AM",n:80},
+  {f:"2014-07-19",h:"3PM",n:91},
+  {f:"2014-07-19",h:"9PM",n:24},
+  {f:"2014-07-20",h:"11AM",n:76},
+  {f:"2014-07-20",h:"3PM",n:20},
+  {f:"2014-07-20",h:"9PM",n:75},
+  {f:"2014-07-21",h:"11AM",n:35},
+  {f:"2014-07-21",h:"3PM",n:97},
+  {f:"2014-07-21",h:"9PM",n:80},
+  {f:"2014-07-22",h:"11AM",n:88},
+  {f:"2014-07-22",h:"3PM",n:0},
+  {f:"2014-07-22",h:"9PM",n:86},
+  {f:"2014-07-23",h:"11AM",n:25},
+  {f:"2014-07-23",h:"3PM",n:57},
+  {f:"2014-07-23",h:"9PM",n:51},
+  {f:"2014-07-24",h:"11AM",n:16},
+  {f:"2014-07-24",h:"3PM",n:1},
+  {f:"2014-07-24",h:"9PM",n:56},
+  {f:"2014-07-25",h:"11AM",n:80},
+  {f:"2014-07-25",h:"3PM",n:16},
+  {f:"2014-07-25",h:"9PM",n:51},
+  {f:"2014-07-26",h:"11AM",n:98},
+  {f:"2014-07-26",h:"3PM",n:68},
+  {f:"2014-07-26",h:"9PM",n:20},
+  {f:"2014-07-27",h:"11AM",n:47},
+  {f:"2014-07-27",h:"3PM",n:83},
+  {f:"2014-07-27",h:"9PM",n:73},
+  {f:"2014-07-28",h:"11AM",n:34},
+  {f:"2014-07-28",h:"3PM",n:31},
+  {f:"2014-07-28",h:"9PM",n:39},
+  {f:"2014-07-29",h:"11AM",n:4},
+  {f:"2014-07-29",h:"3PM",n:84},
+  {f:"2014-07-29",h:"9PM",n:78},
+  {f:"2014-07-30",h:"11AM",n:87},
+  {f:"2014-07-30",h:"3PM",n:82},
+  {f:"2014-07-30",h:"9PM",n:27},
+  {f:"2014-07-31",h:"11AM",n:18},
+  {f:"2014-07-31",h:"3PM",n:94},
+  {f:"2014-07-31",h:"9PM",n:76},
+  {f:"2014-08-01",h:"11AM",n:43},
+  {f:"2014-08-01",h:"3PM",n:79},
+  {f:"2014-08-01",h:"9PM",n:23},
+  {f:"2014-08-02",h:"11AM",n:80},
+  {f:"2014-08-02",h:"3PM",n:11},
+  {f:"2014-08-02",h:"9PM",n:41},
+  {f:"2014-08-03",h:"11AM",n:89},
+  {f:"2014-08-03",h:"3PM",n:34},
+  {f:"2014-08-03",h:"9PM",n:95},
+  {f:"2014-08-04",h:"11AM",n:11},
+  {f:"2014-08-04",h:"3PM",n:59},
+  {f:"2014-08-04",h:"9PM",n:50},
+  {f:"2014-08-05",h:"11AM",n:12},
+  {f:"2014-08-05",h:"3PM",n:66},
+  {f:"2014-08-05",h:"9PM",n:82},
+  {f:"2014-08-06",h:"11AM",n:41},
+  {f:"2014-08-06",h:"3PM",n:13},
+  {f:"2014-08-06",h:"9PM",n:29},
+  {f:"2014-08-07",h:"11AM",n:15},
+  {f:"2014-08-07",h:"3PM",n:0},
+  {f:"2014-08-07",h:"9PM",n:87},
+  {f:"2014-08-08",h:"11AM",n:15},
+  {f:"2014-08-08",h:"3PM",n:41},
+  {f:"2014-08-08",h:"9PM",n:28},
+  {f:"2014-08-09",h:"11AM",n:88},
+  {f:"2014-08-09",h:"3PM",n:89},
+  {f:"2014-08-09",h:"9PM",n:26},
+  {f:"2014-08-10",h:"11AM",n:17},
+  {f:"2014-08-10",h:"3PM",n:55},
+  {f:"2014-08-10",h:"9PM",n:96},
+  {f:"2014-08-11",h:"11AM",n:61},
+  {f:"2014-08-11",h:"3PM",n:24},
+  {f:"2014-08-11",h:"9PM",n:75},
+  {f:"2014-08-12",h:"11AM",n:77},
+  {f:"2014-08-12",h:"3PM",n:15},
+  {f:"2014-08-12",h:"9PM",n:68},
+  {f:"2014-08-13",h:"11AM",n:78},
+  {f:"2014-08-13",h:"3PM",n:11},
+  {f:"2014-08-13",h:"9PM",n:5},
+  {f:"2014-08-14",h:"11AM",n:45},
+  {f:"2014-08-14",h:"3PM",n:60},
+  {f:"2014-08-14",h:"9PM",n:1},
+  {f:"2014-08-15",h:"11AM",n:90},
+  {f:"2014-08-15",h:"3PM",n:13},
+  {f:"2014-08-15",h:"9PM",n:38},
+  {f:"2014-08-16",h:"11AM",n:46},
+  {f:"2014-08-16",h:"3PM",n:17},
+  {f:"2014-08-16",h:"9PM",n:26},
+  {f:"2014-08-17",h:"11AM",n:15},
+  {f:"2014-08-17",h:"3PM",n:66},
+  {f:"2014-08-17",h:"9PM",n:32},
+  {f:"2014-08-18",h:"11AM",n:76},
+  {f:"2014-08-18",h:"3PM",n:13},
+  {f:"2014-08-18",h:"9PM",n:93},
+  {f:"2014-08-19",h:"11AM",n:29},
+  {f:"2014-08-19",h:"3PM",n:10},
+  {f:"2014-08-19",h:"9PM",n:54},
+  {f:"2014-08-20",h:"11AM",n:91},
+  {f:"2014-08-20",h:"3PM",n:79},
+  {f:"2014-08-20",h:"9PM",n:38},
+  {f:"2014-08-21",h:"11AM",n:96},
+  {f:"2014-08-21",h:"3PM",n:85},
+  {f:"2014-08-21",h:"9PM",n:39},
+  {f:"2014-08-22",h:"11AM",n:31},
+  {f:"2014-08-22",h:"3PM",n:96},
+  {f:"2014-08-22",h:"9PM",n:16},
+  {f:"2014-08-23",h:"11AM",n:53},
+  {f:"2014-08-23",h:"3PM",n:82},
+  {f:"2014-08-23",h:"9PM",n:52},
+  {f:"2014-08-24",h:"11AM",n:2},
+  {f:"2014-08-24",h:"3PM",n:42},
+  {f:"2014-08-24",h:"9PM",n:72},
+  {f:"2014-08-25",h:"11AM",n:93},
+  {f:"2014-08-25",h:"3PM",n:88},
+  {f:"2014-08-25",h:"9PM",n:25},
+  {f:"2014-08-26",h:"11AM",n:21},
+  {f:"2014-08-26",h:"3PM",n:83},
+  {f:"2014-08-26",h:"9PM",n:92},
+  {f:"2014-08-27",h:"11AM",n:32},
+  {f:"2014-08-27",h:"3PM",n:18},
+  {f:"2014-08-27",h:"9PM",n:96},
+  {f:"2014-08-28",h:"11AM",n:14},
+  {f:"2014-08-28",h:"3PM",n:36},
+  {f:"2014-08-28",h:"9PM",n:85},
+  {f:"2014-08-29",h:"11AM",n:19},
+  {f:"2014-08-29",h:"3PM",n:37},
+  {f:"2014-08-29",h:"9PM",n:53},
+  {f:"2014-08-30",h:"11AM",n:95},
+  {f:"2014-08-30",h:"3PM",n:81},
+  {f:"2014-08-30",h:"9PM",n:53},
+  {f:"2014-08-31",h:"11AM",n:84},
+  {f:"2014-08-31",h:"3PM",n:6},
+  {f:"2014-08-31",h:"9PM",n:51},
+  {f:"2014-09-01",h:"11AM",n:78},
+  {f:"2014-09-01",h:"3PM",n:96},
+  {f:"2014-09-01",h:"9PM",n:33},
+  {f:"2014-09-02",h:"11AM",n:70},
+  {f:"2014-09-02",h:"3PM",n:59},
+  {f:"2014-09-02",h:"9PM",n:81},
+  {f:"2014-09-03",h:"11AM",n:17},
+  {f:"2014-09-03",h:"3PM",n:40},
+  {f:"2014-09-03",h:"9PM",n:57},
+  {f:"2014-09-04",h:"11AM",n:88},
+  {f:"2014-09-04",h:"3PM",n:12},
+  {f:"2014-09-04",h:"9PM",n:79},
+  {f:"2014-09-05",h:"11AM",n:23},
+  {f:"2014-09-05",h:"3PM",n:30},
+  {f:"2014-09-05",h:"9PM",n:90},
+  {f:"2014-09-06",h:"11AM",n:41},
+  {f:"2014-09-06",h:"3PM",n:38},
+  {f:"2014-09-06",h:"9PM",n:35},
+  {f:"2014-09-07",h:"11AM",n:4},
+  {f:"2014-09-07",h:"3PM",n:12},
+  {f:"2014-09-07",h:"9PM",n:11},
+  {f:"2014-09-08",h:"11AM",n:50},
+  {f:"2014-09-08",h:"3PM",n:50},
+  {f:"2014-09-08",h:"9PM",n:21},
+  {f:"2014-09-09",h:"11AM",n:34},
+  {f:"2014-09-09",h:"3PM",n:13},
+  {f:"2014-09-09",h:"9PM",n:60},
+  {f:"2014-09-10",h:"11AM",n:87},
+  {f:"2014-09-10",h:"3PM",n:24},
+  {f:"2014-09-10",h:"9PM",n:65},
+  {f:"2014-09-11",h:"11AM",n:92},
+  {f:"2014-09-11",h:"3PM",n:61},
+  {f:"2014-09-11",h:"9PM",n:67},
+  {f:"2014-09-12",h:"11AM",n:28},
+  {f:"2014-09-12",h:"3PM",n:91},
+  {f:"2014-09-12",h:"9PM",n:59},
+  {f:"2014-09-13",h:"11AM",n:54},
+  {f:"2014-09-13",h:"3PM",n:22},
+  {f:"2014-09-13",h:"9PM",n:90},
+  {f:"2014-09-14",h:"11AM",n:53},
+  {f:"2014-09-14",h:"3PM",n:63},
+  {f:"2014-09-14",h:"9PM",n:89},
+  {f:"2014-09-15",h:"11AM",n:31},
+  {f:"2014-09-15",h:"3PM",n:41},
+  {f:"2014-09-15",h:"9PM",n:22},
+  {f:"2014-09-16",h:"11AM",n:1},
+  {f:"2014-09-16",h:"3PM",n:93},
+  {f:"2014-09-16",h:"9PM",n:54},
+  {f:"2014-09-17",h:"11AM",n:16},
+  {f:"2014-09-17",h:"3PM",n:0},
+  {f:"2014-09-17",h:"9PM",n:15},
+  {f:"2014-09-18",h:"11AM",n:29},
+  {f:"2014-09-18",h:"3PM",n:11},
+  {f:"2014-09-18",h:"9PM",n:39},
+  {f:"2014-09-19",h:"11AM",n:41},
+  {f:"2014-09-19",h:"3PM",n:18},
+  {f:"2014-09-19",h:"9PM",n:74},
+  {f:"2014-09-20",h:"11AM",n:10},
+  {f:"2014-09-20",h:"3PM",n:6},
+  {f:"2014-09-20",h:"9PM",n:54},
+  {f:"2014-09-21",h:"11AM",n:16},
+  {f:"2014-09-21",h:"3PM",n:61},
+  {f:"2014-09-21",h:"9PM",n:71},
+  {f:"2014-09-22",h:"11AM",n:39},
+  {f:"2014-09-22",h:"3PM",n:47},
+  {f:"2014-09-22",h:"9PM",n:63},
+  {f:"2014-09-23",h:"11AM",n:82},
+  {f:"2014-09-23",h:"3PM",n:58},
+  {f:"2014-09-23",h:"9PM",n:81},
+  {f:"2014-09-24",h:"11AM",n:98},
+  {f:"2014-09-24",h:"3PM",n:71},
+  {f:"2014-09-24",h:"9PM",n:24},
+  {f:"2014-09-25",h:"11AM",n:24},
+  {f:"2014-09-25",h:"3PM",n:71},
+  {f:"2014-09-25",h:"9PM",n:83},
+  {f:"2014-09-26",h:"11AM",n:98},
+  {f:"2014-09-26",h:"3PM",n:35},
+  {f:"2014-09-26",h:"9PM",n:8},
+  {f:"2014-09-27",h:"11AM",n:50},
+  {f:"2014-09-27",h:"3PM",n:87},
+  {f:"2014-09-27",h:"9PM",n:3},
+  {f:"2014-09-28",h:"11AM",n:85},
+  {f:"2014-09-28",h:"3PM",n:34},
+  {f:"2014-09-28",h:"9PM",n:75},
+  {f:"2014-09-29",h:"11AM",n:12},
+  {f:"2014-09-29",h:"3PM",n:46},
+  {f:"2014-09-29",h:"9PM",n:63},
+  {f:"2014-09-30",h:"11AM",n:8},
+  {f:"2014-09-30",h:"3PM",n:37},
+  {f:"2014-09-30",h:"9PM",n:25},
+  {f:"2014-10-01",h:"11AM",n:28},
+  {f:"2014-10-01",h:"3PM",n:4},
+  {f:"2014-10-01",h:"9PM",n:6},
+  {f:"2014-10-02",h:"11AM",n:61},
+  {f:"2014-10-02",h:"3PM",n:84},
+  {f:"2014-10-02",h:"9PM",n:69},
+  {f:"2014-10-03",h:"11AM",n:99},
+  {f:"2014-10-03",h:"3PM",n:75},
+  {f:"2014-10-03",h:"9PM",n:45},
+  {f:"2014-10-04",h:"11AM",n:87},
+  {f:"2014-10-04",h:"3PM",n:57},
+  {f:"2014-10-04",h:"9PM",n:36},
+  {f:"2014-10-05",h:"11AM",n:51},
+  {f:"2014-10-05",h:"3PM",n:15},
+  {f:"2014-10-05",h:"9PM",n:95},
+  {f:"2014-10-06",h:"11AM",n:77},
+  {f:"2014-10-06",h:"3PM",n:70},
+  {f:"2014-10-06",h:"9PM",n:30},
+  {f:"2014-10-07",h:"11AM",n:72},
+  {f:"2014-10-07",h:"3PM",n:33}
+];
+
+        let inserted = 0, skipped = 0, errors = 0;
+        for (let i = 0; i < draws.length; i++) {
+          const d = draws[i];
+          try {
+            const result = await DB.saveDraw({ fecha: d.f, pais: "HN", horario: d.h, numero: d.n });
+            if (result && typeof result === "object" && result.duplicate) {
+              skipped++;
+            } else {
+              inserted++;
+            }
+          } catch (err) {
+            errors++;
+          }
+          if ((i + 1) % 50 === 0 || i === draws.length - 1) {
+            out.innerHTML = `<p>Progreso: ${i + 1}/${draws.length} — Insertados: ${inserted} · Duplicados: ${skipped} · Errores: ${errors}</p>`;
+          }
+        }
+
+        const summary = `✅ Importación completa — ${inserted} insertados, ${skipped} duplicados saltados, ${errors} errores.`;
+        out.innerHTML = `<p>${summary}</p>`;
+        showToast(summary, { variant: inserted > 0 ? "success" : "info" });
+        import2014Btn.disabled = false;
+        import2014Btn.textContent = "Importar 839 sorteos de 2014";
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  HISTORIAL PEGA3 EN MANTENIMIENTO
+    // ══════════════════════════════════════════════════════════════
+    (function initMaintPega3Hist() {
+      const btnLoad  = document.getElementById("maint-pega3-load");
+      const searchEl = document.getElementById("maint-pega3-search");
+      const outEl    = document.getElementById("maint-pega3-out");
+      if (!btnLoad || !outEl) return;
+
+      const TURN_ORDER = ["11AM", "12PM", "3PM", "6PM", "9PM"];
+
+      function buildTable(draws) {
+        if (!draws.length) return "<p class='hint'>No hay sorteos Pega3 registrados.</p>";
+
+        // Agrupar por año
+        const byYear = {};
+        draws.forEach(d => {
+          const y = (d.fecha || "").slice(0, 4) || "Sin fecha";
+          if (!byYear[y]) byYear[y] = [];
+          byYear[y].push(d);
+        });
+
+        const years = Object.keys(byYear).sort((a, b) => b - a);
+        return years.map(year => {
+          const rows = byYear[year]
+            .slice()
+            .sort((a, b) => {
+              if (b.fecha !== a.fecha) return b.fecha > a.fecha ? 1 : -1;
+              return TURN_ORDER.indexOf(a.horario) - TURN_ORDER.indexOf(b.horario);
+            })
+            .map(d => {
+              const pares = (d.pares || []).map(p => String(p).padStart(2, "0")).join(" – ");
+              return `<tr>
+                <td>${d.fecha || "—"}</td>
+                <td>${d.horario || "—"}</td>
+                <td>${d.pais || "HN"}</td>
+                <td class="maint-p3-pares">${pares}</td>
+              </tr>`;
+            }).join("");
+
+          return `
+            <details class="maint-p3-year" open>
+              <summary class="maint-p3-year__head">
+                <span>${year}</span>
+                <span class="maint-p3-year__count">${byYear[year].length} sorteo${byYear[year].length !== 1 ? "s" : ""}</span>
+              </summary>
+              <table class="maint-p3-table">
+                <thead><tr><th>Fecha</th><th>Turno</th><th>País</th><th>Pares</th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </details>`;
+        }).join("");
+      }
+
+      async function load() {
+        outEl.innerHTML = "<p class='hint'>Cargando…</p>";
+        try {
+          let draws = await DB.listPega3Draws();
+          const q = (searchEl.value || "").trim().toLowerCase();
+          if (q) draws = draws.filter(d =>
+            (d.fecha || "").includes(q) ||
+            (d.horario || "").toLowerCase().includes(q) ||
+            (d.pais || "").toLowerCase().includes(q) ||
+            (d.pares || []).some(p => String(p).padStart(2, "0").includes(q))
+          );
+          outEl.innerHTML = buildTable(draws);
+        } catch (e) {
+          outEl.innerHTML = `<p class='hint'>Error al cargar: ${escapeHtml(e.message)}</p>`;
+        }
+      }
+
+      btnLoad.addEventListener("click", load);
+      searchEl.addEventListener("keydown", e => { if (e.key === "Enter") load(); });
+    })();
+
+    // ══════════════════════════════════════════════════════════════
+    //  CALCULADORA DE APUESTAS
+    // ══════════════════════════════════════════════════════════════
+    let _calcInited = false;
+    function initCalc() {
+      if (_calcInited) return;
+      _calcInited = true;
+
+      const PAGO_POR_5 = 300;   // cada 5L apostados pagan 300L
+      const UNIDAD     = 5;
+
+      const selTipo    = document.getElementById("calc-tipo");
+      const selLinea   = document.getElementById("calc-linea");
+      const inpMonto   = document.getElementById("calc-monto");
+      const inpDias    = document.getElementById("calc-dias");
+      const btnCalc    = document.getElementById("calc-btn");
+      const divResult  = document.getElementById("calc-result");
+      const fieldLinea = document.getElementById("calc-field-linea");
+      const fieldCust  = document.getElementById("calc-field-custom");
+      const inpCustom  = document.getElementById("calc-custom-count");
+
+      // Botones rápidos de monto
+      document.querySelectorAll(".calc-amt-btn").forEach(btn => {
+        btn.onclick = () => {
+          inpMonto.value = btn.dataset.val;
+          document.querySelectorAll(".calc-amt-btn").forEach(b => b.classList.remove("calc-amt-btn--active"));
+          btn.classList.add("calc-amt-btn--active");
+        };
+      });
+
+      // Tipo de jugada cambia campos visibles
+      selTipo.onchange = () => {
+        const t = selTipo.value;
+        fieldLinea.classList.toggle("hidden", t !== "linea");
+        fieldCust.classList.toggle("hidden",  t !== "custom");
+      };
+
+      btnCalc.onclick = () => {
+        const tipo   = selTipo.value;
+        const monto  = Math.max(UNIDAD, Math.round(parseFloat(inpMonto.value) / UNIDAD) * UNIDAD);
+        const dias   = Math.max(1, parseInt(inpDias.value));
+        const nNums  = tipo === "linea" ? 10 : tipo === "numero" ? 1 : Math.max(1, parseInt(inpCustom.value));
+        const decena = parseInt(selLinea.value);
+
+        inpMonto.value = monto; // normalizar a múltiplo de 5
+
+        // Pago si cae UN número apostado
+        const pagoUnitario = (monto / UNIDAD) * PAGO_POR_5;
+        // Inversión diaria total
+        const inversionDia = monto * nNums;
+
+        // Filas de escenario por día
+        let filasGanancia = "";
+        let breakEvenDia  = null;
+        for (let d = 1; d <= dias; d++) {
+          const gastado = inversionDia * d;
+          const neto    = pagoUnitario - gastado;
+          if (breakEvenDia === null && neto < 0) breakEvenDia = d;
+          const cls  = neto >= 0 ? "calc-row--win" : "calc-row--lose";
+          const sign = neto >= 0 ? "+" : "";
+          filasGanancia += `
+            <div class="calc-row ${cls}">
+              <span class="calc-row__dia">Día ${d}</span>
+              <span class="calc-row__gasto">Invertido: <strong>L ${gastado.toLocaleString()}</strong></span>
+              <span class="calc-row__pago">Cobras: <strong>L ${pagoUnitario.toLocaleString()}</strong></span>
+              <span class="calc-row__neto ${neto>=0?"calc-neto--win":"calc-neto--lose"}">${sign}L ${neto.toLocaleString()}</span>
+            </div>`;
+        }
+
+        // Escenario: no cae ninguno en todos los días
+        const perdidaTotal = inversionDia * dias;
+
+        // Tabla comparativa de montos
+        const montosComp = [5, 10, 20, 50].filter(m => m !== monto);
+        montosComp.unshift(monto);
+        let filasComp = montosComp.map(m => {
+          const p  = (m / UNIDAD) * PAGO_POR_5;
+          const inv = m * nNums;
+          const be  = Math.ceil(p / inv);
+          return `<tr class="${m===monto?"calc-comp--active":""}">
+            <td>L ${m} c/u</td>
+            <td>L ${inv.toLocaleString()}/día</td>
+            <td>L ${p.toLocaleString()}</td>
+            <td>${be} día${be===1?"":"s"}</td>
+          </tr>`;
+        }).join("");
+
+        const descripcion = tipo === "linea"
+          ? `línea del ${decena}0 al ${decena}9 (${nNums} números)`
+          : tipo === "numero" ? "número individual"
+          : `${nNums} números personalizados`;
+
+        divResult.innerHTML = `
+          <div class="calc-summary">
+            <div class="calc-summary__item">
+              <span class="calc-summary__lbl">Jugada</span>
+              <span class="calc-summary__val">${descripcion}</span>
+            </div>
+            <div class="calc-summary__item">
+              <span class="calc-summary__lbl">Apuesta por número</span>
+              <span class="calc-summary__val">L ${monto}</span>
+            </div>
+            <div class="calc-summary__item">
+              <span class="calc-summary__lbl">Inversión diaria</span>
+              <span class="calc-summary__val">L ${inversionDia.toLocaleString()}</span>
+            </div>
+            <div class="calc-summary__item">
+              <span class="calc-summary__lbl">Premio si cae</span>
+              <span class="calc-summary__val calc-summary__val--win">L ${pagoUnitario.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <h3 class="calc-section-title">📅 ¿En qué día cae? — Ganancia neta</h3>
+          <p class="calc-hint-txt">Verde = ganancia, rojo = pérdida neta después de lo invertido hasta ese día.</p>
+          <div class="calc-rows">${filasGanancia}</div>
+
+          <div class="calc-alert ${breakEvenDia ? "calc-alert--warn" : "calc-alert--info"}">
+            ${breakEvenDia
+              ? `⚠ A partir del <strong>día ${breakEvenDia}</strong> lo que llevas invertido supera el premio. Si no cae antes de ese día, ya estás en pérdida aunque caiga.`
+              : `✅ En los ${dias} días calculados, el premio siempre supera la inversión acumulada.`}
+          </div>
+
+          <div class="calc-loss-box">
+            <span class="calc-loss__lbl">Si no cae ninguno en ${dias} día${dias===1?"":"s"}:</span>
+            <span class="calc-loss__val">−L ${perdidaTotal.toLocaleString()}</span>
+          </div>
+
+          <h3 class="calc-section-title">⚖ Comparar montos — misma jugada (${nNums} número${nNums===1?"":"s"})</h3>
+          <table class="calc-comp-table">
+            <thead><tr><th>Por número</th><th>Inv./día</th><th>Premio</th><th>Break-even</th></tr></thead>
+            <tbody>${filasComp}</tbody>
+          </table>
+          <p class="calc-hint-txt">Break-even = día desde el que la inversión acumulada supera el premio.</p>
+        `;
+        divResult.classList.remove("hidden");
+      };
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // MESA DE ANÁLISIS v4.0
+    // ════════════════════════════════════════════════════════════════
+    (function () {
+      const PAD = n => String(n).padStart(2, "0");
+      const $ = id => document.getElementById(id);
+
+      let _mesaCtx   = null; // último contexto calculado
+      let _mesaDraws = null; // últimos draws usados
+
+      // Colores por nivel de recomendación
+      const RECOL = {
+        fuerte: "#5cba5c", moderado: "#e0b84a",
+        esperar: "#5c9ce0", descartar: "#e05c5c", observar: "#888"
+      };
+
+      // Colores por tipo de alerta
+      const ALERTI = { danger: "🔴", warning: "🟡", info: "🔵" };
+
+      async function renderMesa() {
+        $("mesa-meta").textContent = "Calculando…";
+        $("mesa-refresh-btn").disabled = true;
+
+        try {
+          const rawDraws = await getCachedDraws({ excludeTest: true });
+          _mesaDraws     = rawDraws.slice().reverse(); // reciente primero
+
+          // Ejecutar motor de señales completo
+          const resultado = await loadSignalEngine().then(m => m.ejecutarMotorSeñales({
+            pais: window._currentPais ?? "HN",
+          }));
+
+          _mesaCtx = resultado;
+
+          // Llenar cada sección
+          _renderTop3(resultado.candidatos);
+          _renderRegimen(resultado.inteligencia?.regimen);
+          _renderSalud(resultado.inteligencia); // async — no await, carga en background
+          _renderSecuencias(resultado.inteligencia?.secuencias);
+          _renderAlertas(resultado.inteligencia);
+          _renderLiberaciones(resultado.inteligencia?.liberaciones);
+          _renderIntraday(resultado.inteligencia);
+
+          // Panel de Honestidad — async, en background como _renderSalud
+          renderHonestyPanel($("mesa-honestidad"), _mesaDraws, {
+            pais: window._currentPais ?? "HN",
+          }).catch((e) => console.warn("[mesa] honestidad:", e?.message));
+
+          // Meta info
+          const ult = resultado.contexto?.ultimoSorteo;
+          $("mesa-meta").textContent = ult
+            ? `Último: ${PAD(ult.numero)} · ${ult.horario} · ${ult.fecha}`
+            : new Date().toLocaleString("es-HN");
+
+        } catch (e) {
+          $("mesa-meta").textContent = "Error al calcular";
+          const msg = `<div class="mesa-loading">Error al cargar. Presiona Actualizar para reintentar.</div>`;
+          ["mesa-top3", "mesa-regimen", "mesa-secuencias", "mesa-honestidad"].forEach((id) => {
+            const el = $(id);
+            if (el && el.querySelector(".mesa-loading")) el.innerHTML = msg;
+          });
+          console.error("[mesa]", e);
+        } finally {
+          $("mesa-refresh-btn").disabled = false;
+        }
+      }
+
+      function _renderTop3(candidatos = []) {
+        const el = $("mesa-top3");
+        if (!candidatos.length) { el.innerHTML = '<div class="mesa-loading">Sin candidatos</div>'; return; }
+        const top5 = candidatos.slice(0, 5);
+        // Normalizar barras relativas al top del grupo (evita que todos lleguen a 100%)
+        const maxScore = top5[0]?.score || 1;
+        const minScore = top5[top5.length - 1]?.score || 0;
+        const range    = maxScore - minScore || maxScore;
+        el.innerHTML = top5.map((c, i) => {
+          const scoreAbs = Math.round(c.score * 100);
+          // Barra relativa: top=100%, resto escalado proporcionalmente desde 30% mínimo
+          const barPct  = i === 0 ? 100 : Math.round(30 + ((c.score - minScore) / range) * 70);
+          // Umbrales para la nueva escala compuesta (fracción del máximo posible
+          // con todos los motores al tope): >=50 fuerte, >=30 moderado
+          const col     = scoreAbs >= 50 ? "#5cba5c" : scoreAbs >= 30 ? "#e0b84a" : "#888";
+          const rank    = ["①","②","③","④","⑤"][i];
+          return `
+            <div class="mesa-candidato" data-num="${c.numero}">
+              <div class="mesa-cand-num">${rank} ${c.pad}</div>
+              <div class="mesa-cand-info">
+                <div class="mesa-cand-simb">${c.simbolo ?? c.pad}</div>
+                <div class="mesa-cand-fam">${c.familia ?? ""}</div>
+                <div class="mesa-cand-bar">
+                  <div class="mesa-cand-bar-fill" style="width:${barPct}%;background:${col}"></div>
+                </div>
+              </div>
+              <div class="mesa-cand-score" style="color:${col}" title="Score absoluto: ${scoreAbs}/100">${scoreAbs}</div>
+            </div>`;
+        }).join("");
+
+        // Click en candidato → detalle
+        el.querySelectorAll(".mesa-candidato").forEach(row => {
+          row.addEventListener("click", () => _mostrarDetalle(parseInt(row.dataset.num)));
+        });
+      }
+
+      function _renderRegimen(reg) {
+        const el = $("mesa-regimen");
+        if (!reg) { el.innerHTML = '<div class="mesa-loading">—</div>'; return; }
+        const nombre = reg.regimen?.replace(/_/g, " ") ?? "normal";
+        const cls    = "regimen-" + (reg.regimen ?? "normal");
+        const conf   = reg.confianza ? `${(reg.confianza * 100).toFixed(0)}%` : "";
+        el.innerHTML = `
+          <div class="mesa-regimen-badge ${cls}">${nombre}</div>
+          ${conf ? `<div style="font-size:.7rem;color:var(--muted,#666)">Confianza: ${conf}</div>` : ""}
+          <div style="font-size:.75rem;color:var(--text,#ccc);margin-top:.4rem;line-height:1.4">
+            ${reg.descripcion ?? ""}
+          </div>`;
+      }
+
+      async function _renderSalud(_intel) {
+        const el = $("mesa-salud");
+        el.innerHTML = '<div class="mesa-loading">Cargando salud…</div>';
+
+        try {
+          const { calcularScoreActual } = await import('./src/score-tracker.js');
+          const { diagnosticar, buildDiagnosticoHTML } = await import('./src/diagnostic-engine.js');
+
+          const [score, diagnostico] = await Promise.all([
+            calcularScoreActual({ ventana: 30 }),
+            diagnosticar({ ventana: 20 }),
+          ]);
+
+          if (!score.suficiente) {
+            el.innerHTML = `<div class="mesa-loading" style="color:var(--muted,#888)">
+              ⏳ Acumulando evaluaciones (${score.evaluaciones}/5 mín.)<br>
+              <small>Se completa al registrar sorteos con predicciones activas</small>
+            </div>`;
+            return;
+          }
+
+          const sg  = score.scoreGlobal;
+          const cls = sg >= 0.45 ? "mesa-score-ok" : sg >= 0.28 ? "mesa-score-warn" : "mesa-score-crit";
+          const t1  = score.hitRateTop1 * 100;
+          const t3  = score.hitRateTop3 * 100;
+          const t5  = score.hitRateTop5 * 100;
+          const crisisBadge = score.enCrisis
+            ? `<div style="background:#c0392b;color:#fff;border-radius:4px;padding:2px 7px;font-size:.72rem;display:inline-block;margin-bottom:.4rem">🚨 CRISIS — Ajustando pesos</div>`
+            : '';
+
+          el.innerHTML = `
+            ${crisisBadge}
+            <div class="mesa-score-gauge ${cls}">${(sg * 100).toFixed(0)}</div>
+            <div class="mesa-score-bars">
+              ${_scorebar("Top-1", t1, 15)}
+              ${_scorebar("Top-3", t3, 35)}
+              ${_scorebar("Top-5", t5, 55)}
+            </div>
+            <div style="font-size:.68rem;color:var(--muted,#666);margin-top:.4rem">
+              ${score.evaluaciones} evaluaciones · Ausencia ${(score.ausencia * 100).toFixed(0)}%
+              · Tipos A:${score.tiposConteo?.A ?? 0} B:${score.tiposConteo?.B ?? 0} C:${score.tiposConteo?.C ?? 0}
+            </div>
+            <div style="margin-top:.6rem">${buildDiagnosticoHTML(diagnostico)}</div>`;
+        } catch (e) {
+          el.innerHTML = `<div class="mesa-loading" style="color:#e05c5c">Error cargando salud: ${e?.message ?? e}</div>`;
+        }
+      }
+
+      function _scorebar(label, val, meta) {
+        const pct = Math.min(100, val);
+        const col = pct >= meta ? "#5cba5c" : pct >= meta * 0.6 ? "#e0b84a" : "#e05c5c";
+        return `
+          <div class="mesa-score-row">
+            <div class="mesa-score-label">${label}</div>
+            <div class="mesa-score-track">
+              <div class="mesa-score-fill" style="width:${pct}%;background:${col}"></div>
+            </div>
+            <div class="mesa-score-pct">${pct.toFixed(1)}%</div>
+          </div>`;
+      }
+
+      function _renderSecuencias(secs = []) {
+        const el = $("mesa-secuencias");
+        if (!secs?.length) {
+          el.innerHTML = '<div class="mesa-loading">Sin secuencias activas</div>';
+          return;
+        }
+        el.innerHTML = `<div class="mesa-seq-list">` +
+          secs.slice(0, 6).map(s => {
+            const pct  = s.progresoMax != null ? Math.round(s.progresoMax * 100) : 0;
+            const prob = (s.probResolucion * 100).toFixed(1);
+            const varTag = s.variantePagada != null
+              ? `<span style="color:#5c9ce0;font-size:.65rem"> · variante ${PAD(s.variantePagada)} pagada</span>`
+              : "";
+            return `
+              <div class="mesa-seq-row">
+                <div class="mesa-seq-pair">${s.origenPad ?? PAD(s.origen)}→${s.destinoPad ?? PAD(s.destino)}</div>
+                <div class="mesa-seq-prog">
+                  <div class="mesa-seq-meta">
+                    ${s.sorteosTranscurridos} sorteos
+                    ${s.gapMedia ? `/ media ${s.gapMedia.toFixed(1)}` : ""}
+                    ${varTag}
+                  </div>
+                  <div class="mesa-seq-track">
+                    <div class="mesa-seq-fill" style="width:${Math.min(100, pct)}%"></div>
+                  </div>
+                </div>
+                <div class="mesa-seq-prob">${prob}%</div>
+              </div>`;
+          }).join("") + `</div>`;
+      }
+
+      function _renderAlertas(intel) {
+        const el = $("mesa-alertas");
+        const alertas = intel?.alertas ?? [];
+        if (!alertas.length) {
+          el.innerHTML = '<div class="mesa-loading" style="color:#5cba5c">Sin alertas activas</div>';
+          return;
+        }
+        el.innerHTML = alertas.slice(0, 6).map(a => `
+          <div class="mesa-alerta">
+            <div class="mesa-alerta-icon alerta-${a.nivel}">${ALERTI[a.nivel] ?? "·"}</div>
+            <div style="font-size:.76rem;color:var(--text,#ccc)">${a.mensaje}</div>
+          </div>`).join("");
+      }
+
+      function _renderLiberaciones(libs = []) {
+        const el = $("mesa-liberaciones");
+        if (!libs?.length) {
+          el.innerHTML = '<div class="mesa-loading">Sin liberaciones cercanas</div>';
+          return;
+        }
+        el.innerHTML = libs.slice(0, 6).map(l => {
+          const sc = (l.liberacion?.score * 100 ?? 0).toFixed(0);
+          return `
+            <div style="display:flex;align-items:center;gap:.5rem;padding:.25rem 0;
+                        border-bottom:1px solid var(--border,#2a2a2a);cursor:pointer"
+                 data-num="${l.numero}">
+              <div style="font-size:1.1rem;font-weight:800;color:var(--accent,#e0b84a);min-width:2rem">
+                ${PAD(l.numero)}
+              </div>
+              <div style="flex:1;font-size:.72rem;color:var(--text,#ccc)">
+                ${l.liberacion?.descripcion ?? ""}
+              </div>
+              <div style="font-size:.72rem;color:#5cba5c;font-weight:700">${sc}%</div>
+            </div>`;
+        }).join("");
+
+        el.querySelectorAll("[data-num]").forEach(row =>
+          row.addEventListener("click", () => _mostrarDetalle(parseInt(row.dataset.num)))
+        );
+      }
+
+      function _renderIntraday(intel) {
+        const el = $("mesa-intraday");
+        const ctx = intel?.intradayContext;
+        if (!ctx?.candidatosIntraday?.length) {
+          el.innerHTML = '<div class="mesa-loading">Sin datos intra-día</div>';
+          return;
+        }
+        el.innerHTML = `
+          <div style="font-size:.72rem;color:var(--muted,#666);margin-bottom:.4rem">
+            ${ctx.descripcion ?? ""}
+          </div>` +
+          ctx.candidatosIntraday.slice(0, 6).map(c => `
+            <div style="display:flex;gap:.5rem;align-items:center;padding:.2rem 0;
+                        border-bottom:1px solid var(--border,#2a2a2a);cursor:pointer"
+                 data-num="${c.candidato}">
+              <div style="font-size:1rem;font-weight:800;color:var(--accent,#e0b84a);min-width:2rem">
+                ${PAD(c.candidato)}
+              </div>
+              <div style="font-size:.72rem;color:var(--text,#ccc)">
+                desde ${PAD(c.origen)} (${c.turnoOrig}) · ${c.relacion?.tipo ?? ""}
+              </div>
+              <div style="font-size:.7rem;color:var(--muted,#666)">
+                ${(c.relacion?.peso * 100).toFixed(0)}%
+              </div>
+            </div>`).join("");
+
+        el.querySelectorAll("[data-num]").forEach(row =>
+          row.addEventListener("click", () => _mostrarDetalle(parseInt(row.dataset.num)))
+        );
+      }
+
+      async function _mostrarDetalle(numero) {
+        const wrap = $("mesa-detalle-wrap");
+        const det  = $("mesa-detalle");
+        wrap.style.display = "block";
+        det.innerHTML = "<div class='mesa-loading'>Analizando…</div>";
+        wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+        try {
+          // Buscar en candidatos el que coincide
+          const cand = _mesaCtx?.candidatos?.find(c => c.numero === numero);
+
+          // Importar auditarCandidato dinámicamente
+          const { auditarCandidato } = await import("./internal-reasoner.js");
+          const drawsDesc = _mesaDraws ?? [];
+
+          const audit = await auditarCandidato(numero, {
+            draws:       drawsDesc,
+            presionMap:  new Map(),
+            secuencias:  _mesaCtx?.inteligencia?.secuencias ?? [],
+            seqSigs:     new Map(),
+          });
+
+          const score = cand ? Math.round(cand.score * 100) : "—";
+          const col   = audit.recomendacion === "fuerte"  ? "#5cba5c"
+                      : audit.recomendacion === "moderado" ? "#e0b84a"
+                      : audit.recomendacion === "esperar"  ? "#5c9ce0"
+                      : audit.recomendacion === "descartar"? "#e05c5c" : "#888";
+
+          const signals = cand?.signals ?? [];
+
+          det.innerHTML = `
+            <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.5rem">
+              <div class="mesa-detalle-num">${PAD(numero)}</div>
+              <div>
+                <div style="font-weight:700">${cand?.simbolo ?? PAD(numero)}</div>
+                <div style="font-size:.72rem;color:var(--muted,#666)">${cand?.familia ?? ""}</div>
+              </div>
+              <div style="margin-left:auto;font-size:1.8rem;font-weight:900;color:${col}">${score}</div>
+            </div>
+            <div class="mesa-narrativa">${audit.narrativa ?? ""}</div>
+            ${signals.length ? `
+              <div class="mesa-card__title" style="margin-top:.6rem">Señales del motor</div>
+              <ul class="mesa-signals-list">
+                ${signals.slice(0, 8).map(s => `
+                  <li>
+                    <span class="mesa-sig-source">${s.source}</span>
+                    ${s.label}
+                  </li>`).join("")}
+              </ul>` : ""}`;
+        } catch (e) {
+          det.innerHTML = `<div class="mesa-loading">Error: ${e.message}</div>`;
+        }
+      }
+
+      // Botón refresh
+      const btnRef = $("mesa-refresh-btn");
+      if (btnRef) btnRef.addEventListener("click", renderMesa);
+
+      // ── Backtest V3 vs V4 ─────────────────────────────────────────────────
+      let _btAbort = null;
+
+      const btnBt = $("bt-run-btn");
+      if (btnBt) {
+        btnBt.addEventListener("click", async () => {
+          if (_btAbort) { _btAbort.abort(); _btAbort = null; btnBt.textContent = "▶ Correr Backtest"; return; }
+
+          _btAbort = new AbortController();
+          btnBt.textContent = "■ Cancelar";
+          btnBt.disabled    = false;
+
+          const btEl    = $("mesa-backtest");
+          const progW   = $("bt-progress-wrap");
+          const progFill = $("bt-progress-fill");
+          const progLbl  = $("bt-progress-label");
+
+          btEl.innerHTML = "";
+          progW.style.display  = "block";
+          progFill.style.width = "0%";
+          progLbl.textContent  = "Cargando sorteos…";
+
+          try {
+            const { compararV3vsV4 }    = await import("./backtest-v4.js");
+            const { buildReporteHTML, buildReporteEstructurado } = await import("./backtest-reporter.js");
+
+            const rawDraws = await getCachedDraws({ excludeTest: true });
+
+            if (rawDraws.length < 320) {
+              btEl.innerHTML = `<div class="bt-info">Se necesitan al menos 320 sorteos para el backtest (hay ${rawDraws.length}).</div>`;
+              progW.style.display = "none";
+              btnBt.textContent = "▶ Correr Backtest";
+              _btAbort = null;
+              return;
+            }
+
+            const comparacion = await compararV3vsV4(rawDraws, {
+              signal: _btAbort.signal,
+              onProgress: ({ fase, pct }) => {
+                progFill.style.width = `${pct}%`;
+                progLbl.textContent  = fase === 'v3' ? `Motor V3… ${pct}%` : `Motor V4… ${pct}%`;
+              },
+            });
+
+            progW.style.display = "none";
+            btEl.innerHTML = buildReporteHTML(comparacion);
+
+            // Persistir resultado en knowledge (best effort)
+            try {
+              const { supabase } = await import("./supabaseClient.js");
+              const reporte = buildReporteEstructurado(comparacion);
+              if (reporte) {
+                await supabase.from("knowledge").upsert({
+                  key:  "backtest_v4_ultimo",
+                  scope: "sistema",
+                  data:  reporte,
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: "key" });
+              }
+            } catch (_) {}
+
+          } catch (e) {
+            progW.style.display = "none";
+            btEl.innerHTML = `<div class="bt-error">Error: ${escapeHtml(e?.message ?? e)}</div>`;
+          } finally {
+            btnBt.textContent = "▶ Correr Backtest";
+            _btAbort = null;
+          }
+        });
+      }
+
+      // Exponer para el switch de vistas
+      window.renderMesa = renderMesa;
+    })();
