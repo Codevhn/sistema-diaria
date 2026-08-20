@@ -3605,7 +3605,6 @@
       if (Number.isFinite(memorySelectedNumero)) {
         await openMemoryDetail(memorySelectedNumero);
       }
-      }
     }
 
     async function bootstrapExtendedPanels() {
@@ -11070,3 +11069,4 @@ function buildVariantEntries(profile) {
         `;
         divResult.classList.remove("hidden");
       };
+    }
