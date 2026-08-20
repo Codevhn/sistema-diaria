@@ -1,6 +1,13 @@
 import { supabase } from "./supabaseClient.js";
 import { parseDrawDate, formatDateISO } from "./date-utils.js";
-import { processNewDraw as processTriggerEngineNewDraw } from "./triggers/triggerEngine.js";
+
+let _triggerEngine = null;
+async function processTriggerEngineNewDraw(draw) {
+  if (!_triggerEngine) {
+    _triggerEngine = await import("./triggers/triggerEngine.js");
+  }
+  return _triggerEngine.processNewDraw(draw);
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PEGAS_TURNOS = ["11AM", "3PM", "9PM"];
