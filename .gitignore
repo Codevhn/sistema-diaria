@@ -7,7 +7,6 @@
 
 # Dependencias (solo si hay Node o Live Server)
 node_modules/
-package-lock.json
 
 # Variables de entorno (contienen credenciales)
 .env
