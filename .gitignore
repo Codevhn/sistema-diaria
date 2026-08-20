@@ -5,44 +5,41 @@
 # toda la data, lógica, y base simbólica del sistema.
 # =========================================================
 
-# 🔹 Dependencias (solo si hay Node o Live Server)
+# Dependencias (solo si hay Node o Live Server)
 node_modules/
 package-lock.json
 
-# 🔹 Archivos temporales del entorno o sistema operativo
+# Variables de entorno (contienen credenciales)
+.env
+.env.local
+.env.*.local
+
+# Archivos temporales del entorno o sistema operativo
 .DS_Store
 Thumbs.db
 *.log
 *.tmp
 
-# 🔹 Caché y configuraciones del editor
+# Caché y configuraciones del editor
 .vscode/
 .idea/
 *.code-workspace
+.claude/
 
-# 🔹 Archivos de pruebas locales o backups
+# Archivos de pruebas locales o backups
 *.bak
 *.old
 *.backup
 *.orig
 
-# 🔹 Builds o previsualizaciones (si se generan)
+# Builds o previsualizaciones (si se generan)
 dist/
 build/
 out/
 
-# 🔹 Evita subir imágenes o assets grandes temporales
+# Evita subir imágenes o assets grandes temporales
 assets/temp/
 assets/cache/
-
-# 🔹 Evita ocultar la data esencial
-# data/
-# db/
-# facts/
-# hypotheses/
-# sessions/
-# (no se ignoran porque son parte del sistema)
-
 
 # Vue 3 UI build artifacts
 ui/node_modules/

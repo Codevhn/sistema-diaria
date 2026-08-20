@@ -1,3 +1,8 @@
+-- ══════════════════════════════════════════════════════════════════
+-- Migración 001 (base): Schema inicial de La Diaria
+-- Este archivo consolida la migración base. Las migraciones
+-- subsiguientes (002-006) se encuentran en /migrations/
+-- ══════════════════════════════════════════════════════════════════
 -- Columns are named in snake_case to mirror the original Dexie fields.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

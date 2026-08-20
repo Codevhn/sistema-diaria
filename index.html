@@ -305,6 +305,12 @@
     await applyRoleToDOM();
   </script>
 
+  <script>
+    // Variables de entorno. En producción, sobreescribe estas valores.
+    // Ejemplo: window.__ENV__ = { SUPABASE_URL: "https://xxx.supabase.co", SUPABASE_ANON_KEY: "sb_..." };
+    window.__ENV__ = window.__ENV__ || {};
+  </script>
+
 </head>
 
 <body class="layout">

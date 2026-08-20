@@ -1,8 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-// Placeholder credentials; replace with project-specific values.
-const SUPABASE_URL = "https://zxdxskldmwzwjmmmqsvc.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_Ad3HhXrb0jTsUVvq9_PQxg_71XPQmVZ";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
 // Storage: usamos localStorage (default de Supabase) en vez de sessionStorage.
 // Motivo: sessionStorage + autoRefreshToken tiene condiciones de carrera que
