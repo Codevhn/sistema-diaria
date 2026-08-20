@@ -309,6 +309,20 @@
     // Variables de entorno. En producción, sobreescribe estas valores.
     // Ejemplo: window.__ENV__ = { SUPABASE_URL: "https://xxx.supabase.co", SUPABASE_ANON_KEY: "sb_..." };
     window.__ENV__ = window.__ENV__ || {};
+
+    // Error boundary global: captura errores no manejados y los muestra como toast
+    window.addEventListener("unhandledrejection", (e) => {
+      console.error("[unhandledrejection]", e.reason);
+      if (typeof window.__showToast === "function") {
+        window.__showToast("Error inesperado: " + (e.reason?.message || e.reason || "desconocido"), { variant: "danger", timeout: 6000 });
+      }
+    });
+    window.onerror = function (msg, src, line, col, err) {
+      console.error("[onerror]", msg, src, line, col, err);
+      if (typeof window.__showToast === "function") {
+        window.__showToast("Error de aplicación: " + msg, { variant: "danger", timeout: 6000 });
+      }
+    };
   </script>
 
 </head>
@@ -1457,7 +1471,16 @@
           <div class="calc-field" id="calc-field-linea">
             <label class="calc-lbl">Línea (décena)</label>
             <select id="calc-linea" class="calc-select">
-              ${Array.from({length:10},(_,i)=>`<option value="${i}">${i}0–${i}9</option>`).join("")}
+              <option value="0">00–09</option>
+              <option value="1">10–19</option>
+              <option value="2">20–29</option>
+              <option value="3">30–39</option>
+              <option value="4">40–49</option>
+              <option value="5">50–59</option>
+              <option value="6">60–69</option>
+              <option value="7">70–79</option>
+              <option value="8">80–89</option>
+              <option value="9">90–99</option>
             </select>
           </div>
           <div class="calc-field hidden" id="calc-field-custom">
@@ -1769,6 +1792,7 @@
         hideTimer = setTimeout(dismiss, 1800);
       });
     }
+    window.__showToast = showToast;
 
     if (guideLoadError) {
       reportGuideLoadIssue(guideLoadError);
@@ -3061,6 +3085,7 @@
         return;
       }
 
+      const release = withButtonBusy(saveDayBtn, "Guardando…");
       try {
         const queueEntries = payloads.map(({ config, numero, isTest }) => ({
           fecha,
@@ -3096,6 +3121,8 @@
         console.error("saveDay queue error", err);
         showToast(`No se pudieron preparar los sorteos: ${err.message}`, { variant: "danger" });
         throw err;
+      } finally {
+        release();
       }
     });
 
@@ -4766,7 +4793,7 @@
       if (deleteBtn) {
         const relation = triggerRelationsCache.find((item) => item.id === deleteBtn.dataset.triggerDelete);
         if (!relation) return;
-        if (!window.confirm(`¿Eliminar la relación ${formatNumber(relation.origin)}→${formatNumber(relation.target)}?`)) return;
+        if (!await mostrarModal("Eliminar relación", `¿Eliminar la relación ${formatNumber(relation.origin)}→${formatNumber(relation.target)}?`, { okText: "Eliminar", okVariant: "danger" })) return;
         const release = withButtonBusy(deleteBtn, "Eliminando…");
         try {
           await deleteTriggerRelation(relation.id);
@@ -4803,7 +4830,7 @@
     });
 
     triggerSeedExamplesBtn?.addEventListener("click", async () => {
-      if (!window.confirm("¿Cargar las relaciones de ejemplo (37→47, 37→96, 44→95)?")) return;
+      if (!await mostrarModal("Cargar ejemplos", "¿Cargar las relaciones de ejemplo (37→47, 37→96, 44→95)?", { okText: "Cargar" })) return;
       const release = withButtonBusy(triggerSeedExamplesBtn, "Sembrando…");
       try {
         const { created, message } = await seedTriggerExamples();
@@ -5002,6 +5029,9 @@
       if (!historyTableWrap) return;
       if (defaultView && historySummary) {
         historySummary.textContent = "Mostrando los últimos sorteos registrados.";
+      }
+      if (forceReload) {
+        historyTableWrap.innerHTML = "<p class='hint'>Actualizando sorteos…</p>";
       }
       const draws = await getCachedDraws({ force: forceReload });
       renderHistoryCoverage(draws);
@@ -5227,7 +5257,7 @@
         delBtn.className = "pair-card__del btn-ghost";
         delBtn.textContent = "Eliminar";
         delBtn.addEventListener("click", async () => {
-          if (!confirm(`¿Eliminar el par ${padA} ↔ ${padB}?`)) return;
+          if (!await mostrarModal("Eliminar par", `¿Eliminar el par ${padA} ↔ ${padB}?`, { okText: "Eliminar", okVariant: "danger" })) return;
           await deletePairFromDb(pair.numA, pair.numB);
           invalidatePulso();
           renderPairList();
@@ -5402,7 +5432,7 @@
         delBtn.textContent = "Eliminar";
         delBtn.style.cssText = "margin-top:8px;font-size:.75rem;opacity:.5";
         delBtn.addEventListener("click", async () => {
-          if (!confirm(`¿Eliminar la constelación "${c.nombre}"?`)) return;
+          if (!await mostrarModal("Eliminar constelación", `¿Eliminar la constelación "${c.nombre}"?`, { okText: "Eliminar", okVariant: "danger" })) return;
           await deleteConstellationFromDb(c.nombre);
           invalidatePulso();
           renderConstellationList();
@@ -5751,11 +5781,23 @@
           if (wasMarked) {
             _spMarkedSet.delete(fecha);
             chip.classList.remove("sp-date-chip--marked");
-            await deleteSpFromDb(fecha).catch(() => {});
+            try {
+              await deleteSpFromDb(fecha);
+            } catch {
+              _spMarkedSet.add(fecha);
+              chip.classList.add("sp-date-chip--marked");
+              showToast("Error al eliminar fecha del SP", { variant: "danger" });
+            }
           } else {
             _spMarkedSet.add(fecha);
             chip.classList.add("sp-date-chip--marked");
-            await saveSpToDb(fecha).catch(() => {});
+            try {
+              await saveSpToDb(fecha);
+            } catch {
+              _spMarkedSet.delete(fecha);
+              chip.classList.remove("sp-date-chip--marked");
+              showToast("Error al guardar fecha del SP", { variant: "danger" });
+            }
           }
           // Update month count
           const row = chip.closest(".sp-month-row");
@@ -5966,7 +6008,7 @@
         deleteBtn.className = "btn-danger";
         deleteBtn.textContent = "Eliminar";
         deleteBtn.addEventListener("click", async () => {
-          const confirmDelete = window.confirm(`¿Eliminar la hipótesis ${formatNumber(h.numero)}?`);
+          const confirmDelete = await mostrarModal("Eliminar hipótesis", `¿Eliminar la hipótesis ${formatNumber(h.numero)}?`, { okText: "Eliminar", okVariant: "danger" });
           if (!confirmDelete) return;
           try {
             await eliminarHipotesis(h.id);
@@ -7584,6 +7626,7 @@
         return;
       }
       const isUpdating = Boolean(pega3ActiveDrawId);
+      const release = withButtonBusy(pega3SaveBtn, "Guardando…");
       try {
         await DB.savePega3Draw({ fecha, horario, pais, pares });
         const toastMsg = isUpdating ? "Sorteo Pega3 actualizado." : "Sorteo Pega3 guardado.";
@@ -7596,6 +7639,8 @@
       } catch (err) {
         console.error("pega3 save error", err);
         showToast(`No se pudo guardar el sorteo: ${err.message}`, { variant: "danger" });
+      } finally {
+        release();
       }
     }
 
@@ -9022,10 +9067,10 @@ function buildVariantEntries(profile) {
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();
         if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
-        if (id === "view-mesa")     renderMesa();
-        if (id === "view-analysis") renderPulso();
-        if (id === "view-superpremio") renderSuperPremioPanel();
-        if (id === "view-temporal") renderVerificador();
+        if (id === "view-mesa")     renderMesa().catch(() => {});
+        if (id === "view-analysis") renderPulso().catch(() => {});
+        if (id === "view-superpremio") renderSuperPremioPanel().catch(() => {});
+        if (id === "view-temporal") renderVerificador().catch(() => {});
         if (id === "view-maint") {
           refreshDuplicados();
           getCachedDraws().then((draws) => renderHistoryCoverage(draws)).catch(() => {});
@@ -9683,7 +9728,7 @@ function buildVariantEntries(profile) {
           banBtn?.addEventListener("click", async () => {
             const currentBanned = banBtn.dataset.banned === "true";
             const action = currentBanned ? "desbanear" : "banear";
-            if (!confirm(`¿Confirmas ${action} a ${p.email}?`)) return;
+            if (!await mostrarModal(`¿Confirmas ${action}?`, `${action === "banear" ? "Banear" : "Desbanear"} a ${p.email}?`, { okText: action === "banear" ? "Banear" : "Desbanear", okVariant: action === "banear" ? "danger" : "secondary" })) return;
             banBtn.disabled = true;
             banBtn.textContent = "…";
             try {
@@ -9918,10 +9963,11 @@ function buildVariantEntries(profile) {
     btnNuke?.addEventListener("click", async () => {
       const confirmar = await mostrarModal(
         "Reiniciar base de datos",
-        "⚠️ ¿Seguro que deseas borrar TODOS los datos del sistema?",
+        "¿Seguro que deseas borrar TODOS los datos del sistema?",
         { okText: "Borrar todo", cancelText: "Cancelar", okVariant: "danger" }
       );
       if (!confirmar) return;
+      const release = withButtonBusy(btnNuke, "Borrando…");
       try {
         await DB.nuke();
         showToast("Base de datos vaciada correctamente. Reinicia la página para comenzar desde cero.", {
@@ -9933,6 +9979,8 @@ function buildVariantEntries(profile) {
       } catch (err) {
         console.error("nuke error", err);
         showToast(`Error al intentar limpiar la base: ${err.message}`, { variant: "danger" });
+      } finally {
+        release();
       }
     });
 

@@ -30,14 +30,14 @@
       try {
         const data = await DB.listDraws({ excludeTest: false });
         if (!Array.isArray(data) || !data.length) {
-          alert("⚠️ No se encontraron sorteos registrados.");
+          showStatus("No se encontraron sorteos registrados.", "error");
           return;
         }
         downloadJson("sorteos_completos.json", data);
-        alert(`✅ Exportados ${data.length} registros desde Supabase.`);
+        showStatus(`Exportados ${data.length} registros desde Supabase.`, "success");
       } catch (err) {
         console.error(err);
-        alert("❌ Error al intentar exportar la base. Revise la consola.");
+        showStatus("Error al intentar exportar la base. Revise la consola.", "error");
       }
     })();
   </script>
@@ -46,6 +46,17 @@
 <body>
   <h1>Exportando base completa de La Diaria...</h1>
   <p>Espere unos segundos, se descargará el archivo automáticamente.</p>
+  <div id="status" style="margin-top:1rem;padding:1rem;border-radius:8px;display:none;font-family:sans-serif;"></div>
+  <script>
+    function showStatus(msg, type) {
+      const el = document.getElementById("status");
+      el.textContent = msg;
+      el.style.display = "block";
+      el.style.background = type === "error" ? "#fef2f2" : type === "success" ? "#f0fdf4" : "#fffbeb";
+      el.style.color = type === "error" ? "#b91c1c" : type === "success" ? "#15803d" : "#92400e";
+      el.style.border = "1px solid " + (type === "error" ? "#fecaca" : type === "success" ? "#bbf7d0" : "#fde68a");
+    }
+  </script>
 </body>
 
 </html>
