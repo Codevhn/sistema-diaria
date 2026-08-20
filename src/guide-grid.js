@@ -4,6 +4,11 @@ import { DB } from "./storage.js";
 
 const IMG_BASE = "data/img/";
 
+function debounce(fn, ms = 300) {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+}
+
 function createGuideCard(num, info, { compact = false } = {}) {
   const color = getColorPolaridad(num);
   const nStr = String(num).padStart(2, "0");
@@ -232,9 +237,9 @@ export async function mostrarGuia() {
     renderFamilies();
     renderFamilyStats();
 
-    searchInput?.addEventListener("input", (event) => {
+    searchInput?.addEventListener("input", debounce((event) => {
       renderFamilies(event.target.value || "");
-    });
+    }));
   }
 
   // Tabla de relativos (independiente de GUIA — carga su propio JSON)

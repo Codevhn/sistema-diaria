@@ -38,6 +38,18 @@ export const EQUIVALENCIAS_MAP = Object.freeze(EQUIV_RAW);
 
 const PAD = (n) => String(n).padStart(2, "0");
 
+function memoize(fn) {
+  const cache = new Map();
+  return (...args) => {
+    const key = args[0];
+    if (cache.has(key)) return cache.get(key);
+    const result = fn(...args);
+    if (cache.size > 200) cache.clear();
+    cache.set(key, result);
+    return result;
+  };
+}
+
 function toDigits(num) {
   const s = PAD(num);
   return [parseInt(s[0], 10), parseInt(s[1], 10)];
@@ -50,18 +62,18 @@ function fromDigits(d0, d1) {
 
 // ─── Operaciones atómicas ─────────────────────────────────────────────────────
 
-export function convertDigit(digit) {
+export const convertDigit = memoize(function convertDigit(digit) {
   const d = typeof digit === "string" ? parseInt(digit, 10) : digit;
   return CONV_RAW[d] ?? null;
-}
+});
 
-export function getMirror(num) {
+export const getMirror = memoize(function getMirror(num) {
   const [d0, d1] = toDigits(num);
   const m = fromDigits(d1, d0);
   return m !== null && m !== num ? m : null;
-}
+});
 
-export function getSimpleConversions(num) {
+export const getSimpleConversions = memoize(function getSimpleConversions(num) {
   const [d0, d1] = toDigits(num);
   const out = new Set();
   const c0 = CONV_RAW[d0];
@@ -75,7 +87,7 @@ export function getSimpleConversions(num) {
     if (n !== null && n !== num) out.add(n);
   }
   return Array.from(out);
-}
+});
 
 export function convertBothDigits(num) {
   const [d0, d1] = toDigits(num);
@@ -265,14 +277,14 @@ export function generarVariantesMulti(seeds = [], opts = {}) {
 
 // ─── API de compatibilidad: agrupado y clasificador ──────────────────────────
 
-export function getAllRelated(num) {
+export const getAllRelated = memoize(function getAllRelated(num) {
   return {
     simple:        getSimpleConversions(num),
     compound:      getCompositeConversions(num, { includeMirror: false }),
     equivalencias: getEquivalencias(num),
     mirror: (() => { const m = getMirror(num); return m !== null ? [m] : []; })(),
   };
-}
+});
 
 export function classifyRelation(numA, numB) {
   if (numA === numB) return "same";
