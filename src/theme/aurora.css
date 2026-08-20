@@ -549,3 +549,32 @@ button:focus-visible,
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   15. LOGIN — tarjeta glass con aura Aurora
+   ═══════════════════════════════════════════════════════════════════ */
+.login-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-top: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg), 0 0 90px var(--color-accent-glow);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+}
+
+.login-card__head h1 {
+  font-family: "Space Grotesk", var(--font-sans);
+  letter-spacing: -0.01em;
+}
+
+.login-form input {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+}
+
+.login-form input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-tint);
+}
