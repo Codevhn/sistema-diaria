@@ -3605,10 +3605,6 @@
       if (Number.isFinite(memorySelectedNumero)) {
         await openMemoryDetail(memorySelectedNumero);
       }
-      // Refrescar Mesa de Análisis en background si está visible
-      const mesaEl = document.getElementById("view-mesa");
-      if (mesaEl && !mesaEl.classList.contains("hidden") && typeof renderMesa === "function") {
-        renderMesa();
       }
     }
 
@@ -7525,7 +7521,6 @@ function buildVariantEntries(profile) {
     // ✅ Cambio de vistas
     const views = {
       day: "view-day",
-      mesa: "view-mesa",
       hypo: "view-hypo",
       analysis: "view-analysis",
       temporal: "view-temporal",
@@ -7557,7 +7552,6 @@ function buildVariantEntries(profile) {
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();
         if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
-        if (id === "view-mesa")     renderMesa().catch(() => {});
         if (id === "view-analysis") renderPulso().catch(() => {});
         if (id === "view-superpremio") renderSuperPremioPanel().catch(() => {});
         if (id === "view-temporal") renderVerificador().catch(() => {});
@@ -9753,9 +9747,6 @@ function buildVariantEntries(profile) {
 
           <h3>Momento de liberación</h3>
           <p>Cuando la presión lleva tanto tiempo alta que el jugador se "cansa" de esperar y deja de comprar el número — ese es el <strong>momento de liberación</strong>. El sistema detecta ese punto (umbral de cansancio: 2.2× el ciclo) como la señal más fuerte para que el número finalmente caiga.</p>
-
-          <h3>Dónde verlo</h3>
-          <p>En el panel <strong>Mesa de Análisis → Posibles Liberaciones</strong>: números cercanos al momento de liberación, con su score de presión y el tiempo sin caer.</p>
         `,
       },
       {
@@ -9779,7 +9770,7 @@ function buildVariantEntries(profile) {
           </div>
 
           <h3>La barra de progreso</h3>
-          <p>En <strong>Mesa de Análisis → Secuencias Activas</strong> verás una barra por cada secuencia. La longitud de la barra = qué tan cerca está de su ventana histórica de resolución. Una barra llena = el sistema proyecta resolución inminente.</p>
+          <p>Cada secuencia activa se representa con una barra. La longitud de la barra = qué tan cerca está de su ventana histórica de resolución. Una barra llena = el sistema proyecta resolución inminente.</p>
 
           <h3>Cuándo confiar más</h3>
           <p>Cuando la secuencia tiene al menos 3 instancias históricas con estadística confirmada. Las secuencias con 1 o 2 casos se marcan con baja confianza.</p>
@@ -9812,9 +9803,6 @@ function buildVariantEntries(profile) {
 
           <h3>Por qué importa el régimen</h3>
           <p>Cada régimen ajusta automáticamente los pesos del motor. Ejemplo: en <em>post superpremio</em> el peso de Markov baja (porque el historial ya no es fiable) y el de modos/patrones sube. El sistema se adapta sin que tengas que tocarlo.</p>
-
-          <h3>Dónde verlo</h3>
-          <p>En <strong>Mesa de Análisis → Régimen Activo</strong>: badge con el nombre, nivel de confianza y descripción del cambio detectado.</p>
         `,
       },
       {
@@ -9852,56 +9840,6 @@ function buildVariantEntries(profile) {
 
           <h3>Crisis y reset</h3>
           <p>Si el hit rate top-3 cae por debajo del 20%, el sistema entra en modo crisis y ejecuta el optimizador automáticamente. Si nada mejora, puedes hacer reset manual a los pesos por defecto.</p>
-        `,
-      },
-      {
-        id: "mesa-analisis",
-        categoria: "Paneles",
-        titulo: "🧠 Mesa de Análisis — el centro de mando",
-        contenido: `
-          <h2>Mesa de Análisis</h2>
-          <p class="wiki-lead">Es el panel más completo del sistema. Reúne en una sola vista todos los módulos de inteligencia adversarial, organizados para que veas el contexto completo antes de decidir.</p>
-
-          <h3>Los 7 paneles de la Mesa</h3>
-          <div class="wiki-states">
-            <div class="wiki-state wiki-state--ok">
-              <strong>Top Candidatos</strong>
-              <span>Los 5 números con mayor score combinado (señales + presión + secuencias). Haz clic en uno para ver su análisis detallado.</span>
-            </div>
-            <div class="wiki-state wiki-state--ok">
-              <strong>Régimen Activo</strong>
-              <span>El estado estratégico actual de La Casa, con nivel de confianza y descripción del cambio detectado.</span>
-            </div>
-            <div class="wiki-state wiki-state--ok">
-              <strong>Salud del Sistema</strong>
-              <span>Score global de las últimas 30 evaluaciones, hit rates por posición (top-1, top-3, top-5) y diagnóstico de problemas.</span>
-            </div>
-            <div class="wiki-state wiki-state--ok">
-              <strong>Secuencias Activas</strong>
-              <span>Secuencias A→B en curso, con barra de progreso hacia su ventana histórica de resolución y probabilidad calculada.</span>
-            </div>
-            <div class="wiki-state wiki-state--warn">
-              <strong>Alertas</strong>
-              <span>Hasta 10 alertas automáticas: cambio de régimen, números extremadamente vencidos, sin dobles en 15 sorteos, repeticiones sospechosas.</span>
-            </div>
-            <div class="wiki-state wiki-state--ok">
-              <strong>Posibles Liberaciones</strong>
-              <span>Números que superaron el umbral de cansancio del jugador (2.2× su ciclo). La presión empezó a bajar — posible momento de caída.</span>
-            </div>
-            <div class="wiki-state wiki-state--ok">
-              <strong>Intra-Día</strong>
-              <span>Si ya cayó un número hoy (turno 11AM o 3PM), muestra los candidatos más probables para el turno siguiente del mismo día.</span>
-            </div>
-          </div>
-
-          <h3>Análisis detallado de candidato</h3>
-          <p>Al hacer clic en cualquier número del Top Candidatos, el sistema responde 4 preguntas:</p>
-          <ol>
-            <li>¿Qué secuencias activas apuntan a este número?</li>
-            <li>¿Cuál es su nivel de presión pública ahora mismo?</li>
-            <li>¿Se pagó alguna variante suya recientemente?</li>
-            <li>¿Hay conflicto por familia simbólica?</li>
-          </ol>
         `,
       },
       {
@@ -9972,7 +9910,7 @@ function buildVariantEntries(profile) {
           </table>
 
           <h3>Cómo ejecutarlo</h3>
-          <p>En <strong>Mesa de Análisis → Validación Histórica V3 vs V4</strong>, haz clic en "▶ Correr Backtest". Tarda 30–90 segundos. Puedes cancelarlo con el mismo botón.</p>
+          <p>En <strong>Mantención → Backtest</strong>, configura el warmup y haz clic en "Ejecutar backtest". Tarda 30–90 segundos. Puedes cancelarlo con el mismo botón.</p>
 
           <h3>Importante: el backtest no garantiza nada</h3>
           <p>Un lift alto en el historial no promete que el sistema seguirá funcionando igual en el futuro. Lo que sí dice es que <em>en los sorteos pasados</em>, el motor tenía ventaja real sobre el azar. Es la mejor evidencia disponible sin adivinar.</p>
@@ -11132,418 +11070,3 @@ function buildVariantEntries(profile) {
         `;
         divResult.classList.remove("hidden");
       };
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // MESA DE ANÁLISIS v4.0
-    // ════════════════════════════════════════════════════════════════
-    (function () {
-      const PAD = n => String(n).padStart(2, "0");
-      const $ = id => document.getElementById(id);
-
-      let _mesaCtx   = null; // último contexto calculado
-      let _mesaDraws = null; // últimos draws usados
-
-      // Colores por nivel de recomendación
-      const RECOL = {
-        fuerte: "#5cba5c", moderado: "#e0b84a",
-        esperar: "#5c9ce0", descartar: "#e05c5c", observar: "#888"
-      };
-
-      // Colores por tipo de alerta
-      const ALERTI = { danger: "🔴", warning: "🟡", info: "🔵" };
-
-      async function renderMesa() {
-        $("mesa-meta").textContent = "Calculando…";
-        $("mesa-refresh-btn").disabled = true;
-
-        try {
-          const rawDraws = await getCachedDraws({ excludeTest: true });
-          _mesaDraws     = rawDraws.slice().reverse(); // reciente primero
-
-          // Ejecutar motor de señales completo
-          const resultado = await loadSignalEngine().then(m => m.ejecutarMotorSeñales({
-            pais: window._currentPais ?? "HN",
-          }));
-
-          _mesaCtx = resultado;
-
-          // Llenar cada sección
-          _renderTop3(resultado.candidatos);
-          _renderRegimen(resultado.inteligencia?.regimen);
-          _renderSalud(resultado.inteligencia); // async — no await, carga en background
-          _renderSecuencias(resultado.inteligencia?.secuencias);
-          _renderAlertas(resultado.inteligencia);
-          _renderLiberaciones(resultado.inteligencia?.liberaciones);
-          _renderIntraday(resultado.inteligencia);
-
-          // Panel de Honestidad — async, en background como _renderSalud
-          renderHonestyPanel($("mesa-honestidad"), _mesaDraws, {
-            pais: window._currentPais ?? "HN",
-          }).catch((e) => console.warn("[mesa] honestidad:", e?.message));
-
-          // Meta info
-          const ult = resultado.contexto?.ultimoSorteo;
-          $("mesa-meta").textContent = ult
-            ? `Último: ${PAD(ult.numero)} · ${ult.horario} · ${ult.fecha}`
-            : new Date().toLocaleString("es-HN");
-
-        } catch (e) {
-          $("mesa-meta").textContent = "Error al calcular";
-          const msg = `<div class="mesa-loading">Error al cargar. Presiona Actualizar para reintentar.</div>`;
-          ["mesa-top3", "mesa-regimen", "mesa-secuencias", "mesa-honestidad"].forEach((id) => {
-            const el = $(id);
-            if (el && el.querySelector(".mesa-loading")) el.innerHTML = msg;
-          });
-          console.error("[mesa]", e);
-        } finally {
-          $("mesa-refresh-btn").disabled = false;
-        }
-      }
-
-      function _renderTop3(candidatos = []) {
-        const el = $("mesa-top3");
-        if (!candidatos.length) { el.innerHTML = '<div class="mesa-loading">Sin candidatos</div>'; return; }
-        const top5 = candidatos.slice(0, 5);
-        // Normalizar barras relativas al top del grupo (evita que todos lleguen a 100%)
-        const maxScore = top5[0]?.score || 1;
-        const minScore = top5[top5.length - 1]?.score || 0;
-        const range    = maxScore - minScore || maxScore;
-        el.innerHTML = top5.map((c, i) => {
-          const scoreAbs = Math.round(c.score * 100);
-          // Barra relativa: top=100%, resto escalado proporcionalmente desde 30% mínimo
-          const barPct  = i === 0 ? 100 : Math.round(30 + ((c.score - minScore) / range) * 70);
-          // Umbrales para la nueva escala compuesta (fracción del máximo posible
-          // con todos los motores al tope): >=50 fuerte, >=30 moderado
-          const col     = scoreAbs >= 50 ? "#5cba5c" : scoreAbs >= 30 ? "#e0b84a" : "#888";
-          const rank    = ["①","②","③","④","⑤"][i];
-          return `
-            <div class="mesa-candidato" data-num="${c.numero}">
-              <div class="mesa-cand-num">${rank} ${c.pad}</div>
-              <div class="mesa-cand-info">
-                <div class="mesa-cand-simb">${c.simbolo ?? c.pad}</div>
-                <div class="mesa-cand-fam">${c.familia ?? ""}</div>
-                <div class="mesa-cand-bar">
-                  <div class="mesa-cand-bar-fill" style="width:${barPct}%;background:${col}"></div>
-                </div>
-              </div>
-              <div class="mesa-cand-score" style="color:${col}" title="Score absoluto: ${scoreAbs}/100">${scoreAbs}</div>
-            </div>`;
-        }).join("");
-
-        // Click en candidato → detalle
-        el.querySelectorAll(".mesa-candidato").forEach(row => {
-          row.addEventListener("click", () => _mostrarDetalle(parseInt(row.dataset.num)));
-        });
-      }
-
-      function _renderRegimen(reg) {
-        const el = $("mesa-regimen");
-        if (!reg) { el.innerHTML = '<div class="mesa-loading">—</div>'; return; }
-        const nombre = reg.regimen?.replace(/_/g, " ") ?? "normal";
-        const cls    = "regimen-" + (reg.regimen ?? "normal");
-        const conf   = reg.confianza ? `${(reg.confianza * 100).toFixed(0)}%` : "";
-        el.innerHTML = `
-          <div class="mesa-regimen-badge ${cls}">${nombre}</div>
-          ${conf ? `<div style="font-size:.7rem;color:var(--muted,#666)">Confianza: ${conf}</div>` : ""}
-          <div style="font-size:.75rem;color:var(--text,#ccc);margin-top:.4rem;line-height:1.4">
-            ${reg.descripcion ?? ""}
-          </div>`;
-      }
-
-      async function _renderSalud(_intel) {
-        const el = $("mesa-salud");
-        el.innerHTML = '<div class="mesa-loading">Cargando salud…</div>';
-
-        try {
-          const { calcularScoreActual } = await import('./src/score-tracker.js');
-          const { diagnosticar, buildDiagnosticoHTML } = await import('./src/diagnostic-engine.js');
-
-          const [score, diagnostico] = await Promise.all([
-            calcularScoreActual({ ventana: 30 }),
-            diagnosticar({ ventana: 20 }),
-          ]);
-
-          if (!score.suficiente) {
-            el.innerHTML = `<div class="mesa-loading" style="color:var(--muted,#888)">
-              ⏳ Acumulando evaluaciones (${score.evaluaciones}/5 mín.)<br>
-              <small>Se completa al registrar sorteos con predicciones activas</small>
-            </div>`;
-            return;
-          }
-
-          const sg  = score.scoreGlobal;
-          const cls = sg >= 0.45 ? "mesa-score-ok" : sg >= 0.28 ? "mesa-score-warn" : "mesa-score-crit";
-          const t1  = score.hitRateTop1 * 100;
-          const t3  = score.hitRateTop3 * 100;
-          const t5  = score.hitRateTop5 * 100;
-          const crisisBadge = score.enCrisis
-            ? `<div style="background:#c0392b;color:#fff;border-radius:4px;padding:2px 7px;font-size:.72rem;display:inline-block;margin-bottom:.4rem">🚨 CRISIS — Ajustando pesos</div>`
-            : '';
-
-          el.innerHTML = `
-            ${crisisBadge}
-            <div class="mesa-score-gauge ${cls}">${(sg * 100).toFixed(0)}</div>
-            <div class="mesa-score-bars">
-              ${_scorebar("Top-1", t1, 15)}
-              ${_scorebar("Top-3", t3, 35)}
-              ${_scorebar("Top-5", t5, 55)}
-            </div>
-            <div style="font-size:.68rem;color:var(--muted,#666);margin-top:.4rem">
-              ${score.evaluaciones} evaluaciones · Ausencia ${(score.ausencia * 100).toFixed(0)}%
-              · Tipos A:${score.tiposConteo?.A ?? 0} B:${score.tiposConteo?.B ?? 0} C:${score.tiposConteo?.C ?? 0}
-            </div>
-            <div style="margin-top:.6rem">${buildDiagnosticoHTML(diagnostico)}</div>`;
-        } catch (e) {
-          el.innerHTML = `<div class="mesa-loading" style="color:#e05c5c">Error cargando salud: ${e?.message ?? e}</div>`;
-        }
-      }
-
-      function _scorebar(label, val, meta) {
-        const pct = Math.min(100, val);
-        const col = pct >= meta ? "#5cba5c" : pct >= meta * 0.6 ? "#e0b84a" : "#e05c5c";
-        return `
-          <div class="mesa-score-row">
-            <div class="mesa-score-label">${label}</div>
-            <div class="mesa-score-track">
-              <div class="mesa-score-fill" style="width:${pct}%;background:${col}"></div>
-            </div>
-            <div class="mesa-score-pct">${pct.toFixed(1)}%</div>
-          </div>`;
-      }
-
-      function _renderSecuencias(secs = []) {
-        const el = $("mesa-secuencias");
-        if (!secs?.length) {
-          el.innerHTML = '<div class="mesa-loading">Sin secuencias activas</div>';
-          return;
-        }
-        el.innerHTML = `<div class="mesa-seq-list">` +
-          secs.slice(0, 6).map(s => {
-            const pct  = s.progresoMax != null ? Math.round(s.progresoMax * 100) : 0;
-            const prob = (s.probResolucion * 100).toFixed(1);
-            const varTag = s.variantePagada != null
-              ? `<span style="color:#5c9ce0;font-size:.65rem"> · variante ${PAD(s.variantePagada)} pagada</span>`
-              : "";
-            return `
-              <div class="mesa-seq-row">
-                <div class="mesa-seq-pair">${s.origenPad ?? PAD(s.origen)}→${s.destinoPad ?? PAD(s.destino)}</div>
-                <div class="mesa-seq-prog">
-                  <div class="mesa-seq-meta">
-                    ${s.sorteosTranscurridos} sorteos
-                    ${s.gapMedia ? `/ media ${s.gapMedia.toFixed(1)}` : ""}
-                    ${varTag}
-                  </div>
-                  <div class="mesa-seq-track">
-                    <div class="mesa-seq-fill" style="width:${Math.min(100, pct)}%"></div>
-                  </div>
-                </div>
-                <div class="mesa-seq-prob">${prob}%</div>
-              </div>`;
-          }).join("") + `</div>`;
-      }
-
-      function _renderAlertas(intel) {
-        const el = $("mesa-alertas");
-        const alertas = intel?.alertas ?? [];
-        if (!alertas.length) {
-          el.innerHTML = '<div class="mesa-loading" style="color:#5cba5c">Sin alertas activas</div>';
-          return;
-        }
-        el.innerHTML = alertas.slice(0, 6).map(a => `
-          <div class="mesa-alerta">
-            <div class="mesa-alerta-icon alerta-${a.nivel}">${ALERTI[a.nivel] ?? "·"}</div>
-            <div style="font-size:.76rem;color:var(--text,#ccc)">${a.mensaje}</div>
-          </div>`).join("");
-      }
-
-      function _renderLiberaciones(libs = []) {
-        const el = $("mesa-liberaciones");
-        if (!libs?.length) {
-          el.innerHTML = '<div class="mesa-loading">Sin liberaciones cercanas</div>';
-          return;
-        }
-        el.innerHTML = libs.slice(0, 6).map(l => {
-          const sc = (l.liberacion?.score * 100 ?? 0).toFixed(0);
-          return `
-            <div style="display:flex;align-items:center;gap:.5rem;padding:.25rem 0;
-                        border-bottom:1px solid var(--border,#2a2a2a);cursor:pointer"
-                 data-num="${l.numero}">
-              <div style="font-size:1.1rem;font-weight:800;color:var(--accent,#e0b84a);min-width:2rem">
-                ${PAD(l.numero)}
-              </div>
-              <div style="flex:1;font-size:.72rem;color:var(--text,#ccc)">
-                ${l.liberacion?.descripcion ?? ""}
-              </div>
-              <div style="font-size:.72rem;color:#5cba5c;font-weight:700">${sc}%</div>
-            </div>`;
-        }).join("");
-
-        el.querySelectorAll("[data-num]").forEach(row =>
-          row.addEventListener("click", () => _mostrarDetalle(parseInt(row.dataset.num)))
-        );
-      }
-
-      function _renderIntraday(intel) {
-        const el = $("mesa-intraday");
-        const ctx = intel?.intradayContext;
-        if (!ctx?.candidatosIntraday?.length) {
-          el.innerHTML = '<div class="mesa-loading">Sin datos intra-día</div>';
-          return;
-        }
-        el.innerHTML = `
-          <div style="font-size:.72rem;color:var(--muted,#666);margin-bottom:.4rem">
-            ${ctx.descripcion ?? ""}
-          </div>` +
-          ctx.candidatosIntraday.slice(0, 6).map(c => `
-            <div style="display:flex;gap:.5rem;align-items:center;padding:.2rem 0;
-                        border-bottom:1px solid var(--border,#2a2a2a);cursor:pointer"
-                 data-num="${c.candidato}">
-              <div style="font-size:1rem;font-weight:800;color:var(--accent,#e0b84a);min-width:2rem">
-                ${PAD(c.candidato)}
-              </div>
-              <div style="font-size:.72rem;color:var(--text,#ccc)">
-                desde ${PAD(c.origen)} (${c.turnoOrig}) · ${c.relacion?.tipo ?? ""}
-              </div>
-              <div style="font-size:.7rem;color:var(--muted,#666)">
-                ${(c.relacion?.peso * 100).toFixed(0)}%
-              </div>
-            </div>`).join("");
-
-        el.querySelectorAll("[data-num]").forEach(row =>
-          row.addEventListener("click", () => _mostrarDetalle(parseInt(row.dataset.num)))
-        );
-      }
-
-      async function _mostrarDetalle(numero) {
-        const wrap = $("mesa-detalle-wrap");
-        const det  = $("mesa-detalle");
-        wrap.style.display = "block";
-        det.innerHTML = "<div class='mesa-loading'>Analizando…</div>";
-        wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
-
-        try {
-          // Buscar en candidatos el que coincide
-          const cand = _mesaCtx?.candidatos?.find(c => c.numero === numero);
-
-          // Importar auditarCandidato dinámicamente
-          const { auditarCandidato } = await import("./internal-reasoner.js");
-          const drawsDesc = _mesaDraws ?? [];
-
-          const audit = await auditarCandidato(numero, {
-            draws:       drawsDesc,
-            presionMap:  new Map(),
-            secuencias:  _mesaCtx?.inteligencia?.secuencias ?? [],
-            seqSigs:     new Map(),
-          });
-
-          const score = cand ? Math.round(cand.score * 100) : "—";
-          const col   = audit.recomendacion === "fuerte"  ? "#5cba5c"
-                      : audit.recomendacion === "moderado" ? "#e0b84a"
-                      : audit.recomendacion === "esperar"  ? "#5c9ce0"
-                      : audit.recomendacion === "descartar"? "#e05c5c" : "#888";
-
-          const signals = cand?.signals ?? [];
-
-          det.innerHTML = `
-            <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.5rem">
-              <div class="mesa-detalle-num">${PAD(numero)}</div>
-              <div>
-                <div style="font-weight:700">${cand?.simbolo ?? PAD(numero)}</div>
-                <div style="font-size:.72rem;color:var(--muted,#666)">${cand?.familia ?? ""}</div>
-              </div>
-              <div style="margin-left:auto;font-size:1.8rem;font-weight:900;color:${col}">${score}</div>
-            </div>
-            <div class="mesa-narrativa">${audit.narrativa ?? ""}</div>
-            ${signals.length ? `
-              <div class="mesa-card__title" style="margin-top:.6rem">Señales del motor</div>
-              <ul class="mesa-signals-list">
-                ${signals.slice(0, 8).map(s => `
-                  <li>
-                    <span class="mesa-sig-source">${s.source}</span>
-                    ${s.label}
-                  </li>`).join("")}
-              </ul>` : ""}`;
-        } catch (e) {
-          det.innerHTML = `<div class="mesa-loading">Error: ${e.message}</div>`;
-        }
-      }
-
-      // Botón refresh
-      const btnRef = $("mesa-refresh-btn");
-      if (btnRef) btnRef.addEventListener("click", renderMesa);
-
-      // ── Backtest V3 vs V4 ─────────────────────────────────────────────────
-      let _btAbort = null;
-
-      const btnBt = $("bt-run-btn");
-      if (btnBt) {
-        btnBt.addEventListener("click", async () => {
-          if (_btAbort) { _btAbort.abort(); _btAbort = null; btnBt.textContent = "▶ Correr Backtest"; return; }
-
-          _btAbort = new AbortController();
-          btnBt.textContent = "■ Cancelar";
-          btnBt.disabled    = false;
-
-          const btEl    = $("mesa-backtest");
-          const progW   = $("bt-progress-wrap");
-          const progFill = $("bt-progress-fill");
-          const progLbl  = $("bt-progress-label");
-
-          btEl.innerHTML = "";
-          progW.style.display  = "block";
-          progFill.style.width = "0%";
-          progLbl.textContent  = "Cargando sorteos…";
-
-          try {
-            const { compararV3vsV4 }    = await import("./backtest-v4.js");
-            const { buildReporteHTML, buildReporteEstructurado } = await import("./backtest-reporter.js");
-
-            const rawDraws = await getCachedDraws({ excludeTest: true });
-
-            if (rawDraws.length < 320) {
-              btEl.innerHTML = `<div class="bt-info">Se necesitan al menos 320 sorteos para el backtest (hay ${rawDraws.length}).</div>`;
-              progW.style.display = "none";
-              btnBt.textContent = "▶ Correr Backtest";
-              _btAbort = null;
-              return;
-            }
-
-            const comparacion = await compararV3vsV4(rawDraws, {
-              signal: _btAbort.signal,
-              onProgress: ({ fase, pct }) => {
-                progFill.style.width = `${pct}%`;
-                progLbl.textContent  = fase === 'v3' ? `Motor V3… ${pct}%` : `Motor V4… ${pct}%`;
-              },
-            });
-
-            progW.style.display = "none";
-            btEl.innerHTML = buildReporteHTML(comparacion);
-
-            // Persistir resultado en knowledge (best effort)
-            try {
-              const { supabase } = await import("./supabaseClient.js");
-              const reporte = buildReporteEstructurado(comparacion);
-              if (reporte) {
-                await supabase.from("knowledge").upsert({
-                  key:  "backtest_v4_ultimo",
-                  scope: "sistema",
-                  data:  reporte,
-                  updated_at: new Date().toISOString(),
-                }, { onConflict: "key" });
-              }
-            } catch (_) {}
-
-          } catch (e) {
-            progW.style.display = "none";
-            btEl.innerHTML = `<div class="bt-error">Error: ${escapeHtml(e?.message ?? e)}</div>`;
-          } finally {
-            btnBt.textContent = "▶ Correr Backtest";
-            _btAbort = null;
-          }
-        });
-      }
-
-      // Exponer para el switch de vistas
-      window.renderMesa = renderMesa;
-    })();
