@@ -1,5 +1,5 @@
 /**
- * mac-theme.css — macOS Design System para Sistema Diaria
+ * base.css — capa estructural de componentes (ex mac-theme; identidad visual vive en aurora.css)
  * Cubre: dark + light mode, sidebar vibrancy, frosted panels,
  * slots, balls, tablas, guía, líneas, ausencias, suerte, recovery.
  *
@@ -21,7 +21,7 @@
   --radius-xl:  20px;
 
   /* Easing macOS spring */
-  --ease-mac: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-mac: cubic-bezier(0.22, 1, 0.36, 1); /* Aurora ease-out */
 }
 
 /* ═══════════════════════════════════════════════════════════════════

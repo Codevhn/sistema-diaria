@@ -578,3 +578,151 @@ button:focus-visible,
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-tint);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   16. FLATTEN — fin de las cajas anidadas
+   Los chips/pills/badges dejan de ser cajas dentro de cajas.
+   Jerarquía por tipografía y color, no por bordes.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Etiquetas neutras: texto plano, sin caja ── */
+.history-pill,
+.guide-family-tag,
+.sp-date-chip,
+.trans-chip,
+.sp-rep-chip,
+.vt-corr-chip,
+.vt-aya-chip {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 6px;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+/* ── Indicadores de estado: tinte sutil, sin borde ── */
+.ht-chip,
+.vt-badge,
+.vt-sm-chip,
+.vt-num-chip,
+.vlt-badge,
+.sp-modo-badge--on,
+.sp-modo-badge--off,
+.rezago-card__badge,
+.rec-ht__hit-chip,
+.rec-ht__badge--avg,
+.cq-recup-badge,
+.cq-ep-normal-badge,
+.cq-ep-recup-badge,
+.cq-estado {
+  border: none;
+  box-shadow: none;
+  border-radius: 7px;
+}
+
+/* Ningún chip/badge lleva borde, en ninguna variante */
+[class*="chip--"],
+[class*="badge--"],
+[class*="pill--"],
+[class*="pill."],
+.ht-chip--hit,
+.vt-badge--ok,
+.vt-badge--no,
+.vt-badge--ins,
+.vt-badge--tend,
+.vlt-badge--activa,
+.vlt-badge--completo,
+.vlt-badge--confirmada,
+.vlt-badge--normal,
+.vlt-badge--recup,
+.vlt-badge--sin {
+  border: none;
+  box-shadow: none;
+}
+
+/* ── Chips con número/símbolo dentro: superficie mínima, sin borde ── */
+.pulso-chip,
+.cq-chip,
+.vlt-chip,
+.cq-seg-chip--sm,
+.cq-seg-chip--cadena {
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+/* ── Filas-métrica y stats: fuera el azulejo, jerarquía tipográfica ── */
+.p3res-metric,
+.rec-ht__stat,
+.suerte-hist-item,
+.cq-autorep-item,
+.calc-summary__item {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* ── Alertas / bloques destacados: acento lateral, no caja completa ── */
+.calc-alert,
+.p3sel-comodin,
+.cq-section--cadena,
+.cq-episode--recup {
+  border: none;
+  border-left: 2px solid var(--color-accent);
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--color-accent-tint), transparent 65%);
+  box-shadow: none;
+}
+
+/* ── Normalización de radios sueltos del tema estructural ── */
+.history-pill--today,
+.history-pill--recent,
+.ht-chip--hit,
+.sp-date-chip--marked,
+.sp-rep-chip--active {
+  border-radius: 7px;
+}
+
+/* ── Guía: de 4 cajas anidadas a superficie plana ── */
+.guide-card {
+  border: none;
+  box-shadow: none;
+  background: var(--color-surface);
+}
+
+.guide-img {
+  border: none;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+}
+
+.guide-card:hover .guide-img {
+  transform: scale(1.05);
+}
+
+.guide-family-stat-row {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* ── Botones ghost: borde sólido fino, nada de punteados ── */
+.btn-ghost,
+button.ghost {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.btn-ghost:hover,
+button.ghost:hover {
+  border-color: var(--color-accent);
+}
