@@ -726,3 +726,10 @@ button.ghost {
 button.ghost:hover {
   border-color: var(--color-accent);
 }
+
+/* ── Vuelta del día: filas planas ── */
+.vlt-item,
+.vlt-item--confirmed {
+  border: none;
+  box-shadow: none;
+}
