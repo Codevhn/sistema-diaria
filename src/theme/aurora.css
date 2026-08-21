@@ -793,3 +793,35 @@ button.ghost:hover {
   border-style: solid !important;
   border-color: var(--color-border-strong) !important;
 }
+
+/* F. Cajas "-box" informativas: sin borde ni sombra, queda el tinte */
+[class*="-box"],
+[class*="__box"] {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-md);
+}
+
+/* G. Monitor de huecos (Memoria): panel invisible, chips definidos.
+      El usuario pidió lo inverso: contenedor plano, tiles con hairline. */
+.memory-gap-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.memory-gap-grid .memory-gap-card {
+  border: 1px solid var(--color-border-strong) !important;
+  border-radius: var(--radius-md);
+}
+
+/* fondo base solo cuando no hay estado (los tintes de estado sobreviven) */
+.memory-gap-grid .memory-gap-card:not([data-status]) {
+  background: var(--color-surface);
+}
+
+.memory-gap-grid .memory-gap-card:hover {
+  border-color: var(--color-accent) !important;
+}
