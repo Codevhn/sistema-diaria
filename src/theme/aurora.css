@@ -833,3 +833,30 @@ button.ghost:hover {
   border: none !important;
   box-shadow: none !important;
 }
+
+/* I. Disolución de superficies.
+      El "borde sobre borde" real era contraste de fondos apilados:
+      en oscuro cada background intermedio dibuja una caja invisible
+      para la que no sirven las reglas de borde. Los elementos de
+      nivel interno pasan a fondo transparente; los modificadores BEM
+      (--estado) conservan su tinte. */
+[class*="-item"]:not([class*="--"]),
+[class*="__item"]:not([class*="--"]),
+[class*="-row"]:not([class*="--"]),
+[class*="__row"]:not([class*="--"]),
+[class*="-entry"]:not([class*="--"]),
+[class*="__entry"]:not([class*="--"]),
+[class*="-stat"]:not([class*="--"]),
+[class*="__stat"]:not([class*="--"]),
+[class*="-node"]:not([class*="--"]),
+[class*="-turn"]:not([class*="--"]),
+[class*="-panel"] [class*="-card"]:not([data-status]):not([class*="--"]),
+[class*="-card"] [class*="-card"]:not([data-status]):not([class*="--"]),
+.card [class*="-card"]:not([data-status]):not([class*="--"]) {
+  background: transparent !important;
+}
+
+/* los chips del Monitor quedan definidos solo por su hairline */
+.memory-gap-grid .memory-gap-card:not([data-status]) {
+  background: transparent !important;
+}
