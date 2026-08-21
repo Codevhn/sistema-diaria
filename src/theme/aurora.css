@@ -733,3 +733,63 @@ button.ghost:hover {
   border: none;
   box-shadow: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   17. FLATTEN GLOBAL — anti caja-sobre-caja por patrón de nombre
+   Capa de enforcement del design system: el !important es intencional.
+   Regla de oro: los elementos INTERNOS nunca compiten en caja con su
+   contenedor. Jerarquía = tipografía + color + espacio.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* A. Badges, chips, pills y tags: jamás llevan borde ni sombra.
+      El color de estado vive en el tinte de fondo y el texto. */
+[class*="badge"],
+[class*="chip"],
+[class*="pill"],
+[class*="-tag"],
+[class*="__tag"] {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 7px;
+}
+
+/* B. Contenedores de imagen: sin bordes decorativos ni marcos */
+[class*="__img"],
+[class*="-img"] {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* C. Card dentro de card o panel: la interna se disuelve en el padre */
+[class*="-card"] [class*="-card"],
+[class*="-panel"] [class*="-card"],
+.card [class*="-card"],
+[class*="-wrap"] [class*="-card"],
+.sp-history .sp-hist-card {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-md);
+}
+
+/* D. Filas, items, entries y stats: elementos internos por definición.
+      Sin borde ni sombra; la separación la da el espacio. */
+[class*="-item"],
+[class*="__item"],
+[class*="-row"],
+[class*="__row"],
+[class*="-entry"],
+[class*="__entry"],
+[class*="-stat"],
+[class*="__stat"] {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* E. Estados vacíos/pendientes: hairline sólido, nada de punteados */
+.december-watch__day,
+.strategy-slot[data-external="true"],
+.tracking-card--empty,
+.ball[data-pending="true"] {
+  border-style: solid !important;
+  border-color: var(--color-border-strong) !important;
+}
