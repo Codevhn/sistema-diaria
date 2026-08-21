@@ -860,3 +860,27 @@ button.ghost:hover {
 .memory-gap-grid .memory-gap-card:not([data-status]) {
   background: transparent !important;
 }
+
+/* J. Oscuro: superficies 100% invisibles.
+      Los tres tokens de superficie pasan a alfa 0 — ninguna caja,
+      ni sutil. Las capas que necesitan elevación para ser legibles
+      (modales, menús, tooltips, controles de formulario) restauran
+      los tokens originales en su subárbol. */
+html[data-theme="dark"] {
+  --color-surface:   rgba(28, 28, 30, 0);
+  --color-surface-2: rgba(28, 28, 30, 0);
+  --color-surface-3: rgba(28, 28, 30, 0);
+}
+
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] dialog,
+html[data-theme="dark"] [class*="dropdown"],
+html[data-theme="dark"] [class*="tooltip"],
+html[data-theme="dark"] [class*="popover"],
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  --color-surface:   rgba(44, 44, 46, 0.60);
+  --color-surface-2: rgba(58, 58, 60, 0.55);
+  --color-surface-3: rgba(72, 72, 74, 0.50);
+}
