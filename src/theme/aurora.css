@@ -921,8 +921,61 @@ html[data-theme="dark"] .memory-transform-chip.memory-transform-chip {
 /* Tabla de relativos: caja completa alrededor del bloque */
 .guide-relativos-wrap {
   border: 1px solid var(--color-border-strong) !important;
-  border-radius: var(--radius-md);
   padding-left: 18px;
   padding-right: 18px;
-  padding-bottom: 18px;
+}
+
+/* M. Tabla de relativos: esquinas rectas y fichas más grandes */
+.guide-relativos-wrap,
+.rel-row.rel-row,
+.rel-num-card.rel-num-card {
+  border-radius: 0 !important;
+}
+
+.guide-relativos-wrap {
+  padding-bottom: 22px;
+}
+
+.rel-row.rel-row {
+  padding: 16px 18px;
+  gap: 12px;
+}
+
+.rel-num-card.rel-num-card {
+  padding: 12px 14px;
+  min-width: 84px;
+  gap: 5px;
+}
+
+.rel-num-card--sm.rel-num-card--sm {
+  padding: 10px 12px;
+  min-width: 72px;
+}
+
+.rel-num-card__img-wrap {
+  width: 52px !important;
+  height: 52px !important;
+}
+
+.rel-num-card--sm .rel-num-card__img-wrap {
+  width: 44px !important;
+  height: 44px !important;
+}
+
+.rel-num-card__num {
+  font-size: 1.05rem !important;
+}
+
+.rel-num-card--sm .rel-num-card__num {
+  font-size: 0.95rem !important;
+}
+
+.rel-num-card__sym {
+  font-size: 0.75rem !important;
+  max-width: 80px !important;
+}
+
+.rel-num-card--sm .rel-num-card__sym {
+  font-size: 0.68rem !important;
+  max-width: 66px !important;
 }
