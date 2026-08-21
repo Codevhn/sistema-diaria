@@ -884,3 +884,17 @@ html[data-theme="dark"] textarea {
   --color-surface-2: rgba(58, 58, 60, 0.55);
   --color-surface-3: rgba(72, 72, 74, 0.50);
 }
+
+/* K. Fichas de números: el ÚNICO lugar con borde visible.
+      Órbita (memory-node) y Monitor (gap-card) recuperan su contorno;
+      en oscuro se refuerza porque el hairline estándar no se lee
+      sobre negro. Sin tocar radios ni nada demás. */
+.memory-node,
+.memory-gap-grid .memory-gap-card {
+  border: 1px solid var(--color-border-strong) !important;
+}
+
+html[data-theme="dark"] .memory-node,
+html[data-theme="dark"] .memory-gap-grid .memory-gap-card {
+  border-color: rgba(255, 255, 255, 0.28) !important;
+}
