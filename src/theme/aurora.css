@@ -825,3 +825,11 @@ button.ghost:hover {
 .memory-gap-grid .memory-gap-card:hover {
   border-color: var(--color-accent) !important;
 }
+
+/* H. Memoria: fichas de la órbita y turnos planos.
+      El tablero y el detalle son las únicas cajas de la vista. */
+.memory-node,
+.memory-turn {
+  border: none !important;
+  box-shadow: none !important;
+}
