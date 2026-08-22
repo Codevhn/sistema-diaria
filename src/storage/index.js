@@ -459,6 +459,11 @@ export const DB = {
         .order("created_at", { ascending: true });
       query = applyNullableFilter(query, "target_fecha", targetFecha);
       query = applyNullableFilter(query, "target_pais", targetPais);
+      // La predicción es por turno: el sorteo de las 11AM NO puede marcar
+      // como acierto una predicción sellada para las 9PM. Sin este filtro,
+      // cualquier sorteo del día resolvía la primera predicción pendiente
+      // del número (inflando el hit-rate del panel de honestidad).
+      if (horario) query = query.eq("turno", horario);
       const { data, error } = await query.maybeSingle();
       if (reportSupabaseError("findPredictionMatch", error)) return false;
       if (!data) return false;
