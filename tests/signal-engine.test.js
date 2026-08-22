@@ -36,10 +36,6 @@ vi.mock("../src/pressure-engine.js", () => ({
   presionAFactor: vi.fn().mockReturnValue(1.0),
 }));
 
-vi.mock("../src/internal-reasoner.js", () => ({
-  razonar: vi.fn().mockResolvedValue({}),
-}));
-
 vi.mock("../src/monthly-trends.js", () => ({
   analizarPatronesMensuales: vi.fn().mockReturnValue([]),
 }));

@@ -66,6 +66,13 @@ export async function registrarResultado(result) {
   const all = await DB._getAll("hypotheses");
   for (const h of all) {
     if (h.estado !== "pendiente") continue;
+    // Solo evalúa hipótesis cuya ventana coincide con el sorteo: si declara
+    // fecha u horario y no corresponde, queda pendiente (ni confirmada por
+    // un acierto ajeno ni refutada por adelantado). Null = comodín.
+    const enVentana =
+      (!h.fecha || h.fecha === result.fecha) &&
+      (!h.turno || h.turno === result.horario);
+    if (!enVentana) continue;
     const match =
       String(h.numero).padStart(2, "0") === String(numReal).padStart(2, "0");
     const estado = match ? "confirmada" : "refutada";

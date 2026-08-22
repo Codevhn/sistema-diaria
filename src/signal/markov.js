@@ -29,11 +29,14 @@ export { MARKOV_MIN_SOPORTE, MARKOV2_MIN_SOPORTE };
 
 /**
  * Construye la matriz de transición A→B (Markov Orden 1).
+ * @param {object} [opts] { ahora } — fecha de referencia para el decaimiento
+ *   (default: Date.now()). Pasar `ahora` fijo hace la función determinística
+ *   (tests, backtests, reproducción).
  * @returns {Map<number, Map<number, {count, wsum}>>}
  */
-export function buildMarkov1(draws) {
+export function buildMarkov1(draws, { ahora = Date.now() } = {}) {
   const matrix = new Map();
-  const now = Date.now();
+  const now = ahora;
 
   for (let i = 0; i < draws.length - 1; i++) {
     const cur = draws[i];
@@ -88,11 +91,12 @@ export function normalizeMarkov1(matrix) {
 
 /**
  * Construye la matriz de transición (A,B)→C (Markov Orden 2).
+ * @param {object} [opts] { ahora } — ver buildMarkov1.
  * @returns {Map<string, Map<number, {count, wsum}>>}
  */
-export function buildMarkov2(draws) {
+export function buildMarkov2(draws, { ahora = Date.now() } = {}) {
   const matrix = new Map();
-  const now = Date.now();
+  const now = ahora;
 
   for (let i = 0; i < draws.length - 2; i++) {
     const a = draws[i];
