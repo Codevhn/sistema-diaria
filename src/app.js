@@ -56,6 +56,7 @@ import {
     import { getMyRole, getAllProfiles, updateUserRole, updateUserName, setBanStatus, roleLabel, roleColor, VALID_ROLES } from "./roles.js";
 import { initDecemberPanel } from "./views/december-panel.js";
 import { initTriggersPanel } from "./views/triggers-panel.js";
+import { renderRitmosFamilias } from "./views/ritmos-familias.js";
     import {
       createMode,
       updateMode,
@@ -4831,7 +4832,10 @@ import {
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();
         if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
-        if (id === "view-analysis") renderPulso().catch(() => {});
+        if (id === "view-analysis") {
+          renderPulso().catch(() => {});
+          getCachedDraws().then((d) => renderRitmosFamilias(d)).catch(() => {});
+        }
         if (id === "view-superpremio") renderSuperPremioPanel().catch(() => {});
         if (id === "view-temporal") renderVerificador().catch(() => {});
         if (id === "view-maint") {
