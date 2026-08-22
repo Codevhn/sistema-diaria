@@ -42,8 +42,9 @@ const DOBLES = new Set([0, 11, 22, 33, 44, 55, 66, 77, 88, 99]);
 // Ventana de sorteos para comparar distribuciones
 const VENTANA = 30;
 
-// Umbral de divergencia KL para considerar cambio significativo
-const KL_UMBRAL = 0.08;
+// Prior de Jeffreys para suavizar distribuciones empíricas (evita el
+// ruido infinito del eps=1e-10 sobre categorías con frecuencia 0)
+const ALPHA_SUAVIZADO = 0.5;
 
 // Mínimo de sorteos necesarios para detectar cambio
 const MIN_DRAWS_DETECCION = 60;
@@ -119,13 +120,77 @@ function perfilarVentana(draws) {
 
 function klDivergence(p, q) {
   let kl = 0;
-  const eps = 1e-10;
   for (let i = 0; i < p.length; i++) {
-    const pi = p[i] + eps;
-    const qi = q[i] + eps;
-    kl += pi * Math.log(pi / qi);
+    kl += p[i] * Math.log(p[i] / q[i]);
   }
   return kl;
+}
+
+/**
+ * KL entre los perfiles de dos ventanas, con suavizado Dirichlet (Jeffreys
+ * α=0.5). Las distribuciones crudas de 30 sorteos sobre 100 categorías
+ * tienen ~70 ceros; sin suavizar, la KL es ruido dominado por ε.
+ */
+function klPerfil(perfilA, perfilB) {
+  const k = perfilA.dist.length;
+  const nA = Math.max(1, perfilA.n);
+  const nB = Math.max(1, perfilB.n);
+  const p = perfilA.dist.map((v) => (v * nA + ALPHA_SUAVIZADO) / (nA + ALPHA_SUAVIZADO * k));
+  const q = perfilB.dist.map((v) => (v * nB + ALPHA_SUAVIZADO) / (nB + ALPHA_SUAVIZADO * k));
+  return klDivergence(p, q);
+}
+
+/**
+ * Nul-model Monte Carlo de la KL entre dos ventanas del MISMO tamaño.
+ *
+ * Dos ventanas uniformes e independientes de n=30 sorteos sobre 100 números
+ * producen por puro azar una KL esperada ≈ (k−1)/2·(1/n₁+1/n₂) ≈ 3.3 — el
+ * umbral fijo anterior (0.08) disparaba "cambios de régimen" constantemente.
+ * Aquí se simula la distribución nula exacta del estadístico y se usan sus
+ * percentiles como umbral: solo KL ≥ p95 es evidencia real de cambio.
+ */
+const _klNullCache = new Map();
+function nullKLPercentiles(n1, n2, iteraciones = 240, seed = 20260821) {
+  const key = `${n1}|${n2}`;
+  if (_klNullCache.has(key)) return _klNullCache.get(key);
+
+  let a = seed >>> 0;
+  const rng = () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  const k = 100;
+  const denomA = n1 + ALPHA_SUAVIZADO * k;
+  const denomB = n2 + ALPHA_SUAVIZADO * k;
+  const kls = [];
+  for (let it = 0; it < iteraciones; it += 1) {
+    const f1 = new Array(k).fill(0);
+    const f2 = new Array(k).fill(0);
+    for (let i = 0; i < n1; i += 1) f1[Math.floor(rng() * k)] += 1;
+    for (let i = 0; i < n2; i += 1) f2[Math.floor(rng() * k)] += 1;
+    const p = f1.map((f) => (f + ALPHA_SUAVIZADO) / denomA);
+    const q = f2.map((f) => (f + ALPHA_SUAVIZADO) / denomB);
+    kls.push(klDivergence(p, q));
+  }
+  kls.sort((x, y) => x - y);
+  const pct = (qq) => kls[Math.min(kls.length - 1, Math.floor(qq * kls.length))];
+  const out = { p70: pct(0.7), p95: pct(0.95), p99: pct(0.99) };
+  _klNullCache.set(key, out);
+  return out;
+}
+
+/**
+ * Confianza calibrada: 0 bajo el ruido de muestreo (p70), lineal hasta p95,
+ * tope 0.95. Sustituye las fórmulas mágicas kl/(UMBRAL×2|3).
+ */
+function confianzaCalibrada(kl, nul) {
+  if (kl <= nul.p70) return 0;
+  if (kl >= nul.p99) return 0.95;
+  if (kl >= nul.p95) return 0.7 + 0.25 * ((kl - nul.p95) / Math.max(1e-9, nul.p99 - nul.p95));
+  return 0.7 * ((kl - nul.p70) / Math.max(1e-9, nul.p95 - nul.p70));
 }
 
 // ---------------------------------------------------------------------------
@@ -156,9 +221,10 @@ function clasificarRegimen(perfil, perfilBase) {
   const deltaEntropia = perfil.entropia - perfilBase.entropia;
   scores.post_superpremio = (deltaEntropia > 0.3 && deltaSaladitos > 0.08) ? 0.7 : 0;
 
-  // Normal: KL baja, sin anomalías claras
-  const kl = klDivergence(perfil.dist, perfilBase.dist);
-  scores.normal = kl < KL_UMBRAL ? 1.0 : 0.2;
+  // Normal: KL dentro del ruido de muestreo esperado (nul-model), sin anomalías
+  const kl = klPerfil(perfil, perfilBase);
+  const nul = nullKLPercentiles(Math.max(1, perfil.n), Math.max(1, perfilBase.n));
+  scores.normal = kl <= nul.p95 ? 1.0 : 0.2;
 
   // El régimen con mayor score gana
   return Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
@@ -192,9 +258,10 @@ export async function evaluarCambioRegimen(draws, opts = {}) {
   const perfilRec = perfilarVentana(reciente);
   const perfilRef = perfilarVentana(referencia);
 
-  const kl = klDivergence(perfilRec.dist, perfilRef.dist);
+  const kl = klPerfil(perfilRec, perfilRef);
+  const nul = nullKLPercentiles(perfilRec.n, perfilRef.n);
 
-  if (kl < KL_UMBRAL && !force) return null;
+  if (kl <= nul.p95 && !force) return null;
 
   // El régimen anterior se clasifica comparando la ventana de referencia con
   // la ventana previa a ella; compararla consigo misma siempre daba "normal".
@@ -205,11 +272,11 @@ export async function evaluarCambioRegimen(draws, opts = {}) {
     : clasificarRegimen(perfilRef, perfilRef); // sin histórico suficiente: asume estable
   const regimenNuevo    = clasificarRegimen(perfilRec, perfilRef);
 
-  const cambioSignificativo = kl >= KL_UMBRAL || regimenNuevo !== regimenAnterior;
+  const cambioSignificativo = kl > nul.p95 || regimenNuevo !== regimenAnterior;
   if (!cambioSignificativo) return null;
 
-  // Confianza proporcional a la divergencia
-  const confianza = Math.min(0.95, kl / (KL_UMBRAL * 3));
+  // Confianza calibrada contra la distribución nula Monte Carlo
+  const confianza = confianzaCalibrada(kl, nul);
 
   const result = {
     fecha:            reciente[0]?.fecha ?? new Date().toISOString().slice(0, 10),
@@ -275,9 +342,10 @@ export function detectarRegimen(draws) {
   const perfilRec = perfilarVentana(reciente);
   const perfilRef = referencia.length >= 10 ? perfilarVentana(referencia) : perfilRec;
 
-  const kl      = referencia.length >= 10 ? klDivergence(perfilRec.dist, perfilRef.dist) : 0;
+  const kl      = referencia.length >= 10 ? klPerfil(perfilRec, perfilRef) : 0;
   const regimen = referencia.length >= 10 ? clasificarRegimen(perfilRec, perfilRef) : 'normal';
-  const confianza = Math.min(0.95, kl / (KL_UMBRAL * 2));
+  const nul = nullKLPercentiles(perfilRec.n, perfilRef.n);
+  const confianza = referencia.length >= 10 ? confianzaCalibrada(kl, nul) : 0;
 
   return {
     regimen,

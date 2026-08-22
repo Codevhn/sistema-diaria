@@ -125,6 +125,81 @@ export function detectarClusters(draws = [], opts = {}) {
 }
 
 /**
+ * Nul-model Monte Carlo para clusters.
+ *
+ * El detector selecciona post-hoc el subconjunto de dígitos que MAXIMIZA la
+ * cobertura sobre los mismos sorteos que mide — con ~252 candidatos, alcanzar
+ * 65% de cobertura por puro azar es normal. Aquí se simula el MISMO pipeline
+ * de selección sobre sorteos uniformes (misma n) y se obtiene la distribución
+ * nula del estadístico "mejor cobertura". Un cluster solo es señal real si
+ * supera esa distribución.
+ *
+ * @returns {{clusters:Array, umbralNulo:number, alpha:number, suficiente:boolean}}
+ *          cada cluster gana pValor (empírico) y significativo (boolean).
+ */
+export function validarClustersConNulo(draws = [], opts = {}) {
+  const {
+    lookback = 12,
+    minK = 2,
+    maxK = 5,
+    umbralRatio = 0.65,
+    iteraciones = 300,
+    alpha = 0.05,
+    seed,
+  } = opts;
+  const recientes = draws.slice(-lookback);
+  const numeros = recientes.map((d) => d.numero).filter((n) => Number.isFinite(n));
+  if (numeros.length < 4) return { clusters: [], umbralNulo: null, suficiente: false };
+
+  let rng = Math.random;
+  if (seed !== undefined) {
+    let a = seed >>> 0;
+    rng = () => {
+      a |= 0; a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const mejorCobertura = (nums) => {
+    const usados = new Set();
+    nums.forEach((n) => {
+      const [d0, d1] = digitsOf(n);
+      usados.add(d0);
+      usados.add(d1);
+    });
+    const universo = Array.from(usados);
+    let mejor = 0;
+    for (let k = minK; k <= Math.min(maxK, universo.length); k += 1) {
+      combinations(universo, k).forEach((set) => {
+        const r = cobertura(nums, set).ratio;
+        if (r > mejor) mejor = r;
+      });
+    }
+    return mejor;
+  };
+
+  const nulas = [];
+  for (let i = 0; i < iteraciones; i += 1) {
+    const sim = Array.from({ length: numeros.length }, () => Math.floor(rng() * 100));
+    nulas.push(mejorCobertura(sim));
+  }
+  nulas.sort((a, b) => a - b);
+  const pIdx = Math.max(0, Math.min(nulas.length - 1, Math.ceil((1 - alpha) * nulas.length) - 1));
+  const umbralNulo = nulas[pIdx];
+
+  const clusters = detectarClusters(draws, { lookback, umbralRatio, minK, maxK })
+    .map((c) => ({
+      ...c,
+      pValor: nulas.filter((v) => v >= c.cobertura).length / nulas.length,
+    }))
+    .map((c) => ({ ...c, significativo: c.cobertura > umbralNulo }));
+
+  return { clusters, umbralNulo, alpha, iteraciones, suficiente: true };
+}
+
+/**
  * Para cada número 0-99, devuelve el "score de cluster" (peso) basado en
  * los clusters activos. Si pertenece al cluster más fuerte, peso alto.
  *

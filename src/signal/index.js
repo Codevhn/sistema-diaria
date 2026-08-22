@@ -19,7 +19,7 @@ import { analizarSecuenciasSemanales } from "../weekly-patterns.js";
 import { getEfectosCalendarioPorNumero, getEventosProximos } from "../popularity-calendar.js";
 import { calcularPopularidad, popularidadAFactor, getCadenasActivas, getMercado } from "../popularity-model.js";
 import { generarVariantesMulti } from "../conversion-engine.js";
-import { detectarClusters, pesoPorCluster, numerosDelCluster } from "../digit-cluster-detector.js";
+import { validarClustersConNulo, pesoPorCluster, numerosDelCluster } from "../digit-cluster-detector.js";
 
 import {
   buildMarkov1,
@@ -196,15 +196,18 @@ export function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, se
 
   if (hallazgos?.length) {
     hallazgos.forEach((h) => {
+      // Un hallazgo que no sobrevive la corrección FDR vale 4× menos:
+      // puede ser ruido, no evidencia.
+      const fdrMult = h.significativoFDR === false ? 0.25 : 1;
       if (h.numero != null && h.confianza > 0.3) {
         addScore(h.numero, "patrones",
-          h.confianza,
+          h.confianza * fdrMult,
           `Patrón: ${h.titulo}`
         );
       }
       if (h.datos?.destino != null && h.datos?.ratio > 0.3) {
         addScore(h.datos.destino, "patrones",
-          h.datos.ratio * 0.8,
+          h.datos.ratio * 0.8 * fdrMult,
           h.titulo
         );
       }
@@ -403,10 +406,15 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     };
   } catch (e) { /* opcional */ }
 
-  // 6e. Detector de clusters de dígitos
+  // 6e. Detector de clusters de dígitos — validado contra nul-model Monte
+  // Carlo: solo los clusters que superan la distribución nula reciben boost.
+  // Un cluster post-hoc sin validación es data-snooping puro.
   let clustersInfo = null;
   try {
-    const clusters = detectarClusters(draws, { lookback: 12, umbralRatio: 0.65, minK: 2, maxK: 5 });
+    const { clusters: todos, umbralNulo } = validarClustersConNulo(draws, {
+      lookback: 12, umbralRatio: 0.65, minK: 2, maxK: 5,
+    });
+    const clusters = todos.filter((c) => c.significativo);
     if (clusters.length) {
       const pesos = pesoPorCluster(clusters);
       pesos.forEach(({ peso, clusterRank, digitos }, numero) => {
@@ -417,21 +425,33 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
         const pct = Math.round((factor - 1) * 100);
         target.signals.unshift({
           source: "cluster-digito",
-          label: `Cluster activo {${digitos.join(",")}} #${clusterRank + 1} — La Diaria está minando estos dígitos (+${pct}% peso)`,
+          label: `Cluster activo {${digitos.join(",")}} #${clusterRank + 1} (p<0.05 vs azar) — La Diaria está minando estos dígitos (+${pct}% peso)`,
           value: Math.min(0.95, 0.55 + peso * 0.4),
         });
       });
 
-      clustersInfo = clusters.map((c, idx) => ({
-        rank: idx + 1,
-        digitos: c.digitos,
+      clustersInfo = {
+        umbralNulo,
+        descartadosPorNulo: todos.length - clusters.length,
+        activos: clusters.map((c, idx) => ({
+          rank: idx + 1,
+          digitos: c.digitos,
         cobertura: Math.round(c.cobertura * 100),
         hits: c.hits,
         total: c.total,
         score: Math.round(c.score * 100) / 100,
+        pValor: c.pValor,
         sorteos: c.sorteos.map((n) => ({ numero: n, pad: padNum(n) })),
         miembros: numerosDelCluster(c.digitos).map((n) => ({ numero: n, pad: padNum(n) })),
-      }));
+      })),
+      };
+    } else if (todos.length) {
+      // Había clusters por cobertura, pero el nul-model los explica por azar.
+      clustersInfo = {
+        umbralNulo,
+        descartadosPorNulo: todos.length,
+        activos: [],
+      };
     }
   } catch (e) { /* opcional */ }
 

@@ -5580,8 +5580,8 @@
             frag.appendChild(buildRezagoSection(items, "variante", "🔁 Variantes con mayor peso adversarial (sustituciones probables)"));
           }
 
-          // ── Clusters de dígitos activos ──────────────────────────────────
-          const clustersData = motor?.clusters;
+          // ── Clusters de dígitos activos (solo los que superan el nul-model) ──
+          const clustersData = motor?.clusters?.activos;
           if (clustersData && clustersData.length) {
             clustersData.slice(0, 3).forEach(c => {
               const digitos = `{${c.digitos.join(",")}}`;
@@ -5593,7 +5593,7 @@
                   razon: `cayó · cluster ${digitos}`,
                 }));
                 frag.appendChild(buildRezagoSection(items, "cluster-hit",
-                  `🎯 Cluster #${c.rank} ${digitos} — ${c.cobertura}% cobertura · ${c.hits}/${c.total} sorteos`));
+                  `🎯 Cluster #${c.rank} ${digitos} — ${Math.round(c.cobertura * 100)}% cobertura · ${c.hits}/${c.total} sorteos · p=${c.pValor?.toFixed(3) ?? "—"} vs azar`));
               }
               // Universo combinatorio
               if (c.miembros?.length) {
@@ -5606,6 +5606,9 @@
                   `Universo combinatorio del cluster ${digitos} (${c.miembros.length} números)`));
               }
             });
+          } else if (motor?.clusters?.descartadosPorNulo > 0) {
+            frag.appendChild(buildRezagoSection([], "cluster",
+              `🧪 ${motor.clusters.descartadosPorNulo} cluster(s) descartado(s) por el nul-model: su cobertura es explicable por azar (umbral ${Math.round((motor.clusters.umbralNulo ?? 0) * 100)}%).`));
           }
 
           // ── Recuperación: pre-evento + repetidos (con decay) ─────────────

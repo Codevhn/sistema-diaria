@@ -234,3 +234,23 @@ export function benjaminiHochberg(tests, q = 0.05) {
     significativoFDR: Number.isFinite(t.pValue) && cutoff >= 0 && t.pValue <= cutoff,
   }));
 }
+
+/**
+ * P(X >= k) exacto para X ~ Binomial(n, p0). Cola superior.
+ * Con lnGamma para estabilidad numérica; n acotado en este dominio (<10^4).
+ */
+export function binomialTailP(k, n, p0) {
+  if (!Number.isFinite(k) || !Number.isFinite(n) || n <= 0 || k <= 0) return NaN;
+  if (k > n) return NaN;
+  if (p0 <= 0) return 0;
+  if (p0 >= 1) return 1;
+  const lnChoose = (a, b) => lnGamma(a + 1) - lnGamma(b + 1) - lnGamma(a - b + 1);
+  const lnP0 = Math.log(p0);
+  const ln1mP0 = Math.log(1 - p0);
+  let p = 0;
+  for (let i = Math.ceil(k); i <= n; i += 1) {
+    p += Math.exp(lnChoose(n, i) + i * lnP0 + (n - i) * ln1mP0);
+    if (p >= 1) return 1;
+  }
+  return Math.min(1, p);
+}

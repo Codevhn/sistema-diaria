@@ -3,6 +3,7 @@ import { DB } from "./storage.js";
 import { GUIA } from "./loader.js";
 import { parseDrawDate, formatDateISO } from "./date-utils.js";
 import { logWarn } from "./logger.js";
+import { binomialTailP, benjaminiHochberg } from "./stats-utils.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HORARIO_ORDER = { "11AM": 0, "3PM": 1, "9PM": 2 };
@@ -327,6 +328,7 @@ function detectRecurringGaps({ timeline, hypothesisMap }) {
         intervalos: deltas.length,
         gap: bestGap,
         siguienteHorario: siguienteHorarioSugerido,
+        p0: 1 / Math.max(1, gapFreq.size),
       },
     });
   });
@@ -476,6 +478,7 @@ function detectFamilyClusters({ timeline, historial = [] }) {
           coincidencias: items.length,
           ratio,
           historial: historialCount,
+          p0: historial.length ? Math.min(0.9, Math.max(0.01, historialRatio)) : 0.1,
           numeros: items.map(({ draw, info }) => ({
             numero: draw.numero,
             simbolo: info.simbolo || "",
@@ -568,11 +571,12 @@ function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPre
         bucketKey,
         etiquetaCompleta,
         samples,
+        p0: key === "dayOfWeek" ? 1 / 7 : 1 / 3,
         historial: {
           count: historicoBucket,
           total: historicoTotal,
           ratio: historialRatio,
-          muestras: historialMuestras,
+          muestras: historicoMuestras,
           respaldado: tieneHistorial,
         },
       },
@@ -673,6 +677,7 @@ function detectDoublePatterns({ timeline, historial }) {
         count,
         ratio,
         muestras,
+        p0: 0.01,
         historial: {
           count: historialCount,
           total: historialTotal,
@@ -828,6 +833,7 @@ function detectConsecutiveRepetitions({ timeline, historial = [], hypothesisMap 
           ratio: stats.ratio,
           muestras: stats.recientes,
           tipo: tipoLabel,
+          p0: tipo === "same" ? 0.02 : 0.03,
           historial: tipo === "same" ? historialSame : historialNext,
           respaldado,
         },
@@ -924,6 +930,34 @@ export async function detectarPatrones({ cantidad = 9 } = {}) {
     hypothesisMap,
     historial: timeline,
   });
+
+  // Corrección por multiplicidad: cada hallazgo es un test estadístico;
+  // sin FDR, miles de comparaciones garantizan falsos positivos.
+  // p-valor binomial exacto por tipo de hallazgo + Benjamini-Hochberg (q=0.10).
+  const extraerKNP = (h) => {
+    const d = h?.datos || {};
+    if (Number.isFinite(d.intervalos)) return { k: d.coincidencias, n: d.intervalos, p0: d.p0 };
+    if (Number.isFinite(d.totalDia)) return { k: d.coincidencias, n: d.totalDia, p0: d.p0 };
+    if (Number.isFinite(d.repeticiones)) return { k: d.repeticiones, n: d.total, p0: d.p0 };
+    if (Number.isFinite(d.totalTransiciones)) return { k: d.coincidencias, n: d.totalTransiciones, p0: d.p0 };
+    if (Number.isFinite(d.muestras)) return { k: d.count, n: d.muestras || d.total, p0: d.p0 };
+    if (Number.isFinite(d.total) && Number.isFinite(d.p0)) return { k: d.count, n: d.total, p0: d.p0 };
+    return null;
+  };
+  const tests = hallazgos.map((h) => {
+    const knp = extraerKNP(h);
+    const pValue = knp ? binomialTailP(knp.k, knp.n, knp.p0) : NaN;
+    return { pValue: Number.isFinite(pValue) ? pValue : NaN };
+  });
+  const corregidos = benjaminiHochberg(tests, 0.1);
+  hallazgos.forEach((h, i) => {
+    h.pValor = Number.isFinite(tests[i].pValue) ? tests[i].pValue : null;
+    h.significativoFDR = !!corregidos[i].significativoFDR;
+  });
+  hallazgos.sort((a, b) =>
+    (b.significativoFDR ? 1 : 0) - (a.significativoFDR ? 1 : 0) || (a.pValor ?? 2) - (b.pValor ?? 2)
+  );
+
   const arithmeticStrategies = detectArithmeticStrategies({ timeline, maxDayLag: 1, maxResults: 8 });
   const repeticionesHistoricas = buildHistoricalRepeatSummary({ timeline });
   const resumenVentana = windowStart && windowEnd
@@ -1053,6 +1087,7 @@ function detectSuccessiveTransitions({ timeline, historial = [], hypothesisMap }
         coincidencias: top.count,
         ratio,
         historial: historialCount,
+        p0: 0.01,
         muestras: evidencia.map((e) => `${e.resumen} · ${e.fecha} ${e.horario || ""}`),
       },
     });
