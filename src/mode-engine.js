@@ -1,5 +1,6 @@
 import { DB } from "./storage.js";
 import { parseDrawDate } from "./date-utils.js";
+import { binomialTailP, benjaminiHochberg } from "./stats-utils.js";
 
 function normalizeModeParams(mode) {
   if (!mode) return mode;
@@ -198,15 +199,44 @@ function findMatch(timeline, startIndex, target, offset, maxLookahead) {
   return null;
 }
 
+// ─── Evidencia honesta (Nivel 1) ─────────────────────────────────────────────
+// Cada intento busca un número concreto en los siguientes k sorteos, así que
+// el azar solo ya acierta ~1−0.99^k de las veces. El puntaje se corrige con
+// el p-valor binomial exacto contra esa base y FDR sobre todos los modos;
+// los patrones no significativos conservan su descripción pero valen 35%.
+const PUNTAJE_NO_SIG = 0.35;
+
+function pNullPorOffset(offset, maxLookahead) {
+  const draws = offset !== null && Number.isFinite(offset)
+    ? Math.max(1, Math.abs(offset))
+    : Math.max(1, maxLookahead);
+  return 1 - Math.pow(0.99, draws);
+}
+
+function calcularEvidencia({ intentos, aciertos, maxLookahead, offset }) {
+  const confianza = intentos ? aciertos / intentos : 0;
+  const soporte = Math.min(1, intentos / 10); // antes saturaba a los 5: absurdo
+  const pValor = aciertos > 0 ? binomialTailP(aciertos, intentos, pNullPorOffset(offset, maxLookahead)) : NaN;
+  return {
+    confianza,
+    soporte,
+    pValor,
+    puntaje: confianza * soporte,
+  };
+}
+
 function evaluarEjemplo(example, mode, timeline, maxLookahead = MAX_LOOKAHEAD) {
   const original = normalizeNumber(example.original);
   const resultado = normalizeNumber(example.resultado);
   if (original === null || resultado === null) return null;
+  const offset = Number.isFinite(mode.offset) ? mode.offset : null;
+  // offset 0 + original==resultado es auto-cumplida (el draw se confirma a
+  // sí mismo): no aporta evidencia.
+  if (offset === 0 && original === resultado) return null;
 
   let intentos = 0;
   let aciertos = 0;
-  const evidencia = [];
-  const offset = Number.isFinite(mode.offset) ? mode.offset : null;
+  const hits = [];
 
   for (let i = 0; i < timeline.length; i++) {
     const draw = timeline[i];
@@ -215,7 +245,7 @@ function evaluarEjemplo(example, mode, timeline, maxLookahead = MAX_LOOKAHEAD) {
     const match = findMatch(timeline, i, resultado, offset, maxLookahead);
     if (match) {
       aciertos++;
-      evidencia.push({
+      hits.push({
         baseFecha: draw.fecha,
         baseHorario: draw.horario,
         resultadoFecha: match.fecha,
@@ -226,9 +256,6 @@ function evaluarEjemplo(example, mode, timeline, maxLookahead = MAX_LOOKAHEAD) {
   }
 
   if (!intentos) return null;
-  const confianza = aciertos / intentos;
-  const soporte = Math.min(1, intentos / 5);
-  const puntaje = confianza * soporte;
   return {
     fuente: "ejemplo",
     modeId: mode.id,
@@ -236,14 +263,12 @@ function evaluarEjemplo(example, mode, timeline, maxLookahead = MAX_LOOKAHEAD) {
     operacion: mode.operacion || "",
     baseNumero: original,
     numero: resultado,
-    confianza,
-    soporte,
+    ...calcularEvidencia({ intentos, aciertos, maxLookahead, offset }),
     intentos,
     aciertos,
-    puntaje,
     offset,
     nota: example.nota || mode.descripcion || "",
-    evidencia,
+    evidencia: hits,
   };
 }
 
@@ -254,7 +279,10 @@ function evaluarOperacionModo(mode, timeline, maxLookahead = MAX_LOOKAHEAD) {
 
   for (let i = 0; i < timeline.length; i++) {
     const draw = timeline[i];
-    const candidatos = applyOperation(draw.numero, mode);
+    // Con offset 0, un candidato igual al número base sería auto-cumplido
+    // (el draw se confirmaría a sí mismo): se excluye.
+    const candidatos = applyOperation(draw.numero, mode)
+      .filter((resultado) => !(offset === 0 && resultado === draw.numero));
     candidatos.forEach((resultado) => {
       const key = `${draw.numero}-${resultado}`;
       if (!aggregated.has(key)) {
@@ -287,9 +315,6 @@ function evaluarOperacionModo(mode, timeline, maxLookahead = MAX_LOOKAHEAD) {
     const [baseStr, resultStr] = key.split("-");
     const baseNumero = Number(baseStr);
     const numero = Number(resultStr);
-    const confianza = bucket.aciertos / bucket.intentos;
-    const soporte = Math.min(1, bucket.intentos / 5);
-    const puntaje = confianza * soporte;
     stats.push({
       fuente: "operacion",
       modeId: mode.id,
@@ -297,11 +322,9 @@ function evaluarOperacionModo(mode, timeline, maxLookahead = MAX_LOOKAHEAD) {
       operacion: mode.operacion,
       baseNumero,
       numero,
-      confianza,
-      soporte,
+      ...calcularEvidencia({ intentos: bucket.intentos, aciertos: bucket.aciertos, maxLookahead, offset }),
       intentos: bucket.intentos,
       aciertos: bucket.aciertos,
-      puntaje,
       offset,
       nota: mode.descripcion || "",
       evidencia: bucket.evidencia,
@@ -319,6 +342,7 @@ function agregarSugerenciasParaDraws({ timeline, statsList, maxOrigenes = 3 }) {
   for (const draw of recientes) {
     statsList.forEach((stat) => {
       if (!stat.confianza || stat.confianza < 0.3) return;
+      if (stat.intentos < 3) return; // 1-2 intentos no sostienen una sugerencia
       if (stat.baseNumero !== draw.numero) return;
       const key = `${stat.modeId}|${stat.baseNumero}|${stat.numero}`;
       if (seen.has(key)) return;
@@ -394,8 +418,19 @@ export async function evaluarModos({ maxLookahead = MAX_LOOKAHEAD } = {}) {
 
   if (!statsList.length) return null;
 
-  const { scorePorNumero, detallePorNumero } = agregarDetallePorNumero(statsList);
-  const sugerencias = agregarSugerenciasParaDraws({ timeline: timelines, statsList });
+  // FDR sobre TODOS los patrones candidatos (corrección por pruebas
+  // múltiples): los no significativos mantienen su descripción pero su
+  // puntaje vale PUNTAJE_NO_SIG.
+  const evaluados = benjaminiHochberg(
+    statsList.map((s) => ({ ...s, pValue: s.pValor })),
+    0.05
+  ).map((s) => ({
+    ...s,
+    puntaje: s.significativoFDR ? s.puntaje : s.puntaje * PUNTAJE_NO_SIG,
+  }));
+
+  const { scorePorNumero, detallePorNumero } = agregarDetallePorNumero(evaluados);
+  const sugerencias = agregarSugerenciasParaDraws({ timeline: timelines, statsList: evaluados });
 
   if (!Object.keys(scorePorNumero).length && !sugerencias.length) {
     return null;
@@ -405,6 +440,6 @@ export async function evaluarModos({ maxLookahead = MAX_LOOKAHEAD } = {}) {
     scorePorNumero,
     detallePorNumero,
     sugerencias,
-    stats: statsList,
+    stats: evaluados,
   };
 }
