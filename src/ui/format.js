@@ -73,6 +73,15 @@ export const formatFriendlyDate = (value) => {
   return `${dow ? `${dow} ` : ""}${day} de ${monthName} ${year}`;
 };
 
+export const escapeHtml = (str) => {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+};
+
 export const getSymbol = (numero) => {
   const key = normalizeNumeroKey(numero);
   const rawKey = (numero ?? "").toString().trim();
