@@ -82,6 +82,25 @@ export const escapeHtml = (str) => {
     .replaceAll("'", "&#39;");
 };
 
+export const formatShortDate = (iso) => {
+  if (!iso) return "";
+  const date = parseISODate(iso);
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return iso;
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = MONTH_ABBR[date.getMonth()] || "";
+  return `${day} ${month}`;
+};
+
+export const formatWindowRange = (startIso, endIso) => {
+  const start = formatShortDate(startIso);
+  const end = formatShortDate(endIso);
+  if (start && end) {
+    if (start === end) return start;
+    return `${start} – ${end}`;
+  }
+  return start || end || "—";
+};
+
 export const getSymbol = (numero) => {
   const key = normalizeNumeroKey(numero);
   const rawKey = (numero ?? "").toString().trim();
