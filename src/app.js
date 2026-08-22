@@ -6919,7 +6919,7 @@ function buildVariantEntries(profile) {
         return;
       }
       const symbol = getSymbol(profile.base);
-      const last = profile.timeline[profile.timeline.length - 1];
+      const lastDirect = profile.lastDirect;
       const variants = buildVariantEntries(profile);
       const relationCards = buildRelationCards(profile);
       const gapAverage = formatDaysGap(profile.gaps.average);
@@ -6942,16 +6942,16 @@ function buildVariantEntries(profile) {
             <div class="memory-detail__number">${formatNumber(profile.base)}</div>
             <div class="memory-detail__symbol">${symbol || "Sin símbolo registrado"}</div>
           </div>
-          <div class="memory-tag">Última vez: ${last ? formatFriendlyDate(last.fecha) : "—"}</div>
+          <div class="memory-tag">Última vez: ${
+            lastDirect
+              ? `${formatFriendlyDate(lastDirect.fecha)} · ${lastDirect.horario || "—"} · hace ${formatDaysGap(profile.gaps.current)}`
+              : "sin caídas directas"
+          }</div>
         </div>
         <div class="memory-stats">
           <div class="memory-stat">
-            <strong>${profile.totals.total}</strong>
-            <span>Apariciones</span>
-          </div>
-          <div class="memory-stat">
             <strong>${profile.totals.direct}</strong>
-            <span>Directos</span>
+            <span>Apariciones</span>
           </div>
           <div class="memory-stat">
             <strong>${profile.totals.transforms}</strong>
@@ -7057,7 +7057,7 @@ function buildVariantEntries(profile) {
             const relText = entry.relaciones
               .map((key) => MEMORY_RELATION_LABELS[key] || key)
               .join(" · ");
-            const meta = `${formatFriendlyDate(entry.fecha)} · ${entry.horario || "—"} · ${entry.pais || "—"}`;
+            const meta = `${formatFriendlyDate(entry.fecha)} · ${entry.horario || "—"}`;
             const gapText = entry.gapToNextDays !== null
               ? `Próx. aparición después de ${formatGapText(entry.gapToNextDays)}`
               : "Último registro";

@@ -181,7 +181,6 @@ export function construirPerfilNumero(
   const draws = sanitizeDraws(rawDraws, { includeTest });
   const timeline = [];
   const relationCounts = {};
-  const turnStats = {};
   const variantStats = {};
 
   draws.forEach((draw) => {
@@ -209,22 +208,10 @@ export function construirPerfilNumero(
           value: rel.value,
           fecha: draw.fecha,
           horario: draw.horario,
-          pais: draw.pais,
           timestamp: draw.timestamp,
         };
       }
     });
-    const turno = draw.horario || "—";
-    const prevTurn = turnStats[turno];
-    const nextCount = (prevTurn?.count || 0) + 1;
-    const shouldReplace =
-      !prevTurn || draw.timestamp > (prevTurn.lastTimestamp ?? -Infinity);
-    turnStats[turno] = {
-      count: nextCount,
-      lastFecha: shouldReplace ? draw.fecha : prevTurn.lastFecha,
-      lastPais: shouldReplace ? draw.pais : prevTurn.lastPais,
-      lastTimestamp: shouldReplace ? draw.timestamp : prevTurn.lastTimestamp,
-    };
   });
 
   timeline.sort((a, b) => a.timestamp - b.timestamp);
@@ -236,29 +223,52 @@ export function construirPerfilNumero(
     curr.gapFromPrevDays = prev ? differenceInDays(curr.timestamp, prev.timestamp) : null;
   }
 
+  // Caídas directas del número: la única base para "última vez",
+  // huecos y turnos. Los parientes no diluyen el ritmo del número.
+  const directTimeline = timeline.filter((entry) => entry.relaciones.includes("mismo"));
+  const lastDirectEntry = directTimeline[directTimeline.length - 1] || null;
+  const lastDirect = lastDirectEntry
+    ? {
+        fecha: lastDirectEntry.fecha,
+        horario: lastDirectEntry.horario,
+        timestamp: lastDirectEntry.timestamp,
+      }
+    : null;
+
+  const turnStats = {};
+  directTimeline.forEach((entry) => {
+    const turno = entry.horario || "—";
+    const prev = turnStats[turno];
+    const shouldReplace = !prev || entry.timestamp > (prev.lastTimestamp ?? -Infinity);
+    turnStats[turno] = {
+      count: (prev?.count || 0) + 1,
+      lastFecha: shouldReplace ? entry.fecha : prev.lastFecha,
+      lastTimestamp: shouldReplace ? entry.timestamp : prev.lastTimestamp,
+    };
+  });
+
   const gaps = (() => {
-    if (timeline.length < 2) {
-      const last = timeline[timeline.length - 1] || null;
+    if (directTimeline.length < 2) {
       return {
         average: null,
         max: null,
         current:
-          last?.timestamp !== undefined
-            ? differenceInDays(referenceDate.getTime(), last.timestamp)
+          lastDirectEntry?.timestamp !== undefined
+            ? differenceInDays(referenceDate.getTime(), lastDirectEntry.timestamp)
             : null,
       };
     }
     const diffs = [];
-    for (let i = 1; i < timeline.length; i += 1) {
-      const prev = timeline[i - 1];
-      const curr = timeline[i];
+    for (let i = 1; i < directTimeline.length; i += 1) {
+      const prev = directTimeline[i - 1];
+      const curr = directTimeline[i];
       const diffDays = differenceInDays(curr.timestamp, prev.timestamp);
       if (diffDays !== null) diffs.push(diffDays);
     }
     const sum = diffs.reduce((acc, value) => acc + value, 0);
     const average = diffs.length ? sum / diffs.length : null;
     const max = diffs.length ? Math.max(...diffs) : null;
-    const last = timeline[timeline.length - 1];
+    const last = directTimeline[directTimeline.length - 1];
     const current =
       last?.timestamp !== undefined
         ? differenceInDays(referenceDate.getTime(), last.timestamp)
@@ -276,6 +286,8 @@ export function construirPerfilNumero(
     base,
     ctx,
     timeline,
+    directTimeline,
+    lastDirect,
     relationCounts,
     turnStats,
     variantStats,
