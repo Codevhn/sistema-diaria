@@ -576,7 +576,7 @@ function detectTemporalBias({ timeline, historial = [], key, labelMap, tituloPre
           count: historicoBucket,
           total: historicoTotal,
           ratio: historialRatio,
-          muestras: historicoMuestras,
+          muestras: historialMuestras,
           respaldado: tieneHistorial,
         },
       },
@@ -677,7 +677,9 @@ function detectDoublePatterns({ timeline, historial }) {
         count,
         ratio,
         muestras,
-        p0: 0.01,
+        // Baseline correcto: 10 de 100 números son dobles (00,11,…,99) → 0.10.
+        // El valor anterior (0.01) inflaba la significancia ~10× (auditoría 2026-08).
+        p0: 0.10,
         historial: {
           count: historialCount,
           total: historialTotal,

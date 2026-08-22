@@ -264,6 +264,13 @@ export function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, se
 
 // ─── Punto de entrada principal ───────────────────────────────────────────────
 
+// ── Interruptor de ruido (auditoría empírica 2026-08 · docs/AUDITORIA-EMPIRICA.md) ──
+// El backtest walk-forward sobre 12,621 sorteos reales no mostró ventaja sobre el
+// azar (lift top-10 = 1.017, IC95 [0.965–1.070]). Estos motores no contrastan sus
+// señales contra un nulo y solo añaden sesgo no medido. Silenciados por defecto;
+// el contexto narrativo (contextoV4) sigue disponible para la UI.
+const SILENCIAR_RUIDO = true;
+
 export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CANDIDATES, recuperacion = null } = {}) {
   const rawDraws = await DB.listDraws({ excludeTest: true });
   if (rawDraws.length < 20) {
@@ -288,7 +295,7 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
 
   const modos2 = modos.status === "fulfilled" ? modos.value : null;
   const patronesOk = patronesResult.status === "fulfilled" ? patronesResult.value : null;
-  const semanales = semanalesResult.status === "fulfilled" ? semanalesResult.value : null;
+  const semanales = !SILENCIAR_RUIDO && semanalesResult.status === "fulfilled" ? semanalesResult.value : null;
 
   const matrix1 = buildMarkov1(draws);
   const markov1 = normalizeMarkov1(matrix1);
@@ -602,30 +609,32 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     const seqSigsMap = seqSignals(secuencias);
 
     composed.forEach((data, numero) => {
-      const ps = presionMap.get(numero);
-      if (ps) {
-        const factor = presionAFactor(ps.presion);
-        if (Math.abs(factor - 1) > 0.05) {
-          data.score = Math.max(0, Math.min(1, data.score * factor));
-          const pct = Math.round((factor - 1) * 100);
-          const sign = pct >= 0 ? "+" : "";
+      if (!SILENCIAR_RUIDO) {
+        const ps = presionMap.get(numero);
+        if (ps) {
+          const factor = presionAFactor(ps.presion);
+          if (Math.abs(factor - 1) > 0.05) {
+            data.score = Math.max(0, Math.min(1, data.score * factor));
+            const pct = Math.round((factor - 1) * 100);
+            const sign = pct >= 0 ? "+" : "";
+            data.signals.unshift({
+              source: factor < 1 ? "presion-alta" : "presion-baja",
+              label: `Presión pública ${(ps.presion * 100).toFixed(0)}% — ${sign}${pct}% peso`,
+              value: Math.min(0.95, Math.abs(factor - 1) + 0.5),
+            });
+          }
+        }
+
+        const seqSig = seqSigsMap.get(numero);
+        if (seqSig && seqSig.score > 0) {
+          const boost = Math.min(0.12, seqSig.score / 100 * 0.12);
+          data.score = Math.min(1, data.score + boost);
           data.signals.unshift({
-            source: factor < 1 ? "presion-alta" : "presion-baja",
-            label: `Presión pública ${(ps.presion * 100).toFixed(0)}% — ${sign}${pct}% peso`,
-            value: Math.min(0.95, Math.abs(factor - 1) + 0.5),
+            source: "secuencia-activa",
+            label: seqSig.razones[0] ?? "Secuencia activa apunta a este número",
+            value: Math.min(0.95, 0.55 + boost),
           });
         }
-      }
-
-      const seqSig = seqSigsMap.get(numero);
-      if (seqSig && seqSig.score > 0) {
-        const boost = Math.min(0.12, seqSig.score / 100 * 0.12);
-        data.score = Math.min(1, data.score + boost);
-        data.signals.unshift({
-          source: "secuencia-activa",
-          label: seqSig.razones[0] ?? "Secuencia activa apunta a este número",
-          value: Math.min(0.95, 0.55 + boost),
-        });
       }
     });
 
