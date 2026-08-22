@@ -903,20 +903,11 @@ html[data-theme="dark"] .memory-gap-grid .memory-gap-card {
       contornos de fichas, grupos y contenedores. Doble clase para
       superar las capas A/C/D de este mismo archivo. */
 .guide-card.guide-card,
-.rel-row.rel-row,
-.memory-transform-card.memory-transform-card,
-.memory-transform-chip.memory-transform-chip {
-  border: 1px solid var(--color-border-strong) !important;
-}
-
-/* los num-cards traen su color de polaridad por inline style
-   (guide-grid.js): solo se fuerza ancho y estilo, JAMÁS el color */
 .rel-num-card.rel-num-card {
   border-width: 1px !important;
   border-style: solid !important;
 }
 
-html[data-theme="dark"] .guide-card.guide-card,
 html[data-theme="dark"] .rel-row.rel-row,
 html[data-theme="dark"] .memory-transform-card.memory-transform-card,
 html[data-theme="dark"] .memory-transform-chip.memory-transform-chip {
