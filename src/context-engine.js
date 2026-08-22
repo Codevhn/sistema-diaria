@@ -12,6 +12,8 @@
 
 const LOOKBACK_REPETIDO = 5; // ventana de comparación para detectar repetido
 
+const HORARIO_ORDER = { "11AM": 0, "12PM": 1, "3PM": 2, "6PM": 3, "9PM": 4 };
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function parseDraws(draws, pais = null) {
@@ -22,7 +24,12 @@ function parseDraws(draws, pais = null) {
       return d.fecha && !isNaN(parseInt(d.numero, 10));
     })
     .map((d) => ({ num: parseInt(d.numero, 10), fecha: d.fecha, horario: d.horario || "" }))
-    .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+    .sort((a, b) => {
+      if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+      // Desempate por turno: sin esto, los sorteos de un mismo día dependen del
+      // orden de la BD y la ventana de "5 anteriores" queda corrupta.
+      return (HORARIO_ORDER[a.horario] ?? 99) - (HORARIO_ORDER[b.horario] ?? 99);
+    });
 }
 
 function round1(x) { return Math.round(x * 10) / 10; }
