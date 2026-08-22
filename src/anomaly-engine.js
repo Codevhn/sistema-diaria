@@ -22,7 +22,7 @@ const HORARIO_ORDER = { "11AM": 0, "12PM": 1, "3PM": 2, "6PM": 3, "9PM": 4 };
 function normalizeDraws(draws, { pais = null } = {}) {
   return draws
     .filter((d) => {
-      if (d.esTest) return false;
+      if (d.isTest) return false;
       if (pais && (d.pais || "").toUpperCase() !== pais.toUpperCase()) return false;
       return d.fecha && !isNaN(parseInt(d.numero, 10));
     })

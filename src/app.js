@@ -4183,7 +4183,7 @@
 
       // Analysis panel
       if (analysisEl && spFechas.length && drawsCache?.length) {
-        const hist = drawsCache.filter(d => !d.esTest);
+        const hist = drawsCache.filter(d => !d.isTest);
         const analyses = spFechas.map(f => analizarPostEvento(f, hist)).filter(a => a.totalPostSorteos > 0);
         if (analyses.length) {
           // Aggregate: cuántas veces repitió cada número en todas las ventanas post-pago
@@ -5208,10 +5208,10 @@
           }
 
           const repetidosPostEvento = recoveryMode.activo && recoveryMode.ultimoEvento
-            ? detectarNumerosRepetidosPostEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
+            ? detectarNumerosRepetidosPostEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.isTest))
             : [];
           const preEvento = recoveryMode.activo && recoveryMode.ultimoEvento
-            ? detectarNumerosPreEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.esTest))
+            ? detectarNumerosPreEvento(recoveryMode.ultimoEvento, sorted.filter(d => !d.isTest))
             : [];
           const [motorResult, rezagoResult] = await Promise.allSettled([
             loadSignalEngine().then(m => m.ejecutarMotorSeñales({
@@ -5661,7 +5661,7 @@
         try {
           const constellations = await listConstellationsFromDb();
           if (constellations.length) {
-            const active = detectActiveConstellations(constellations, sorted.filter(d => !d.esTest));
+            const active = detectActiveConstellations(constellations, sorted.filter(d => !d.isTest));
             if (active.length) {
               const constSec = document.createElement("div");
               constSec.className = "pulso-group";
@@ -5697,7 +5697,7 @@
           if (rec && rec.activo) {
             const diasDesde   = rec.diasTranscurridos;
             const spFecha     = rec.ultimoEvento;
-            const hist2       = sorted.filter(d => !d.esTest);
+            const hist2       = sorted.filter(d => !d.isTest);
             const PAD2        = n => String(n).padStart(2,"0");
             const DOW_REC     = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
             const MES_REC     = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -7579,7 +7579,7 @@ function buildVariantEntries(profile) {
     // ════════════════════════════════════════════════════════════════
     async function renderVerificador() {
       const PAD2 = n => String(n).padStart(2, "0");
-      const draws = (await getCachedDraws({ excludeTest: true })).filter(d => !d.esTest);
+      const draws = (await getCachedDraws({ excludeTest: true })).filter(d => !d.isTest);
       const spFechas = await listSpFromDb().catch(() => []);
 
       // ── Helpers de render ─────────────────────────────────────────
@@ -7599,6 +7599,13 @@ function buildVariantEntries(profile) {
         const sym = GUIA?.[pd]?.simbolo || "";
         return `<span class="vt-num-chip ${extra}" title="${sym}">${pd}<small>${sym}</small></span>`;
       }
+
+      // ── Honestidad del sistema (IC95 del lift + test de aleatoriedad) ──
+      renderHonestyPanel(document.getElementById("vt-honesty-out"), draws).catch((err) => {
+        console.warn("honesty-panel render falló:", err?.message || err);
+        const c = document.getElementById("vt-honesty-out");
+        if (c) c.innerHTML = `<p class="hint">No se pudieron calcular las métricas de honestidad.</p>`;
+      });
 
       // ── Panel 1: Afirmaciones ─────────────────────────────────────
       const claims = verificarAfirmaciones(draws, spFechas);

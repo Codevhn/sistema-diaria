@@ -417,7 +417,7 @@ export async function backtestRelativos(draws, opts = {}) {
 
   // Solo sorteos reales, ordenados
   const sorted = draws
-    .filter((d) => d.fecha && !d.esTest && !isNaN(parseInt(d.numero, 10)))
+    .filter((d) => d.fecha && !d.isTest && !isNaN(parseInt(d.numero, 10)))
     .map((d) => ({ day: fechaToDays(d.fecha), num: parseInt(d.numero, 10) }))
     .filter((d) => !isNaN(d.day))
     .sort((a, b) => a.day - b.day || 0);
@@ -503,7 +503,7 @@ export async function getRelativosEnAlerta(draws, opts = {}) {
   const cutoff = today - lookback;
 
   const sorted = draws
-    .filter((d) => d.fecha && !d.esTest && !isNaN(parseInt(d.numero, 10)))
+    .filter((d) => d.fecha && !d.isTest && !isNaN(parseInt(d.numero, 10)))
     .filter((d) => !paisFiltro || (d.pais || "").toUpperCase() === paisFiltro.toUpperCase())
     .map((d) => ({ day: fechaToDays(d.fecha), num: parseInt(d.numero, 10), fecha: d.fecha, horario: d.horario || "" }))
     .filter((d) => !isNaN(d.day))
@@ -684,7 +684,7 @@ export async function backtestConvergencia(draws, opts = {}) {
   const revMap = buildReverseMap(relMap);
 
   const sorted = draws
-    .filter((d) => d.fecha && !d.esTest && !isNaN(parseInt(d.numero, 10)))
+    .filter((d) => d.fecha && !d.isTest && !isNaN(parseInt(d.numero, 10)))
     .map((d) => ({ day: fechaToDays(d.fecha), num: parseInt(d.numero, 10) }))
     .filter((d) => !isNaN(d.day))
     .sort((a, b) => a.day - b.day);
@@ -793,7 +793,7 @@ export async function getConvergenciaActiva(draws, opts = {}) {
   const cutoff = today - lookback;
 
   const recent = draws
-    .filter((d) => d.fecha && !d.esTest && !isNaN(parseInt(d.numero, 10)))
+    .filter((d) => d.fecha && !d.isTest && !isNaN(parseInt(d.numero, 10)))
     .filter((d) => !paisFiltro || (d.pais || "").toUpperCase() === paisFiltro.toUpperCase())
     .map((d) => ({ day: fechaToDays(d.fecha), num: parseInt(d.numero, 10), fecha: d.fecha, horario: d.horario || "" }))
     .filter((d) => !isNaN(d.day) && d.day >= cutoff);

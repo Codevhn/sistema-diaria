@@ -27,7 +27,7 @@ const TOP_RESULTS = 10; // máximo de candidatos a mostrar
 function parseDraws(draws, pais = null) {
   return draws
     .filter((d) => {
-      if (d.esTest) return false;
+      if (d.isTest) return false;
       if (pais && (d.pais || "").toUpperCase() !== pais.toUpperCase()) return false;
       return d.fecha && !isNaN(parseInt(d.numero, 10));
     })

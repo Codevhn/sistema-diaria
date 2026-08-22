@@ -40,7 +40,7 @@ function pad(n) { return String(n).padStart(2, '0'); }
 function parseAndSort(draws) {
   const ORD = { '11AM': 0, '3PM': 1, '9PM': 2 };
   return draws
-    .filter(d => !d.esTest && d.fecha && !isNaN(parseInt(d.numero, 10)))
+    .filter(d => !d.isTest && d.fecha && !isNaN(parseInt(d.numero, 10)))
     .map(d => ({ num: parseInt(d.numero, 10), fecha: d.fecha, horario: d.horario || '' }))
     .sort((a, b) => {
       const dd = a.fecha.localeCompare(b.fecha);

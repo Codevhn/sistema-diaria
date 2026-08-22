@@ -24,7 +24,7 @@ function parseAndSort(draws, pais) {
   const ORD = { '11AM': 0, '3PM': 1, '9PM': 2 };
   return draws
     .filter(d => {
-      if (d.esTest) return false;
+      if (d.isTest) return false;
       if (pais && (d.pais || '').toUpperCase() !== pais.toUpperCase()) return false;
       return d.fecha && !isNaN(parseInt(d.numero, 10));
     })

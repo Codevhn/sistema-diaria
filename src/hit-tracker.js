@@ -103,14 +103,21 @@ export async function computeHitTrackerStats(opts = {}) {
   const hits = resolved.filter((b) => b.hit).length;
   const total = resolved.length;
   const hitRate = total ? hits / total : 0;
-  const baseline = topN / 100;
-  const lift = baseline > 0 ? hitRate / baseline : 0;
+
+  // Baseline HONESTO: cada batch jugó un pool de tamaño propio (size/100).
+  // lift = aciertos observados / aciertos esperados por azar.
+  // Antes se usaba topN fijo (8) aunque el motor jugara pools de 8/10/13,
+  // lo que inflaba el lift hasta 1.6× y retroalimentaba el bucle adaptativo.
+  const expectedHits = resolved.reduce((acc, b) => acc + (b.size || topN) / 100, 0);
+  const baseline = total && expectedHits > 0 ? expectedHits / total : topN / 100;
+  const lift = expectedHits > 0 ? hits / expectedHits : 0;
 
   // Últimos N
   const recentList = resolved.slice(-recent);
   const recentHits = recentList.filter((b) => b.hit).length;
   const recentRate = recentList.length ? recentHits / recentList.length : 0;
-  const recentLift = baseline > 0 ? recentRate / baseline : 0;
+  const recentExpected = recentList.reduce((acc, b) => acc + (b.size || topN) / 100, 0);
+  const recentLift = recentExpected > 0 ? recentHits / recentExpected : 0;
 
   // Streak actual (cantidad de aciertos consecutivos al final, o fallos)
   let streakHits = 0;

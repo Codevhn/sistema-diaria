@@ -29,10 +29,12 @@ import {
 
 async function processTriggerEngineNewDraw(draw) {
   try {
-    const { triggerEngine } = await import("./trigger-engine.js");
-    if (typeof triggerEngine === "function") await triggerEngine(draw);
-  } catch {
-    // trigger-engine optional dependency
+    const { processNewDraw } = await import("../triggers/triggerEngine.js");
+    if (typeof processNewDraw === "function") await processNewDraw(draw);
+  } catch (err) {
+    // Dependencia opcional, pero NUNCA silenciosa: este enlace roto
+    // dejó muerto el loop de evaluación (Sprint 6) durante meses.
+    console.warn("[trigger-engine] no pudo procesar el sorteo nuevo:", err?.message || err);
   }
 }
 
