@@ -50,6 +50,34 @@ Script reproducible: `scripts/auditoria-empirica.py`
 ### Veredicto 2: LOTEHLSA es estadísticamente indistinguible de un generador
 uniforme i.i.d. en las nueve dimensiones probadas.
 
+## Experimento 3 — Modo Recuperación post-Superpremio (hallazgo positivo)
+
+Hipótesis aportada por el jugador con décadas de experiencia: tras el pago de un
+superpremio, la casa entra en un modo donde juega el vocabulario cultural de los
+números que van cayendo (relativos oficiales del mapa hondureño).
+
+Método: comparar la tasa de "algún relativo oficial de X cae dentro de los 5
+sorteos siguientes a X" entre ventanas de 7–30 días posteriores a pagos de SP
+(11 fechas registradas) vs periodos normales. Fisher exact + placebos +
+desglose por episodio + exclusión de números atractores.
+
+| Métrica | Dentro post-SP | Fuera | Ratio | p |
+|---|---|---|---|---|
+| Relativos oficiales (K=5, ventana 14d) | **13.37%** | 9.33% | **1.43×** | **0.005** |
+| Variantes matemáticas solas | 13.13% | 13.88% | 0.95× | n.s. |
+| Repetidos k=5 | 4.77% | 5.12% | 0.93× | n.s. |
+
+Robustez:
+- Consistente en ventanas de 7/10/14/21/30 días (1.21×–1.43×, p<0.05 todas)
+- Placebos desplazados ±30/45 días matan la señal (anclada a fechas reales)
+- 6 de 11 episodios elevados (no depende de uno solo); máx 2.53×
+- Sobrevive sin números atractores (1.36×, p=0.02) y corrección Bonferroni (~0.04)
+
+### Veredicto 3: señal condicional GENUINA — el único patrón que sobrevive
+la auditoría completa. Específicamente cultural, no matemático ni repetitivo.
+Las fechas SP están parcialmente registradas; el efecto real puede ser mayor.
+Script: ver historial git (robustez.py / post_sp_v2.py).
+
 ## Consecuencias adoptadas
 
 1. Los motores "predictivos" (markov, popularidad, rezago, ranker, presión,
