@@ -3350,6 +3350,7 @@ import {
     async function renderPulso() {
       if (!resultPulso) return;
       if (!_pulsoStale) return; // sin cambios en los datos, no recalcular
+      const pais = dayPais?.value; // país seleccionado en la vista Día (null si no hay); los motores lo filtran solo si viene
       resultPulso.innerHTML = `
         <div class="diaria-loader" role="status" aria-label="Cargando historial">
           <div class="diaria-loader__stage">
