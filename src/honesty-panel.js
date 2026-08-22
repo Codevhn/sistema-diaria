@@ -13,6 +13,7 @@
 import { computeHitTrackerStats } from "./hit-tracker.js";
 import { betaCredibleInterval } from "./stats-utils.js";
 import { auditarAleatoriedad, VEREDICTO_LABEL } from "./randomness-audit.js";
+import { evaluarWalkForward } from "./learning/ranker.js";
 
 const pct = (v) => `${(v * 100).toFixed(1)}%`;
 
@@ -33,7 +34,7 @@ function clasificarEvidencia(lift, n) {
   return { label: "Sin ventaja demostrada", color: "#e0b84a", desc: "El intervalo del lift contiene 1.0: no se puede afirmar que el sistema le gane al azar (ni que pierda)." };
 }
 
-function renderMetricaHTML(titulo, hits, total, baseline) {
+function renderMetricaHTML(titulo, hits, total, baseline, unidad = "batches", extra = "") {
   if (!total) {
     return `<div class="honesty-metric"><div class="honesty-metric__title">${titulo}</div><div class="honesty-metric__empty">Sin predicciones evaluadas</div></div>`;
   }
@@ -46,11 +47,12 @@ function renderMetricaHTML(titulo, hits, total, baseline) {
         <span class="honesty-metric__rate">${pct(hits / total)}</span>
         <span class="honesty-metric__ci">IC95: ${pct(lift.icRate.low)}–${pct(lift.icRate.high)}</span>
       </div>
-      <div class="honesty-metric__sub">${hits}/${total} batches · baseline azar ${pct(baseline)}</div>
+      <div class="honesty-metric__sub">${hits}/${total} ${unidad} · baseline azar ${pct(baseline)}</div>
       <div class="honesty-metric__lift">
         Lift: <b>${lift.central.toFixed(2)}×</b>
         <span class="honesty-metric__ci">[${lift.low.toFixed(2)}–${lift.high.toFixed(2)}]</span>
       </div>
+      ${extra}
       <div class="honesty-verdict" style="border-color:${ev.color};color:${ev.color}">${ev.label}</div>
       <div class="honesty-metric__desc">${ev.desc}</div>
     </div>`;
@@ -115,6 +117,28 @@ export async function renderHonestyPanel(container, draws = [], opts = {}) {
     console.warn("[honesty-panel] auditarAleatoriedad:", e?.message);
   }
 
+  // Nivel 2: evaluación walk-forward del ranker (aprendizaje real).
+  let rankerEval = null;
+  try {
+    rankerEval = evaluarWalkForward(draws.slice(-4000), { topK: 10 });
+  } catch (e) {
+    console.warn("[honesty-panel] evaluarWalkForward:", e?.message);
+  }
+
+  const rankerExtra = rankerEval?.nEvals
+    ? `<div class="honesty-metric__sub">Log-loss ${(rankerEval.logLossPromedio).toFixed(4)} vs azar ${(rankerEval.logLossBaseline).toFixed(4)} (menor = mejor)</div>`
+    : "";
+  const rankerCard = rankerEval
+    ? renderMetricaHTML(
+        "Ranker ML · walk-forward top-10",
+        rankerEval.hits,
+        rankerEval.nEvals,
+        rankerEval.esperadoAzar,
+        "sorteos",
+        rankerExtra
+      )
+    : "";
+
   const notaExcluidos = stats?.excluidosNoSellados
     ? `<div class="honesty-metric__sub" style="margin-top:.4rem">
         🔒 ${stats.excluidosNoSellados} batch(es) excluido(s): no se pudo verificar que la predicción
@@ -128,6 +152,7 @@ export async function renderHonestyPanel(container, draws = [], opts = {}) {
     : `<div class="honesty-metrics-row">
         ${renderMetricaHTML("Histórico completo", stats.hits, stats.resolved, stats.baseline)}
         ${renderMetricaHTML(`Últimos ${stats.recent.n || 0} batches`, stats.recent.hits, stats.recent.n, stats.baseline)}
+        ${rankerCard}
       </div>${notaExcluidos}`;
 
   container.innerHTML = `

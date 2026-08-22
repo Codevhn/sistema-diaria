@@ -12,6 +12,7 @@ import { parseDrawDate } from "../date-utils.js";
 import { detectarPatrones } from "../pattern-detector.js";
 import { evaluarModos } from "../mode-engine.js";
 import { getPesosActivos } from "../weight-optimizer.js";
+import { puntuarProximoSorteo } from "../learning/ranker.js";
 import { detectarRegimen } from "../regime-detector.js";
 import { proyectarSecuencias, seqSignals } from "../sequence-engine.js";
 import { calcularPresion, presionAFactor } from "../pressure-engine.js";
@@ -50,6 +51,7 @@ let SOURCE_WEIGHTS = {
   patrones: 0.12,
   semanal: 0.06,
   mensual: 0.04,
+  ranker: 0.15,
 };
 
 const ELIM_RECIENTE_DIAS = 1;
@@ -132,7 +134,7 @@ export function aplicarEliminacion(draws, rezago, diciembre) {
 
 // ─── Agregación de señales ────────────────────────────────────────────────────
 
-export function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, semanales }, lastNums, familiasPenalizadas) {
+export function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, semanales, ranker }, lastNums, familiasPenalizadas) {
   const scores = new Map();
 
   function addScore(numero, source, value, label) {
@@ -169,6 +171,19 @@ export function agregarSeñales({ markov1, markov2, rezago, modos, hallazgos, se
         );
       });
     }
+  }
+
+  // Nivel 2: ranker entrenado con log-loss. La probabilidad aprendida se
+  // escala ×10 (crédito pleno a partir de ~10% vs prior 1%) para convivir
+  // con las señales heurísticas 0..1 sin inflar lo que no supera al azar.
+  if (ranker?.top?.length) {
+    ranker.top.forEach(({ numero, prob }) => {
+      if (!(prob > 0.015)) return;
+      addScore(numero, "ranker",
+        Math.min(1, prob * 10),
+        `Ranker ML: P=${(prob * 100).toFixed(1)}% (aprendido por log-loss)`
+      );
+    });
   }
 
   rezago.forEach((info, numero) => {
@@ -284,9 +299,27 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
 
   const { eliminados, familiasPenalizadas } = aplicarEliminacion(draws, rezago, enDiciembre);
 
+  // v4: régimen y pesos dinámicos — ANTES de agregar señales. Antes se
+  // refrescaban DESPUÉS de agregarSeñales, que ya había sumado con los
+  // pesos viejos (bug de orden detectado en la auditoría).
+  let regimenInfo = { regimen: "normal", confianza: 0 };
+  try {
+    regimenInfo = detectarRegimen(draws.slice().reverse());
+    const pesosActivos = await getPesosActivos(regimenInfo.regimen);
+    SOURCE_WEIGHTS = { ...SOURCE_WEIGHTS, ...pesosActivos };
+  } catch { /* opcional */ }
+
+  // Nivel 2: ranker con aprendizaje real (log-loss, walk-forward interno).
+  let rankerTop = null;
+  try {
+    rankerTop = puntuarProximoSorteo(draws);
+  } catch (e) {
+    console.warn("[signal] ranker:", e?.message);
+  }
+
   const hallazgos = patronesOk?.hallazgos || [];
   const composed = agregarSeñales(
-    { markov1, markov2, rezago, modos: modos2, hallazgos, semanales },
+    { markov1, markov2, rezago, modos: modos2, hallazgos, semanales, ranker: rankerTop },
     lastNums,
     familiasPenalizadas
   );
@@ -559,15 +592,10 @@ export async function ejecutarMotorSeñales({ pais, turno, fecha, topN = TOP_CAN
     }
   } catch (e) { /* opcional */ }
 
-  // v4.0: pesos dinámicos, régimen, secuencias y presión
-  let regimenInfo = { regimen: "normal", confianza: 0 };
+  // v4.0: régimen ya detectado y pesos ya aplicados antes de agregarSeñales.
   let contextoV4 = null;
   try {
     const drawsDesc = draws.slice().reverse();
-    regimenInfo = detectarRegimen(drawsDesc);
-
-    const pesosActivos = await getPesosActivos(regimenInfo.regimen);
-    SOURCE_WEIGHTS = { ...SOURCE_WEIGHTS, ...pesosActivos };
 
     const presionMap = await calcularPresion(drawsDesc, { turno });
     const secuencias = await proyectarSecuencias(drawsDesc, presionMap);

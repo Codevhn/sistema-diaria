@@ -10,6 +10,21 @@ const MARKOV_MIN_SOPORTE = 3;
 const MARKOV2_MIN_SOPORTE = 2;
 const MARKOV_DECAY_PER_DAY = 0.97;
 
+// ── Suavizado Jelinek-Mercer ──────────────────────────────────────────────
+// Una celda vista 2 veces NO justifica "34% de casos". La probabilidad
+// estimada se mezcla con el prior uniforme (1/100) según su soporte:
+//   λ = count / (count + K)   →   p = λ·pML + (1−λ)·(1/100)
+// Con count=1 y K=6: λ=1/7 → una sola aparición aporta ~0.14·pML.
+// Con count=30: λ=0.83 → la evidencia manda. p queda acotada en (1/100, pML].
+const MARKOV1_JM_K = 6;
+const MARKOV2_JM_K = 8;
+const PRIOR_UNIFORME = 1 / 100;
+
+const probJM = (pML, count, k) => {
+  const lam = count / (count + k);
+  return lam * pML + (1 - lam) * PRIOR_UNIFORME;
+};
+
 export { MARKOV_MIN_SOPORTE, MARKOV2_MIN_SOPORTE };
 
 /**
@@ -56,7 +71,15 @@ export function normalizeMarkov1(matrix) {
     const totalWsum = Array.from(row.values()).reduce((s, c) => s + c.wsum, 0);
     if (totalCount < MARKOV_MIN_SOPORTE) return;
     const top = Array.from(row.entries())
-      .map(([to, cell]) => ({ numero: to, count: cell.count, prob: cell.wsum / totalWsum }))
+      .map(([to, cell]) => {
+        const pML = cell.wsum / totalWsum;
+        return {
+          numero: to,
+          count: cell.count,
+          probML: pML,
+          prob: probJM(pML, cell.count, MARKOV1_JM_K),
+        };
+      })
       .sort((a, b) => b.prob - a.prob);
     result.set(from, { total: totalCount, top });
   });
@@ -110,7 +133,15 @@ export function normalizeMarkov2(matrix) {
     const totalWsum = Array.from(row.values()).reduce((s, c) => s + c.wsum, 0);
     if (totalCount < MARKOV2_MIN_SOPORTE) return;
     const top = Array.from(row.entries())
-      .map(([to, cell]) => ({ numero: to, count: cell.count, prob: cell.wsum / totalWsum }))
+      .map(([to, cell]) => {
+        const pML = cell.wsum / totalWsum;
+        return {
+          numero: to,
+          count: cell.count,
+          probML: pML,
+          prob: probJM(pML, cell.count, MARKOV2_JM_K),
+        };
+      })
       .sort((a, b) => b.prob - a.prob);
     result.set(key, { total: totalCount, top });
   });
