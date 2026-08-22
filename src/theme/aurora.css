@@ -899,38 +899,45 @@ html[data-theme="dark"] .memory-gap-grid .memory-gap-card {
   border-color: rgba(255, 255, 255, 0.28) !important;
 }
 
-/* L. Guía de los Sueños, relativos y transformaciones:
-      contornos de fichas, grupos y contenedores. Doble clase para
-      superar las capas A/C/D de este mismo archivo. */
+/* L. Guía de los Sueños, relativos y transformaciones.
+      Las fichas (guide-card, rel-num-card) traen color de polaridad
+      por inline style: solo se fuerza ancho/estilo/radio, JAMÁS el
+      color. Mismo aspecto que las fichas de símbolos de la Guía. */
 .guide-card.guide-card,
 .rel-num-card.rel-num-card {
   border-width: 1px !important;
   border-style: solid !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Grupos y contenedores: hairline neutro, un punto más sutil
+      que las fichas de símbolos. */
+.rel-row.rel-row,
+.guide-relativos-wrap,
+.memory-transform-card.memory-transform-card,
+.memory-transform-chip.memory-transform-chip {
+  border: 1px solid var(--color-border-strong) !important;
+  border-radius: var(--radius-md);
 }
 
 html[data-theme="dark"] .rel-row.rel-row,
+html[data-theme="dark"] .guide-relativos-wrap {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
 html[data-theme="dark"] .memory-transform-card.memory-transform-card,
 html[data-theme="dark"] .memory-transform-chip.memory-transform-chip {
   border-color: rgba(255, 255, 255, 0.28) !important;
 }
 
-/* Tabla de relativos: caja completa alrededor del bloque */
 .guide-relativos-wrap {
-  border: 1px solid var(--color-border-strong) !important;
   padding-left: 18px;
   padding-right: 18px;
+  padding-bottom: 20px;
 }
 
-/* M. Tabla de relativos: esquinas rectas, tamaño compacto canónico
-      (idéntico a los chips de Escenarios) y colores de polaridad
-      intactos — el color llega por inline style desde guide-grid.js,
-      así que aquí NUNCA se fija border-color. */
-.guide-relativos-wrap,
-.rel-row.rel-row,
-.rel-num-card.rel-num-card {
-  border-radius: 0 !important;
-}
-
+/* M. Tabla de relativos: tamaño compacto canónico
+      (idéntico a los chips de Escenarios). */
 .rel-row.rel-row {
   padding: 10px 12px;
 }
