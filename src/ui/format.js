@@ -5,6 +5,7 @@
  * app.js compartan UNA sola definición.
  */
 import { GUIA } from "../loader.js";
+import { formatDateISO } from "../date-utils.js";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -72,6 +73,15 @@ export const formatFriendlyDate = (value) => {
   const dow = DOW_FULL_LABEL[date.getDay()] || "";
   return `${dow ? `${dow} ` : ""}${day} de ${monthName} ${year}`;
 };
+
+export function incrementISODate(value, days = 1) {
+  if (!value || !Number.isFinite(days)) return value;
+  const base = parseISODate(value);
+  if (!base) return value;
+  const next = new Date(base.getTime() + Math.trunc(days) * DAY_MS);
+  if (Number.isNaN(next.getTime())) return value;
+  return formatDateISO(next);
+}
 
 export const escapeHtml = (str) => {
   return String(str ?? "")
