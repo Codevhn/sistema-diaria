@@ -1,5 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { construirPerfilNumero, resumirActividadNumeros } from "../src/memory.js";
+
+vi.mock("../src/storage.js", () => ({ DB: {} }));
 
 const draw = (fecha, horario, numero) => ({ fecha, horario, numero, pais: "HN" });
 
