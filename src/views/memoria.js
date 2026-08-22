@@ -621,4 +621,4 @@ async function reopenMemoryDetail() {
   }
 }
 
-export { invalidateMemoryCache, renderMemoryBoard, renderGapPanel, openMemoryDetail, reopenMemoryDetail };
+export { invalidateMemoryCache, renderMemoryBoard, renderGapPanel, openMemoryDetail, reopenMemoryDetail, formatTimeAgo };

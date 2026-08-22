@@ -177,8 +177,8 @@ export function configurarSuperPremio(callbacks = {}) {
       renderSpYear(monthsEl);
 
       // Analysis panel
-      if (analysisEl && spFechas.length && drawsCache?.length) {
-        const hist = drawsCache.filter(d => !d.isTest);
+      if (analysisEl && spFechas.length && hooks.cacheSorteos?.()?.length) {
+        const hist = hooks.cacheSorteos().filter(d => !d.isTest);
         const analyses = spFechas.map(f => analizarPostEvento(f, hist)).filter(a => a.totalPostSorteos > 0);
         if (analyses.length) {
           // Aggregate: cuántas veces repitió cada número en todas las ventanas post-pago
@@ -312,4 +312,11 @@ export function configurarSuperPremio(callbacks = {}) {
       });
     }
 
-export { renderSuperPremioPanel };
+export {
+  renderSuperPremioPanel,
+  listSpFromDb,
+  detectarModoRecuperacion,
+  detectarNumerosPreEvento,
+  detectarNumerosRepetidosPostEvento,
+  SP_RECOVERY_DAYS,
+};

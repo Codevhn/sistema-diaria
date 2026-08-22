@@ -17,7 +17,21 @@ import {
   formatNumber,
   getSymbol,
   formatWindowRange,
+  MONTH_ABBR,
+  DOW_FULL_LABEL,
 } from "../ui/format.js";
+
+// ── Refs DOM (elementos ausentes en index.html: panel inerte) ──
+const decemberCard = document.getElementById("december-card");
+const decemberYearSelect = document.getElementById("december-year");
+const decemberSearchInput = document.getElementById("december-search");
+const decemberSearchBtn = document.getElementById("december-search-btn");
+const decemberClearBtn = document.getElementById("december-clear");
+const decemberRefreshBtn = document.getElementById("december-refresh");
+const decemberSummaryEl = document.getElementById("december-summary");
+const decemberWatchlistEl = document.getElementById("december-watchlist");
+const decemberDetailEl = document.getElementById("december-detail");
+const decemberRemindersEl = document.getElementById("december-reminders");
 
 let hooks = {};
 export function initDecemberPanel(options = {}) {

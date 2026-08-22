@@ -11,6 +11,7 @@ import {
   deleteRelation as deleteTriggerRelation,
   listRelations as listTriggerRelations,
   listEvents as listTriggerEvents,
+  closeExpiredEvents as closeTriggerEvents,
   computeRelationStats as computeTriggerStats,
   seedSampleRelations as seedTriggerExamples,
 } from "../triggers/triggerEngine.js";

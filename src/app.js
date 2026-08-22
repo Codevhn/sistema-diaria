@@ -88,9 +88,18 @@ import {
   renderGapPanel,
   openMemoryDetail,
   reopenMemoryDetail,
+  formatTimeAgo,
   configurarMemoriaNav,
 } from "./views/memoria.js";
-import { renderSuperPremioPanel, configurarSuperPremio } from "./views/superpremio.js";
+import {
+  renderSuperPremioPanel,
+  configurarSuperPremio,
+  listSpFromDb,
+  detectarModoRecuperacion,
+  detectarNumerosPreEvento,
+  detectarNumerosRepetidosPostEvento,
+  SP_RECOVERY_DAYS,
+} from "./views/superpremio.js";
     import {
       loadLocalDrawSnapshot,
       saveLocalDrawSnapshot,
@@ -2363,7 +2372,7 @@ import { renderSuperPremioPanel, configurarSuperPremio } from "./views/superprem
     }
 
     configurarMemoriaNav({ jumpToDayView });
-    configurarSuperPremio({ invalidatePulso });
+    configurarSuperPremio({ invalidatePulso, cacheSorteos: () => drawsCache });
     initDecemberPanel({
       preferencias: () => userPreferences,
       encolarGuardado: queueUserPreferencesSave,
