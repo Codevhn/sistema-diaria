@@ -57,6 +57,7 @@ import {
 import { initDecemberPanel } from "./views/december-panel.js";
 import { initTriggersPanel } from "./views/triggers-panel.js";
 import { renderRitmosFamilias } from "./views/ritmos-familias.js";
+import { renderCompanerosPanel } from "./views/companeros-panel.js";
     import {
       createMode,
       updateMode,
@@ -4837,6 +4838,7 @@ import {
           getCachedDraws().then((d) => renderRitmosFamilias(d)).catch(() => {});
         }
         if (id === "view-superpremio") renderSuperPremioPanel().catch(() => {});
+        if (id === "view-transform") renderCompanerosPanel().catch(() => {});
         if (id === "view-temporal") renderVerificador().catch(() => {});
         if (id === "view-maint") {
           refreshDuplicados();

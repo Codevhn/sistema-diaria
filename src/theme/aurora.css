@@ -1066,3 +1066,24 @@ html[data-theme="dark"] .memory-transform-chip.memory-transform-chip {
   background: rgba(232, 140, 56, 0.15);
   color: #e88c38;
 }
+
+/* ── Panel de curación de compañeros semánticos ──────────────────────── */
+.cp-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+  margin: 12px 0;
+}
+.cp-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+.cp-form input, .cp-form select {
+  padding: 6px 8px;
+}
+.cp-nota { flex: 1 1 260px; }
+.cp-actions { display: flex; gap: 10px; margin-top: 12px; }
+#cp-import-text { width: 100%; margin-top: 6px; font-family: monospace; font-size: 0.8rem; }

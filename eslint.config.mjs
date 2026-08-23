@@ -1,4 +1,4 @@
-const BROWSER = ["document","window","console","setTimeout","clearTimeout","setInterval","clearInterval","AbortController","localStorage","sessionStorage","Intl","requestAnimationFrame","fetch","URLSearchParams","CustomEvent","FormData"];
+const BROWSER = ["document","window","console","setTimeout","clearTimeout","setInterval","clearInterval","AbortController","localStorage","sessionStorage","Intl","requestAnimationFrame","fetch","URLSearchParams","CustomEvent","FormData","Blob","URL","FileReader","TextDecoder","TextEncoder","alert","confirm","prompt","Event","crypto"];
 export default [
   {
     files: ["**/*.js"],
