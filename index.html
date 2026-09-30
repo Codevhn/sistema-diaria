@@ -105,6 +105,7 @@
     <button data-view="superpremio"><span class="sidebar-icon fa-solid fa-trophy"></span><i>Super Premio</i></button>
     <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
     <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
+    <button data-view="consulta"><span class="sidebar-icon fa-solid fa-magnifying-glass-chart"></span><i>Consulta</i></button>
     <button data-view="suerte" style="display:none"><span class="sidebar-icon fa-solid fa-shuffle"></span><i>Tirada de suerte</i></button>
     <button data-view="geometry" style="display:none"><span
         class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
@@ -441,6 +442,24 @@
         </article>
 
       </div>
+    </section>
+
+    <!-- CONSULTA HISTÓRICA -->
+    <section id="view-consulta" class="view hidden">
+      <div class="consulta-header">
+        <h2>Consulta histórica</h2>
+        <p class="hint">
+          Elegí un número y mirá su evidencia real en el historial: frecuencia, gap,
+          vuelta y qué suele caer después — siempre comparado contra lo que el azar
+          predice. Esto no es una predicción ni un candidato: es el mismo dato que
+          un anotador de papel busca a mano, pero con memoria completa del histórico.
+        </p>
+      </div>
+      <div class="consulta-form">
+        <input id="consulta-numero-input" type="number" min="0" max="99" placeholder="Ej: 53" />
+        <button id="consulta-btn-buscar" class="btn-outline">Consultar</button>
+      </div>
+      <div id="consulta-resultado"></div>
     </section>
 
     <!-- VERIFICADOR ESTADÍSTICO -->

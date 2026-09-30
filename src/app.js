@@ -52,6 +52,7 @@ import {
   renderPega3Panels,
   syncPega3Context,
 } from "./views/pega3-panel.js";
+import { initConsultaPanel } from "./views/consulta-panel.js";
     import { loadUserPreferences, saveUserPreferences } from "./user-preferences.js";
     import { getMyRole, getAllProfiles, updateUserRole, updateUserName, setBanStatus, roleLabel, roleColor, VALID_ROLES } from "./roles.js";
 import { initDecemberPanel } from "./views/december-panel.js";
@@ -2373,6 +2374,10 @@ import {
     initPega3Panel({
       botonOcupado: withButtonBusy,
       horarioKeys: HORARIO_KEYS,
+    });
+    initConsultaPanel({
+      obtenerSorteos: () => getCachedDraws(),
+      pais: () => "HN",
     });
 
     async function bootstrapExtendedPanels() {
@@ -4807,6 +4812,7 @@ import {
       temporal: "view-temporal",
       transform: "view-transform",
       pega3: "view-pega3",
+      consulta: "view-consulta",
       geometry: "view-geometry",
       memory: "view-memory",
       guide: "view-guide",

@@ -12184,3 +12184,23 @@ details[open] .aus-valid__toggle::before { content: '▼ '; }
   font-size: 0.58rem; color: var(--color-accent);
   background: rgba(201,168,76,0.1); border-radius: 20px; padding: 1px 5px;
 }
+
+/* ── Panel de Consulta Histórica ── */
+.consulta-header { margin-bottom: 1rem; }
+.consulta-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
+.consulta-form input[type="number"] {
+  width: 100px; padding: 0.4rem 0.6rem; border-radius: 6px;
+  border: 1px solid var(--border, #444); background: var(--card-bg, #1c1c1c); color: var(--text, #eee);
+}
+.consulta-card { background: var(--card-bg, #1c1c1c); border-radius: 10px; padding: 1rem 1.25rem; }
+.consulta-section { margin: 0.9rem 0; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.08); }
+.consulta-section h4 { margin: 0 0 0.35rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--color-muted, #999); }
+.consulta-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.4rem; }
+.consulta-table th, .consulta-table td { padding: 0.3rem 0.5rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.consulta-tag { font-size: 0.72rem; padding: 1px 6px; border-radius: 10px; white-space: nowrap; }
+.consulta-tag--fuerte { background: rgba(224,92,92,0.15); color: #e05c5c; }
+.consulta-tag--media { background: rgba(224,184,74,0.15); color: #e0b84a; }
+.consulta-tag--normal { background: rgba(92,186,92,0.12); color: #5cba5c; }
+.consulta-nota { font-size: 0.75rem; color: var(--color-muted, #999); margin-top: 0.4rem; }
+.consulta-error { color: #e05c5c; }
+.consulta-loading { color: var(--color-muted, #999); }
