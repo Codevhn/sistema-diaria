@@ -12204,3 +12204,5 @@ details[open] .aus-valid__toggle::before { content: '▼ '; }
 .consulta-nota { font-size: 0.75rem; color: var(--color-muted, #999); margin-top: 0.4rem; }
 .consulta-error { color: #e05c5c; }
 .consulta-loading { color: var(--color-muted, #999); }
+
+.diaria-loader--simple { min-height: 120px; padding: 24px 20px; gap: 12px; }
