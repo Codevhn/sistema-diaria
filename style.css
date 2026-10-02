@@ -10738,29 +10738,29 @@ body.login-page {
 }
 .conv-nodos__head {
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--color-accent);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .conv-nodos__hint {
-  font-size: 0.71rem;
+  font-size: 0.82rem;
   color: var(--color-muted);
-  margin-bottom: 10px;
-  line-height: 1.45;
+  margin-bottom: 14px;
+  line-height: 1.5;
 }
 .conv-nodos__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 8px;
-  margin-bottom: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
 }
 .conv-nodos__legend {
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   color: var(--color-muted);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -10768,13 +10768,12 @@ body.login-page {
 .conv-node {
   background: var(--color-surface-3);
   border-radius: var(--radius-md);
-  padding: 8px 10px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   border: 1px solid var(--color-border);
   position: relative;
-  overflow: hidden;
 }
 .conv-node--high {
   border-color: rgba(255,217,90,0.45);
@@ -10788,10 +10787,10 @@ body.login-page {
 }
 .conv-node__score {
   position: absolute;
-  top: 6px;
-  right: 8px;
+  top: 10px;
+  right: 12px;
   font-family: var(--font-mono);
-  font-size: 1rem;
+  font-size: 1.3rem;
   font-weight: 700;
   line-height: 1;
   color: var(--color-accent);
@@ -10801,28 +10800,25 @@ body.login-page {
 .conv-node__info {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 .conv-node__pad {
   font-family: var(--font-mono);
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--color-text);
-  line-height: 1;
+  line-height: 1.2;
 }
 .conv-node__sym {
-  font-size: 0.7rem;
+  font-size: 0.88rem;
   color: var(--color-muted);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 90px;
 }
 .conv-node__trigs {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 2px;
+  gap: 5px;
+  margin-top: 4px;
 }
 
 /* — Chip de trigger — */
@@ -10831,10 +10827,10 @@ body.login-page {
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 2px 7px;
+  border-radius: 4px;
   line-height: 1.5;
   cursor: default;
 }
@@ -10849,9 +10845,9 @@ body.login-page {
   border: 1px solid rgba(94,196,126,0.3);
 }
 .conv-trig sup {
-  font-size: 0.55rem;
+  font-size: 0.66rem;
   opacity: 0.75;
-  margin-left: 1px;
+  margin-left: 2px;
   vertical-align: super;
   line-height: 0;
 }
