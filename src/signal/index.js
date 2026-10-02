@@ -117,7 +117,7 @@ export function aplicarEliminacion(draws, rezago, diciembre) {
   rezago.forEach((info, numero) => {
     if (info.zScore >= 3.0 && info.estado !== "reciente") {
       eliminados.set(numero, {
-        razon: `${info.diasDesdeUltima} días sin caer (${info.zScore}σ sobre su promedio de ${info.cicloPromedio} días — sobrecalentado)`,
+        razon: `${info.diasDesdeUltima} días sin caer (${info.zScore}σ sobre su propio promedio de ${info.cicloPromedio} días — gap atípico, no prueba de evasión)`,
         regla: "sobrecalentado",
       });
     }

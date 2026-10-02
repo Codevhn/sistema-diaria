@@ -3702,7 +3702,7 @@ import {
             motorSec.innerHTML = `
               <div class="pulso-group__head">
                 <span class="pulso-group__label">Motor unificado — candidatos para ${nextHorario}</span>
-                <span class="pulso-group__freq">${motor.universo} números tras filtros · ${motor.contexto.dataQuality === "alto" ? "datos sólidos" : motor.contexto.dataQuality === "medio" ? "datos moderados" : "datos limitados"}</span>
+                <span class="pulso-group__freq">${motor.universo} números tras filtros · ${motor.contexto.dataQuality === "alto" ? "historial amplio" : motor.contexto.dataQuality === "medio" ? "historial moderado" : "historial limitado"}</span>
               </div>`;
             const motorChips = document.createElement("div");
             motorChips.className = "pulso-chips";
@@ -3765,7 +3765,7 @@ import {
                 // ── Ver todos los caídos (colapsable) — justo bajo los Excluidos ──
                 frag.appendChild(buildVerCaidosPanel(sorted, GUIA));
               }
-              if (sobElim.length) frag.appendChild(buildRezagoSection(sobElim, "warn", "⚠ Sobrecalentados — el sistema los evita porque el jugador los espera"));
+              if (sobElim.length) frag.appendChild(buildRezagoSection(sobElim, "warn", "⚠ Gap inusual — sin caer mucho más de lo habitual en ellos mismos (no hay evidencia de que la casa los evite a propósito)"));
             }
           }
 
