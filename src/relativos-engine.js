@@ -962,8 +962,20 @@ export function renderConvergenciaHTML(btConv, nodosActivos, guia = {}) {
         <div class="conv-nodos__hint">Números que no han caído pero tienen señales apuntando hacia ellos. Score = total de relaciones convergentes. El superíndice indica hace cuántos días cayó el disparador.</div>
         <div class="conv-nodos__grid">${items}</div>
         <div class="conv-nodos__legend">
-          <span class="conv-trig conv-trig--forward">XX</span> X tiene a XX como relativo (X→XX cayó) &nbsp;·&nbsp;
-          <span class="conv-trig conv-trig--reverse">XX</span> XX apunta hacia X (XX→X cayó)
+          <div class="conv-nodos__legend-row">
+            <span class="conv-trig conv-trig--forward">XX</span>
+            <span>X tiene a XX como relativo (X→XX cayó)</span>
+          </div>
+          <div class="conv-nodos__legend-row">
+            <span class="conv-trig conv-trig--reverse">XX</span>
+            <span>XX apunta hacia X (XX→X cayó)</span>
+          </div>
+          <div class="conv-nodos__legend-example">
+            <b>¿Qué es el score?</b> Cuenta cuántos disparadores activos apuntan al número todavía sin caer.
+            Ejemplo: si 28 Gallo muestra <b>1</b>, es porque solo el 01 Pies (que cayó recientemente y tiene
+            al 28 como uno de sus relativos oficiales) le está apuntando. Si tuviera 2 disparadores distintos
+            apuntándole al mismo tiempo, mostraría <b>2</b>.
+          </div>
         </div>
       </div>`;
   }

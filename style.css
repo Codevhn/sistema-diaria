@@ -10756,12 +10756,31 @@ body.login-page {
   margin-bottom: 14px;
 }
 .conv-nodos__legend {
-  font-size: 0.8rem;
-  color: var(--color-muted);
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.conv-nodos__legend-row {
+  font-size: 0.9rem;
+  color: var(--color-text);
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 8px;
+}
+.conv-nodos__legend-example {
+  font-size: 0.88rem;
+  color: var(--color-muted);
+  line-height: 1.6;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+.conv-nodos__legend-example b {
+  color: var(--color-text);
 }
 
 /* — Nodo individual — */
