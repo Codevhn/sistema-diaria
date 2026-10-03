@@ -4362,7 +4362,7 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   .sidebar {
     position: fixed;
     top: 0;
-    left: -260px;
+    left: 0;
     width: 220px;
     height: 100%;
     background: #161618;
@@ -4370,19 +4370,17 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
     justify-content: flex-start;
     padding: 24px 0;
     border-right: 1px solid var(--color-border);
-    transition: left 0.3s ease;
     z-index: 1000;
     box-shadow: 4px 0 32px rgba(0, 0, 0, 0.7);
     transform: translateX(0);
+    overflow-y: auto;
   }
 
-  .sidebar.show-mobile {
-    left: 0;
-  }
-
-
+  /* El sidebar queda fijo y visible siempre; ya no depende de .show-mobile.
+     El contenido reserva su ancho (220px) para no quedar tapado debajo.
+     padding-top se mantiene en 72px: el .sticky-header (56px) sigue fijo arriba. */
   .content {
-    margin-left: 0;
+    margin-left: 220px;
     padding: 72px 16px 16px;
   }
 

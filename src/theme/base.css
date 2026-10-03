@@ -2435,11 +2435,12 @@ html[data-theme="light"] .rezago-section {
   }
   .sidebar button {
     color: rgba(235, 235, 245, 0.85);
-    font-size: 0.82rem;
+    font-size: 1rem;
   }
   .sidebar button i {
     display: inline;
     color: rgba(235, 235, 245, 0.85);
+    font-size: 1rem;
   }
   .sidebar button.active,
   .sidebar button[aria-current="page"] {
@@ -2456,6 +2457,7 @@ html[data-theme="light"] .rezago-section {
   }
   .sidebar-icon {
     color: rgba(235, 235, 245, 0.7);
+    font-size: 14px;
   }
 
   /* ── Content: padding lateral reducido ──────────────────────────── */
