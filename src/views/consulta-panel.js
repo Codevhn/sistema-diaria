@@ -9,6 +9,7 @@
  */
 
 import { consultarNumero } from "../query-engine.js";
+import { GUIA } from "../loader.js";
 
 let getDraws = async () => [];
 let paisActivo = () => "HN";
@@ -47,6 +48,12 @@ async function ejecutarConsulta(input, out) {
 
 const pct = (v) => (v === null || v === undefined ? "—" : `${(v * 100).toFixed(2)}%`);
 const pad2 = (n) => String(n).padStart(2, "0");
+const simbolo = (n) => GUIA?.[pad2(n)]?.simbolo || "";
+// Número + símbolo juntos, como se ven en el resto de la app (ej: "74 Edificio")
+const numSym = (n) => {
+  const s = simbolo(n);
+  return s ? `${pad2(n)} <span class="consulta-sym">${s}</span>` : pad2(n);
+};
 
 function etiquetaSignificancia(pValue) {
   if (pValue === null || pValue === undefined || Number.isNaN(pValue)) return "";
@@ -63,7 +70,7 @@ function renderResultado(r) {
 
   return `
     <div class="consulta-card">
-      <h3>Número ${pad2(r.numero)} — ${r.totalSorteos} sorteos analizados</h3>
+      <h3>${numSym(r.numero)} — ${r.totalSorteos} sorteos analizados</h3>
 
       <section class="consulta-section">
         <h4>Frecuencia</h4>
@@ -85,10 +92,10 @@ function renderResultado(r) {
       <section class="consulta-section">
         <h4>Vuelta (espejo de dígitos)</h4>
         ${!v.aplica
-          ? `<p>Este número es palíndromo (${pad2(r.numero)}): no tiene espejo distinto.</p>`
+          ? `<p>Este número es palíndromo (${numSym(r.numero)}): no tiene espejo distinto.</p>`
           : v.total === 0
-            ? `<p>Sin suficientes apariciones con ventana completa para evaluar la vuelta al ${pad2(v.mirror)}.</p>`
-            : `<p>Tras caer ${pad2(r.numero)}, su vuelta (${pad2(v.mirror)}) cayó dentro de los 5 sorteos
+            ? `<p>Sin suficientes apariciones con ventana completa para evaluar la vuelta al ${numSym(v.mirror)}.</p>`
+            : `<p>Tras caer ${numSym(r.numero)}, su vuelta (${numSym(v.mirror)}) cayó dentro de los 5 sorteos
                siguientes en <b>${v.hits}</b> de ${v.total} veces (${pct(v.tasaObservada)}).
                Esperado por azar en esa misma ventana: ${pct(v.esperadoAzar)}.
                ${etiquetaSignificancia(v.pValue)}</p>`}
@@ -103,7 +110,7 @@ function renderResultado(r) {
                <tbody>
                  ${t.filas.map((fila) => `
                    <tr>
-                     <td>${pad2(fila.sucesor)}</td>
+                     <td>${numSym(fila.sucesor)}</td>
                      <td>${fila.hits}/${fila.total}</td>
                      <td>${pct(fila.tasaObservada)}</td>
                      <td>${pct(fila.esperadoAzar)}</td>
