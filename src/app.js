@@ -5246,12 +5246,8 @@ import {
           } else {
             closeSidebarMobile();
           }
-        } else {
-          const collapsed = document.body.classList.toggle("sidebar-collapsed");
-          const expanded = !collapsed;
-          toggleBtn.classList.toggle("sidebar-open", expanded);
-          toggleBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
         }
+        // En escritorio ya no hay nada que colapsar: el sidebar queda fijo siempre.
       });
 
       const handleOutside = (event) => {
@@ -5264,13 +5260,8 @@ import {
           closeSidebarMobile();
           return;
         }
-        // Desktop: si el sidebar está expandido y el click es fuera, colapsar
-        if (window.innerWidth > 768 && !document.body.classList.contains("sidebar-collapsed")) {
-          if (sidebar.contains(event.target)) return;
-          document.body.classList.add("sidebar-collapsed");
-          toggleBtn.classList.remove("sidebar-open");
-          toggleBtn.setAttribute("aria-expanded", "false");
-        }
+        // Escritorio: el sidebar ya no se auto-colapsa al hacer clic afuera —
+        // queda fijo y visible siempre.
       };
 
       const outsideEvents = window.PointerEvent
