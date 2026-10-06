@@ -98,19 +98,27 @@ describe("consultarNumero", () => {
     expect(r.ultimaAparicion.fecha).toBe(new Date(2024, 0, 2).toISOString().slice(0, 10));
   });
 
-  it("historialReciente: trae anterior/siguiente de cada aparición, más reciente primero", () => {
-    // 30 cae dos veces: día1/11AM (anterior=null por ser el primer sorteo) y día2/9PM
+  it("historialReciente: trae anterior/siguiente con número, horario y si fue el mismo día", () => {
+    // día0 (01-01): 30,2,3 · día1 (01-02): 4,5,30 · día2 (01-03): 7,8,9
+    // 30 cae dos veces: día0/11AM (índice 0) y día1/9PM (índice 5)
     const secuencia = [30, 2, 3, 4, 5, 30, 7, 8, 9];
     const draws = fabricarDraws({ dias: 3, secuencia });
     const r = consultarNumero(30, draws, { pais: "HN" });
     expect(r.historialReciente).toHaveLength(2);
-    // Más reciente primero: día2/9PM (índice 5), anterior=5, siguiente=7
-    expect(r.historialReciente[0].horario).toBe("9PM");
-    expect(r.historialReciente[0].anterior).toBe(5);
-    expect(r.historialReciente[0].siguiente).toBe(7);
-    // La más vieja: día1/11AM (índice 0), sin anterior, siguiente=2
-    expect(r.historialReciente[1].anterior).toBeNull();
-    expect(r.historialReciente[1].siguiente).toBe(2);
+
+    // Más reciente primero: día1/9PM (índice 5)
+    const masReciente = r.historialReciente[0];
+    expect(masReciente.horario).toBe("9PM");
+    // anterior = día1/3PM (índice 4) = 5, mismo día
+    expect(masReciente.anterior).toEqual({ numero: 5, horario: "3PM", mismoDia: true });
+    // siguiente = día2/11AM (índice 6) = 7, día distinto (cruza al día siguiente)
+    expect(masReciente.siguiente).toEqual({ numero: 7, horario: "11AM", mismoDia: false });
+
+    // La más vieja: día0/11AM (índice 0), sin anterior (es el primer sorteo del historial)
+    const masVieja = r.historialReciente[1];
+    expect(masVieja.anterior).toBeNull();
+    // siguiente = día0/3PM (índice 1) = 2, mismo día
+    expect(masVieja.siguiente).toEqual({ numero: 2, horario: "3PM", mismoDia: true });
   });
 
   it("historialReciente: se limita a las últimas 8 apariciones por defecto", () => {

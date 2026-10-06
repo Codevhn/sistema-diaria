@@ -12264,6 +12264,7 @@ details[open] .aus-valid__toggle::before { content: '▼ '; }
 .consulta-table th, .consulta-table td { padding: 0.7rem 0.9rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .consulta-table th { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--color-muted, #999); }
 .consulta-table td:nth-child(2) { font-variant-numeric: tabular-nums; }
+.consulta-vecino-tag { font-size: 0.78rem; color: var(--color-muted, #888); }
 .consulta-nota { font-size: 0.95rem; color: var(--color-muted, #999); margin-top: 0.6rem; line-height: 1.6; }
 .consulta-error { color: #e05c5c; font-size: 1.1rem; }
 .consulta-loading { color: var(--color-muted, #999); font-size: 1.1rem; }

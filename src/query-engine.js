@@ -160,21 +160,36 @@ function obtenerUltimaAparicion(limpios, numero) {
 }
 
 /**
+ * Describe un sorteo vecino (anterior o siguiente) sin ambigüedad: si cayó
+ * el mismo día (en otro turno) o cruzó a otro día, y en qué turno exacto.
+ */
+function describirVecino(vecino, fechaReferencia) {
+  if (!vecino) return null;
+  return {
+    numero: vecino.numero,
+    horario: vecino.horario,
+    mismoDia: vecino.fecha === fechaReferencia,
+  };
+}
+
+/**
  * Últimas K apariciones del número con su fecha/horario exactos y qué
  * número cayó justo antes y justo después en esa misma ocasión — la
  * materia prima cruda para que el jugador arme su propia hipótesis
  * ("salió en 11AM después del 53, y antes del 94"), sin que el sistema
- * le diga qué concluir.
+ * le diga qué concluir. Cada vecino indica si fue el mismo día (otro
+ * turno) o cruzó al día anterior/siguiente, para que no quede ambiguo.
  */
 function obtenerHistorialReciente(limpios, numero, k = 8) {
   const apariciones = [];
   for (let i = 0; i < limpios.length; i++) {
     if (limpios[i].numero !== numero) continue;
+    const fecha = limpios[i].fecha;
     apariciones.push({
-      fecha: limpios[i].fecha,
+      fecha,
       horario: limpios[i].horario,
-      anterior: i > 0 ? limpios[i - 1].numero : null,
-      siguiente: i < limpios.length - 1 ? limpios[i + 1].numero : null,
+      anterior: i > 0 ? describirVecino(limpios[i - 1], fecha) : null,
+      siguiente: i < limpios.length - 1 ? describirVecino(limpios[i + 1], fecha) : null,
     });
   }
   return apariciones.slice(-k).reverse();

@@ -83,6 +83,16 @@ function renderHero(r) {
     </div>`;
 }
 
+// Describe sin ambigüedad cuándo cayó el vecino: mismo día (otro turno)
+// o cruzó al día anterior/siguiente — y en qué turno exacto.
+function renderVecino(vecino, direccion) {
+  if (!vecino) return "—";
+  const cuando = vecino.mismoDia
+    ? "mismo día"
+    : direccion === "anterior" ? "día anterior" : "día siguiente";
+  return `${numSym(vecino.numero)}<br><span class="consulta-vecino-tag">${cuando} · ${vecino.horario}</span>`;
+}
+
 function renderHistorialReciente(r) {
   const h = r.historialReciente;
   if (!h || !h.length) {
@@ -103,8 +113,8 @@ function renderHistorialReciente(r) {
             <tr>
               <td>${formatFriendlyDate(ap.fecha)}</td>
               <td>${ap.horario}</td>
-              <td>${ap.anterior === null ? "—" : numSym(ap.anterior)}</td>
-              <td>${ap.siguiente === null ? "—" : numSym(ap.siguiente)}</td>
+              <td>${renderVecino(ap.anterior, "anterior")}</td>
+              <td>${renderVecino(ap.siguiente, "siguiente")}</td>
             </tr>`).join("")}
         </tbody>
       </table>
