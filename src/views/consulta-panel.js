@@ -10,6 +10,7 @@
 
 import { consultarNumero } from "../query-engine.js";
 import { GUIA } from "../loader.js";
+import { formatFriendlyDate } from "../ui/format.js";
 
 let getDraws = async () => [];
 let paisActivo = () => "HN";
@@ -62,6 +63,52 @@ function etiquetaSignificancia(pValue) {
   return `<span class="consulta-tag consulta-tag--normal">p=${pValue.toFixed(3)} — compatible con azar</span>`;
 }
 
+function renderHero(r) {
+  const pd = pad2(r.numero);
+  const sym = simbolo(r.numero);
+  const u = r.ultimaAparicion;
+  const ultimaTexto = u
+    ? `Salió por última vez el <b>${formatFriendlyDate(u.fecha)}</b>, turno <b>${u.horario}</b>.`
+    : `Sin registro de ninguna aparición en el historial cargado.`;
+
+  return `
+    <div class="consulta-hero">
+      <img class="consulta-hero__img" src="data/img/${pd}.png" alt="${pd}"
+        onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
+      <div class="consulta-hero__num">${pd}</div>
+      <div class="consulta-hero__sym">${sym}</div>
+      <div class="consulta-hero__ultima">${ultimaTexto}</div>
+    </div>`;
+}
+
+function renderHistorialReciente(r) {
+  const h = r.historialReciente;
+  if (!h || !h.length) {
+    return `<section class="consulta-section">
+      <h4>Historial reciente</h4>
+      <p>Sin apariciones registradas todavía.</p>
+    </section>`;
+  }
+  return `
+    <section class="consulta-section">
+      <h4>Historial reciente — últimas ${h.length} apariciones</h4>
+      <p class="consulta-nota">Esto es la materia prima cruda: fecha, horario, y qué cayó justo antes/después
+        cada vez. Armá tu propia hipótesis a partir de esto — el sistema no la arma por vos.</p>
+      <table class="consulta-table">
+        <thead><tr><th>Fecha</th><th>Horario</th><th>Cayó antes</th><th>Cayó después</th></tr></thead>
+        <tbody>
+          ${h.map((ap) => `
+            <tr>
+              <td>${formatFriendlyDate(ap.fecha)}</td>
+              <td>${ap.horario}</td>
+              <td>${ap.anterior === null ? "—" : numSym(ap.anterior)}</td>
+              <td>${ap.siguiente === null ? "—" : numSym(ap.siguiente)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </section>`;
+}
+
 function renderResultado(r) {
   const f = r.frecuencia;
   const g = r.gap;
@@ -70,7 +117,10 @@ function renderResultado(r) {
 
   return `
     <div class="consulta-card">
-      <h3>${numSym(r.numero)} — ${r.totalSorteos} sorteos analizados</h3>
+      ${renderHero(r)}
+      <p class="consulta-nota consulta-nota--total">${r.totalSorteos} sorteos analizados en total.</p>
+
+      ${renderHistorialReciente(r)}
 
       <section class="consulta-section">
         <h4>Frecuencia</h4>

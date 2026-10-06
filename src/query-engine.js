@@ -146,6 +146,41 @@ function analizarTransiciones(numeros, numero) {
 }
 
 /**
+ * Última vez que cayó el número: fecha exacta + horario, tal cual lo
+ * necesita un jugador para anotar "salió el X de mes a las Y" y armar
+ * su propia hipótesis a partir de ahí.
+ */
+function obtenerUltimaAparicion(limpios, numero) {
+  for (let i = limpios.length - 1; i >= 0; i--) {
+    if (limpios[i].numero === numero) {
+      return { fecha: limpios[i].fecha, horario: limpios[i].horario };
+    }
+  }
+  return null;
+}
+
+/**
+ * Últimas K apariciones del número con su fecha/horario exactos y qué
+ * número cayó justo antes y justo después en esa misma ocasión — la
+ * materia prima cruda para que el jugador arme su propia hipótesis
+ * ("salió en 11AM después del 53, y antes del 94"), sin que el sistema
+ * le diga qué concluir.
+ */
+function obtenerHistorialReciente(limpios, numero, k = 8) {
+  const apariciones = [];
+  for (let i = 0; i < limpios.length; i++) {
+    if (limpios[i].numero !== numero) continue;
+    apariciones.push({
+      fecha: limpios[i].fecha,
+      horario: limpios[i].horario,
+      anterior: i > 0 ? limpios[i - 1].numero : null,
+      siguiente: i < limpios.length - 1 ? limpios[i + 1].numero : null,
+    });
+  }
+  return apariciones.slice(-k).reverse();
+}
+
+/**
  * Consulta completa de un número: evidencia cruda + contraste contra azar
  * en cada dimensión. No produce un score ni una recomendación.
  *
@@ -164,6 +199,8 @@ export function consultarNumero(numero, draws, opts = {}) {
   return {
     numero: num,
     totalSorteos: numeros.length,
+    ultimaAparicion: obtenerUltimaAparicion(limpios, num),
+    historialReciente: obtenerHistorialReciente(limpios, num),
     frecuencia: analizarFrecuencia(numeros, num),
     gap: analizarGap(numeros, num),
     vuelta: analizarVueltaNumero(numeros, num),

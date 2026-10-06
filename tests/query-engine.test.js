@@ -81,4 +81,43 @@ describe("consultarNumero", () => {
     const r = consultarNumero(53, draws, { pais: "HN" });
     expect(r.gap.gapPromedio).toBeCloseTo(10, 0);
   });
+
+  it("ultimaAparicion: null si el número nunca cayó", () => {
+    const draws = fabricarDraws({ dias: 5, secuencia: [1, 2, 3, 4, 5, 6, 7, 8, 9] });
+    const r = consultarNumero(53, draws, { pais: "HN" });
+    expect(r.ultimaAparicion).toBeNull();
+  });
+
+  it("ultimaAparicion: devuelve fecha y horario exactos de la última caída", () => {
+    // día0: 1,2,3 · día1: 4,30,6 (30 cae el día1, turno 3PM) · día2: 7,8,9
+    const secuencia = [1, 2, 3, 4, 30, 6, 7, 8, 9];
+    const draws = fabricarDraws({ dias: 3, secuencia });
+    const r = consultarNumero(30, draws, { pais: "HN" });
+    expect(r.ultimaAparicion).not.toBeNull();
+    expect(r.ultimaAparicion.horario).toBe("3PM");
+    expect(r.ultimaAparicion.fecha).toBe(new Date(2024, 0, 2).toISOString().slice(0, 10));
+  });
+
+  it("historialReciente: trae anterior/siguiente de cada aparición, más reciente primero", () => {
+    // 30 cae dos veces: día1/11AM (anterior=null por ser el primer sorteo) y día2/9PM
+    const secuencia = [30, 2, 3, 4, 5, 30, 7, 8, 9];
+    const draws = fabricarDraws({ dias: 3, secuencia });
+    const r = consultarNumero(30, draws, { pais: "HN" });
+    expect(r.historialReciente).toHaveLength(2);
+    // Más reciente primero: día2/9PM (índice 5), anterior=5, siguiente=7
+    expect(r.historialReciente[0].horario).toBe("9PM");
+    expect(r.historialReciente[0].anterior).toBe(5);
+    expect(r.historialReciente[0].siguiente).toBe(7);
+    // La más vieja: día1/11AM (índice 0), sin anterior, siguiente=2
+    expect(r.historialReciente[1].anterior).toBeNull();
+    expect(r.historialReciente[1].siguiente).toBe(2);
+  });
+
+  it("historialReciente: se limita a las últimas 8 apariciones por defecto", () => {
+    const secuencia = [];
+    for (let i = 0; i < 300; i++) secuencia.push(i % 3 === 0 ? 53 : 1);
+    const draws = fabricarDraws({ dias: 100, secuencia });
+    const r = consultarNumero(53, draws, { pais: "HN" });
+    expect(r.historialReciente.length).toBeLessThanOrEqual(8);
+  });
 });
