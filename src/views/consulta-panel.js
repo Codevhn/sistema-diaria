@@ -47,8 +47,8 @@ async function ejecutarConsulta(input, out) {
   }
 }
 
-const pct = (v) => (v === null || v === undefined ? "—" : `${(v * 100).toFixed(2)}%`);
 const pad2 = (n) => String(n).padStart(2, "0");
+const miles = (n) => (n === null || n === undefined ? "—" : n.toLocaleString("es-HN"));
 const simbolo = (n) => GUIA?.[pad2(n)]?.simbolo || "";
 // Número + símbolo juntos, como se ven en el resto de la app (ej: "74 Edificio")
 const numSym = (n) => {
@@ -56,11 +56,13 @@ const numSym = (n) => {
   return s ? `${pad2(n)} <span class="consulta-sym">${s}</span>` : pad2(n);
 };
 
-function etiquetaSignificancia(pValue) {
-  if (pValue === null || pValue === undefined || Number.isNaN(pValue)) return "";
-  if (pValue < 0.01) return `<span class="consulta-tag consulta-tag--fuerte">p=${pValue.toFixed(4)} — infrecuente por azar</span>`;
-  if (pValue < 0.05) return `<span class="consulta-tag consulta-tag--media">p=${pValue.toFixed(4)} — algo infrecuente</span>`;
-  return `<span class="consulta-tag consulta-tag--normal">p=${pValue.toFixed(3)} — compatible con azar</span>`;
+// Una tarjeta "stat tile": valor grande arriba, etiqueta chica abajo.
+// Sin porcentajes ni comparación contra azar — eso es auditoría, no esto.
+function statTile(value, label) {
+  return `<div class="consulta-stat">
+    <span class="consulta-stat__value">${value}</span>
+    <span class="consulta-stat__label">${label}</span>
+  </div>`;
 }
 
 function renderHero(r) {
@@ -124,19 +126,20 @@ function renderResultado(r) {
 
       <section class="consulta-section">
         <h4>Frecuencia</h4>
-        <p>Cayó <b>${f.hits}</b> de ${f.total} veces (${pct(f.tasaObservada)}).
-           Esperado por azar: ${pct(f.esperadoAzar)}.
-           IC95%: ${pct(f.ic.low)}–${pct(f.ic.high)}.
-           ${etiquetaSignificancia(f.pValue)}</p>
+        <div class="consulta-stats">
+          ${statTile(miles(f.hits), "veces cayó")}
+          ${statTile(miles(f.total), "sorteos analizados")}
+        </div>
       </section>
 
       <section class="consulta-section">
         <h4>Gap (rezago)</h4>
         ${g.gapPromedio === null
           ? `<p>No hay suficientes apariciones para calcular el gap.</p>`
-          : `<p>Gap actual: <b>${g.gapActual}</b> sorteos sin caer.
-             Gap promedio histórico: <b>${g.gapPromedio.toFixed(1)}</b> sorteos
-             (sobre ${g.ocurrencias} apariciones).</p>`}
+          : `<div class="consulta-stats">
+               ${statTile(g.gapActual, "sorteos sin caer ahora")}
+               ${statTile(g.gapPromedio.toFixed(1), "gap promedio histórico")}
+             </div>`}
       </section>
 
       <section class="consulta-section">
@@ -145,10 +148,10 @@ function renderResultado(r) {
           ? `<p>Este número es palíndromo (${numSym(r.numero)}): no tiene espejo distinto.</p>`
           : v.total === 0
             ? `<p>Sin suficientes apariciones con ventana completa para evaluar la vuelta al ${numSym(v.mirror)}.</p>`
-            : `<p>Tras caer ${numSym(r.numero)}, su vuelta (${numSym(v.mirror)}) cayó dentro de los 5 sorteos
-               siguientes en <b>${v.hits}</b> de ${v.total} veces (${pct(v.tasaObservada)}).
-               Esperado por azar en esa misma ventana: ${pct(v.esperadoAzar)}.
-               ${etiquetaSignificancia(v.pValue)}</p>`}
+            : `<p class="consulta-lead">Vuelta: ${numSym(v.mirror)}</p>
+               <div class="consulta-stats">
+                 ${statTile(`${v.hits} de ${v.total}`, "veces cayó dentro de los 5 sorteos siguientes")}
+               </div>`}
       </section>
 
       <section class="consulta-section">
@@ -156,19 +159,15 @@ function renderResultado(r) {
         ${t.total === 0
           ? `<p>No hay suficientes apariciones para analizar transiciones.</p>`
           : `<table class="consulta-table">
-               <thead><tr><th>Sucesor</th><th>Veces</th><th>Observado</th><th>Esperado azar</th><th></th></tr></thead>
+               <thead><tr><th>Sucesor</th><th>Veces</th></tr></thead>
                <tbody>
                  ${t.filas.map((fila) => `
                    <tr>
                      <td>${numSym(fila.sucesor)}</td>
-                     <td>${fila.hits}/${fila.total}</td>
-                     <td>${pct(fila.tasaObservada)}</td>
-                     <td>${pct(fila.esperadoAzar)}</td>
-                     <td>${etiquetaSignificancia(fila.pValue)}</td>
+                     <td>${fila.hits}</td>
                    </tr>`).join("")}
                </tbody>
-             </table>
-             <p class="consulta-nota">${t.advertencia}</p>`}
+             </table>`}
       </section>
     </div>`;
 }

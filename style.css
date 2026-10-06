@@ -12233,13 +12233,37 @@ details[open] .aus-valid__toggle::before { content: '▼ '; }
 .consulta-section h4 { margin: 0 0 0.6rem; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--color-muted, #999); }
 .consulta-section p { font-size: 1.15rem; line-height: 1.8; margin: 0; }
 .consulta-sym { color: var(--color-muted, #999); font-size: 0.85em; margin-left: 2px; }
+
+/* — Stat tiles: valor grande + etiqueta chica, en bloque, no en línea — */
+.consulta-stats { display: flex; flex-wrap: wrap; gap: 1rem; }
+.consulta-stat {
+  flex: 1 1 180px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 1.1rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.consulta-stat__value {
+  font-size: 2.2rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--clr-gold, #f5d36b);
+  font-variant-numeric: proportional-nums;
+}
+.consulta-stat__label {
+  font-size: 0.95rem;
+  color: var(--color-muted, #999);
+  line-height: 1.4;
+}
+.consulta-lead { font-size: 1.15rem; margin: 0 0 0.8rem; }
+
 .consulta-table { width: 100%; border-collapse: collapse; font-size: 1.1rem; margin-top: 0.6rem; }
 .consulta-table th, .consulta-table td { padding: 0.7rem 0.9rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .consulta-table th { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--color-muted, #999); }
-.consulta-tag { font-size: 0.9rem; padding: 3px 10px; border-radius: 12px; white-space: nowrap; }
-.consulta-tag--fuerte { background: rgba(224,92,92,0.15); color: #e05c5c; }
-.consulta-tag--media { background: rgba(224,184,74,0.15); color: #e0b84a; }
-.consulta-tag--normal { background: rgba(92,186,92,0.12); color: #5cba5c; }
+.consulta-table td:nth-child(2) { font-variant-numeric: tabular-nums; }
 .consulta-nota { font-size: 0.95rem; color: var(--color-muted, #999); margin-top: 0.6rem; line-height: 1.6; }
 .consulta-error { color: #e05c5c; font-size: 1.1rem; }
 .consulta-loading { color: var(--color-muted, #999); font-size: 1.1rem; }
