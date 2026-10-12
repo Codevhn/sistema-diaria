@@ -1,31 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
-
-/* === LA DIARIA — Neon Gold Terminal === */
+/* Color de UI, radios, sombras y tipografía: ÚNICAMENTE en tokens.css
+   (fase 1 del rediseño). Lo que queda acá son alias/variables que
+   tokens.css no define y que paneles aún sin migrar (fase 2+) usan. */
 :root {
-  --color-bg: #0e0e12;
-  --color-surface: #17171d;
-  --color-surface-2: #1e1e26;
-  --color-surface-3: #26262f;
-  --color-border: rgba(242, 196, 74, 0.20);
-  --color-border-strong: rgba(242, 196, 74, 0.45);
-  --color-text: #f8f4ea;
-  --color-muted: #a89e88;
-  --color-accent: #f2c44a;
-  --color-accent-soft: rgba(242, 196, 74, 0.12);
-  --color-success: #5ec47e;
-  --color-warning: #e88c38;
-  --color-danger: #e05252;
-  --color-chart-up: #f2c44a;
-  --color-chart-down: #e05252;
-  --radius-sm: 2px;
-  --radius-md: 5px;
-  --radius-lg: 8px;
-  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.55);
-  --shadow-hard: 0 8px 48px rgba(0, 0, 0, 0.75);
-  --neon-glow: 0 0 10px rgba(242, 196, 74, 0.5), 0 0 28px rgba(242, 196, 74, 0.2);
-  --neon-glow-soft: 0 0 6px rgba(242, 196, 74, 0.28);
-  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: "Space Grotesk", "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
+  --color-accent-soft: var(--color-accent-tint);
   /* Legacy palette aliases */
   --gold: #f2c44a;
   --gold-light: #f7d87a;
@@ -33,23 +10,11 @@
   --bg2: #17171d;
   --text: #f8f4ea;
   --border: rgba(242, 196, 74, 0.22);
+  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.55);
+  --shadow-hard: 0 8px 48px rgba(0, 0, 0, 0.75);
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: var(--font-sans);
-  color: var(--color-text);
-  background: var(--color-bg);
-  display: flex;
-  min-height: 100vh;
-  position: relative;
-  overflow-x: hidden;
-}
-
+/* *{box-sizing}, body{...}: ya están una sola vez en components.css */
 
 .menu-btn {
   display: flex;
@@ -93,31 +58,7 @@ body::after {
   display: none;
 }
 
-.sidebar {
-  background: #161618;
-  border-right: 1px solid var(--color-border);
-  box-shadow: 1px 0 0 rgba(201, 168, 76, 0.06);
-  width: 280px;
-  padding: 24px 0;
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 200;
-  transition: transform 0.3s ease, box-shadow 0.2s ease;
-}
-
-.sidebar .brand {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text);
-  text-align: center;
-  margin-bottom: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
+/* .sidebar y .sidebar .brand: definidos en src/theme/components.css */
 
 /* ── Barra de presencia ──────────────────────────────────────────── */
 .presence-bar {
@@ -227,65 +168,7 @@ body::after {
   margin: 0;
 }
 
-.sidebar button {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 14px;
-  padding: 12px 22px;
-  background: transparent;
-  border: none;
-  color: #c8bfa8;
-  text-transform: uppercase;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  letter-spacing: 0.2em;
-  text-align: left;
-  cursor: pointer;
-  border-left: 3px solid transparent;
-  transition: color 0.2s ease, background 0.25s ease, border-color 0.2s ease;
-}
-
-.sidebar button .sidebar-icon {
-  width: 32px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-2);
-  color: var(--color-accent);
-  font-size: 12px;
-}
-
-.sidebar button i {
-  font-style: normal;
-  color: var(--color-text);
-  letter-spacing: 0.16em;
-  flex: 1 1 auto;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: left;
-}
-
-.sidebar button:hover,
-.sidebar button:focus-visible {
-  background: rgba(201, 168, 76, 0.08);
-  color: var(--color-text);
-  border-color: var(--color-accent);
-}
-
-.sidebar button:hover .sidebar-icon,
-.sidebar button:focus-visible .sidebar-icon {
-  color: var(--color-text);
-  border-color: var(--color-accent);
-  background: rgba(201, 168, 76, 0.08);
-  box-shadow: 0 0 18px rgba(201, 168, 76, 0.2);
-}
+/* .sidebar button y variantes: definidos en src/theme/components.css */
 
 @media (max-width: 1024px) {
   .sidebar button {
@@ -619,52 +502,19 @@ select[aria-invalid="true"] {
   box-shadow: 0 0 0 2px rgba(224, 76, 65, 0.25);
 }
 
-.btn-secondary {
-  background: rgba(201, 168, 76, 0.08);
-  border: 1px solid rgba(201, 168, 76, 0.2);
-  color: var(--color-accent);
-}
-
-.btn-ghost {
-  background: transparent;
-  border: 1px dashed rgba(201, 168, 76, 0.35);
-  color: var(--color-muted);
-}
-
-.btn-ghost:hover {
-  border-style: solid;
-  color: var(--color-text);
-  box-shadow: none;
-}
-
-.btn-compact {
-  padding: 6px 12px;
-  font-size: 0.85rem;
-}
+/* .btn-secondary/.btn-ghost/.btn-compact/.btn-danger: components.css (fase 1) */
 
 button.ghost {
   background: transparent;
-  border: 1px dashed rgba(201, 168, 76, 0.4);
-  color: var(--color-accent);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-muted);
   margin-top: 6px;
 }
 
 button.ghost:hover {
-  border-style: solid;
+  border-color: var(--color-accent);
+  color: var(--color-text);
   box-shadow: none;
-}
-
-.btn-danger {
-  background: rgba(200, 72, 72, 0.15);
-  border-color: rgba(200, 72, 72, 0.45);
-  color: #e07070;
-}
-
-.btn-danger:hover,
-.btn-danger:focus-visible {
-  background: rgba(200, 72, 72, 0.25);
-  border-color: #c84848;
-  color: #f09090;
 }
 .view {
   display: block;
@@ -2091,45 +1941,15 @@ button.ghost:hover {
   color: var(--color-text);
 }
 
-.table-wrap {
-  width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-surface);
-}
+/* .table-wrap (base), .table-wrap table/th/td, tr:last-child td:
+   components.css (fase 1) */
 
 .table-wrap--history {
   overflow-x: auto;
 }
 
-.table-wrap table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.86rem;
-}
-
-.table-wrap th,
-.table-wrap td {
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(201, 168, 76, 0.08);
-  text-align: left;
-}
-
-.table-wrap th {
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  background: var(--color-surface-2);
-}
-
 .table-wrap tbody tr:nth-child(even) {
   background: rgba(16, 28, 56, 0.45);
-}
-
-.table-wrap tbody tr:last-child td {
-  border-bottom: none;
 }
 
 .history-number {
@@ -2507,40 +2327,7 @@ button.ghost:hover {
   }
 }
 
-.btn-primary {
-  min-width: 220px;
-  background: var(--color-accent);
-  border: 1px solid transparent;
-  color: #111;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 4px 18px rgba(201, 168, 76, 0.25);
-}
-
-.btn-primary:hover,
-.btn-primary:focus-visible {
-  background: #d9b85c;
-  color: #111;
-  border-color: transparent;
-  box-shadow: 0 6px 24px rgba(201, 168, 76, 0.4);
-}
-
-.btn-outline {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-radius: var(--radius-sm);
-  box-shadow: none;
-}
-
-.btn-outline:hover,
-.btn-outline:focus-visible {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
+/* .btn-primary/.btn-outline: components.css (fase 1) */
 
 .hypo-list {
   gap: 18px;
@@ -2763,33 +2550,8 @@ button.ghost:hover {
   flex-direction: column;
   gap: 15px;
 }
-.card {
-  position: relative;
-  background: radial-gradient(140% 160% at 0% 0%, rgba(201, 168, 76, 0.12), transparent 60%),
-    var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  box-shadow: var(--shadow-soft);
-  overflow: hidden;
-}
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(140deg, rgba(201, 168, 76, 0.2), transparent 55%);
-  opacity: 0.3;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-}
-.card:hover::before {
-  opacity: 0.6;
-}
-.card > * {
-  position: relative;
-  z-index: 1;
-}
+/* .card, .card::before/:hover::before, .card > *: components.css (fase 1) —
+   el glow dorado decorativo del diseño anterior se eliminó por completo. */
 
 .card-head {
   color: var(--color-text);
@@ -3796,42 +3558,11 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   background: #0f472c;
 }
 /* === MODAL DE CONFIRMACIÓN === */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(3, 5, 16, 0.95);
-  backdrop-filter: blur(3px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  transition: opacity 0.25s ease;
-}
-.modal.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.modal-content {
-  background: var(--bg2);
-  border: 1px solid var(--gold);
-  border-radius: var(--radius-md);
-  padding: 20px 24px;
-  width: 90%;
-  max-width: 400px;
-  color: var(--text);
-  box-shadow: 0 0 25px rgba(212, 167, 44, 0.25);
-  animation: modalPop 0.3s ease;
-}
+/* .modal, .modal.hidden, .modal-content, .modal-content--wide,
+   .modal-head--spread, .modal-body: components.css (fase 1) */
 
 .modal-head h3 {
   color: var(--gold);
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.modal-body {
-  margin-top: 8px;
 }
 
 .modal-msg {
@@ -3932,30 +3663,6 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   padding: 10px 18px;
 }
 
-@keyframes modalPop {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.modal-content--wide {
-  max-width: 760px;
-  width: 92%;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-}
-
-.modal-head--spread {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
 
 .pending-modal__hint {
   margin: 0 0 12px;
@@ -8013,25 +7720,10 @@ body.login-page {
   background: var(--color-surface-2);
 }
 
-.table-wrap {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  box-shadow: 0 18px 40px rgba(201, 168, 76, 0.08);
-}
-
-.table-wrap th {
-  background: var(--color-surface-2);
-  color: var(--color-text);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.table-wrap td {
-  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
-}
+/* .table-wrap/th/td (base): components.css (fase 1) */
 
 .table-wrap tr:nth-child(even) td {
-  background: rgba(201, 168, 76, 0.03);
+  background: var(--color-surface-2);
 }
 
 .pill,
