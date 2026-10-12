@@ -3963,7 +3963,12 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   font-size: 0.95rem;
 }
 
-.pending-table-wrap {
+/* Selector de 2 clases a propósito: el div tiene class="pending-table-wrap
+   table-wrap hidden", y src/theme/base.css define su propio .table-wrap
+   (overflow: hidden) que carga DESPUÉS de este archivo. Con un solo .table-wrap
+   ahí, misma especificidad + orden de carga = esa regla ganaba y mataba el
+   overflow-y:auto de acá, por eso la tabla no tenía scroll vertical. */
+.pending-table-wrap.table-wrap {
   margin-top: 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
