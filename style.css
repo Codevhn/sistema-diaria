@@ -2850,8 +2850,8 @@ html[data-role="editor"]  .requires-admin  { display: none !important; }
   border-radius: 50%;
   background: radial-gradient(circle at 38% 35%, #fff7da 0%, #f2c44a 45%, #b8861c 100%);
   box-shadow:
-    0 4px 18px rgba(var(--color-accent-rgb), 0.45),
-    0 0 32px rgba(var(--color-accent-rgb), 0.2),
+    0 4px 18px rgba(242, 196, 74, 0.45),
+    0 0 32px rgba(242, 196, 74, 0.2),
     inset 0 -3px 6px rgba(0,0,0,0.35);
   display: flex;
   align-items: center;
