@@ -5210,6 +5210,55 @@ import {
       }
     })();
 
+    // ✅ Selector de acento (color de la interfaz)
+    (function initAccent() {
+      const ACCENTS = ["teal", "azul", "grafito", "dorado"];
+      const saved = localStorage.getItem("ld-accent") || "teal";
+      document.documentElement.setAttribute("data-accent", ACCENTS.includes(saved) ? saved : "teal");
+
+      const accentBtn = document.getElementById("btn-toggle-accent");
+      const panel = document.getElementById("accent-picker-panel");
+      if (!accentBtn || !panel) return;
+
+      const swatches = Array.from(panel.querySelectorAll(".accent-swatch"));
+      const markActive = (accent) => {
+        swatches.forEach((sw) => sw.classList.toggle("active", sw.dataset.accent === accent));
+      };
+      markActive(document.documentElement.getAttribute("data-accent"));
+
+      const closePanel = () => {
+        panel.classList.add("hidden");
+        accentBtn.setAttribute("aria-expanded", "false");
+      };
+      const openPanel = () => {
+        panel.classList.remove("hidden");
+        accentBtn.setAttribute("aria-expanded", "true");
+      };
+
+      accentBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (panel.classList.contains("hidden")) openPanel();
+        else closePanel();
+      });
+
+      swatches.forEach((sw) => {
+        sw.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const accent = sw.dataset.accent;
+          document.documentElement.setAttribute("data-accent", accent);
+          localStorage.setItem("ld-accent", accent);
+          markActive(accent);
+          closePanel();
+        });
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!panel.classList.contains("hidden") && !panel.contains(e.target) && e.target !== accentBtn) {
+          closePanel();
+        }
+      });
+    })();
+
     // ✅ Tab flotante para revelar sidebar
     const revealBtn = document.getElementById("btn-reveal-sidebar");
     if (revealBtn && sidebar) {

@@ -75,6 +75,18 @@
       <button class="mac-titlebar__icon-btn" id="btn-toggle-theme" aria-label="Cambiar tema" title="Cambiar tema">
         <i class="fa-solid fa-moon" id="theme-icon"></i>
       </button>
+      <!-- Selector de acento (color de la interfaz) -->
+      <div class="accent-picker">
+        <button class="mac-titlebar__icon-btn" id="btn-toggle-accent" aria-label="Cambiar color de acento" title="Cambiar color de acento" aria-expanded="false">
+          <i class="fa-solid fa-palette"></i>
+        </button>
+        <div class="accent-picker__panel hidden" id="accent-picker-panel" role="menu">
+          <button class="accent-swatch" data-accent="teal" role="menuitem" aria-label="Verde (teal)" title="Verde (teal)"></button>
+          <button class="accent-swatch" data-accent="azul" role="menuitem" aria-label="Azul" title="Azul"></button>
+          <button class="accent-swatch" data-accent="grafito" role="menuitem" aria-label="Grafito" title="Grafito"></button>
+          <button class="accent-swatch" data-accent="dorado" role="menuitem" aria-label="Dorado" title="Dorado"></button>
+        </div>
+      </div>
       <!-- Toggle sidebar — siempre visible en la barra de título -->
       <button class="mac-titlebar__icon-btn" id="btn-toggle-sidebar" aria-label="Mostrar/ocultar menú" title="Mostrar/ocultar menú">
         <i class="fa-solid fa-bars"></i>

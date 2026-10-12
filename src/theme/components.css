@@ -79,6 +79,46 @@ body {
   color: var(--color-text);
 }
 
+/* ═══════════════ Selector de acento ═══════════════ */
+.accent-picker {
+  position: relative;
+}
+.accent-picker__panel {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 510;
+}
+.accent-picker__panel.hidden {
+  display: none;
+}
+.accent-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.accent-swatch:hover {
+  transform: scale(1.1);
+}
+.accent-swatch.active {
+  border-color: var(--color-text);
+}
+.accent-swatch[data-accent="teal"]    { background: #2dd4bf; }
+.accent-swatch[data-accent="azul"]    { background: #4f8cff; }
+.accent-swatch[data-accent="grafito"] { background: #8a93a6; }
+.accent-swatch[data-accent="dorado"]  { background: #f2c44a; }
+
 .mac-sidebar-reveal {
   position: fixed;
   top: 48px;
