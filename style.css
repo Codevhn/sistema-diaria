@@ -2730,10 +2730,6 @@ button.ghost:hover {
 .hidden {
   display: none !important;
 }
-.processing-modal.hidden,
-.boot-loader.hidden {
-  display: none !important;
-}
 
 /* ── Visibilidad basada en rol ─────────────────────────────────────── */
 /* El <html> tiene data-role="admin|editor|lector" al iniciar */
