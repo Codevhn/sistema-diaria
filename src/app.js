@@ -2374,7 +2374,7 @@ import {
       botonOcupado: withButtonBusy,
       horarioKeys: HORARIO_KEYS,
     });
-    initHorarioPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }) });
+    initHorarioPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     initConsultaPanel({
       obtenerSorteos: () => getCachedDraws(),
       pais: () => "HN",

@@ -1,14 +1,17 @@
 import { consultarHorarioFavorito, HORAS_DIARIA } from '../horario-engine.js';
 
-export function renderHorarioFavorito(result) {
+export function renderHorarioFavorito(result, guia = {}) {
   const number = String(result.numero).padStart(2, '0');
+  const symbol = String(guia[number]?.simbolo || 'Sin símbolo').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[char]);
   const count = (n) => n.toLocaleString('es-HN');
   if (!result.totalSorteos) return '<p class="hf-empty">No hay sorteos válidos de Honduras en el historial disponible.</p>';
   const title = !result.total ? 'Sin apariciones registradas'
     : result.favoritos.length > 1 ? 'Empate entre horarios' : 'Horario con más apariciones';
   const winner = result.favoritos.map(t => HORAS_DIARIA[t]).join(' · ');
   return `<div class="hf-summary">
-    <div class="hf-number-block"><span class="hf-eyebrow">Número consultado</span><div class="hf-number">${number}</div><span class="hf-number-caption">La Diaria · Honduras</span></div>
+    <div class="hf-number-block"><span class="hf-symbol">${symbol}</span><div class="hf-number">${number}</div><span class="hf-number-caption">La Diaria · Honduras</span></div>
     <div class="hf-summary__answer"><span class="hf-eyebrow">${title}</span><h3>${winner || `El ${number} aún no aparece en este historial.`}</h3>
     <p>${count(result.total)} apariciones · ${count(result.totalSorteos)} sorteos analizados<br>Desde ${result.desde} hasta ${result.hasta} · Honduras</p></div>
   </div>
@@ -22,7 +25,7 @@ export function renderHorarioFavorito(result) {
   <p class="hf-footnote">“Favorito” significa el horario con más apariciones registradas. Se analiza todo el historial disponible, sin limitarlo a los sorteos recientes. El porcentaje reparte las apariciones del número entre horarios; no es la probabilidad de que salga. Si los turnos tienen distinta cobertura histórica, los conteos pueden reflejar esa diferencia.</p>`;
 }
 
-export function initHorarioPanel({ obtenerSorteos }) {
+export function initHorarioPanel({ obtenerSorteos, obtenerGuia = () => ({}) }) {
   const form = document.getElementById('hf-form');
   const input = document.getElementById('hf-numero');
   const output = document.getElementById('hf-result');
@@ -42,7 +45,7 @@ export function initHorarioPanel({ obtenerSorteos }) {
     try {
       const draws = await obtenerSorteos();
       if (current !== request) return;
-      output.innerHTML = renderHorarioFavorito(consultarHorarioFavorito(numero, draws));
+      output.innerHTML = renderHorarioFavorito(consultarHorarioFavorito(numero, draws), obtenerGuia());
     } catch {
       if (current === request) output.textContent = 'No se pudo cargar el historial. Volvé a consultar para reintentar.';
     } finally {

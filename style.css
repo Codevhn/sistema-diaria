@@ -11874,3 +11874,5 @@ details[open] .aus-valid__toggle::before { content: '▼ '; }
 .hf-card--favorite .hf-count { color: var(--color-accent); }
 .hf-card p strong { font-size: 1.2rem; }
 @media (max-width: 760px) { .hf-summary { flex-direction: column; padding: 20px; gap: 24px; } .hf-number-block { flex: auto; width: 100%; } .hf-number { font-size: 7rem; } .hf-card { padding: 24px; } }
+
+.hf-symbol { display: block; font-size: 1.8rem; font-weight: 700; color: var(--color-text); line-height: 1.2; overflow-wrap: anywhere; }
