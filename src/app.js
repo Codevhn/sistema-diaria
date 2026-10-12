@@ -51,6 +51,7 @@ import {
   syncPega3Context,
 } from "./views/pega3-panel.js";
 import { initConsultaPanel } from "./views/consulta-panel.js";
+import { initHorarioPanel } from "./views/horario-panel.js";
     import { loadUserPreferences, saveUserPreferences } from "./user-preferences.js";
     import { getMyRole, getAllProfiles, updateUserRole, updateUserName, setBanStatus, roleLabel, roleColor, VALID_ROLES } from "./roles.js";
 import { initDecemberPanel } from "./views/december-panel.js";
@@ -2373,6 +2374,7 @@ import {
       botonOcupado: withButtonBusy,
       horarioKeys: HORARIO_KEYS,
     });
+    initHorarioPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }) });
     initConsultaPanel({
       obtenerSorteos: () => getCachedDraws(),
       pais: () => "HN",
@@ -4772,6 +4774,7 @@ import {
       transform: "view-transform",
       pega3: "view-pega3",
       consulta: "view-consulta",
+      horario: "view-horario",
       geometry: "view-geometry",
       memory: "view-memory",
       guide: "view-guide",

@@ -132,6 +132,7 @@
         <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
         <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
         <button data-view="consulta"><span class="sidebar-icon fa-solid fa-magnifying-glass-chart"></span><i>Consulta</i></button>
+        <button data-view="horario"><span class="sidebar-icon fa-solid fa-clock"></span><i>Horario favorito</i></button>
         <button data-view="suerte" style="display:none"><span class="sidebar-icon fa-solid fa-shuffle"></span><i>Tirada de suerte</i></button>
         <button data-view="geometry" style="display:none"><span
             class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
@@ -492,6 +493,19 @@
         <button id="consulta-btn-buscar" class="btn-outline">Consultar</button>
       </div>
       <div id="consulta-resultado"></div>
+    </section>
+
+    <section id="view-horario" class="view hidden">
+      <h2>Horario favorito</h2>
+      <p class="hint">¿A qué hora ha salido más un número? Consulta sus apariciones en todo el historial disponible de La Diaria Honduras.</p>
+      <form id="hf-form" class="hf-form">
+        <label for="hf-numero">Número (00–99)</label>
+        <div class="hf-controls">
+          <input id="hf-numero" type="text" inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2" placeholder="Ej: 67" required />
+          <button type="submit" class="btn-primary">Consultar horario</button>
+        </div>
+      </form>
+      <div id="hf-result" role="status" aria-live="polite"><p class="hf-empty">Ingresá un número para ver su horario más frecuente y la distribución completa.</p></div>
     </section>
 
     <!-- VERIFICADOR ESTADÍSTICO -->
