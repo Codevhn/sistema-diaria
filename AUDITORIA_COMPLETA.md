@@ -238,7 +238,7 @@ Acciones:
    → index.html inyecta las vars antes de cargar módulos
    → supabaseClient.js importa de config.js
 
-2. Agregar .env y .claude/ a .gitignore
+2. Agregar .env a .gitignore
 
 3. Corregir package.json:
    → Quitar "main: index.js" o apuntar a algo real

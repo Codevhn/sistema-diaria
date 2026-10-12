@@ -23,12 +23,10 @@
     import { getVencidos, renderRelativosHTML, backtestRelativos, getRelativosEnAlerta, renderRelativosAlertaHTML, backtestConvergencia, getConvergenciaActiva, renderConvergenciaHTML } from "./relativos-engine.js";
     import { initSuperPremioPicker } from "./superpremio-picker.js";
     import { initNotifications } from "./notifications.js";
-    import { detectarAnomalias, renderAnomaliasHTML } from "./anomaly-engine.js";
     import { detectarContexto, renderContextoHTML } from "./context-engine.js";
     import { computeFeedback, renderFeedbackHTML } from "./feedback-engine.js";
     import { analizarPostRepeticion, renderPostRepeticionHTML } from "./post-repeticion-engine.js";
     import { analizarDejaVu, renderDejaVuHTML } from "./dejavu-engine.js";
-    import { analizarCadencias, renderCadenciasHTML } from "./cadencia-engine.js";
     import { consultarNumero, renderConsultaHTML } from "./consulta-engine.js";
     import { verificarAfirmaciones, verificarEstacionalidad, indexRobotelsa, compararAnioAnio } from "./temporal-engine.js";
     import { analizarAusencias, renderAusenciasHTML } from "./ausencia-engine.js";
@@ -3507,20 +3505,6 @@ import {
           console.warn("dejavu falló:", err?.message || err);
         }
 
-        // ── Cadencias: ritmos activos por categoría ──────────────────────────────
-        try {
-          const allDraws = await DB.listDraws();
-          const cadResult = analizarCadencias(allDraws, GUIA, { pais: pais || null });
-          const cadHtml   = renderCadenciasHTML(cadResult);
-          if (cadHtml) {
-            const cadWrap = document.createElement("div");
-            cadWrap.innerHTML = cadHtml;
-            if (cadWrap.firstElementChild) frag.appendChild(cadWrap.firstElementChild);
-          }
-        } catch (err) {
-          console.warn("cadencias falló:", err?.message || err);
-        }
-
         // ── Ausencias y doble aparición (DAPA) ──────────────────────────────────
         try {
           const allDraws = await DB.listDraws();
@@ -3548,17 +3532,6 @@ import {
           }
         } catch (err) {
           console.warn("vuelta-engine falló:", err?.message || err);
-        }
-
-        // ── Detector de anomalías estadísticas ───────────────────────────────────
-        try {
-          const allDraws = await DB.listDraws();
-          const anomalias = await detectarAnomalias(allDraws, { recentN: 35, pais: pais || null });
-          const anomWrap = document.createElement("div");
-          anomWrap.innerHTML = renderAnomaliasHTML(anomalias, 35);
-          if (anomWrap.firstElementChild) frag.appendChild(anomWrap.firstElementChild);
-        } catch (err) {
-          console.warn("anomalias falló:", err?.message || err);
         }
 
         // ── Relativos vencidos: pares (A→B) donde B está tardando más de lo normal ──

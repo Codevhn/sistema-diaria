@@ -330,67 +330,63 @@ export function renderRelativosHTML(vencidos, guia = {}, maxShow = 10) {
       </div>`;
   }
 
-  const sym = (num) => guia[PAD(num)]?.simbolo || PAD(num);
-  const fmtDias = (d) => `${d}d`;
-  const urgClass = (u) => {
-    if (u >= 2) return "rel-item--critical";
-    if (u >= 1) return "rel-item--high";
-    if (u >= 0) return "rel-item--medium";
-    return "rel-item--low";
-  };
-  const urgIcon = (u) => {
-    if (u >= 2) return "🔥";
-    if (u >= 1) return "⚡";
-    if (u >= 0) return "🟡";
-    return "🔵";
-  };
-
-  const items = vencidos.slice(0, maxShow).map((v) => {
-    const bar = Math.min(100, Math.max(0, Math.round(
-      (v.diasDesde / Math.max(1, v.mean + v.sigma * 2)) * 100
-    )));
-    const fuente = v.fuente === "companion" ? " <small class='rel-item__fuente'>(tuyo)</small>"
-      : v.fuente === "ambos" ? " <small class='rel-item__fuente'>(ambos)</small>"
-      : "";
+  const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[char]);
+  const sym = (num) => escape(guia[PAD(num)]?.simbolo || "Sin símbolo");
+  const limit = Math.max(1, Math.floor(Number(maxShow) || 10));
+  const renderCard = (v, index) => {
+    const level = v.urgencia >= 2 ? "critical" : v.urgencia >= 1 ? "high" : v.urgencia >= 0 ? "medium" : "low";
+    const label = { critical: "Demora muy alta", high: "Demora alta", medium: "Sobre el promedio", low: "En seguimiento" }[level];
+    const source = v.fuente === "companion" ? "Relación personal" : v.fuente === "ambos" ? "Oficial y personal" : "Relación oficial";
     return `
-      <div class="rel-item ${urgClass(v.urgencia)}">
+      <article class="rel-item rel-item--${level}" style="--rel-delay:${Math.min(index, 8) * 45}ms">
         <div class="rel-item__head">
-          <span class="rel-item__icon">${urgIcon(v.urgencia)}</span>
-          <span class="rel-item__nums">
-            <b>${v.padA}</b> <span class="rel-item__sym">${sym(v.a)}</span>
-            <span class="rel-item__arrow">→</span>
-            <b>${v.padB}</b> <span class="rel-item__sym">${sym(v.b)}</span>
-          </span>
-          ${fuente}
+          <span class="rel-item__level"><span aria-hidden="true">●</span> ${label}</span>
+          <span class="rel-item__fuente">${source}</span>
         </div>
-        <div class="rel-item__body">
-          <div class="rel-item__bar-wrap">
-            <div class="rel-item__bar" style="width:${bar}%"></div>
-            <div class="rel-item__bar-mean" style="left:${Math.min(100, Math.round(v.mean / Math.max(1, v.mean + v.sigma * 2) * 100))}%"></div>
+        <div class="rel-item__pair">
+          <div class="rel-item__number">
+            <span class="rel-item__label">Origen</span>
+            <strong class="rel-item__digit">${escape(v.padA || PAD(v.a))}</strong>
+            <span class="rel-item__sym">${sym(v.a)}</span>
           </div>
-          <div class="rel-item__stats">
-            <span>${fmtDias(v.diasDesde)} esperando</span>
-            <span class="muted">prom. ${v.mean.toFixed(1)}d ± ${v.sigma.toFixed(1)}</span>
-            <span class="muted">acierta ${Math.round(v.hitRate * 100)}% (${v.hits}×)</span>
+          <span class="rel-item__arrow" aria-label="relacionado con">→</span>
+          <div class="rel-item__number rel-item__number--target">
+            <span class="rel-item__label">Relativo</span>
+            <strong class="rel-item__digit">${escape(v.padB || PAD(v.b))}</strong>
+            <span class="rel-item__sym">${sym(v.b)}</span>
           </div>
-          <div class="rel-item__since">desde ${v.fechaA} ${v.horarioA || ""}</div>
         </div>
-      </div>`;
-  }).join("");
-
-  const pendientesMas = vencidos.length > maxShow
-    ? `<div class="rel-vencidos__more">+${vencidos.length - maxShow} más con señal activa</div>`
-    : "";
-
+        <div class="rel-item__wait"><strong>${escape(v.diasDesde)}</strong><span>días sin aparecer<br><small>desde el origen</small></span></div>
+        <dl class="rel-item__stats">
+          <div><dt>Espera media</dt><dd>${v.mean.toFixed(1)} <small>días</small></dd></div>
+          <div><dt>Frecuencia histórica</dt><dd>${Math.round(v.hitRate * 100)}<small>%</small></dd></div>
+        </dl>
+        <details class="rel-item__detail">
+          <summary>Ver datos del historial</summary>
+          <p>Variación de la espera: ± ${v.sigma.toFixed(1)} días.<br>${escape(v.hits)} coincidencias históricas.<br>Origen: ${escape(v.fechaA)} ${escape(v.horarioA)}.</p>
+        </details>
+      </article>`;
+  };
+  const items = vencidos.slice(0, limit).map(renderCard).join("");
+  const remaining = vencidos.length - limit;
+  const more = remaining > 0 ? `
+    <details class="rel-vencidos__more">
+      <summary>Ver ${remaining} relaciones más</summary>
+      <div class="rel-vencidos__list">${vencidos.slice(limit).map(renderCard).join("")}</div>
+    </details>` : "";
   return `
-    <div class="rel-vencidos">
-      <div class="rel-vencidos__title">🧲 Relativos vencidos <span class="rel-vencidos__count">${vencidos.length}</span></div>
-      <div class="rel-vencidos__hint">Números que deben venir según relaciones históricas — ordenados por urgencia.</div>
-      <div class="rel-vencidos__list">
-        ${items}
+    <section class="rel-vencidos" aria-label="Relativos vencidos">
+      <div class="rel-vencidos__heading">
+        <div class="rel-vencidos__title">Relativos vencidos <span class="rel-vencidos__count">${vencidos.length}</span></div>
+        <span class="rel-vencidos__sort">Mayor demora relativa primero</span>
       </div>
-      ${pendientesMas}
-    </div>`;
+      <p class="rel-vencidos__hint">Relaciones cuya espera supera su ritmo histórico. Los números grandes muestran el origen y su relativo.</p>
+      <div class="rel-vencidos__list">${items}</div>
+      ${more}
+      <p class="rel-vencidos__note">La demora y la frecuencia histórica no garantizan que el relativo salga en el próximo sorteo.</p>
+    </section>`;
 }
 
 // ─── Backtest de relativos ────────────────────────────────────────────────────
@@ -564,7 +560,11 @@ export async function getRelativosEnAlerta(draws, opts = {}) {
  * Renderiza el panel combinado "Relativos en alerta" + resumen de backtest.
  */
 export function renderRelativosAlertaHTML(alertas, backtest, guia = {}) {
-  const sym = (pad) => guia[pad]?.simbolo || pad;
+  const escape = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[char]);
+  const sym = (pad) => escape(guia[pad]?.simbolo || pad);
+  const when = (days) => days === 0 ? "Hoy" : days === 1 ? "Ayer" : `Hace ${days} días`;
 
   // ── Backtest summary ──
   let btHtml = "";
@@ -573,39 +573,38 @@ export function renderRelativosAlertaHTML(alertas, backtest, guia = {}) {
     const w2 = backtest.windows[2];
     const w3 = backtest.windows[3];
     const verdict = w1.lift >= 1.5 ? { icon: "🔥", label: "Señal fuerte", cls: "rel-bt--hot" }
-      : w1.lift >= 1.15            ? { icon: "✅", label: "Ventaja real", cls: "rel-bt--ok" }
+      : w1.lift >= 1.15            ? { icon: "✅", label: "Por encima del azar", cls: "rel-bt--ok" }
       : w1.lift >= 0.85            ? { icon: "≈",  label: "Cerca del azar", cls: "rel-bt--neutral" }
       :                              { icon: "⚠",  label: "Sin ventaja", cls: "rel-bt--bad" };
-    const sign = (v) => v >= 0 ? `+${v}` : `${v}`;
     btHtml = `
       <div class="rel-bt ${verdict.cls}">
         <div class="rel-bt__head">
-          <span class="rel-bt__title">📊 ¿Juega La Diaria con relativos?</span>
+          <span class="rel-bt__title">Frecuencia histórica de los relativos</span>
           <span class="rel-bt__verdict">${verdict.icon} ${verdict.label}</span>
         </div>
         <div class="rel-bt__grid">
           <div class="rel-bt__cell">
             <span class="rel-bt__lbl">Al día siguiente</span>
             <span class="rel-bt__val">${(w1.rate * 100).toFixed(1)}%</span>
-            <span class="rel-bt__sub">azar ${(w1.baseline * 100).toFixed(1)}% · ${sign(w1.pctVsAzar)}% lift</span>
+            <span class="rel-bt__sub">Esperado por azar: ${(w1.baseline * 100).toFixed(1)}%</span>
           </div>
           <div class="rel-bt__cell">
             <span class="rel-bt__lbl">En 2 días</span>
             <span class="rel-bt__val">${(w2.rate * 100).toFixed(1)}%</span>
-            <span class="rel-bt__sub">azar ${(w2.baseline * 100).toFixed(1)}% · ${sign(w2.pctVsAzar)}%</span>
+            <span class="rel-bt__sub">Esperado por azar: ${(w2.baseline * 100).toFixed(1)}%</span>
           </div>
           <div class="rel-bt__cell">
             <span class="rel-bt__lbl">En 3 días</span>
             <span class="rel-bt__val">${(w3.rate * 100).toFixed(1)}%</span>
-            <span class="rel-bt__sub">azar ${(w3.baseline * 100).toFixed(1)}% · ${sign(w3.pctVsAzar)}%</span>
+            <span class="rel-bt__sub">Esperado por azar: ${(w3.baseline * 100).toFixed(1)}%</span>
           </div>
           <div class="rel-bt__cell">
-            <span class="rel-bt__lbl">Lift ×</span>
+            <span class="rel-bt__lbl">Comparación con el azar</span>
             <span class="rel-bt__val">${w1.lift.toFixed(2)}×</span>
-            <span class="rel-bt__sub">${backtest.totalTriggers} disparadores analizados</span>
+            <span class="rel-bt__sub">${Number(backtest.totalTriggers).toLocaleString("es-HN")} apariciones analizadas</span>
           </div>
         </div>
-        <div class="rel-bt__hint">Mide cuántas veces un relativo cayó el día siguiente vs lo esperado por azar (2 de 100 por sorteo). Lift &gt;1.5× indica patrón real.</div>
+        <div class="rel-bt__hint">Las ventanas de 1, 2 y 3 días son acumuladas. Una relación de 1× equivale al azar; un valor mayor no garantiza el próximo resultado.</div>
       </div>`;
   }
 
@@ -614,29 +613,52 @@ export function renderRelativosAlertaHTML(alertas, backtest, guia = {}) {
   if (!alertas.length) {
     alertHtml = `<div class="rel-alerta rel-alerta--empty"><div class="rel-alerta__hint">No hay disparadores activos en los últimos 3 días.</div></div>`;
   } else {
-    const rows = alertas.map((al) => {
-      const diasLabel = al.diasDesde === 0 ? "hoy" : al.diasDesde === 1 ? "ayer" : `hace ${al.diasDesde}d`;
+    // Group the display only: keep the underlying alerts and historical calculations intact.
+    const groups = new Map();
+    for (const al of alertas) {
+      if (!groups.has(al.padA)) groups.set(al.padA, { pad: al.padA, days: al.diasDesde, candidates: new Map(), events: new Map() });
+      const group = groups.get(al.padA);
+      group.days = Math.min(group.days, al.diasDesde);
+      group.candidates.set(al.padB, al.padB);
+      const key = JSON.stringify([al.fechaA, al.horarioA]);
+      if (!group.events.has(key)) group.events.set(key, { ...al, candidates: new Set() });
+      group.events.get(key).candidates.add(al.padB);
+    }
+    const candidateCount = new Set(alertas.map((al) => al.padB)).size;
+    const rows = [...groups.values()].sort((a, b) => a.days - b.days || Number(a.pad) - Number(b.pad)).map((group) => {
+      const candidates = [...group.candidates.values()].map((pad) => `
+        <li class="rel-alerta__candidate">
+          <span class="rel-alerta__pad rel-alerta__pad--b">${escape(pad)}</span>
+          <span class="rel-alerta__sym">${sym(pad)}</span>
+        </li>`).join("");
+      const events = [...group.events.values()].sort((a, b) => a.diasDesde - b.diasDesde).map((al) => `
+        <li>${escape(al.fechaA || when(al.diasDesde))}${al.horarioA ? ` · ${escape(al.horarioA)}` : ""}
+          <span> → ${[...al.candidates].map(escape).join(" · ")}</span></li>`).join("");
       return `
-        <div class="rel-alerta__row">
+        <article class="rel-alerta__row">
           <div class="rel-alerta__trigger">
-            <span class="rel-alerta__pad">${al.padA}</span>
-            <span class="rel-alerta__sym">${sym(al.padA)}</span>
-            <span class="rel-alerta__when">cayó ${diasLabel}</span>
+            <span class="rel-alerta__pad">${escape(group.pad)}</span>
+            <span class="rel-alerta__sym">${sym(group.pad)}</span>
+            <span class="rel-alerta__when">${when(group.days)}</span>
           </div>
-          <span class="rel-alerta__arrow">→</span>
-          <div class="rel-alerta__candidate">
-            <span class="rel-alerta__pad rel-alerta__pad--b">${al.padB}</span>
-            <span class="rel-alerta__sym">${sym(al.padB)}</span>
-            <span class="rel-alerta__status">pendiente</span>
-          </div>
-        </div>`;
+          <div class="rel-alerta__label">Relativos sin aparecer</div>
+          <ul class="rel-alerta__candidates">${candidates}</ul>
+          <details class="rel-alerta__events">
+            <summary>${group.events.size} ${group.events.size === 1 ? "aparición reciente" : "apariciones recientes"} · Ver detalle</summary>
+            <ul>${events}</ul>
+          </details>
+        </article>`;
     }).join("");
     alertHtml = `
-      <div class="rel-alerta">
-        <div class="rel-alerta__head">🔗 Relativos en alerta — candidatos de relevo</div>
-        <div class="rel-alerta__hint">Números que cayeron recientemente cuyo relativo oficial aún no ha aparecido.</div>
+      <section class="rel-alerta" aria-label="Relativos en seguimiento">
+        <div class="rel-alerta__heading">
+          <div class="rel-alerta__head">Relativos en seguimiento</div>
+          <span class="rel-alerta__count">${candidateCount} ${candidateCount === 1 ? "relativo" : "relativos"} · ${groups.size} ${groups.size === 1 ? "origen" : "orígenes"}</span>
+        </div>
+        <p class="rel-alerta__hint">Cada número de origen aparece una sola vez, con sus relativos oficiales aún sin aparecer. Abre el detalle para consultar fechas y horarios.</p>
         <div class="rel-alerta__list">${rows}</div>
-      </div>`;
+        <p class="rel-alerta__note">El seguimiento describe el historial; no implica que un relativo tenga que salir.</p>
+      </section>`;
   }
 
   return `<div class="rel-alerta-wrap">${btHtml}${alertHtml}</div>`;
