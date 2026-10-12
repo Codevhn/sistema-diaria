@@ -1,0 +1,407 @@
+/**
+ * components.css — El esqueleto compartido por TODAS las vistas.
+ *
+ * Fase 1 del rediseño: layout, barra de título, sidebar, header fijo,
+ * botones, cards genéricas, modal, tabla, badges base. El resto de las
+ * vistas (paneles específicos: honestidad, memoria, guía, etc.) sigue
+ * viviendo en style.css/base.css/aurora.css hasta que se migren en
+ * fases siguientes — eso NO está terminado todavía.
+ *
+ * Cada selector de acá se define UNA sola vez en todo el proyecto.
+ * Cero !important. Todo en base a tokens.css, cero hex sueltos.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ═══════════════ Barra de título (macOS-style) ═══════════════ */
+.mac-titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  z-index: 500;
+}
+.mac-titlebar__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+  flex: 1;
+}
+.mac-titlebar__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mac-titlebar__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.mac-titlebar__icon-btn:hover,
+.mac-titlebar__icon-btn.active {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.mac-sidebar-reveal {
+  position: fixed;
+  top: 48px;
+  left: 8px;
+  z-index: 480;
+  width: 28px;
+  height: 28px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+  cursor: pointer;
+}
+body.sidebar-collapsed .mac-sidebar-reveal {
+  display: flex;
+}
+
+/* ═══════════════ Sidebar ═══════════════
+   Rediseño a propósito: antes era vidrio/blur con dorado y violeta
+   mezclados. Ahora es plana, un solo acento, sin degradados. */
+.sidebar {
+  position: fixed;
+  top: 40px;
+  bottom: 0;
+  left: 0;
+  width: 248px;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  z-index: 400;
+  overflow-y: auto;
+  transition: transform 0.2s ease;
+}
+body.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+}
+
+.sidebar .brand {
+  display: none; /* el título ya está en la mac-titlebar */
+}
+
+.sidebar button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--color-muted);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.sidebar button:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+.sidebar button.active,
+.sidebar button[aria-current="page"] {
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+  border-left-color: var(--color-accent);
+}
+.sidebar button .sidebar-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.sidebar button:hover .sidebar-icon,
+.sidebar button.active .sidebar-icon {
+  color: var(--color-accent);
+}
+.sidebar button i {
+  font-style: normal;
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.presence-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 20px 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--color-surface-2);
+  font-size: 12px;
+  color: var(--color-muted);
+  width: fit-content;
+}
+.presence-bar__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-success);
+  flex-shrink: 0;
+}
+.presence-bar__count {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ═══════════════ Contenido + header fijo ═══════════════ */
+.content {
+  margin-left: 248px;
+  margin-top: 40px;
+  flex: 1;
+  padding: 32px 40px 40px;
+  overflow-y: auto;
+  min-width: 0;
+}
+body.sidebar-collapsed .content {
+  margin-left: 0;
+}
+
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -32px -40px 24px;
+  padding: 16px 40px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ═══════════════ Botones ═══════════════ */
+.btn-primary,
+.btn-outline,
+.btn-ghost,
+.btn-secondary,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  border: 1px solid transparent;
+}
+.btn-primary {
+  background: var(--color-accent);
+  color: #0d0e11;
+}
+.btn-primary:hover {
+  background: var(--color-accent-hover);
+}
+.btn-outline,
+.btn-secondary {
+  background: transparent;
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+.btn-outline:hover,
+.btn-secondary:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-muted);
+}
+.btn-ghost:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+.btn-danger {
+  background: transparent;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+.btn-danger:hover {
+  background: var(--color-danger);
+  color: #fff;
+}
+.btn-compact {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12.5px;
+}
+button:disabled,
+.btn-primary:disabled,
+.btn-outline:disabled,
+.btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ═══════════════ Card genérica ═══════════════ */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-card);
+}
+
+/* ═══════════════ Modal ═══════════════ */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 5, 10, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 999;
+  transition: opacity 0.2s ease;
+}
+.modal.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.modal-content {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  width: 90%;
+  max-width: 420px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+}
+.modal-content--wide {
+  max-width: 780px;
+  width: 92%;
+}
+.modal-head h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.modal-head--spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.modal-body {
+  margin-top: 8px;
+}
+
+/* ═══════════════ Tabla ═══════════════
+   Un solo .table-wrap para todo el sistema (antes había 5 definiciones
+   distintas peleando entre style.css y base.css). */
+.table-wrap {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+  overflow-y: auto;
+}
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.table-wrap th {
+  text-align: left;
+  padding: 10px 14px;
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--color-border);
+}
+.table-wrap td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.table-wrap tbody tr:last-child td {
+  border-bottom: none;
+}
+.table-wrap tbody tr:hover td {
+  background: var(--color-surface-2);
+}
+
+/* ═══════════════ Badge genérico (éxito/atención/error) ═══════════════
+   Los badges específicos de cada vista (vt-badge, ht-chip, sp-modo-badge,
+   etc.) siguen en los archivos viejos hasta la fase correspondiente. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge--success { background: rgba(52, 211, 153, 0.14); color: var(--color-success); }
+.badge--warning { background: rgba(242, 184, 74, 0.14); color: var(--color-warning); }
+.badge--danger  { background: rgba(242, 96, 92, 0.14);  color: var(--color-danger); }

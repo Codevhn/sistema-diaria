@@ -1,0 +1,90 @@
+/**
+ * tokens.css — Única fuente de verdad para color, tipografía, radios y sombras.
+ *
+ * Dos ejes independientes, ambos controlados por atributos en <html>
+ * y guardados en localStorage (mismo mecanismo que ya usaba el toggle
+ * claro/oscuro, extendido):
+ *
+ *   data-theme  = "dark" (default) | "light"
+ *   data-accent = "teal" (default) | "azul" | "grafito" | "dorado"
+ *
+ * Ningún otro archivo debe declarar --color-*, --radius-*, --shadow-*
+ * ni --font-*. Si hace falta un tono nuevo, se agrega acá.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap");
+
+:root {
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.40), 0 1px 3px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.50), 0 4px 16px rgba(0, 0, 0, 0.30);
+  --shadow-card: var(--shadow-sm);
+  --shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 32px rgba(0, 0, 0, 0.40);
+
+  /* Estados — no son parte del acento, se quedan fijos en todos los temas
+     (son los mismos que ya usaba el panel de honestidad; se mantienen) */
+  --color-success: #34d399;
+  --color-warning: #f2b84a;
+  --color-danger:  #f2605c;
+}
+
+/* ─── Claro / oscuro — oscuro por defecto ─── */
+html,
+html[data-theme="dark"] {
+  --color-bg: #0d0e11;
+  --color-surface: #16171c;
+  --color-surface-2: #1c1d24;
+  --color-surface-3: #23242d;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+  --color-text: #f2f2f5;
+  --color-muted: rgba(242, 242, 245, 0.58);
+  --color-placeholder: rgba(242, 242, 245, 0.34);
+}
+
+html[data-theme="light"] {
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f1f4;
+  --color-surface-3: #e6e8ec;
+  --color-border: rgba(15, 15, 25, 0.10);
+  --color-border-strong: rgba(15, 15, 25, 0.20);
+  --color-text: #15161a;
+  --color-muted: rgba(15, 15, 25, 0.56);
+  --color-placeholder: rgba(15, 15, 25, 0.34);
+}
+
+/* ─── Acento (tema de color) — teal por defecto ─── */
+html,
+html[data-accent="teal"] {
+  --color-accent: #2dd4bf;
+  --color-accent-hover: #26b8a5;
+  --color-accent-tint: rgba(45, 212, 191, 0.14);
+  --color-accent-glow: rgba(45, 212, 191, 0.28);
+}
+html[data-accent="azul"] {
+  --color-accent: #4f8cff;
+  --color-accent-hover: #3b73e0;
+  --color-accent-tint: rgba(79, 140, 255, 0.14);
+  --color-accent-glow: rgba(79, 140, 255, 0.28);
+}
+html[data-accent="grafito"] {
+  --color-accent: #8a93a6;
+  --color-accent-hover: #767e8f;
+  --color-accent-tint: rgba(138, 147, 166, 0.14);
+  --color-accent-glow: rgba(138, 147, 166, 0.28);
+}
+html[data-accent="dorado"] {
+  --color-accent: #f2c44a;
+  --color-accent-hover: #d9ad32;
+  --color-accent-tint: rgba(242, 196, 74, 0.14);
+  --color-accent-glow: rgba(242, 196, 74, 0.28);
+}
