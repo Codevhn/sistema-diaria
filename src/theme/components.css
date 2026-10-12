@@ -161,8 +161,52 @@ body.sidebar-collapsed .sidebar {
   transform: translateX(-100%);
 }
 
-.sidebar .brand {
-  display: none; /* el título ya está en la mac-titlebar */
+/* ── Marca: ancla visual arriba del todo, antes era un div vacío oculto ── */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 20px 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+.sidebar-brand__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.sidebar-brand__name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Grupos: antes era una sola lista plana de 15 botones ── */
+.sidebar-group {
+  margin-top: 14px;
+}
+.sidebar-group__label {
+  padding: 0 20px 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-placeholder);
 }
 
 .sidebar button {
@@ -170,7 +214,7 @@ body.sidebar-collapsed .sidebar {
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 10px 20px;
+  padding: 9px 20px;
   background: transparent;
   border: none;
   border-left: 3px solid transparent;
@@ -191,21 +235,20 @@ body.sidebar-collapsed .sidebar {
   background: var(--color-accent-tint);
   color: var(--color-accent);
   border-left-color: var(--color-accent);
+  font-weight: 600;
 }
 .sidebar button .sidebar-icon {
-  width: 26px;
-  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-2);
+  width: 16px;
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 13.5px;
 }
 .sidebar button:hover .sidebar-icon,
-.sidebar button.active .sidebar-icon {
+.sidebar button.active .sidebar-icon,
+.sidebar button[aria-current="page"] .sidebar-icon {
   color: var(--color-accent);
 }
 .sidebar button i {

@@ -4811,12 +4811,19 @@ import {
       suerte: "view-suerte",
     };
     const sidebarButtons = document.querySelectorAll(".sidebar button");
+    const markSidebarActive = (btn) => {
+      sidebarButtons.forEach((b) => b.classList.toggle("active", b === btn));
+    };
+    markSidebarActive(
+      Array.from(sidebarButtons).find((b) => b.dataset.view === "day") || null
+    );
     sidebarButtons.forEach((b) => {
       b.onclick = () => {
         if (b.dataset.view === "login") {
           window.location.href = "./login.html?mode=switch";
           return;
         }
+        markSidebarActive(b);
         document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
         const id = views[b.dataset.view];
         const el = document.getElementById(id);

@@ -10,8 +10,8 @@
   <link rel="stylesheet" href="./src/theme/base.css?v=16" />
   <link rel="stylesheet" href="./src/theme/aurora.css?v=16" />
   <!-- Rediseño (fase 1 — shell): carga al final, gana sobre lo que ya migró -->
-  <link rel="stylesheet" href="./src/theme/tokens.css?v=2" />
-  <link rel="stylesheet" href="./src/theme/components.css?v=2" />
+  <link rel="stylesheet" href="./src/theme/tokens.css?v=3" />
+  <link rel="stylesheet" href="./src/theme/components.css?v=3" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -100,7 +100,10 @@
   </button>
 
   <aside class="sidebar expanded" id="sidebar">
-    <div class="brand">LD v3.2</div>
+    <div class="sidebar-brand">
+      <span class="sidebar-brand__mark">LD</span>
+      <span class="sidebar-brand__name">La Diaria</span>
+    </div>
 
     <!-- Indicador de presencia en tiempo real -->
     <div id="presence-bar" class="presence-bar" title="Usuarios conectados ahora">
@@ -111,27 +114,41 @@
     <!-- Panel de usuarios (solo admin, se despliega al hacer clic) -->
     <div id="presence-panel" class="presence-panel hidden"></div>
 
-    <button data-view="login"><i>🔐 Acceso</i></button>
-    <button data-view="day"><span class="sidebar-icon fa-solid fa-gauge"></span><i>Panel del día</i></button>
-    <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
-    <button data-view="analysis"><span
-        class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
-    <button data-view="temporal"><span class="sidebar-icon fa-solid fa-flask"></span><i>Verificador</i></button>
-    <button data-view="superpremio"><span class="sidebar-icon fa-solid fa-trophy"></span><i>Super Premio</i></button>
-    <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
-    <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
-    <button data-view="consulta"><span class="sidebar-icon fa-solid fa-magnifying-glass-chart"></span><i>Consulta</i></button>
-    <button data-view="suerte" style="display:none"><span class="sidebar-icon fa-solid fa-shuffle"></span><i>Tirada de suerte</i></button>
-    <button data-view="geometry" style="display:none"><span
-        class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
-    <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
-    <button data-view="guide"><span class="sidebar-icon fa-solid fa-book"></span><i>Guía de los Sueños</i></button>
-    <button data-view="config" class="requires-admin"><span class="sidebar-icon fa-solid fa-gear"></span><i>Configuración</i></button>
-    <button data-view="maint" class="requires-admin"><span
-        class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
-    <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
-    <button data-view="calc" style="display:none"><span class="sidebar-icon fa-solid fa-calculator"></span><i>Calculadora</i></button>
-    <button data-view="wiki"><span class="sidebar-icon fa-solid fa-circle-question"></span><i>Guía del sistema</i></button>
+    <nav class="sidebar-nav">
+      <button data-view="login"><span class="sidebar-icon fa-solid fa-right-to-bracket"></span><i>Acceso</i></button>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group__label">Análisis del día</div>
+        <button data-view="day"><span class="sidebar-icon fa-solid fa-gauge"></span><i>Panel del día</i></button>
+        <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
+        <button data-view="analysis"><span
+            class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
+        <button data-view="temporal"><span class="sidebar-icon fa-solid fa-flask"></span><i>Verificador</i></button>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group__label">Herramientas</div>
+        <button data-view="superpremio"><span class="sidebar-icon fa-solid fa-trophy"></span><i>Super Premio</i></button>
+        <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
+        <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
+        <button data-view="consulta"><span class="sidebar-icon fa-solid fa-magnifying-glass-chart"></span><i>Consulta</i></button>
+        <button data-view="suerte" style="display:none"><span class="sidebar-icon fa-solid fa-shuffle"></span><i>Tirada de suerte</i></button>
+        <button data-view="geometry" style="display:none"><span
+            class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
+        <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
+        <button data-view="guide"><span class="sidebar-icon fa-solid fa-book"></span><i>Guía de los Sueños</i></button>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group__label">Sistema</div>
+        <button data-view="config" class="requires-admin"><span class="sidebar-icon fa-solid fa-gear"></span><i>Configuración</i></button>
+        <button data-view="maint" class="requires-admin"><span
+            class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
+        <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
+        <button data-view="calc" style="display:none"><span class="sidebar-icon fa-solid fa-calculator"></span><i>Calculadora</i></button>
+        <button data-view="wiki"><span class="sidebar-icon fa-solid fa-circle-question"></span><i>Guía del sistema</i></button>
+      </div>
+    </nav>
   </aside>
 
   <main class="content">
@@ -1214,7 +1231,7 @@
     </div>
   </section>
 
-  <script type="module" src="./src/app.js?v=2"></script>
+  <script type="module" src="./src/app.js?v=3"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">
