@@ -19,7 +19,7 @@ Se mantienen los motores, autenticación y persistencia existentes. El registro 
 
 ## Validación realizada
 
-- 193 pruebas de Vitest aprobadas.
+- 196 pruebas de Vitest aprobadas.
 - Comprobación de las 17 vistas a 1440 y 390 px, sin desbordamiento horizontal.
 - Navegación mediante los menús reales, cierre con Escape y cambio de tema.
 - Selectores de mes y año; consulta de enero de 2025 contra los 93 sorteos del respaldo.
@@ -29,3 +29,7 @@ Se mantienen los motores, autenticación y persistencia existentes. El registro 
 - Sin IDs duplicados. Se conservaron los IDs de filtros, controles, registro y herramientas; los IDs retirados corresponden al antiguo menú lateral y selector de acento del encabezado.
 
 La validación de integración usa registros del respaldo y autenticación simulada; no escribe datos en el backend compartido ni demuestra un despliegue de producción.
+
+## Historial compacto e interacciones planas
+
+El historial usa una cabecera única, búsqueda visible, filtros desplegables y paginación real. Se evita el sombreado alterno de filas. Los efectos de elevación y sombra de hover se retiraron; el menú usa cambios de texto y una marca lateral. Los submenús se revelan con una transición de recorte y opciones escalonadas, desactivada con reducir movimiento. Se verificaron la ausencia de desplazamiento/sombra al hacer hover, los filtros, el cambio de página y el reinicio de página al buscar.

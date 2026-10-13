@@ -1,6 +1,7 @@
 export function initProductShell({ navigate, getDayContext }) {
   const header = document.querySelector('.app-header');
   const menus = [...header.querySelectorAll('.app-menu')];
+  menus.forEach(menu => menu.querySelectorAll('.app-menu__panel button').forEach((button, index) => button.style.setProperty('--menu-order', String(index))));
   menus.forEach(menu => menu.addEventListener('toggle', () => {
     menu.querySelector('summary')?.setAttribute('aria-expanded', String(menu.open));
     if (menu.open) menus.filter(other => other !== menu).forEach(other => other.open = false);
@@ -14,6 +15,12 @@ export function initProductShell({ navigate, getDayContext }) {
     const button = event.target.closest('[data-view]');
     if (button && !button.disabled) { navigate(button.dataset.view); menus.forEach(menu => menu.open = false); }
   });
+  const historyFilters = document.getElementById('history-filters');
+  if (historyFilters) {
+    historyFilters.addEventListener('toggle', () => historyFilters.querySelector('summary').setAttribute('aria-expanded', String(historyFilters.open)));
+    document.addEventListener('pointerdown', event => { if (!historyFilters.contains(event.target)) historyFilters.open = false; });
+    historyFilters.addEventListener('keydown', event => { if (event.key === 'Escape' && historyFilters.open) { event.preventDefault(); historyFilters.open = false; historyFilters.querySelector('summary').focus(); } });
+  }
   const dialog = document.getElementById('register-result-dialog');
   const openRegister = suffix => {
     if (document.documentElement.dataset.role === 'lector') return;

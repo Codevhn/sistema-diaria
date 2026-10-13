@@ -1,3 +1,4 @@
+import { paginateHistory } from './history-pagination.js';
 import { initProductShell, renderRecentRecords } from './ui/product-shell.js';
     import { mostrarGuia } from "./guide-grid.js";
     import { DB } from "./storage.js";
@@ -1752,6 +1753,8 @@ import {
 
     // === Paneles extendidos: historial, seguimiento, patrones y ranking ===
     const historyNumberFilter = document.getElementById("history-number-filter");
+    let historyPageIndex = 0;
+    let historyRenderRequest = 0;
     const historyDateInput = document.getElementById("history-date");
     const historyHourSelect = document.getElementById("history-hour");
     const historyCountrySelect = document.getElementById("history-country");
@@ -2138,24 +2141,27 @@ import {
     updateLocalModeUI();
 
     historySearchBtn?.addEventListener("click", () => {
+      historyPageIndex = 0;
       refreshHistoryPanel();
+      document.getElementById("history-filters").open = false;
     });
     historyRefreshBtn?.addEventListener("click", () => {
       refreshHistoryPanel({ forceReload: true });
     });
-    historyNumberFilter?.addEventListener("input", () => refreshHistoryPanel());
+    historyNumberFilter?.addEventListener("input", () => { historyPageIndex = 0; refreshHistoryPanel(); });
     historyClearBtn?.addEventListener("click", () => {
+      historyPageIndex = 0;
       if (historyNumberFilter) historyNumberFilter.value = "";
       if (historyDateInput) historyDateInput.value = "";
       if (historyHourSelect) historyHourSelect.value = "";
       if (historyCountrySelect) historyCountrySelect.value = "";
-      if (historyLimitSelect) historyLimitSelect.value = "9";
+      if (historyLimitSelect) historyLimitSelect.value = "15";
       refreshHistoryPanel({ defaultView: true });
     });
-    historyDateInput?.addEventListener("change", () => refreshHistoryPanel());
-    historyHourSelect?.addEventListener("change", () => refreshHistoryPanel());
-    historyCountrySelect?.addEventListener("change", () => refreshHistoryPanel());
-    historyLimitSelect?.addEventListener("change", () => refreshHistoryPanel());
+    document.getElementById('history-reset-inline')?.addEventListener('click', () => historyClearBtn?.click());
+    [historyDateInput, historyHourSelect, historyCountrySelect, historyLimitSelect].forEach(control => control?.addEventListener('change', () => { historyPageIndex = 0; refreshHistoryPanel(); }));
+    document.getElementById('history-prev')?.addEventListener('click', () => { historyPageIndex--; refreshHistoryPanel(); });
+    document.getElementById('history-next')?.addEventListener('click', () => { historyPageIndex++; refreshHistoryPanel(); });
     drawsLocalToggle?.addEventListener("click", async () => {
       const nextState = !preferLocalSnapshot;
       if (nextState) {
@@ -2282,6 +2288,8 @@ import {
 
     async function refreshHistoryPanel({ forceReload = false, defaultView = false } = {}) {
       if (!historyTableWrap) return;
+      const request = ++historyRenderRequest;
+      if (defaultView) historyPageIndex = 0;
       if (defaultView && historySummary) {
         historySummary.textContent = "Mostrando los últimos sorteos registrados.";
       }
@@ -2289,11 +2297,13 @@ import {
         historyTableWrap.innerHTML = "<p class='hint'>Actualizando sorteos…</p>";
       }
       const draws = await getCachedDraws({ force: forceReload });
+      if (request !== historyRenderRequest) return;
       renderHistoryCoverage(draws);
       renderRecentRecords(document.getElementById("day-recent-records"), draws, GUIA);
       if (!draws.length) {
         historyTableWrap.innerHTML = "<p class='hint'>Aún no hay sorteos almacenados.</p>";
         if (historySummary) historySummary.textContent = "Sin registros.";
+        updateHistoryPagination(paginateHistory([]));
         return;
       }
       const limitValue = parseInt(historyLimitSelect?.value, 10);
@@ -2309,7 +2319,10 @@ import {
       if (numberQuery) filtered = filtered.filter(draw => /^\d{1,2}$/.test(numberQuery)
         ? Number(draw.numero) === Number(numberQuery)
         : (getSymbol(draw.numero) || '').toLocaleLowerCase('es').includes(numberQuery));
-      const rows = filtered.slice(0, Math.max(1, limit));
+      const page = paginateHistory(filtered, historyPageIndex, limit);
+      historyPageIndex = page.page;
+      updateHistoryPagination(page);
+      const rows = page.rows;
       const latestDate = latestRealDate(draws);
       if (!rows.length) {
         historyTableWrap.innerHTML = "<p class='hint'>Sin resultados para esos filtros.</p>";
@@ -2322,13 +2335,11 @@ import {
       table.innerHTML = `
         <thead>
           <tr>
-            <th>#</th>
-            <th>Fecha</th>
-            <th>Horario</th>
-            <th>País</th>
-            <th>Número</th>
-            <th>Símbolo</th>
-            <th>Notas</th>
+            <th scope="col">Número / símbolo</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Horario</th>
+            <th scope="col">País</th>
+            <th scope="col">Estado</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -2341,13 +2352,11 @@ import {
           tr.classList.add("history-row--today");
         }
         tr.innerHTML = `
-          <td>${idx + 1}</td>
-          <td>${formatFriendlyDate(draw.fecha)}</td>
-          <td>${draw.horario || "—"}</td>
+          <td class="history-result"><strong class="history-number">${formatNumber(draw.numero)}</strong><span>${getSymbol(draw.numero) || "—"}</span></td>
+          <td><span class="history-date-long">${formatFriendlyDate(draw.fecha)}</span><span class="history-date-short">${draw.fecha}</span></td>
+          <td><span class="history-turn">${draw.horario || "—"}</span></td>
           <td>${draw.pais || "—"}</td>
-          <td class="history-number">${formatNumber(draw.numero)}</td>
-          <td>${getSymbol(draw.numero) || "—"}</td>
-          <td>${historyBadges(draw, latestDate)}</td>
+          <td><span class="history-recorded">Registrado</span>${draw.isTest ? '<span class="history-test">Prueba</span>' : ''}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -2359,8 +2368,15 @@ import {
           fechaFiltro || horarioFiltro || paisFiltro || numberQuery
             ? "con filtros aplicados"
             : "del histórico general";
-        historySummary.textContent = `${rows.length} sorteos ${scopeText} (de ${totalMatches}).`;
+        historySummary.textContent = `${totalMatches.toLocaleString("es-HN")} resultados ${scopeText}`;
       }
+    }
+
+    function updateHistoryPagination(page) {
+      document.getElementById('history-range').textContent = page.total ? `${page.start}–${page.end} de ${page.total.toLocaleString('es-HN')}` : 'Sin resultados';
+      document.getElementById('history-page').textContent = `${page.page + 1} / ${page.pages}`;
+      document.getElementById('history-prev').disabled = page.page === 0;
+      document.getElementById('history-next').disabled = page.page >= page.pages - 1;
     }
 
     async function handleDrawsMutated() {
@@ -4784,7 +4800,7 @@ import {
       if (!el) return logWarn('Vista no encontrada:', key);
       document.querySelectorAll('.view').forEach(view => view.classList.toggle('hidden', view !== el));
       markNavigation(key);
-      if (key === 'history') refreshHistoryPanel({ defaultView: true }).catch(() => {});
+      if (key === 'history') refreshHistoryPanel().catch(() => {});
         if (id === "view-monthly") consultarRankingMensual();
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();

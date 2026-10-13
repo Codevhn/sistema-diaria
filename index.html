@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="./src/theme/redesign.css?v=1" />
+  <link rel="stylesheet" href="./src/theme/redesign.css?v=2" />
   <style>
     html.auth-locked,
     html.auth-locked body {
@@ -75,7 +75,7 @@
       <button class="app-brand" data-view="day" aria-label="La Diaria, jornada"><svg viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M11 10v16h14" fill="none" stroke="white" stroke-width="3"/><circle cx="24" cy="12" r="3" fill="#b9ceff"/></svg><span>La Diaria<small>REGISTRO &amp; ESTADÍSTICA</small></span></button>
       <nav class="app-nav" aria-label="Navegación principal">
         <button data-view="day" data-primary-nav="day">Jornada</button>
-        <button data-view="monthly" data-primary-nav="monthly">Ranking mensual</button>
+        <button data-view="monthly" data-primary-nav="monthly"><span class="nav-label-desktop">Ranking mensual</span><span class="nav-label-mobile">Mensual</span></button>
         <details class="app-menu" data-nav-group="numero"><summary>Por número <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel"><span class="app-menu__label">Historia de un número</span><button data-view="horario">Horario favorito</button><button data-view="consulta">Consulta histórica</button><button data-view="memory">Memoria</button></div></details>
         <button data-view="history" data-primary-nav="history">Historial</button>
         <details class="app-menu" data-nav-group="tools"><summary>Herramientas <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel app-menu__panel--tools"><div><span class="app-menu__label">Análisis</span><button data-view="hypo">Hipótesis</button><button data-view="analysis">Escenarios</button><button data-view="temporal">Verificador</button></div><div><span class="app-menu__label">Juegos y relaciones</span><button data-view="superpremio">Super Premio</button><button data-view="pega3">Pega3</button><button data-view="transform">Transformaciones</button><button data-view="modes">Modos de juego</button></div><div class="app-menu__library"><span class="app-menu__label">Biblioteca</span><button data-view="guide">Guía de los Sueños</button></div></div></details>
@@ -190,57 +190,24 @@
       <div class="day-secondary"><article class="product-sheet"><div class="product-sheet__heading"><h2>Últimos registros</h2><button class="btn-ghost" data-view="history">Ver historial →</button></div><div id="day-recent-records"><p class="hint">Cargando registros…</p></div></article><article class="product-explore"><span class="product-eyebrow">Conoce el historial de un número</span><h2>Un número.<br>Su historia completa.</h2><p>Consulta sus apariciones, horarios y últimos registros.</p><form id="day-number-query"><label class="sr-only" for="day-explore-number">Número</label><input id="day-explore-number" inputmode="numeric" maxlength="2" pattern="[0-9]{1,2}" required placeholder="67"/><button class="btn-primary">Explorar →</button></form></article></div>
     </section>
 
-    <section id="view-history" class="view hidden"><div class="product-heading"><div><span class="product-eyebrow">Tu fuente de información</span><h1>Todo queda registrado.</h1><p>Consulta resultados por fecha, horario y país.</p></div><button class="btn-primary requires-write" data-register-result>＋ Registrar resultado</button></div>
-        <article class="day-card day-card--wide" id="history-panel">
-          <div class="day-card__head">
-            <div>
-              <h3>Historial de sorteos</h3>
-              <p>Consulta resultados por fecha, horario y país. Los sorteos del día se destacan automáticamente.</p>
-            </div>
-            <div class="day-card__actions">
-              <button id="history-refresh" class="btn-outline">Actualizar</button>
-              <button id="history-clear" class="btn-ghost">Limpiar filtros</button>
-            </div>
-          </div>
-          <div class="day-card__controls day-card__controls--scroll">
-            <label>Número o símbolo<input id="history-number-filter" type="search" placeholder="67, Mono…" /></label>
-            <label>
-              Fecha
-              <input type="date" id="history-date" />
-            </label>
-            <label>
-              Horario
-              <select id="history-hour">
-                <option value="">Todos</option>
-                <option value="11AM">11 AM</option>
-                <option value="12PM">12 PM</option>
-                <option value="3PM">3 PM</option>
-                <option value="6PM">6 PM</option>
-                <option value="9PM">9 PM</option>
-              </select>
-            </label>
-            <label>
-              País
-              <select id="history-country">
-                <option value="">Todos</option>
-                <option value="HN">HN</option>
-              </select>
-            </label>
-            <label>
-              Mostrar
-              <select id="history-limit">
-                <option value="9">Últimos 9</option>
-                <option value="15">Últimos 15</option>
-                <option value="30">Últimos 30</option>
-              </select>
-            </label>
-            <button id="history-search" class="btn-primary">Buscar</button>
-          </div>
-          <div class="day-card__body">
-            <div id="history-summary" class="panel-meta">Selecciona una fecha para revisar sus sorteos.</div>
-            <div id="history-table" class="table-wrap table-wrap--history"></div>
-          </div>
-        </article>    </section>
+    <section id="view-history" class="view hidden">
+      <div class="history-heading"><div><span class="product-eyebrow">Registro de resultados</span><h1>Historial</h1></div><div class="history-heading__actions"><button id="history-refresh" class="btn-outline">Actualizar</button><button class="btn-primary requires-write" data-register-result>＋ Registrar resultado</button></div></div>
+      <div id="history-panel" class="history-workspace">
+        <div class="history-toolbar">
+          <div class="history-search-field"><label class="sr-only" for="history-number-filter">Buscar número o símbolo</label><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="history-number-filter" type="search" placeholder="Buscar un número o símbolo…" /></div>
+          <details id="history-filters" class="history-filters"><summary>Filtros <span aria-hidden="true">⌄</span></summary><div class="history-filters__panel">
+            <label for="history-date">Fecha<input type="date" id="history-date" /></label>
+            <label for="history-hour">Horario<select id="history-hour"><option value="">Todos los turnos</option><option value="11AM">11 AM</option><option value="12PM">12 PM</option><option value="3PM">3 PM</option><option value="6PM">6 PM</option><option value="9PM">9 PM</option></select></label>
+            <label for="history-country">País<select id="history-country"><option value="">Todos</option><option value="HN">Honduras</option></select></label>
+            <label for="history-limit">Resultados por página<select id="history-limit"><option value="9">9 resultados</option><option value="15" selected>15 resultados</option><option value="30">30 resultados</option></select></label>
+            <button id="history-search" class="btn-primary">Aplicar filtros</button><button id="history-clear" class="btn-ghost">Restablecer</button>
+          </div></details>
+        </div>
+        <div class="history-meta"><span id="history-summary" role="status" aria-live="polite">Cargando registros…</span><button id="history-reset-inline" class="btn-ghost">Limpiar filtros</button></div>
+        <div id="history-table" class="history-data table-wrap"></div>
+        <div class="history-pagination"><span id="history-range"></span><div><button id="history-prev" class="btn-outline" aria-label="Página anterior">←</button><span id="history-page"></span><button id="history-next" class="btn-outline" aria-label="Página siguiente">→</button></div></div>
+      </div>
+    </section>
 
     <!-- PEGA3 -->
     <section id="view-pega3" class="view hidden">
