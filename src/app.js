@@ -52,6 +52,7 @@ import {
 } from "./views/pega3-panel.js";
 import { initConsultaPanel } from "./views/consulta-panel.js";
 import { initHorarioPanel } from "./views/horario-panel.js";
+import { initMonthlyRankingPanel } from "./views/monthly-ranking-panel.js";
     import { loadUserPreferences, saveUserPreferences } from "./user-preferences.js";
     import { getMyRole, getAllProfiles, updateUserRole, updateUserName, setBanStatus, roleLabel, roleColor, VALID_ROLES } from "./roles.js";
 import { initDecemberPanel } from "./views/december-panel.js";
@@ -2374,6 +2375,7 @@ import {
       botonOcupado: withButtonBusy,
       horarioKeys: HORARIO_KEYS,
     });
+    const consultarRankingMensual = initMonthlyRankingPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     initHorarioPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     initConsultaPanel({
       obtenerSorteos: () => getCachedDraws(),
@@ -4775,6 +4777,7 @@ import {
       pega3: "view-pega3",
       consulta: "view-consulta",
       horario: "view-horario",
+      monthly: "view-monthly",
       geometry: "view-geometry",
       memory: "view-memory",
       guide: "view-guide",
@@ -4805,6 +4808,7 @@ import {
         const el = document.getElementById(id);
         if (!el) return logWarn("Vista no encontrada:", id);
         el.classList.remove("hidden");
+        if (id === "view-monthly") consultarRankingMensual();
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();
         if (id === "view-hypo") { renderPairList(); renderConstellationList(); }

@@ -11876,3 +11876,43 @@ details[open] .aus-valid__toggle::before { content: '▼ '; }
 @media (max-width: 760px) { .hf-summary { flex-direction: column; padding: 20px; gap: 24px; } .hf-number-block { flex: auto; width: 100%; } .hf-number { font-size: 7rem; } .hf-card { padding: 24px; } }
 
 .hf-symbol { display: block; font-size: 1.8rem; font-weight: 700; color: var(--color-text); line-height: 1.2; overflow-wrap: anywhere; }
+
+/* Ranking mensual de apariciones reales */
+.mr-form { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 24px 0; }
+.mr-form label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 8px; }
+.mr-form input, .mr-form select { min-height: 44px; }
+.mr-overview { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 28px; background: var(--color-surface-2); }
+.mr-overview__month { flex: 1; min-width: 220px; }
+.mr-eyebrow { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--color-muted); }
+.mr-overview h3 { font-size: 2rem; text-transform: capitalize; margin: 8px 0; }
+.mr-overview p { font-size: .8rem; color: var(--color-muted); margin: 0; }
+.mr-metric strong { display: block; font-size: 2.4rem; color: var(--color-accent); font-variant-numeric: tabular-nums; }
+.mr-metric span { font-size: .75rem; color: var(--color-muted); }
+.mr-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 28px 0 16px; }
+.mr-list-head h3 { margin: 0; font-size: 1rem; }
+.mr-list-head > span, .mr-note { color: var(--color-muted); font-size: .78rem; line-height: 1.7; }
+.mr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 14px; }
+.mr-card { min-width: 0; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 22px; background: var(--color-surface); }
+.mr-card--leader { border-color: var(--color-accent); background: var(--color-accent-tint); }
+.mr-card__head { display: flex; justify-content: space-between; gap: 10px; font-size: .72rem; color: var(--color-muted); }
+.mr-position { font-weight: 600; }
+.mr-badge { color: var(--color-accent); font-weight: 600; }
+.mr-card__main { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin: 16px 0; }
+.mr-card__main > div { min-width: 0; }
+.mr-number { font-size: 3.5rem; line-height: 1.15; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.mr-symbol { display: block; font-size: .9rem; font-weight: 600; overflow-wrap: anywhere; }
+.mr-occurrences { text-align: right; }
+.mr-occurrences strong { display: block; font-size: 2.3rem; color: var(--color-accent); font-variant-numeric: tabular-nums; }
+.mr-occurrences span { color: var(--color-muted); font-size: .75rem; }
+.mr-bar { height: 8px; overflow: hidden; border-radius: 999px; background: var(--color-surface-3); }
+.mr-bar span { display: block; height: 100%; background: var(--color-accent); border-radius: inherit; }
+.mr-share { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: .75rem; }
+.mr-share strong { font-size: .95rem; font-variant-numeric: tabular-nums; }
+.mr-share span { color: var(--color-muted); }
+.mr-zero { margin-top: 20px; }
+.mr-zero summary { width: fit-content; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; font-size: .82rem; }
+.mr-zero[open] summary { margin-bottom: 16px; }
+.mr-zero summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.mr-note { margin-top: 20px; }
+.mr-empty { padding: 24px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); color: var(--color-muted); line-height: 1.7; }
+@media (max-width: 540px) { .mr-overview { padding: 20px; gap: 20px; } .mr-overview__month { flex-basis: 100%; min-width: 0; } .mr-overview h3 { font-size: 1.6rem; } .mr-metric { flex: 1; min-width: 80px; } .mr-metric strong { font-size: 1.8rem; } .mr-form > div { width: 100%; } .mr-form input, .mr-form select { width: 100%; } }

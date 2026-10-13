@@ -133,6 +133,7 @@
         <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
         <button data-view="consulta"><span class="sidebar-icon fa-solid fa-magnifying-glass-chart"></span><i>Consulta</i></button>
         <button data-view="horario"><span class="sidebar-icon fa-solid fa-clock"></span><i>Horario favorito</i></button>
+        <button data-view="monthly"><span class="sidebar-icon fa-solid fa-chart-column"></span><i>Ranking mensual</i></button>
         <button data-view="suerte" style="display:none"><span class="sidebar-icon fa-solid fa-shuffle"></span><i>Tirada de suerte</i></button>
         <button data-view="geometry" style="display:none"><span
             class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
@@ -506,6 +507,17 @@
         </div>
       </form>
       <div id="hf-result" role="status" aria-live="polite"><p class="hf-empty">Ingresá un número para ver su horario más frecuente y la distribución completa.</p></div>
+    </section>
+
+    <section id="view-monthly" class="view hidden">
+      <h2>Ranking mensual</h2>
+      <p class="hint">Cuántas veces salió cada número en el mes elegido. Frecuencias reales de La Diaria Honduras, ordenadas de mayor a menor.</p>
+      <form id="mr-form" class="mr-form">
+        <div><label for="mr-month">Mes y año</label><input id="mr-month" type="month" /></div>
+        <div><label for="mr-available">Elegir un mes con registros</label><select id="mr-available"><option value="">Meses con registros</option></select></div>
+        <button type="submit" class="btn-primary">Consultar mes</button>
+      </form>
+      <div id="mr-result" role="status" aria-live="polite"><p class="mr-empty">Seleccioná un mes para ver las apariciones de cada número.</p></div>
     </section>
 
     <!-- VERIFICADOR ESTADÍSTICO -->
