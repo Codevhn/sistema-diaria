@@ -1012,58 +1012,14 @@
   </main>
 
   <div id="toast-container" class="toast-container"></div>
-  <div id="boot-loader" class="boot-loader hidden" aria-live="polite">
-
-    <!-- Imágenes de fondo dispersas -->
-    <div class="splash__bg" aria-hidden="true">
-      <img class="splash__bg-img" src="data/img/32.png" style="--x:-3%;  --y:1%;  --s:265px; --r:-20deg; --o:0.26">
-      <img class="splash__bg-img" src="data/img/76.png" style="--x:76%;  --y:-2%; --s:225px; --r:16deg;  --o:0.24">
-      <img class="splash__bg-img" src="data/img/42.png" style="--x:70%;  --y:63%; --s:248px; --r:-18deg; --o:0.26">
-      <img class="splash__bg-img" src="data/img/07.png" style="--x:-2%;  --y:54%; --s:235px; --r:13deg;  --o:0.24">
-      <img class="splash__bg-img" src="data/img/91.png" style="--x:37%;  --y:2%;  --s:182px; --r:6deg;   --o:0.21">
-      <img class="splash__bg-img" src="data/img/99.png" style="--x:17%;  --y:71%; --s:240px; --r:22deg;  --o:0.25">
-      <img class="splash__bg-img" src="data/img/80.png" style="--x:82%;  --y:28%; --s:195px; --r:-30deg; --o:0.22">
-      <img class="splash__bg-img" src="data/img/60.png" style="--x:51%;  --y:68%; --s:188px; --r:11deg;  --o:0.21">
-      <img class="splash__bg-img" src="data/img/37.png" style="--x:86%;  --y:70%; --s:168px; --r:-17deg; --o:0.21">
-      <img class="splash__bg-img" src="data/img/18.png" style="--x:7%;   --y:20%; --s:162px; --r:-11deg; --o:0.20">
-      <img class="splash__bg-img" src="data/img/56.png" style="--x:89%;  --y:3%;  --s:148px; --r:36deg;  --o:0.19">
-      <img class="splash__bg-img" src="data/img/47.png" style="--x:44%;  --y:46%; --s:150px; --r:-26deg; --o:0.18">
-      <img class="splash__bg-img" src="data/img/14.png" style="--x:27%;  --y:80%; --s:168px; --r:10deg;  --o:0.21">
-      <img class="splash__bg-img" src="data/img/04.png" style="--x:61%;  --y:11%; --s:138px; --r:24deg;  --o:0.19">
-    </div>
-
-    <div class="splash">
-      <div class="splash__balls">
-        <div class="splash__ball" style="--d:0s">
-          <span class="splash__ball-shine"></span>
-          <span class="splash__ball-num">07</span>
-        </div>
-        <div class="splash__ball splash__ball--lg" style="--d:.18s">
-          <span class="splash__ball-shine"></span>
-          <span class="splash__ball-num">32</span>
-        </div>
-        <div class="splash__ball" style="--d:.36s">
-          <span class="splash__ball-shine"></span>
-          <span class="splash__ball-num">91</span>
-        </div>
-        <div class="splash__ball splash__ball--sm" style="--d:.54s">
-          <span class="splash__ball-shine"></span>
-          <span class="splash__ball-num">14</span>
-        </div>
-        <div class="splash__ball" style="--d:.72s">
-          <span class="splash__ball-shine"></span>
-          <span class="splash__ball-num">56</span>
-        </div>
-      </div>
-      <div class="splash__brand">
-        <span class="splash__brand-label">SISTEMA DE PREDICCIÓN</span>
-        <span class="splash__brand-name">La Diaria</span>
-        <span class="splash__brand-country">Honduras</span>
-      </div>
-      <div class="splash__bar-wrap">
-        <div class="splash__bar"></div>
-      </div>
-      <div class="splash__status">Iniciando sistema…</div>
+  <div id="boot-loader" class="boot-loader hidden" role="status" aria-live="polite" aria-busy="false">
+    <div class="product-boot">
+      <svg class="product-boot__mark" viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M11 10v16h14" fill="none" stroke="white" stroke-width="3"/><circle cx="24" cy="12" r="3" fill="#b9ceff"/></svg>
+      <span class="product-boot__eyebrow">REGISTRO &amp; ESTADÍSTICA</span>
+      <h1>La Diaria</h1>
+      <p>Tu registro, más claro.</p>
+      <div class="product-boot__status"><span class="product-boot__spinner" aria-hidden="true"></span><span id="boot-status">Preparando tu jornada…</span></div>
+      <span class="product-boot__country">Honduras</span>
     </div>
   </div>
   <div id="processing-modal" class="processing-modal hidden" aria-live="polite">

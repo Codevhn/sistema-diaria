@@ -120,7 +120,7 @@ import {
       return _signalEngine;
     }
     import { logout as supabaseLogout, requireAuthOrRedirect } from "./auth.js";
-    import { showBootLoader, hideBootLoader } from "./boot-loader.js";
+    import { showBootLoader, hideBootLoader, setBootStatus } from "./boot-loader.js";
 
     const bootOverlay = document.getElementById("boot-loader");
     const processingModal = document.getElementById("processing-modal");
@@ -217,7 +217,9 @@ import {
     await initUserPreferences(currentUser);
     showBootLoader();
     try {
+      setBootStatus("Cargando la guía de símbolos…");
       await cargarGuia();
+      setBootStatus("Preparando tu jornada y el historial…");
     } catch (err) {
       guideLoadError = err instanceof Error ? err : new Error(String(err));
     }
