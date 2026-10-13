@@ -57,7 +57,6 @@ import { initMonthlyRankingPanel } from "./views/monthly-ranking-panel.js";
     import { getMyRole, getAllProfiles, updateUserRole, updateUserName, setBanStatus, roleLabel, roleColor, VALID_ROLES } from "./roles.js";
 import { initDecemberPanel } from "./views/december-panel.js";
 import { initTriggersPanel } from "./views/triggers-panel.js";
-import { renderRitmosFamilias } from "./views/ritmos-familias.js";
 import { renderCompanerosPanel } from "./views/companeros-panel.js";
     import {
       createMode,
@@ -4814,7 +4813,6 @@ import {
         if (id === "view-hypo") { renderPairList(); renderConstellationList(); }
         if (id === "view-analysis") {
           renderPulso().catch(() => {});
-          getCachedDraws().then((d) => renderRitmosFamilias(d)).catch(() => {});
         }
         if (id === "view-superpremio") renderSuperPremioPanel().catch(() => {});
         if (id === "view-transform") renderCompanerosPanel().catch(() => {});
