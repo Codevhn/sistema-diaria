@@ -513,8 +513,21 @@
       <h2>Ranking mensual</h2>
       <p class="hint">Cuántas veces salió cada número en el mes elegido. Frecuencias reales de La Diaria Honduras, ordenadas de mayor a menor.</p>
       <form id="mr-form" class="mr-form">
-        <div><label for="mr-month">Mes y año</label><input id="mr-month" type="month" /></div>
-        <div><label for="mr-available">Elegir un mes con registros</label><select id="mr-available"><option value="">Meses con registros</option></select></div>
+        <div class="mr-picker" id="mr-calendar">
+          <label for="mr-month-button">Mes y año</label>
+          <input id="mr-month" type="hidden" />
+          <button id="mr-month-button" class="mr-picker__trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="mr-calendar-popup"><span>Seleccionar mes</span><span aria-hidden="true">▾</span></button>
+          <div id="mr-calendar-popup" class="mr-picker__popup" role="dialog" aria-label="Seleccionar mes y año" hidden>
+            <div class="mr-picker__year"><button type="button" data-year-step="-1" aria-label="Año anterior">‹</button><label class="sr-only" for="mr-year">Año</label><input id="mr-year" type="number" min="1900" max="9999" aria-label="Año" /><button type="button" data-year-step="1" aria-label="Año siguiente">›</button></div>
+            <div id="mr-calendar-months" class="mr-picker__months"></div>
+          </div>
+        </div>
+        <div class="mr-picker" id="mr-recorded-picker">
+          <label for="mr-available-button">Elegir un mes con registros</label>
+          <select id="mr-available" style="display:none" aria-hidden="true" tabindex="-1"><option value="">Meses con registros</option></select>
+          <button id="mr-available-button" class="mr-picker__trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="mr-available-popup"><span>Meses con registros</span><span aria-hidden="true">▾</span></button>
+          <div id="mr-available-popup" class="mr-picker__popup mr-picker__options" role="listbox" aria-label="Meses con registros" hidden></div>
+        </div>
         <button type="submit" class="btn-primary">Consultar mes</button>
       </form>
       <div id="mr-result" role="status" aria-live="polite"><p class="mr-empty">Seleccioná un mes para ver las apariciones de cada número.</p></div>

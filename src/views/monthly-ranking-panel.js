@@ -1,3 +1,4 @@
+import { initMonthlyPickers } from '../ui/monthly-pickers.js';
 import { rankingMensual, mesesDisponibles } from '../monthly-ranking-engine.js';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -37,6 +38,8 @@ export function initMonthlyRankingPanel({ obtenerSorteos, obtenerGuia = () => ({
   const output = document.getElementById('mr-result');
   const select = document.getElementById('mr-available');
   if (!form || !input || !output || !select) return () => {};
+  const updatePickers = initMonthlyPickers(input, select);
+  updatePickers();
   let request = 0;
   async function consultar() {
     const current = ++request;
@@ -48,9 +51,10 @@ export function initMonthlyRankingPanel({ obtenerSorteos, obtenerGuia = () => ({
       if (current !== request) return;
       const months = mesesDisponibles(draws);
       select.replaceChildren(new Option('Meses con registros', ''), ...months.map(month => new Option(nombreMes(month), month)));
-      if (!requestedMonth && !months.length) { output.textContent = 'No hay sorteos de Honduras disponibles para consultar.'; return; }
+      if (!requestedMonth && !months.length) { updatePickers(); output.textContent = 'No hay sorteos de Honduras disponibles para consultar.'; return; }
       input.value = requestedMonth || months[0];
       select.value = months.includes(input.value) ? input.value : '';
+      updatePickers();
       output.innerHTML = renderRankingMensual(rankingMensual(input.value, draws), obtenerGuia());
     } catch {
       if (current === request) output.textContent = 'No se pudo cargar el ranking. Revisá el mes y volvé a consultar.';
