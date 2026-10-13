@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light" data-accent="azul">
 
 <head>
   <meta charset="utf-8" />
@@ -7,20 +7,21 @@
   <title>La Diaria — Acceso</title>
   <link rel="stylesheet" href="./style.css?v=13" />
   <link rel="stylesheet" href="./src/theme/base.css?v=13" />
-  <link rel="stylesheet" href="./src/theme/aurora.css?v=13" />
+  <link rel="stylesheet" href="./src/theme/tokens.css?v=4" />
+  <link rel="stylesheet" href="./src/theme/redesign.css?v=1" />
   <script>
     // Variables de entorno. En producción, sobreescribe estas valores.
     window.__ENV__ = window.__ENV__ || {};
   </script>
 </head>
 
-<body class="login-page">
+<body class="login-page design-v2">
   <main class="login-shell">
     <section class="login-card">
       <div class="login-card__head">
-        <p class="login-tag">LD v3.2</p>
-        <h1>Acceso seguro</h1>
-        <p class="login-lead">Inicia sesión con tu cuenta Supabase para continuar.</p>
+        <p class="login-tag">LA DIARIA · REGISTRO &amp; ESTADÍSTICA</p>
+        <h1>Tu registro,<br>siempre contigo.</h1>
+        <p class="login-lead">Inicia sesión para consultar tu historial y registrar resultados.</p>
       </div>
       <form id="login-form" class="login-form">
         <label>

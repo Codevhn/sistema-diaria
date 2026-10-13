@@ -7,8 +7,8 @@
   --gold: #f2c44a;
   --gold-light: #f7d87a;
   --clr-gold: #f2c44a;
-  --bg2: #17171d;
-  --text: #f8f4ea;
+  --bg2: var(--color-surface-2);
+  --text: var(--color-text);
   --border: rgba(var(--color-accent-rgb), 0.22);
   --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.55);
   --shadow-hard: 0 8px 48px rgba(0, 0, 0, 0.75);

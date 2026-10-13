@@ -1,20 +1,27 @@
 <!DOCTYPE html>
-<html lang="es" class="auth-locked">
+<html lang="es" class="auth-locked" data-theme="light" data-accent="azul">
 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>La Diaria — v3.2 Responsive</title>
+  <title>La Diaria — Registro y estadística</title>
+  <script>
+    try {
+      const migrated = localStorage.getItem('ld-design-version') === '2';
+      const theme = migrated ? localStorage.getItem('ld-theme') : 'light';
+      document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+    } catch { document.documentElement.dataset.theme = 'light'; }
+  </script>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./style.css?v=16" />
   <link rel="stylesheet" href="./src/theme/base.css?v=16" />
-  <link rel="stylesheet" href="./src/theme/aurora.css?v=16" />
   <!-- Rediseño (fase 1 — shell): carga al final, gana sobre lo que ya migró -->
-  <link rel="stylesheet" href="./src/theme/tokens.css?v=3" />
+  <link rel="stylesheet" href="./src/theme/tokens.css?v=4" />
   <link rel="stylesheet" href="./src/theme/components.css?v=3" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="./src/theme/redesign.css?v=1" />
   <style>
     html.auth-locked,
     html.auth-locked body {
@@ -61,115 +68,29 @@
 
 </head>
 
-<body class="layout">
-  <!-- macOS window title bar -->
-  <div class="mac-titlebar">
-    <span class="titlebar-brand" aria-hidden="true"></span>
-    <span class="mac-titlebar__title">La Diaria — Sistema de análisis</span>
-    <div class="mac-titlebar__right">
-      <!-- Actualizar datos desde cualquier dispositivo -->
-      <button class="mac-titlebar__icon-btn" id="btn-sync-remote" aria-label="Actualizar datos" title="Actualizar datos">
-        <i class="fa-solid fa-rotate"></i>
-      </button>
-      <!-- Toggle modo claro / oscuro -->
-      <button class="mac-titlebar__icon-btn" id="btn-toggle-theme" aria-label="Cambiar tema" title="Cambiar tema">
-        <i class="fa-solid fa-moon" id="theme-icon"></i>
-      </button>
-      <!-- Selector de acento (color de la interfaz) -->
-      <div class="accent-picker">
-        <button class="mac-titlebar__icon-btn" id="btn-toggle-accent" aria-label="Cambiar color de acento" title="Cambiar color de acento" aria-expanded="false">
-          <i class="fa-solid fa-palette"></i>
-        </button>
-        <div class="accent-picker__panel hidden" id="accent-picker-panel" role="menu">
-          <button class="accent-swatch" data-accent="teal" role="menuitem" aria-label="Verde (teal)" title="Verde (teal)"></button>
-          <button class="accent-swatch" data-accent="azul" role="menuitem" aria-label="Azul" title="Azul"></button>
-          <button class="accent-swatch" data-accent="grafito" role="menuitem" aria-label="Grafito" title="Grafito"></button>
-          <button class="accent-swatch" data-accent="dorado" role="menuitem" aria-label="Dorado" title="Dorado"></button>
-        </div>
-      </div>
-      <!-- Toggle sidebar — siempre visible en la barra de título -->
-      <button class="mac-titlebar__icon-btn" id="btn-toggle-sidebar" aria-label="Mostrar/ocultar menú" title="Mostrar/ocultar menú">
-        <i class="fa-solid fa-bars"></i>
-      </button>
-    </div>
-  </div>
-
-  <!-- Tab flotante: aparece solo cuando el sidebar está colapsado -->
-  <button class="mac-sidebar-reveal" id="btn-reveal-sidebar" aria-label="Mostrar menú" title="Mostrar menú">
-    <i class="fa-solid fa-chevron-right"></i>
-  </button>
-
-  <aside class="sidebar expanded" id="sidebar">
-    <div class="sidebar-brand">
-      <span class="sidebar-brand__mark">LD</span>
-      <span class="sidebar-brand__name">La Diaria</span>
-    </div>
-
-    <!-- Indicador de presencia en tiempo real -->
-    <div id="presence-bar" class="presence-bar" title="Usuarios conectados ahora">
-      <span class="presence-bar__dot"></span>
-      <span id="presence-count" class="presence-bar__count">…</span>
-      <span class="presence-bar__label">en línea</span>
-    </div>
-    <!-- Panel de usuarios (solo admin, se despliega al hacer clic) -->
-    <div id="presence-panel" class="presence-panel hidden"></div>
-
-    <nav class="sidebar-nav">
-      <button data-view="login"><span class="sidebar-icon fa-solid fa-right-to-bracket"></span><i>Acceso</i></button>
-
-      <div class="sidebar-group">
-        <div class="sidebar-group__label">Análisis del día</div>
-        <button data-view="day"><span class="sidebar-icon fa-solid fa-gauge"></span><i>Panel del día</i></button>
-        <button data-view="hypo"><span class="sidebar-icon fa-solid fa-puzzle-piece"></span><i>Hipótesis</i></button>
-        <button data-view="analysis"><span
-            class="sidebar-icon fa-solid fa-diagram-project"></span><i>Escenarios</i></button>
-        <button data-view="temporal"><span class="sidebar-icon fa-solid fa-flask"></span><i>Verificador</i></button>
-      </div>
-
-      <div class="sidebar-group">
-        <div class="sidebar-group__label">Herramientas</div>
-        <button data-view="superpremio"><span class="sidebar-icon fa-solid fa-trophy"></span><i>Super Premio</i></button>
-        <button data-view="transform"><span class="sidebar-icon fa-solid fa-wand-magic-sparkles"></span><i>Transformaciones</i></button>
-        <button data-view="pega3"><span class="sidebar-icon fa-solid fa-dice"></span><i>Pega3</i></button>
-        <button data-view="consulta"><span class="sidebar-icon fa-solid fa-magnifying-glass-chart"></span><i>Consulta</i></button>
-        <button data-view="horario"><span class="sidebar-icon fa-solid fa-clock"></span><i>Horario favorito</i></button>
-        <button data-view="monthly"><span class="sidebar-icon fa-solid fa-chart-column"></span><i>Ranking mensual</i></button>
-        <button data-view="suerte" style="display:none"><span class="sidebar-icon fa-solid fa-shuffle"></span><i>Tirada de suerte</i></button>
-        <button data-view="geometry" style="display:none"><span
-            class="sidebar-icon fa-solid fa-draw-polygon"></span><i>Cruceta/Triángulo</i></button>
-        <button data-view="memory"><span class="sidebar-icon fa-solid fa-brain"></span><i>Memoria</i></button>
-        <button data-view="guide"><span class="sidebar-icon fa-solid fa-book"></span><i>Guía de los Sueños</i></button>
-      </div>
-
-      <div class="sidebar-group">
-        <div class="sidebar-group__label">Sistema</div>
-        <button data-view="config" class="requires-admin"><span class="sidebar-icon fa-solid fa-gear"></span><i>Configuración</i></button>
-        <button data-view="maint" class="requires-admin"><span
-            class="sidebar-icon fa-solid fa-screwdriver-wrench"></span><i>Mantenimiento</i></button>
-        <button data-view="modes"><span class="sidebar-icon fa-solid fa-gamepad"></span><i>Modos de juego</i></button>
-        <button data-view="calc" style="display:none"><span class="sidebar-icon fa-solid fa-calculator"></span><i>Calculadora</i></button>
-        <button data-view="wiki"><span class="sidebar-icon fa-solid fa-circle-question"></span><i>Guía del sistema</i></button>
-      </div>
-    </nav>
-  </aside>
-
-  <main class="content">
-    <div class="sticky-header">
-      <div id="countdown-banner" class="countdown-banner">
-        <div class="countdown-label" data-countdown-label>Próximo sorteo</div>
-        <div class="countdown-target" data-countdown-target>—</div>
-        <div class="countdown-timer" data-countdown-timer>--:--:--</div>
-      </div>
-      <div class="header-actions">
-        <button id="btn-logout" class="btn-outline header-btn" type="button" title="Cerrar sesión">
-          <span class="header-btn__icon">⏏</span>
-        </button>
+<body class="layout design-v2">
+  <a class="skip-link" href="#main-content">Ir al contenido</a>
+  <header class="app-header">
+    <div class="app-header__inner">
+      <button class="app-brand" data-view="day" aria-label="La Diaria, jornada"><svg viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M11 10v16h14" fill="none" stroke="white" stroke-width="3"/><circle cx="24" cy="12" r="3" fill="#b9ceff"/></svg><span>La Diaria<small>REGISTRO &amp; ESTADÍSTICA</small></span></button>
+      <nav class="app-nav" aria-label="Navegación principal">
+        <button data-view="day" data-primary-nav="day">Jornada</button>
+        <button data-view="monthly" data-primary-nav="monthly">Ranking mensual</button>
+        <details class="app-menu" data-nav-group="numero"><summary>Por número <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel"><span class="app-menu__label">Historia de un número</span><button data-view="horario">Horario favorito</button><button data-view="consulta">Consulta histórica</button><button data-view="memory">Memoria</button></div></details>
+        <button data-view="history" data-primary-nav="history">Historial</button>
+        <details class="app-menu" data-nav-group="tools"><summary>Herramientas <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel app-menu__panel--tools"><div><span class="app-menu__label">Análisis</span><button data-view="hypo">Hipótesis</button><button data-view="analysis">Escenarios</button><button data-view="temporal">Verificador</button></div><div><span class="app-menu__label">Juegos y relaciones</span><button data-view="superpremio">Super Premio</button><button data-view="pega3">Pega3</button><button data-view="transform">Transformaciones</button><button data-view="modes">Modos de juego</button></div><div class="app-menu__library"><span class="app-menu__label">Biblioteca</span><button data-view="guide">Guía de los Sueños</button></div></div></details>
+      </nav>
+      <div class="app-header__actions">
+        <button class="btn-primary app-register requires-write" data-register-result>＋ Registrar resultado</button>
+        <details class="app-menu app-menu--account"><summary aria-label="Cuenta y administración"><span class="app-avatar">LD</span></summary><div class="app-menu__panel"><span class="app-menu__label">Cuenta y administración</span><button data-view="config" class="requires-admin">Configuración</button><button data-view="maint" class="requires-admin">Mantenimiento</button><button id="btn-sync-remote">Actualizar datos</button><button id="btn-toggle-theme">Cambiar tema <span id="theme-icon" aria-hidden="true"></span></button><button data-view="wiki">Guía del sistema</button><button data-view="login">Cambiar de cuenta</button><button id="btn-logout">Cerrar sesión</button><div id="presence-bar" class="presence-bar" title="Usuarios conectados"><span class="presence-bar__dot"></span><span id="presence-count" class="presence-bar__count">…</span><span class="presence-bar__label">en línea</span></div><div id="presence-panel" class="presence-panel hidden"></div></div></details>
       </div>
     </div>
-
+  </header>
+  <main class="content" id="main-content" tabindex="-1">
+    <div class="app-context"><span>La Diaria · Honduras</span><div id="countdown-banner" class="countdown-banner"><div class="countdown-label" data-countdown-label>Próximo sorteo</div><div class="countdown-target" data-countdown-target>—</div><div class="countdown-timer" data-countdown-timer>--:--:--</div></div></div>
     <!-- PANEL DEL DÍA -->
     <section id="view-day" class="view">
-      <h2>Panel del día</h2>
+      <div class="product-heading"><div><span class="product-eyebrow">Tu registro, más claro</span><h1>La jornada,<br>de un vistazo.</h1><p>Resultados, horarios y símbolos. Toda la información del día en un mismo lugar.</p></div><button class="btn-outline requires-write" data-register-result>Registrar resultado →</button></div>
       <div class="row">
         <label class="day-date-field">
           <span class="day-date-head">
@@ -185,107 +106,91 @@
         </label>
       </div>
 
-      <div class="triple" id="day-slot-grid">
+      <div class="day-board"><div class="day-board__heading"><h2>Resultados de la jornada</h2><span>Tres turnos · La Diaria Honduras</span></div><div class="triple" id="day-slot-grid">
         <div class="slot" id="slot-11" data-turn="11AM">
           <div class="slot-header">
-            <div class="slot-title">11 AM</div>
-            <label class="slot-flag">
-              <input type="checkbox" id="test-11" /> Modo prueba
-            </label>
+            <div class="slot-title">11 AM</div><span class="product-slot-state" data-slot-state>Sin registrar</span>
+
           </div>
           <div class="ball-row">
             <div class="ball" id="b-11">--</div>
             <div class="sym" id="s-11"></div>
           </div>
-          <div class="row slot-controls">
-            <input id="n-11" placeholder="00-99" aria-label="Número 11AM" />
-          </div>
+          <button class="btn-ghost requires-write" data-register-turn="11">Registrar / editar →</button>
           <button class="ghost" data-hypo="11AM">Vincular par · 11AM</button>
         </div>
 
         <div class="slot hidden" id="slot-12" data-turn="12PM">
           <div class="slot-header">
-            <div class="slot-title">12 PM</div>
-            <label class="slot-flag">
-              <input type="checkbox" id="test-12" /> Modo prueba
-            </label>
+            <div class="slot-title">12 PM</div><span class="product-slot-state" data-slot-state>Sin registrar</span>
+
           </div>
           <div class="ball-row">
             <div class="ball" id="b-12">--</div>
             <div class="sym" id="s-12"></div>
           </div>
-          <div class="row slot-controls">
-            <input id="n-12" placeholder="00-99" aria-label="Número 12PM" />
-          </div>
+          <button class="btn-ghost requires-write" data-register-turn="12">Registrar / editar →</button>
           <button class="ghost" data-hypo="12PM">Vincular par · 12PM</button>
         </div>
 
         <div class="slot" id="slot-3" data-turn="3PM">
           <div class="slot-header">
-            <div class="slot-title">3 PM</div>
-            <label class="slot-flag">
-              <input type="checkbox" id="test-3" /> Modo prueba
-            </label>
+            <div class="slot-title">3 PM</div><span class="product-slot-state" data-slot-state>Sin registrar</span>
+
           </div>
           <div class="ball-row">
             <div class="ball" id="b-3">--</div>
             <div class="sym" id="s-3"></div>
           </div>
-          <div class="row slot-controls">
-            <input id="n-3" placeholder="00-99" aria-label="Número 3PM" />
-          </div>
+          <button class="btn-ghost requires-write" data-register-turn="3">Registrar / editar →</button>
           <button class="ghost" data-hypo="3PM">Vincular par · 3PM</button>
         </div>
 
         <div class="slot hidden" id="slot-6" data-turn="6PM">
           <div class="slot-header">
-            <div class="slot-title">6 PM</div>
-            <label class="slot-flag">
-              <input type="checkbox" id="test-6" /> Modo prueba
-            </label>
+            <div class="slot-title">6 PM</div><span class="product-slot-state" data-slot-state>Sin registrar</span>
+
           </div>
           <div class="ball-row">
             <div class="ball" id="b-6">--</div>
             <div class="sym" id="s-6"></div>
           </div>
-          <div class="row slot-controls">
-            <input id="n-6" placeholder="00-99" />
-          </div>
+          <button class="btn-ghost requires-write" data-register-turn="6">Registrar / editar →</button>
           <button class="ghost" data-hypo="6PM">Vincular par · 6PM</button>
         </div>
 
         <div class="slot" id="slot-9" data-turn="9PM">
           <div class="slot-header">
-            <div class="slot-title">9 PM</div>
-            <label class="slot-flag">
-              <input type="checkbox" id="test-9" /> Modo prueba
-            </label>
+            <div class="slot-title">9 PM</div><span class="product-slot-state" data-slot-state>Sin registrar</span>
+
           </div>
           <div class="ball-row">
             <div class="ball" id="b-9">--</div>
             <div class="sym" id="s-9"></div>
           </div>
-          <div class="row slot-controls">
-            <input id="n-9" placeholder="00-99" aria-label="Número 9PM" />
-          </div>
+          <button class="btn-ghost requires-write" data-register-turn="9">Registrar / editar →</button>
           <button class="ghost" data-hypo="9PM">Vincular par · 9PM</button>
         </div>
       </div>
 
+      </div>
       <div class="day-actions">
-        <button id="save-day" class="btn-primary">Agregar a pendientes</button>
-        <button id="sync-day" class="btn-outline">Sincronizar con Supabase</button>
-        <button id="draws-local-toggle" class="btn-ghost">Plan B</button>
+        <button class="btn-primary requires-write" data-register-result>＋ Registrar resultado</button>
+        <button id="sync-day" class="btn-outline requires-write">Publicar pendientes</button>
+        <button id="draws-local-toggle" class="btn-ghost">Modo sin conexión</button>
         <div class="day-pending-controls">
           <span id="day-pending-indicator" class="day-pending-indicator">Sin pendientes</span>
-          <button id="manage-pending" type="button" class="btn-ghost btn-compact">Gestionar pendientes</button>
+          <button id="manage-pending" type="button" class="btn-ghost btn-compact requires-write">Gestionar pendientes</button>
         </div>
       </div>
       <div id="draws-local-status" class="local-mode-banner hidden"></div>
       <p class="hint day-hint">
         Confirma/Refuta hipótesis pendientes según los resultados válidos de la fecha seleccionada.
       </p>
-      <div class="day-dashboard">
+      <div class="day-secondary"><article class="product-sheet"><div class="product-sheet__heading"><h2>Últimos registros</h2><button class="btn-ghost" data-view="history">Ver historial →</button></div><div id="day-recent-records"><p class="hint">Cargando registros…</p></div></article><article class="product-explore"><span class="product-eyebrow">Conoce el historial de un número</span><h2>Un número.<br>Su historia completa.</h2><p>Consulta sus apariciones, horarios y últimos registros.</p><form id="day-number-query"><label class="sr-only" for="day-explore-number">Número</label><input id="day-explore-number" inputmode="numeric" maxlength="2" pattern="[0-9]{1,2}" required placeholder="67"/><button class="btn-primary">Explorar →</button></form></article></div>
+    </section>
+
+    <section id="view-history" class="view hidden"><div class="product-heading"><div><span class="product-eyebrow">Tu fuente de información</span><h1>Todo queda registrado.</h1><p>Consulta resultados por fecha, horario y país.</p></div><button class="btn-primary requires-write" data-register-result>＋ Registrar resultado</button></div>
         <article class="day-card day-card--wide" id="history-panel">
           <div class="day-card__head">
             <div>
@@ -298,6 +203,7 @@
             </div>
           </div>
           <div class="day-card__controls day-card__controls--scroll">
+            <label>Número o símbolo<input id="history-number-filter" type="search" placeholder="67, Mono…" /></label>
             <label>
               Fecha
               <input type="date" id="history-date" />
@@ -334,20 +240,7 @@
             <div id="history-summary" class="panel-meta">Selecciona una fecha para revisar sus sorteos.</div>
             <div id="history-table" class="table-wrap table-wrap--history"></div>
           </div>
-        </article>
-
-        <article class="day-card day-card--numbers">
-          <div class="day-card__head">
-            <div>
-              <h3>🏆 Super Premio</h3>
-              <p>Mis 6 números recomendados para hoy.</p>
-            </div>
-          </div>
-          <div class="day-card__body">
-          </div>
-        </article>
-      </div>
-    </section>
+        </article>    </section>
 
     <!-- PEGA3 -->
     <section id="view-pega3" class="view hidden">
@@ -497,7 +390,7 @@
     </section>
 
     <section id="view-horario" class="view hidden">
-      <h2>Horario favorito</h2>
+      <div class="product-heading"><div><span class="product-eyebrow">Consulta histórica</span><h1>Cada número tiene su historia.</h1><p>Consulta el horario con más apariciones de un número.</p></div></div>
       <p class="hint">¿A qué hora ha salido más un número? Consulta sus apariciones en todo el historial disponible de La Diaria Honduras.</p>
       <form id="hf-form" class="hf-form">
         <label for="hf-numero">Número (00–99)</label>
@@ -510,7 +403,7 @@
     </section>
 
     <section id="view-monthly" class="view hidden">
-      <h2>Ranking mensual</h2>
+      <div class="product-heading"><div><span class="product-eyebrow">Frecuencia registrada</span><h1>Así se movió el mes.</h1><p>Cuántas veces salió cada número. Frecuencias reales, de mayor a menor.</p></div></div>
       <p class="hint">Cuántas veces salió cada número en el mes elegido. Frecuencias reales de La Diaria Honduras, ordenadas de mayor a menor.</p>
       <form id="mr-form" class="mr-form">
         <div class="mr-picker" id="mr-calendar">
@@ -1019,7 +912,7 @@
       </div>
 
       <div class="card" style="margin-top:15px;" id="maint-pega3-hist-card">
-        <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
           <span>📋 Historial de sorteos Pega3</span>
           <div style="display:flex;gap:8px;align-items:center;">
             <input id="maint-pega3-search" type="text" placeholder="Fecha, número o turno" class="pega3-hist-search" style="width:180px;" />
@@ -1260,7 +1153,29 @@
     </div>
   </section>
 
-  <script type="module" src="./src/app.js?v=3"></script>
+  <dialog id="register-result-dialog" aria-labelledby="register-result-title"><div class="register-dialog__head"><div><span class="product-eyebrow">Nuevo registro</span><h2 id="register-result-title">Registrar resultados</h2></div><button class="btn-ghost" id="close-register-result" aria-label="Cerrar registro">✕</button></div><p class="hint" id="register-result-context"></p><div class="register-fields"><div class="register-field " data-register-field="11">          <div class="row slot-controls">
+            <label class="register-field__label" for="n-11">11 AM</label><input id="n-11" placeholder="00–99" inputmode="numeric" maxlength="2" aria-label="Número 11AM" />
+          </div>            <label class="slot-flag">
+              <input type="checkbox" id="test-11" /> Modo prueba
+            </label></div><div class="register-field hidden" data-register-field="12">          <div class="row slot-controls">
+            <label class="register-field__label" for="n-12">12 PM</label><input id="n-12" placeholder="00–99" inputmode="numeric" maxlength="2" aria-label="Número 12PM" />
+          </div>            <label class="slot-flag">
+              <input type="checkbox" id="test-12" /> Modo prueba
+            </label></div><div class="register-field " data-register-field="3">          <div class="row slot-controls">
+            <label class="register-field__label" for="n-3">3 PM</label><input id="n-3" placeholder="00–99" inputmode="numeric" maxlength="2" aria-label="Número 3PM" />
+          </div>            <label class="slot-flag">
+              <input type="checkbox" id="test-3" /> Modo prueba
+            </label></div><div class="register-field hidden" data-register-field="6">          <div class="row slot-controls">
+            <label class="register-field__label" for="n-6">6 PM</label><input id="n-6" placeholder="00–99" inputmode="numeric" maxlength="2" />
+          </div>            <label class="slot-flag">
+              <input type="checkbox" id="test-6" /> Modo prueba
+            </label></div><div class="register-field " data-register-field="9">          <div class="row slot-controls">
+            <label class="register-field__label" for="n-9">9 PM</label><input id="n-9" placeholder="00–99" inputmode="numeric" maxlength="2" aria-label="Número 9PM" />
+          </div>            <label class="slot-flag">
+              <input type="checkbox" id="test-9" /> Modo prueba
+            </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
+  <footer class="app-footer"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
+  <script type="module" src="./src/app.js?v=4"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">

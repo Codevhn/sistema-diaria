@@ -10,19 +10,11 @@ export function renderHorarioFavorito(result, guia = {}) {
   const title = !result.total ? 'Sin apariciones registradas'
     : result.favoritos.length > 1 ? 'Empate entre horarios' : 'Horario con más apariciones';
   const winner = result.favoritos.map(t => HORAS_DIARIA[t]).join(' · ');
-  return `<div class="hf-summary">
-    <div class="hf-number-block"><span class="hf-symbol">${symbol}</span><div class="hf-number">${number}</div><span class="hf-number-caption">La Diaria · Honduras</span></div>
-    <div class="hf-summary__answer"><span class="hf-eyebrow">${title}</span><h3>${winner || `El ${number} aún no aparece en este historial.`}</h3>
-    <p>${count(result.total)} apariciones · ${count(result.totalSorteos)} sorteos analizados<br>Desde ${result.desde} hasta ${result.hasta} · Honduras</p></div>
-  </div>
-  <div class="hf-grid">${result.turnos.map(t => `<article class="hf-card ${result.favoritos.includes(t.horario) ? 'hf-card--favorite' : ''}">
-    <div class="hf-card__head"><h3><span class="hf-clock" aria-hidden="true">◷</span>${HORAS_DIARIA[t.horario]}</h3>${result.favoritos.includes(t.horario) ? '<span class="hf-badge">Más apariciones</span>' : ''}</div>
-    <strong class="hf-count">${count(t.apariciones)}</strong><span class="hf-label">apariciones del ${number}</span>
-    <div class="hf-bar" aria-hidden="true"><span style="width:${t.porcentaje.toFixed(2)}%"></span></div>
-    <p><strong>${t.porcentaje.toFixed(1)}%</strong> de las apariciones del ${number}</p>
-    <small>${count(t.sorteos)} sorteos disponibles en este turno</small>
-  </article>`).join('')}</div>
-  <p class="hf-footnote">“Favorito” significa el horario con más apariciones registradas. Se analiza todo el historial disponible, sin limitarlo a los sorteos recientes. El porcentaje reparte las apariciones del número entre horarios; no es la probabilidad de que salga. Si los turnos tienen distinta cobertura histórica, los conteos pueden reflejar esa diferencia.</p>`;
+  return `<div class="number-profile"><div class="number-profile__portrait"><span class="product-eyebrow">${symbol}</span><strong>${number}</strong><p>La Diaria · Honduras</p></div>
+  <div class="number-profile__data"><div class="number-profile__heading"><div><span class="product-eyebrow">${title}</span><h2>${winner || `El ${number} aún no aparece en este historial.`}</h2></div><div><strong>${count(result.total)}</strong><span>apariciones totales</span></div></div>
+  ${result.turnos.map(t => `<div class="number-turn-row"><span>${HORAS_DIARIA[t.horario]}</span><div class="monthly-track" aria-hidden="true"><span style="width:${t.porcentaje.toFixed(2)}%;${result.favoritos.includes(t.horario) ? '' : 'opacity:.4'}"></span></div><strong>${count(t.apariciones)}</strong><small>${t.porcentaje.toFixed(1)}%</small></div>`).join('')}
+  <p class="number-profile__note">Porcentaje sobre las ${count(result.total)} apariciones del ${number}. Historial entre ${result.desde} y ${result.hasta}. El horario más frecuente se determina por conteo; los turnos pueden tener distinta cobertura.</p></div></div>
+  <div class="number-coverage">${result.turnos.map(t => `<div><span>${HORAS_DIARIA[t.horario]}</span><strong>${count(t.sorteos)}</strong><p>sorteos disponibles en este turno</p></div>`).join('')}</div>`;
 }
 
 export function initHorarioPanel({ obtenerSorteos, obtenerGuia = () => ({}) }) {

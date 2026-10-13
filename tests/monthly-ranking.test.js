@@ -40,3 +40,16 @@ describe('ranking mensual de apariciones', () => {
     for (const month of ['', '2025-13', '2025-00', '2025-1']) expect(() => rankingMensual(month, [])).toThrow();
   });
 });
+
+describe('ranking en el nuevo diseño', () => {
+  it('presenta los primeros diez y conserva todos los demás números en los detalles', () => {
+    const result = rankingMensual('2025-01', Array.from({ length: 15 }, (_, numero) => draw(numero)));
+    const html = renderRankingMensual(result);
+    const firstTen = html.split('<details class="monthly-more">')[0];
+    expect(firstTen.match(/<article class="monthly-rank-row"/g)).toHaveLength(10);
+    expect(html.match(/<article class="monthly-rank-row"/g)).toHaveLength(100);
+    expect(html).toContain('Ver los 5 números restantes');
+    expect(html).toContain('85 números que no salieron');
+    expect(html).toContain('Primer puesto compartido');
+  });
+});

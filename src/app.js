@@ -1,3 +1,4 @@
+import { initProductShell, renderRecentRecords } from './ui/product-shell.js';
     import { mostrarGuia } from "./guide-grid.js";
     import { DB } from "./storage.js";
     import { importarManual } from "./importer.js";
@@ -938,7 +939,7 @@ import {
     function updateLocalModeUI() {
       if (!drawsLocalToggle || !drawsLocalStatus) return;
       const snapshot = ensureLocalSnapshotState();
-      drawsLocalToggle.textContent = preferLocalSnapshot ? "Plan B activo" : "Plan B";
+      drawsLocalToggle.textContent = preferLocalSnapshot ? "Modo sin conexión activo" : "Modo sin conexión";
       drawsLocalToggle.classList.toggle("btn-primary", preferLocalSnapshot);
       drawsLocalToggle.classList.toggle("btn-ghost", !preferLocalSnapshot);
       const hasSnapshot = snapshot.draws.length > 0;
@@ -955,7 +956,7 @@ import {
           : "Modo local activado, pero aún no has guardado sorteos.";
       } else {
         drawsLocalStatus.textContent = hasSnapshot
-          ? `Plan B listo: ${snapshot.draws.length} sorteos guardados (última sync ${friendly}).`
+          ? `Respaldo local disponible: ${snapshot.draws.length} sorteos guardados (última sync ${friendly}).`
           : "Aún no hay datos guardados para el modo local.";
       }
       drawsLocalStatus.classList.toggle("local-mode-banner--active", preferLocalSnapshot);
@@ -1072,6 +1073,8 @@ import {
       const sym = document.getElementById(config.symId);
       if (!ball || !sym) return;
       ball.removeAttribute("data-pending");
+      const state = ball.closest(".slot")?.querySelector("[data-slot-state]");
+      if (state) { state.textContent = draw ? (draw.isTest ? "Prueba" : "Registrado") : "Sin registrar"; state.dataset.state = draw ? "registered" : "empty"; }
       if (!draw) {
         ball.innerHTML = formatBallContent("--", "");
         ball.classList.remove("small");
@@ -1083,13 +1086,12 @@ import {
         return;
       }
       const numero = formatNumber(draw.numero);
-      const color = getColorPolaridad(draw.numero);
       const symbol = getSymbol(draw.numero);
       ball.innerHTML = formatBallContent(numero, symbol);
       ball.dataset.numero = numero;
       ball.classList.toggle("small", !!draw.isTest);
-      ball.style.borderColor = color;
-      ball.style.color = color;
+      ball.style.borderColor = "";
+      ball.style.color = "";
       sym.textContent = "";
       sym.title = draw.isTest ? "Modo prueba" : symbol || "";
     }
@@ -1158,7 +1160,11 @@ import {
         if (!config) return;
         applyDrawToSlot(config, { numero: entry.numero, isTest: entry.isTest });
         const ball = document.getElementById(config.ballId);
-        if (ball) ball.dataset.pending = "true";
+        if (ball) {
+          ball.dataset.pending = "true";
+          const state = ball.closest(".slot")?.querySelector("[data-slot-state]");
+          if (state) { state.textContent = "Por publicar"; state.dataset.state = "pending"; }
+        }
       });
     }
 
@@ -1400,6 +1406,7 @@ import {
           { variant: "success" },
         );
         applyPendingSlots(fecha, paisValue);
+        document.getElementById("register-result-dialog")?.close();
         autoAdvanceDayFecha();
       } catch (err) {
         console.error("saveDay queue error", err);
@@ -1500,8 +1507,9 @@ import {
         }
 
         const slot = btn.closest(".slot");
-        const slotNumberInput = slot?.querySelector(".slot-controls input");
-        const numeroRaw = (slotNumberInput?.value || "").trim();
+        const config = SLOT_CONFIG.find(entry => entry.key === turno);
+        const slotNumberInput = config ? document.getElementById(config.inputId) : null;
+        const numeroRaw = (slotNumberInput?.value || slot?.querySelector(".ball")?.dataset.numero || "").trim();
         if (!/^\d{1,2}$/.test(numeroRaw)) {
           mostrarAviso("Primero ingresa el número del sorteo en el slot.", { variant: "warning" });
           slotNumberInput?.focus();
@@ -1741,6 +1749,7 @@ import {
     }
 
     // === Paneles extendidos: historial, seguimiento, patrones y ranking ===
+    const historyNumberFilter = document.getElementById("history-number-filter");
     const historyDateInput = document.getElementById("history-date");
     const historyHourSelect = document.getElementById("history-hour");
     const historyCountrySelect = document.getElementById("history-country");
@@ -2092,7 +2101,7 @@ import {
       return timeline;
     }
     function navigateToView(key) {
-      const btn = document.querySelector(`.sidebar button[data-view="${key}"]`);
+      const btn = document.querySelector(`[data-view="${key}"]`);
       if (btn) {
         btn.click();
       } else {
@@ -2122,7 +2131,7 @@ import {
     }
 
 
-    if (historyDateInput && dayFecha?.value && !historyDateInput.value) historyDateInput.value = dayFecha.value;
+
     if (historyLimitSelect && !historyLimitSelect.value) historyLimitSelect.value = "9";
     updateLocalModeUI();
 
@@ -2132,7 +2141,9 @@ import {
     historyRefreshBtn?.addEventListener("click", () => {
       refreshHistoryPanel({ forceReload: true });
     });
+    historyNumberFilter?.addEventListener("input", () => refreshHistoryPanel());
     historyClearBtn?.addEventListener("click", () => {
+      if (historyNumberFilter) historyNumberFilter.value = "";
       if (historyDateInput) historyDateInput.value = "";
       if (historyHourSelect) historyHourSelect.value = "";
       if (historyCountrySelect) historyCountrySelect.value = "";
@@ -2277,6 +2288,7 @@ import {
       }
       const draws = await getCachedDraws({ force: forceReload });
       renderHistoryCoverage(draws);
+      renderRecentRecords(document.getElementById("day-recent-records"), draws, GUIA);
       if (!draws.length) {
         historyTableWrap.innerHTML = "<p class='hint'>Aún no hay sorteos almacenados.</p>";
         if (historySummary) historySummary.textContent = "Sin registros.";
@@ -2291,6 +2303,10 @@ import {
       if (fechaFiltro) filtered = filtered.filter((d) => d.fecha === fechaFiltro);
       if (horarioFiltro) filtered = filtered.filter((d) => d.horario === horarioFiltro);
       if (paisFiltro) filtered = filtered.filter((d) => d.pais === paisFiltro);
+      const numberQuery = (historyNumberFilter?.value || '').trim().toLocaleLowerCase('es');
+      if (numberQuery) filtered = filtered.filter(draw => /^\d{1,2}$/.test(numberQuery)
+        ? Number(draw.numero) === Number(numberQuery)
+        : (getSymbol(draw.numero) || '').toLocaleLowerCase('es').includes(numberQuery));
       const rows = filtered.slice(0, Math.max(1, limit));
       const latestDate = latestRealDate(draws);
       if (!rows.length) {
@@ -2338,7 +2354,7 @@ import {
       if (historySummary) {
         const totalMatches = filtered.length;
         const scopeText =
-          fechaFiltro || horarioFiltro || paisFiltro
+          fechaFiltro || horarioFiltro || paisFiltro || numberQuery
             ? "con filtros aplicados"
             : "del histórico general";
         historySummary.textContent = `${rows.length} sorteos ${scopeText} (de ${totalMatches}).`;
@@ -4687,8 +4703,6 @@ import {
     });
 
     // ✅ Navegación lateral
-    const sidebar = document.getElementById("sidebar");
-    const toggleBtn = document.getElementById("btn-toggle-sidebar");
     const logoutBtn = document.getElementById("btn-logout");
 
     async function cerrarSesion() {
@@ -4735,27 +4749,10 @@ import {
     // Auto-sync al iniciar: espera a que todo se asiente y consulta Supabase
     setTimeout(() => runRemoteSync(), 1500);
 
-    const closeSidebarMobile = () => {
-      if (!sidebar) return;
-      sidebar.classList.remove("show-mobile");
-      if (toggleBtn) {
-        toggleBtn.classList.remove("sidebar-open");
-        toggleBtn.setAttribute("aria-expanded", "false");
-      }
-    };
-
-    const openSidebarMobile = () => {
-      if (!sidebar) return;
-      sidebar.classList.add("show-mobile");
-      if (toggleBtn) {
-        toggleBtn.classList.add("sidebar-open");
-        toggleBtn.setAttribute("aria-expanded", "true");
-      }
-    };
-
     // ✅ Cambio de vistas
     const views = {
       day: "view-day",
+      history: "view-history",
       hypo: "view-hypo",
       analysis: "view-analysis",
       temporal: "view-temporal",
@@ -4775,25 +4772,17 @@ import {
       superpremio: "view-superpremio",
       suerte: "view-suerte",
     };
-    const sidebarButtons = document.querySelectorAll(".sidebar button");
-    const markSidebarActive = (btn) => {
-      sidebarButtons.forEach((b) => b.classList.toggle("active", b === btn));
-    };
-    markSidebarActive(
-      Array.from(sidebarButtons).find((b) => b.dataset.view === "day") || null
-    );
-    sidebarButtons.forEach((b) => {
-      b.onclick = () => {
-        if (b.dataset.view === "login") {
-          window.location.href = "./login.html?mode=switch";
-          return;
-        }
-        markSidebarActive(b);
-        document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
-        const id = views[b.dataset.view];
-        const el = document.getElementById(id);
-        if (!el) return logWarn("Vista no encontrada:", id);
-        el.classList.remove("hidden");
+    const sidebarButtons = document.querySelectorAll('[data-view]');
+    const markNavigation = initProductShell({ navigate: navigateTo, getDayContext: getFilters });
+    function navigateTo(key) {
+      if (key === 'login') { window.location.href = './login.html?mode=switch'; return; }
+      if (['config', 'maint'].includes(key) && document.documentElement.dataset.role !== 'admin') return;
+      const id = views[key];
+      const el = document.getElementById(id);
+      if (!el) return logWarn('Vista no encontrada:', key);
+      document.querySelectorAll('.view').forEach(view => view.classList.toggle('hidden', view !== el));
+      markNavigation(key);
+      if (key === 'history') refreshHistoryPanel({ defaultView: true }).catch(() => {});
         if (id === "view-monthly") consultarRankingMensual();
         if (id === "view-guide") mostrarGuia();
         if (id === "view-wiki")  initWiki();
@@ -4820,9 +4809,11 @@ import {
           renderGapPanel();
         }
         if (id === "view-suerte") initSuerte();
-        if (window.innerWidth <= 768) closeSidebarMobile();
-      };
-    });
+      if (location.hash !== `#${key}`) history.replaceState(null, '', `#${key}`);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    window.addEventListener('hashchange', () => navigateTo(location.hash.slice(1) || 'day'));
+    navigateTo(views[location.hash.slice(1)] ? location.hash.slice(1) : 'day');
 
     // ════════════════════════════════════════════════════════════════
     // VERIFICADOR ESTADÍSTICO — renderVerificador
@@ -5159,9 +5150,15 @@ import {
       }
     }
 
-    // ✅ Modo claro / oscuro macOS
+    // New product defaults are applied once; subsequent choices remain user preferences.
+    if (localStorage.getItem('ld-design-version') !== '2') {
+      localStorage.setItem('ld-theme', 'light');
+      localStorage.setItem('ld-accent', 'azul');
+      localStorage.setItem('ld-design-version', '2');
+    }
+    // Tema del producto
     (function initTheme() {
-      const saved = localStorage.getItem("ld-theme") || "dark";
+      const saved = localStorage.getItem("ld-theme") || "light";
       document.documentElement.setAttribute("data-theme", saved);
       const themeIcon = document.getElementById("theme-icon");
       if (themeIcon) themeIcon.className = saved === "light" ? "fa-solid fa-sun" : "fa-solid fa-moon";
@@ -5185,8 +5182,8 @@ import {
     // ✅ Selector de acento (color de la interfaz)
     (function initAccent() {
       const ACCENTS = ["teal", "azul", "grafito", "dorado"];
-      const saved = localStorage.getItem("ld-accent") || "teal";
-      document.documentElement.setAttribute("data-accent", ACCENTS.includes(saved) ? saved : "teal");
+      const saved = localStorage.getItem("ld-accent") || "azul";
+      document.documentElement.setAttribute("data-accent", ACCENTS.includes(saved) ? saved : "azul");
 
       const accentBtn = document.getElementById("btn-toggle-accent");
       const panel = document.getElementById("accent-picker-panel");
@@ -5230,87 +5227,6 @@ import {
         }
       });
     })();
-
-    // ✅ Tab flotante para revelar sidebar
-    const revealBtn = document.getElementById("btn-reveal-sidebar");
-    if (revealBtn && sidebar) {
-      revealBtn.addEventListener("click", (e) => {
-        // Detener propagación para que handleOutside no lo vuelva a colapsar
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        document.body.classList.remove("sidebar-collapsed");
-        if (toggleBtn) {
-          toggleBtn.classList.add("sidebar-open");
-          toggleBtn.setAttribute("aria-expanded", "true");
-        }
-      });
-      // También detener pointerdown para que handleOutside no dispare antes
-      revealBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
-      revealBtn.addEventListener("mousedown",   (e) => e.stopPropagation());
-    }
-
-    // ✅ Toggle de sidebar móvil
-    if (toggleBtn && sidebar) {
-      toggleBtn.setAttribute("aria-controls", "sidebar");
-      toggleBtn.setAttribute("aria-expanded", "false");
-      if (window.innerWidth > 768 && !document.body.classList.contains("sidebar-collapsed")) {
-        toggleBtn.classList.add("sidebar-open");
-        toggleBtn.setAttribute("aria-expanded", "true");
-      }
-
-      toggleBtn.addEventListener("click", (event) => {
-        event.stopPropagation();
-        if (window.innerWidth <= 768) {
-          const shouldOpen = !sidebar.classList.contains("show-mobile");
-          if (shouldOpen) {
-            openSidebarMobile();
-          } else {
-            closeSidebarMobile();
-          }
-        }
-        // En escritorio ya no hay nada que colapsar: el sidebar queda fijo siempre.
-      });
-
-      const handleOutside = (event) => {
-        // Nunca cerrar si el click vino del reveal tab o del toggle btn
-        if (revealBtn && revealBtn.contains(event.target)) return;
-        if (toggleBtn && toggleBtn.contains(event.target)) return;
-        // Móvil: cerrar drawer si está abierto y el click es fuera
-        if (sidebar.classList.contains("show-mobile")) {
-          if (sidebar.contains(event.target)) return;
-          closeSidebarMobile();
-          return;
-        }
-        // Escritorio: el sidebar ya no se auto-colapsa al hacer clic afuera —
-        // queda fijo y visible siempre.
-      };
-
-      const outsideEvents = window.PointerEvent
-        ? ["pointerdown"]
-        : ["mousedown", "touchstart"];
-      outsideEvents.forEach((evt) => {
-        document.addEventListener(evt, handleOutside);
-      });
-      document.addEventListener("click", handleOutside);
-      document.addEventListener("focusin", handleOutside);
-      window.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") closeSidebarMobile();
-      });
-      sidebar.addEventListener("focusout", (event) => {
-        if (!sidebar.contains(event.relatedTarget)) closeSidebarMobile();
-      });
-      window.addEventListener("resize", () => {
-        if (window.innerWidth > 768) {
-          sidebar.classList.remove("show-mobile");
-          const collapsed = document.body.classList.contains("sidebar-collapsed");
-          toggleBtn.classList.toggle("sidebar-open", !collapsed);
-          toggleBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-        } else {
-          toggleBtn.classList.remove("sidebar-open");
-          toggleBtn.setAttribute("aria-expanded", sidebar.classList.contains("show-mobile") ? "true" : "false");
-        }
-      });
-    }
 
     // ── Notificaciones del navegador ──
     initNotifications().catch(() => {});

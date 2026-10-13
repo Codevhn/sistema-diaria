@@ -12,24 +12,19 @@ export function nombreMes(mes) {
 export function renderRankingMensual(result, guia = {}) {
   if (!result.total) return `<div class="mr-empty">No hay sorteos registrados para ${escape(nombreMes(result.mes))}. Seleccioná otro mes.</div>`;
   const max = result.lideres[0].apariciones;
-  const cards = entries => entries.map(entry => `<article class="mr-card ${entry.puesto === 1 ? 'mr-card--leader' : ''}">
-    <div class="mr-card__head"><span class="mr-position">${entry.apariciones ? `#${entry.puesto}` : 'Sin apariciones'}</span>${entry.puesto === 1 ? '<span class="mr-badge">Más frecuente</span>' : ''}</div>
-    <div class="mr-card__main"><div><strong class="mr-number">${pad(entry.numero)}</strong><span class="mr-symbol">${escape(guia[pad(entry.numero)]?.simbolo || 'Sin símbolo')}</span></div>
-    <div class="mr-occurrences"><strong>${entry.apariciones}</strong><span>${entry.apariciones === 1 ? 'aparición' : 'apariciones'}</span></div></div>
-    <div class="mr-bar" aria-hidden="true"><span style="width:${(entry.apariciones / max * 100).toFixed(2)}%"></span></div>
-    <div class="mr-share"><strong>${entry.porcentaje.toFixed(1)}%</strong><span>de ${count(result.total)} sorteos del mes</span></div>
+  const cards = entries => entries.map(entry => `<article class="monthly-rank-row">
+    <span class="monthly-position">${entry.apariciones ? `#${entry.puesto}` : '—'}</span>
+    <strong class="monthly-number ${entry.puesto === 1 ? 'monthly-number--first' : ''}">${pad(entry.numero)}</strong>
+    <div class="monthly-symbol"><span>${escape(guia[pad(entry.numero)]?.simbolo || 'Sin símbolo')}</span><div class="monthly-track" aria-hidden="true"><span style="width:${(entry.apariciones / max * 100).toFixed(2)}%"></span></div></div>
+    <strong class="monthly-count">${entry.apariciones}</strong><span class="monthly-share">${entry.porcentaje.toFixed(1)}%</span>
   </article>`).join('');
   const zero = result.ranking.filter(entry => !entry.apariciones);
-  return `<div class="mr-overview">
-    <div class="mr-overview__month"><span class="mr-eyebrow">La Diaria · Honduras</span><h3>${escape(nombreMes(result.mes))}</h3><p>Registros: ${result.desde} → ${result.hasta}</p></div>
-    <div class="mr-metric"><strong>${count(result.total)}</strong><span>sorteos registrados</span></div>
-    <div class="mr-metric"><strong>${result.distintos}</strong><span>números que salieron</span></div>
-    <div class="mr-metric"><strong>${result.diasRegistrados}</strong><span>días con registros</span></div>
-  </div>
-  <div class="mr-list-head"><h3>Del más frecuente al menos frecuente</h3><span>Los empates comparten puesto</span></div>
-  <div class="mr-grid">${cards(result.ranking.filter(entry => entry.apariciones))}</div>
-  ${zero.length ? `<details class="mr-zero"><summary>Ver ${zero.length} números que no salieron · 0 apariciones</summary><div class="mr-grid">${cards(zero)}</div></details>` : ''}
-  <p class="mr-note">Porcentaje = apariciones del número ÷ ${count(result.total)} sorteos registrados × 100. Las barras comparan cada conteo con el mayor del mes. Incluye los tres turnos; excluye pruebas y pendientes. Solo se cuentan los registros disponibles: un mes en curso o con datos faltantes puede estar incompleto.</p>`;
+  const leader = result.lideres[0];
+  return `<div class="monthly-stats"><div><strong>${count(result.total)}</strong><span>sorteos registrados</span></div><div><strong>${result.distintos}</strong><span>números diferentes</span></div><div><strong>${result.diasRegistrados}</strong><span>días con registros</span></div><p>${escape(nombreMes(result.mes))} · ${result.desde} → ${result.hasta}</p></div>
+  <div class="monthly-layout"><div class="monthly-list"><div class="monthly-table-head"><span>Puesto</span><span>Número</span><span>Símbolo / frecuencia</span><span>Veces</span><span>%</span></div>${cards(result.ranking.filter(entry => entry.apariciones).slice(0, 10))}
+  ${result.distintos > 10 ? `<details class="monthly-more"><summary>Ver los ${result.distintos - 10} números restantes ↓</summary>${cards(result.ranking.filter(entry => entry.apariciones).slice(10))}</details>` : ''}
+  ${zero.length ? `<details class="mr-zero"><summary>Ver ${zero.length} números que no salieron · 0 apariciones</summary>${cards(zero)}</details>` : ''}</div>
+  <aside><div class="monthly-feature"><span class="product-eyebrow">${result.lideres.length > 1 ? 'Primer puesto compartido' : 'El más frecuente del mes'}</span><strong>${pad(leader.numero)}</strong><h2>${escape(guia[pad(leader.numero)]?.simbolo || 'Sin símbolo')}</h2><div><b>${leader.apariciones}</b><span>apariciones registradas</span></div><div><b>${leader.porcentaje.toFixed(1)}%</b><span>del total mensual</span></div>${result.lideres.length > 1 ? `<p>Empatado con ${result.lideres.slice(1).map(entry => pad(entry.numero)).join(', ')}.</p>` : ''}</div><p class="monthly-explanation">Porcentaje = apariciones del número ÷ ${count(result.total)} sorteos registrados × 100. Las barras comparan cada conteo con el mayor del mes. Incluye los tres turnos; excluye pruebas y pendientes. Un mes en curso o con datos faltantes puede estar incompleto.</p></aside></div>`;
 }
 
 export function initMonthlyRankingPanel({ obtenerSorteos, obtenerGuia = () => ({}) }) {
