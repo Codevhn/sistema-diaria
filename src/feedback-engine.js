@@ -84,7 +84,6 @@ export function renderFeedbackHTML(fb) {
       <span class="fb-badge__text">
         Motor adaptativo ${trendIcon}
         <strong style="color:${verdictColor}">${adaptMsg}</strong>${dropNote}
-        <small>· detalle en "Validación en vivo"</small>
       </span>
     </div>`;
 }

@@ -19,7 +19,6 @@
     } from "./maintenance.js";
     import { mostrarTransformaciones } from "./transform-visual.js";
     import { initTooltips } from "./tooltip.js";
-    import { computeHitTrackerStats, renderHitTrackerHTML } from "./hit-tracker.js";
     import { getVencidos, renderRelativosHTML, backtestRelativos, getRelativosEnAlerta, renderRelativosAlertaHTML, backtestConvergencia, getConvergenciaActiva, renderConvergenciaHTML } from "./relativos-engine.js";
     import { initSuperPremioPicker } from "./superpremio-picker.js";
     import { initNotifications } from "./notifications.js";
@@ -3397,7 +3396,7 @@ import {
         // ── render ────────────────────────────────────────────────────────────
         const frag = document.createDocumentFragment();
 
-        // Fila 1: último número (compacto) + validación en vivo (ancho)
+        // Fila 1: último sorteo
         const topRow = document.createElement("div");
         topRow.className = "pulso-top-row";
         frag.appendChild(topRow);
@@ -3425,18 +3424,6 @@ import {
           </div>
         `;
         topRow.appendChild(lastCard);
-
-        // ── Hit-tracker live: cómo le está yendo el motor en producción real ──
-        try {
-          // Limpiar primero los pendientes fantasma de sesiones históricas
-          await DB.cleanStalePredictions(5).catch(() => {});
-          const hitStats = await computeHitTrackerStats({ topN: 8, recent: 30 });
-          const hitWrap = document.createElement("div");
-          hitWrap.innerHTML = renderHitTrackerHTML(hitStats, GUIA);
-          if (hitWrap.firstElementChild) topRow.appendChild(hitWrap.firstElementChild);
-        } catch (err) {
-          console.warn("hit-tracker render falló:", err?.message || err);
-        }
 
         // ── Relativos: alerta de disparadores recientes + backtest ──────────────
         try {

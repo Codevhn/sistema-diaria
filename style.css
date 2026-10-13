@@ -7933,13 +7933,13 @@ body.login-page {
   padding: 12px 0;
 }
 
-/* ── Fila 1: último número (compacto) + validación en vivo (ancho) ── */
+/* ── Fila 1: último sorteo ── */
 .pulso-top-row {
   display: grid;
-  grid-template-columns: minmax(190px, 260px) 1fr;
+  grid-template-columns: minmax(0, 260px);
   gap: 14px;
   margin-bottom: 14px;
-  align-items: stretch;   /* ambas tarjetas a la misma altura */
+  align-items: stretch;
 }
 @media (max-width: 560px) {
   .pulso-top-row { grid-template-columns: 1fr; }
