@@ -1,5 +1,6 @@
 import { paginateHistory } from './history-pagination.js';
 import { initProductShell, renderRecentRecords } from './ui/product-shell.js';
+import { initToolSelect } from './ui/tool-select.js';
 import { initDayPickers } from './ui/day-pickers.js';
     import { mostrarGuia } from "./guide-grid.js";
     import { DB } from "./storage.js";
@@ -3107,7 +3108,7 @@ import {
       const img = document.createElement("img");
       img.src = `data/img/${pad}.png`;
       img.alt = alt;
-      img.className = "rezago-card__img";
+      img.className = "scenario-number__img";
       img.addEventListener("error", function onErr() {
         img.removeEventListener("error", onErr);
         img.src = `data/img/${pad}.jpg`;
@@ -3157,7 +3158,7 @@ import {
         const pad = String(parseInt(d.numero, 10)).padStart(2, "0");
         const sym = guia?.[pad]?.simbolo || "";
         const card = document.createElement("div");
-        card.className = "vc-card";
+        card.className = "scenario-number";
         const img = numImg(pad, sym);
         img.className = "vc-card__img";
         card.appendChild(img);
@@ -3342,61 +3343,60 @@ import {
      */
     function buildRezagoSection(items, variant, titulo) {
       const wrap = document.createElement("div");
-      wrap.className = `rezago-section rezago-section--${variant}`;
+      wrap.className = "scenario-group";
 
       const head = document.createElement("div");
-      head.className = "rezago-section__head";
+      head.className = "scenario-group__heading";
       head.textContent = titulo;
       wrap.appendChild(head);
 
       const grid = document.createElement("div");
-      grid.className = "rezago-grid";
+      grid.className = "scenario-grid";
 
       items.forEach((item) => {
         const card = document.createElement("div");
-        card.className = `rezago-card rezago-card--${variant}`;
-        // Solo quitar fondo blanco — el borde se conserva
-        card.style.setProperty("background", "none", "important");
+        card.className = "scenario-number";
+        card.dataset.variant = variant;
 
         card.appendChild(numImg(item.pad, item.simbolo));
 
         const num = document.createElement("span");
-        num.className = "rezago-card__num";
+        num.className = "scenario-number__num";
         num.textContent = item.pad;
         card.appendChild(num);
 
         const sim = document.createElement("span");
-        sim.className = "rezago-card__sim";
+        sim.className = "scenario-number__sim";
         sim.textContent = item.simbolo || item.pad;
         card.appendChild(sim);
 
         if (item.badge) {
           const badge = document.createElement("span");
-          badge.className = "rezago-card__badge";
+          badge.className = "scenario-number__badge";
           badge.textContent = item.badge;
           card.appendChild(badge);
         }
 
         if (item.diasDesdeUltima != null) {
           const dias = document.createElement("span");
-          dias.className = "rezago-card__dias";
+          dias.className = "scenario-number__dias";
           dias.textContent = item.diasDesdeUltima === 0 ? "hoy mismo" : `${item.diasDesdeUltima}d sin caer`;
           card.appendChild(dias);
         } else if (item.razon) {
           const razon = document.createElement("span");
-          razon.className = "rezago-card__dias";
+          razon.className = "scenario-number__dias";
           razon.textContent = item.razon;
           card.appendChild(razon);
         }
 
         if (item.cicloPromedio) {
           const ciclo = document.createElement("span");
-          ciclo.className = "rezago-card__ciclo";
+          ciclo.className = "scenario-number__ciclo";
           ciclo.textContent = `ciclo: ${item.cicloPromedio}d`;
           card.appendChild(ciclo);
         } else if (item.subtext) {
           const sub = document.createElement("span");
-          sub.className = "rezago-card__ciclo";
+          sub.className = "scenario-number__ciclo";
           sub.textContent = item.subtext;
           card.appendChild(sub);
         }
@@ -3479,6 +3479,7 @@ import {
             <span class="pulso-last__sub" style="opacity:0.6">Siguiente estimado: turno ${nextHorario}</span>
           </div>
         `;
+        lastCard.appendChild(numImg(lastPad, lastInfo.simbolo || lastPad));
         topRow.appendChild(lastCard);
 
         // ── Relativos: alerta de disparadores recientes + backtest ──────────────
@@ -3628,7 +3629,7 @@ import {
             chips.className = "pulso-chips";
             for (const item of group.items) {
               const chip = document.createElement("div");
-              chip.className = "pulso-chip";
+              chip.className = "scenario-number";
               const numPad = String(item.numero).padStart(2, "0");
               chip.appendChild(numImg(numPad, numPad));
               const numEl = document.createElement("span");
@@ -3732,7 +3733,8 @@ import {
             const _rng  = _maxS - _minS || _maxS;
             motor.candidatos.forEach((c, ci) => {
               const chip = document.createElement("div");
-              chip.className = `pulso-chip pulso-chip--motor${c.penalizado ? " pulso-chip--penalizado" : ""}`;
+              chip.className = "scenario-number";
+              chip.dataset.variant = c.penalizado ? "penalized" : "motor";
               chip.appendChild(numImg(c.pad, c.simbolo));
               const topSignal = c.signals[0];
               const absScore  = Math.round(c.score * 100);
@@ -4215,7 +4217,7 @@ import {
                     const pd  = PAD2(parseInt(d.numero,10));
                     const sym = GUIA?.[pd]?.simbolo || "";
                     return `
-                      <div class="rec-card">
+                      <div class="scenario-number" data-variant="recent">
                         <img class="rec-card__img" src="data/img/${pd}.png" alt="${pd}"
                           onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
                         <span class="rec-card__num">${pd}</span>
@@ -4262,7 +4264,7 @@ import {
                   const pct  = Math.round((hits / totalHistSP) * 100);
                   const str  = pct >= 60 ? "rec-cand--strong" : pct >= 35 ? "rec-cand--med" : "";
                   return `
-                    <div class="rec-cand ${str}" title="Cayó en ${hits} de ${totalHistSP} recuperaciones anteriores">
+                    <div class="scenario-number" data-variant="recovery" data-strength="${str}" title="Cayó en ${hits} de ${totalHistSP} recuperaciones anteriores">
                       <img class="rec-cand__img" src="data/img/${pd}.png" alt="${pd}"
                         onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
                       <span class="rec-cand__num">${pd}</span>
@@ -4390,7 +4392,7 @@ import {
                   const pd  = PAD2(numero);
                   const sym = GUIA?.[pd]?.simbolo || "";
                   return `
-                    <div class="rec-card rec-card--rep">
+                    <div class="scenario-number" data-variant="repeated">
                       <img class="rec-card__img" src="data/img/${pd}.png" alt="${pd}"
                         onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
                       <span class="rec-card__num">${pd}</span>
@@ -4484,7 +4486,7 @@ import {
 
       const num = parseInt(raw, 10);
       if (isNaN(num) || num < 0 || num > 99) {
-        output.innerHTML = `<p class="hint small">Ingresá un número entre 00 y 99.</p>`;
+        output.innerHTML = `<p class="hint small">Ingresa un número entre 00 y 99.</p>`;
         return;
       }
 
@@ -4499,6 +4501,7 @@ import {
       }
     }
 
+    initToolSelect(document.getElementById("cq-horario"), { label: "Turno" });
     document.getElementById("cq-btn")?.addEventListener("click", ejecutarConsulta);
     document.getElementById("cq-numero")?.addEventListener("keydown", e => {
       if (e.key === "Enter") ejecutarConsulta();

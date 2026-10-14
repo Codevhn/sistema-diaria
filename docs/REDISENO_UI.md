@@ -68,3 +68,11 @@ Un único temporizador actualiza los valores visibles cada segundo. El tiempo se
 
 
 Se verificaron 207 pruebas de Vitest y el panel en Chromium a 320, 384 y 1440 px con autenticación y datos simulados. Se comprobó el avance de segundos y minutos con un reloj controlado, el reinicio al incorporar un sorteo, búsqueda y orden, ausencia de registros, suspensión fuera de la vista y recuperación al regresar. Un contexto con zona Asia/Tokyo obtuvo los mismos instantes de Honduras.
+
+## Escenarios y secciones secundarias de Transformaciones
+
+Escenarios presenta los números con la misma jerarquía de Transformaciones: número grande, imagen del símbolo, nombre y datos auxiliares en tarjetas planas con acentos por categoría. Incluye las líneas por decenas, resultados recientes, recuperaciones y candidatos. Se mantienen los cálculos, porcentajes, motivos y orden del motor.
+
+La consulta antes/después tiene etiquetas explícitas y campos alineados; sus resultados usan tarjetas legibles. El mapa de compañeros organiza semilla, compañero y justificación, separa los contadores de estado y presenta cada relación como ficha en móvil. El selector de semillas permite buscar por número o símbolo. Ambos selectores conservan sus valores y eventos originales, permiten teclado y cierran con Escape devolviendo el foco. La edición, eliminación, importación y exportación del mapa se mantienen.
+
+Se compararon exactamente los textos, imágenes y títulos de 228 tarjetas de Escenarios con la versión anterior, usando el mismo historial y reloj. Se verificaron 320, 384 y 1440 px en Chromium, ambos temas, ausencia de desbordamiento horizontal, consulta por turno, navegación de selectores y operaciones del mapa con persistencia simulada. Las 207 pruebas de Vitest pasaron. No se realizaron escrituras reales en Supabase ni pruebas en un S24 Ultra físico.

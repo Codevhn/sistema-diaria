@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="./src/theme/redesign.css?v=5" />
   <link rel="stylesheet" href="./src/theme/number-tools.css?v=1" />
   <link rel="stylesheet" href="./src/theme/number-clocks.css?v=1" />
+  <link rel="stylesheet" href="./src/theme/scenarios.css?v=1" />
   <style>
     /* The loading screen is public; all application content stays covered until auth and boot complete. */
     html:is(.auth-locked, .app-booting) body > :not(#boot-loader):not(script),
@@ -617,28 +618,15 @@
         <div id="t-output"></div>
       </div>
 
-      <!-- Modo Consulta histórica -->
-      <div class="card" style="margin-top:16px">
-        <div class="card-head">🔍 Consulta histórica — ¿qué pasó antes y después?</div>
-        <div class="card-body" style="padding:14px 16px">
-          <p class="hint small" style="margin-bottom:12px">
-            Ingresá un número y el sistema te muestra cada vez que cayó, qué lo antecedió
-            y qué vino después — para que puedas detectar patrones reales.
-          </p>
-          <div class="cq-controls">
-            <input id="cq-numero" type="tel" inputmode="numeric" maxlength="2"
-              placeholder="00–99" class="cq-input" />
-            <select id="cq-horario" class="cq-select">
-              <option value="">Todos los turnos</option>
-              <option value="11AM">11 AM</option>
-              <option value="3PM">3 PM</option>
-              <option value="9PM">9 PM</option>
-            </select>
-            <button id="cq-btn" class="btn-primary">Consultar</button>
-          </div>
-          <div id="cq-output" style="margin-top:14px"></div>
+      <section class="transform-history">
+        <div class="transform-history__heading"><h3>Consulta antes y después</h3><p>Consulta las apariciones del número y los resultados de los sorteos cercanos.</p></div>
+        <div class="transform-history__form">
+          <label for="cq-numero">Número<input id="cq-numero" type="tel" inputmode="numeric" maxlength="2" placeholder="00–99" /></label>
+          <label for="cq-horario">Turno<select id="cq-horario"><option value="">Todos los turnos</option><option value="11AM">11 AM</option><option value="3PM">3 PM</option><option value="9PM">9 PM</option></select></label>
+          <button id="cq-btn" class="btn-primary">Consultar</button>
         </div>
-      </div>
+        <div id="cq-output"></div>
+      </section>
 
       <!-- Curación del mapa de compañeros semánticos (conversiones culturales) -->
       <div id="companeros-panel" style="margin-top:16px"></div>
@@ -1066,7 +1054,7 @@
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=9"></script>
+  <script type="module" src="./src/app.js?v=10"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">

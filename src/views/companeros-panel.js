@@ -13,6 +13,7 @@
  *   key "comp:_meta"     → { completo: bool, cerradoEn }
  */
 
+import { initToolSelect } from "../ui/tool-select.js";
 import { DB } from "../storage.js";
 import { GUIA } from "../loader.js";
 import { formatNumber, normalizeNumeroKey } from "../ui/format.js";
@@ -23,6 +24,7 @@ let semillaActual = null;
 let mapa = {}; // semilla(number) → {pares:[{n,nota,creado}]}
 let meta = { completo: false, cerradoEn: null };
 let cargado = false;
+let seedPicker = null;
 
 function simboloDe(n) {
   const g = GUIA[formatNumber(n)];
@@ -65,22 +67,18 @@ function renderContenedor() {
   const cont = document.getElementById("companeros-panel");
   if (!cont) return null;
   cont.innerHTML = `
-    <div class="card">
-      <div class="card-body">
-        <div class="ctx-head">
-          <span class="ctx-head__title">🗺️ Mapa de compañeros semánticos</span>
-          <span class="ctx-head__sub">Curación gradual · cada entrada exige justificación · se guarda en la nube</span>
-        </div>
+    <section class="semantic-map">
+      <div class="semantic-map__heading"><h3>Mapa de compañeros</h3><p>Relaciona números y explica su vínculo. Las entradas se guardan en la nube.</p></div>
         <div id="cp-progreso"></div>
         <div class="cp-form">
-          <label>Semilla
+          <label for="cp-semilla">Semilla
             <select id="cp-semilla"></select>
           </label>
-          <label>Compañero
-            <input id="cp-num" type="number" min="0" max="99" placeholder="00–99" />
+          <label for="cp-num">Compañero
+            <input id="cp-num" inputmode="numeric" type="number" min="0" max="99" placeholder="00–99" />
           </label>
-          <label class="cp-nota">Justificación (¿por qué están relacionados?)
-            <input id="cp-nota" type="text" maxlength="120" placeholder="ej: carro y llanta — parte del mismo todo" />
+          <label class="cp-nota" for="cp-nota">Justificación
+            <input id="cp-nota" type="text" maxlength="120" placeholder="Explica por qué están relacionados" />
           </label>
           <button id="cp-agregar" class="btn-outline">Agregar</button>
         </div>
@@ -89,20 +87,19 @@ function renderContenedor() {
           <button id="cp-exportar" class="btn-outline">Exportar JSON</button>
           <button id="cp-cerrar-mapa" class="btn-outline">Marcar mapa completo</button>
         </div>
-        <details style="margin-top:10px;">
-          <summary class="hint">Importar JSON (avanzado)</summary>
+        <details class="semantic-map__import">
+          <summary>Importar JSON (avanzado)</summary>
           <textarea id="cp-import-text" rows="4"
             placeholder='[{"semilla":94,"n":53,"nota":"carro→llanta"}]'></textarea>
           <button id="cp-importar" class="btn-outline">Importar</button>
           <div id="cp-import-msg"></div>
         </details>
-        <p class="hint" style="margin-top:8px;">
+        <p class="semantic-map__rules">
           Reglas: el compañero debe ser 00–99 distinto de la semilla, sin duplicados,
           y la justificación es obligatoria. Cuando el mapa esté completo y marcado
           como tal, los motores analíticos podrán consumirlo.
         </p>
-      </div>
-    </div>`;
+    </section>`;
   return cont;
 }
 
@@ -110,13 +107,9 @@ function renderProgreso() {
   const el = document.getElementById("cp-progreso");
   if (!el) return;
   const definidas = Object.values(mapa).filter((m) => m.pares?.length).length;
-  const estado = meta.completo
-    ? '<span class="ritmo-estado ritmo-estado--larga">MAPA COMPLETO</span>'
-    : '<span class="ritmo-estado">borrador</span>';
   el.innerHTML = `
-    <p><strong>${definidas}/100</strong> semillas definidas · ${contarPares()} pares · ${estado}
-    ${meta.cerradoEn ? `<span class="hint">(cerrado ${new Date(meta.cerradoEn).toLocaleString()})</span>` : ""}
-    </p>`;
+    <div class="semantic-map__counts"><div><b>${definidas}/100</b><span>semillas definidas</span></div><div><b>${contarPares()}</b><span>pares registrados</span></div><div><b>${meta.completo ? "Completo" : "Borrador"}</b><span>estado del mapa</span></div></div>
+    ${meta.cerradoEn ? `<p class="hint">Cerrado ${new Date(meta.cerradoEn).toLocaleString("es-HN")}</p>` : ""}`;
 }
 
 function renderSelectSemillas() {
@@ -132,6 +125,7 @@ function renderSelectSemillas() {
   }
   semillaActual = previo != null ? previo : 0;
   sel.value = String(semillaActual);
+  seedPicker?.update();
 }
 
 function renderLista() {
@@ -144,13 +138,13 @@ function renderLista() {
   }
   const filas = pares.map((p) => `
     <tr>
-      <td>${formatNumber(p.n)} ${simboloDe(p.n)}</td>
-      <td>${escapeAttr(p.nota)}</td>
-      <td>${new Date(p.creado).toLocaleDateString()}</td>
-      <td><button class="btn-ghost cp-borrar" data-n="${p.n}" title="Eliminar">✕</button></td>
+      <td class="cp-identity"><img src="data/img/${formatNumber(p.n)}.png" alt="" onerror="this.hidden=true"><div><b>${formatNumber(p.n)}</b><span>${escapeAttr(simboloDe(p.n))}</span></div></td>
+      <td class="cp-reason" data-label="Justificación">${escapeAttr(p.nota)}</td>
+      <td class="cp-created" data-label="Creado">${new Date(p.creado).toLocaleDateString("es-HN")}</td>
+      <td class="cp-remove"><button class="btn-ghost cp-borrar" data-n="${p.n}" aria-label="Eliminar compañero ${formatNumber(p.n)}">✕</button></td>
     </tr>`).join("");
   el.innerHTML = `
-    <table class="honesty-table">
+    <table class="semantic-map__table">
       <thead><tr><th>Compañero</th><th>Justificación</th><th>Creado</th><th></th></tr></thead>
       <tbody>${filas}</tbody>
     </table>`;
@@ -177,8 +171,10 @@ function refrescar() {
 }
 
 export async function renderCompanerosPanel() {
+  seedPicker?.destroy();
   const cont = renderContenedor();
   if (!cont) return;
+  seedPicker = initToolSelect(cont.querySelector("#cp-semilla"), { searchable: true, label: "Semilla" });
   cont.querySelector("#cp-agregar").disabled = true;
   await cargar();
 
@@ -192,7 +188,7 @@ export async function renderCompanerosPanel() {
     const n = Number.isNaN(parseInt(nRaw, 10)) ? NaN : parseInt(nRaw, 10) % 100;
     const nota = notaIn.value.trim();
     if (Number.isNaN(n) || n < 0 || n > 99 || String(nRaw).trim() === "") {
-      alert("Compañero inválido: usá un número 00–99."); return;
+      alert("Compañero inválido: usa un número 00–99."); return;
     }
     if (n === semillaActual) { alert("El compañero no puede ser igual a la semilla."); return; }
     if (nota.length < 4) { alert("La justificación es obligatoria (mínimo 4 caracteres)."); return; }
@@ -202,7 +198,7 @@ export async function renderCompanerosPanel() {
     }
     mapa[semillaActual].pares.push({ n, nota, creado: Date.now() });
     const ok = await guardarSemilla(semillaActual);
-    if (!ok) { alert("No se pudo guardar en la base. Intentá de nuevo."); mapa[semillaActual].pares.pop(); return; }
+    if (!ok) { alert("No se pudo guardar en la base. Intenta de nuevo."); mapa[semillaActual].pares.pop(); return; }
     numIn.value = ""; notaIn.value = "";
     refrescar();
   });
