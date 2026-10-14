@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="auth-locked" data-theme="light" data-accent="azul">
+<html lang="es" class="auth-locked app-booting" data-boot-ready="false" data-theme="light" data-accent="azul">
 
 <head>
   <meta charset="utf-8" />
@@ -23,14 +23,16 @@
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="./src/theme/redesign.css?v=2" />
   <style>
-    html.auth-locked,
-    html.auth-locked body {
-      display: none !important;
-      visibility: hidden;
+    /* The loading screen is public; all application content stays covered until auth and boot complete. */
+    html:is(.auth-locked, .app-booting) body > :not(#boot-loader):not(script),
+    html:is(.auth-locked, .app-booting) body > :not(#boot-loader):not(script) * {
+      visibility: hidden !important;
     }
+    html.app-booting body { overflow: hidden; }
   </style>
 
   <script type="module">
+    import { revealBootWhenReady } from "./src/boot-loader.js";
     import { requireAuthOrRedirect } from "./src/auth.js";
     import { applyRoleToDOM, checkBanOrRedirect } from "./src/roles.js";
     const user = await requireAuthOrRedirect("./login.html");
@@ -40,10 +42,11 @@
     // Verificar si el usuario está baneado antes de mostrar nada
     const isBanned = await checkBanOrRedirect("./login.html");
     if (isBanned) throw new Error("Usuario baneado.");
+    // Apply permissions before the application can become visible.
+    await applyRoleToDOM();
     document.documentElement.classList.remove("auth-locked");
     window.__LD_AUTH_UNLOCKED__ = true;
-    // Aplicar rol al DOM para que el CSS oculte/muestre según permisos
-    await applyRoleToDOM();
+    revealBootWhenReady();
   </script>
 
   <script>
@@ -69,8 +72,19 @@
 </head>
 
 <body class="layout design-v2">
+  <div id="boot-loader" class="boot-loader" role="status" aria-live="polite" aria-busy="true">
+    <div class="product-boot">
+      <svg class="product-boot__mark" viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M11 10v16h14" fill="none" stroke="white" stroke-width="3"/><circle cx="24" cy="12" r="3" fill="#b9ceff"/></svg>
+      <span class="product-boot__eyebrow">REGISTRO &amp; ESTADÍSTICA</span>
+      <h1>La Diaria</h1>
+      <p>Tu registro, más claro.</p>
+      <div class="product-boot__status"><span class="product-boot__spinner" aria-hidden="true"></span><span id="boot-status">Validando tu sesión…</span></div>
+      <span class="product-boot__country">Honduras</span>
+    </div>
+  </div>
+
   <a class="skip-link" href="#main-content">Ir al contenido</a>
-  <header class="app-header">
+  <header class="app-header" data-app-shell inert aria-hidden="true">
     <div class="app-header__inner">
       <button class="app-brand" data-view="day" aria-label="La Diaria, jornada"><svg viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M11 10v16h14" fill="none" stroke="white" stroke-width="3"/><circle cx="24" cy="12" r="3" fill="#b9ceff"/></svg><span>La Diaria<small>REGISTRO &amp; ESTADÍSTICA</small></span></button>
       <nav class="app-nav" aria-label="Navegación principal">
@@ -86,7 +100,7 @@
       </div>
     </div>
   </header>
-  <main class="content" id="main-content" tabindex="-1">
+  <main class="content" id="main-content" tabindex="-1" data-app-shell inert aria-hidden="true">
     <div class="app-context"><span>La Diaria · Honduras</span><div id="countdown-banner" class="countdown-banner"><div class="countdown-label" data-countdown-label>Próximo sorteo</div><div class="countdown-target" data-countdown-target>—</div><div class="countdown-timer" data-countdown-timer>--:--:--</div></div></div>
     <!-- PANEL DEL DÍA -->
     <section id="view-day" class="view">
@@ -979,16 +993,6 @@
   </main>
 
   <div id="toast-container" class="toast-container"></div>
-  <div id="boot-loader" class="boot-loader hidden" role="status" aria-live="polite" aria-busy="false">
-    <div class="product-boot">
-      <svg class="product-boot__mark" viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M11 10v16h14" fill="none" stroke="white" stroke-width="3"/><circle cx="24" cy="12" r="3" fill="#b9ceff"/></svg>
-      <span class="product-boot__eyebrow">REGISTRO &amp; ESTADÍSTICA</span>
-      <h1>La Diaria</h1>
-      <p>Tu registro, más claro.</p>
-      <div class="product-boot__status"><span class="product-boot__spinner" aria-hidden="true"></span><span id="boot-status">Preparando tu jornada…</span></div>
-      <span class="product-boot__country">Honduras</span>
-    </div>
-  </div>
   <div id="processing-modal" class="processing-modal hidden" aria-live="polite">
     <div class="processing-box">
       <div class="processing-spinner"></div>
@@ -1097,8 +1101,8 @@
           </div>            <label class="slot-flag">
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
-  <footer class="app-footer"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=4"></script>
+  <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
+  <script type="module" src="./src/app.js?v=5"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">
