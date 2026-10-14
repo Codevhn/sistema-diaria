@@ -1,5 +1,6 @@
 import { paginateHistory } from './history-pagination.js';
 import { initProductShell, renderRecentRecords } from './ui/product-shell.js';
+import { initDayPickers } from './ui/day-pickers.js';
     import { mostrarGuia } from "./guide-grid.js";
     import { DB } from "./storage.js";
     import { importarManual } from "./importer.js";
@@ -287,6 +288,7 @@ import {
     const dayFecha = document.getElementById("day-fecha");
     const dayFechaDow = document.getElementById("day-fecha-dow");
     const dayPais = document.getElementById("day-pais");
+    const syncDayPickers = initDayPickers();
     const geometryDateInput = document.getElementById("g-fecha");
     const geometryPaisSelect = document.getElementById("g-pais");
     const memoryBoardGrid = document.getElementById("memory-board-grid");
@@ -1116,6 +1118,7 @@ import {
     }
 
     async function refreshSlots({ forceReload = false } = {}) {
+      syncDayPickers();
       const { fecha, pais } = getFilters();
       const normalizedPais = normalizeCountry(pais);
       const draws = await getCachedDraws({ force: forceReload, excludeTest: false });

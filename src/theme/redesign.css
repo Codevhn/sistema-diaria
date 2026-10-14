@@ -104,3 +104,38 @@ html[data-role=lector] .requires-write{display:none!important}
 @media(max-width:760px){.design-v2 .app-nav>button{min-width:44px}.design-v2 .history-pagination button{min-width:44px;min-height:44px}}
 
 @media(max-width:380px){.design-v2 .app-nav{gap:6px}}
+
+/* Filtros de Jornada: calendario y país con los mismos tokens del producto. */
+.design-v2 #view-day>.day-filters{align-items:flex-end}
+.design-v2 .day-picker{position:relative;min-width:0;display:block}
+.day-date-field{flex:0 1 270px}
+.day-country-field{flex:0 0 100px}
+.design-v2 #view-day>.day-filters .day-picker>label{display:flex;flex:none;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;margin:0 0 8px;min-height:16px;text-align:left}
+.design-v2 .day-picker .day-picker__trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:10px 14px;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border-strong);border-radius:8px;font-size:13px;font-weight:500;box-shadow:none;transform:none;text-align:left;transition:border-color .15s ease}
+.day-picker__trigger svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;flex-shrink:0}
+.design-v2 .day-picker__trigger[aria-expanded=true]{border-color:var(--color-accent)}
+.day-picker__popup{position:absolute;z-index:80;top:calc(100% + 8px);left:0;width:min(336px,calc(100vw - 40px));padding:12px;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border-strong);border-radius:10px;box-shadow:none;animation:day-picker-open .18s ease-out}
+.day-picker__popup[hidden],.day-picker [hidden]{display:none!important}
+.design-v2 .day-picker__popup button{background:transparent;color:var(--color-text);border:0;border-radius:4px;padding:0;min-height:40px;box-shadow:none;transform:none;font-size:12px;font-weight:500}
+.design-v2 .day-picker__popup button:hover{color:var(--color-accent);background:var(--color-accent-tint);box-shadow:none;transform:none}
+.day-calendar__head{display:grid;grid-template-columns:40px 1fr 40px;gap:6px;margin-bottom:8px}
+.design-v2 .day-calendar__head>button:first-child,.design-v2 .day-calendar__head>button:last-child{font-size:24px}
+.design-v2 #day-calendar-title{font-size:14px;font-weight:650}
+.day-calendar__weekdays,#day-calendar-grid>[role=row]{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.day-calendar__weekdays span{text-align:center;font-size:10px;color:var(--color-muted);padding:6px 0}
+#day-calendar-grid button{width:100%;font-variant-numeric:tabular-nums}
+.design-v2 #day-calendar-grid .is-adjacent{color:var(--color-muted)}
+.design-v2 #day-calendar-grid [aria-current=date]{text-decoration:underline;text-underline-offset:5px}
+.design-v2 #day-calendar-grid .is-selected{background:var(--color-accent);color:var(--color-on-accent,#fff);font-weight:700}
+.day-calendar__footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:6px;border-top:1px solid var(--color-border-strong);font-size:10px;color:var(--color-muted)}
+.design-v2 .day-calendar__footer button{padding:0 10px;color:var(--color-accent)}
+.day-calendar__months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:10px}
+.design-v2 .day-calendar__months [aria-pressed=true]{background:var(--color-accent-tint);color:var(--color-accent)}
+.design-v2 #day-calendar-month-panel>label{display:block;margin-bottom:6px}
+.design-v2 #day-calendar-year{width:100%;margin:0;min-height:44px}
+.day-picker__countries{left:auto;right:0;width:200px;padding:6px}
+.design-v2 .day-picker__countries button{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:8px 12px;text-align:left}
+.day-picker__countries [aria-selected=true]::after{content:'✓';color:var(--color-accent)}
+@keyframes day-picker-open{from{opacity:0;clip-path:inset(0 0 12% 0)}to{opacity:1;clip-path:inset(0)}}
+@media(max-width:760px){.day-date-field{flex:1;min-width:0}.day-country-field{flex:0 0 80px}.design-v2 .day-picker .day-picker__trigger{font-size:12px;padding:10px 12px}}
+@media(prefers-reduced-motion:reduce){.day-picker__popup{animation:none}}

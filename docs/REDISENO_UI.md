@@ -19,7 +19,7 @@ Se mantienen los motores, autenticación y persistencia existentes. El registro 
 
 ## Validación realizada
 
-- 199 pruebas de Vitest aprobadas.
+- 202 pruebas de Vitest aprobadas.
 - Comprobación de las 17 vistas a 1440 y 390 px, sin desbordamiento horizontal.
 - Navegación mediante los menús reales, cierre con Escape y cambio de tema.
 - Selectores de mes y año; consulta de enero de 2025 contra los 93 sorteos del respaldo.
@@ -49,3 +49,7 @@ Se retiró el panel Verificador estadístico, su acceso desde Herramientas, su r
 ## Símbolos en Jornada
 
 Las tarjetas de cada turno muestran la imagen del símbolo junto al número grande. La imagen se actualiza al cambiar la fecha, el país o el resultado, incluidos los pendientes. Se oculta cuando el turno no tiene resultado o no se puede cargar su archivo, conservando el número y su nombre.
+
+## Selectores de Jornada
+
+Fecha y país usan desplegables propios con los tokens del sistema en ambos temas. El calendario está en español, comienza el lunes y permite elegir mes y año directamente, volver a hoy y navegar con flechas, Inicio/Fin y AvPág/RePág. Escape cierra y devuelve el foco. Se mantienen `day-fecha`, `day-pais` y sus eventos para actualizar resultados y pendientes; los controles nativos permanecen ocultos. El selector de país ofrece únicamente las opciones existentes.
