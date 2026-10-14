@@ -1,0 +1,36 @@
+#view-clocks>.hint{font-size:14px;line-height:1.6;max-width:680px;margin:0 0 24px}
+.number-clocks-controls{display:flex;align-items:flex-end;flex-wrap:wrap;gap:16px;margin:24px 0 20px}
+.number-clocks-controls>label{display:flex;flex-direction:column;gap:8px;flex:1;min-width:220px;max-width:440px}
+#number-clocks-search{width:100%;min-height:48px}
+.number-clocks-order{display:flex;gap:4px;border:1px solid var(--color-border-strong);border-radius:8px;padding:3px;background:var(--color-surface)}
+.design-v2 .number-clocks-order button{min-height:40px;padding:8px 14px;border-radius:5px;color:var(--color-muted);font-weight:500}
+.design-v2 .number-clocks-order [aria-pressed=true]{color:var(--color-accent);background:var(--color-accent-tint)}
+.number-clocks-info{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--color-muted)}
+.number-clocks-live{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.number-clocks-live i{width:6px;height:6px;border-radius:50%;background:var(--color-success)}
+.number-clocks-summary{font-size:12px;color:var(--color-muted);line-height:1.5;margin:10px 0 20px}
+.number-clocks-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.number-clock{min-width:0;padding:22px;border:1px solid var(--color-border-strong);border-radius:10px;background:var(--color-surface)}
+.number-clock[hidden],.number-clock [hidden]{display:none!important}
+.number-clock__identity{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px}
+.number-clock__identity>div{min-width:0}
+.number-clock__identity strong{display:block;font-size:64px;line-height:1;font-weight:750;letter-spacing:-.06em;color:var(--color-text)}
+.number-clock__identity span{display:block;font-size:14px;line-height:1.4;margin-top:8px;color:var(--color-muted);overflow-wrap:anywhere}
+.number-clock__identity img{width:64px;height:72px;object-fit:contain;flex-shrink:0}
+.number-clock__days{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+.number-clock__days b{font-size:36px;line-height:1;font-weight:650;letter-spacing:-.035em;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.number-clock__days>span{font-size:12px;color:var(--color-muted)}
+.number-clock__time{display:flex;align-items:flex-start;justify-content:flex-start;gap:6px;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.number-clock__time b{font-size:28px;font-weight:550;line-height:1.2;color:var(--color-text)}
+.number-clock__time small{display:block;font-family:var(--font-sans);font-size:10px;text-align:center;color:var(--color-muted);margin-top:4px}
+.number-clock__time i{font-size:24px;line-height:1.2;font-style:normal;color:var(--color-muted);animation:clock-colon 1s steps(1,end) infinite}
+.number-clock__last{font-size:10px;line-height:1.6;color:var(--color-muted);padding-top:16px;margin:20px 0 0;border-top:1px solid var(--color-border)}
+.number-clock__last b{color:var(--color-text);font-weight:500}
+.number-clock__missing,.number-clock__waiting{font-size:13px;line-height:1.6;color:var(--color-muted);min-height:112px;margin:0}
+#view-clocks.hidden .number-clock__time i{animation:none}
+@keyframes clock-colon{50%{opacity:.3}}
+@media(max-width:1100px){.number-clocks-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.number-clocks-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.number-clocks-controls{gap:10px;margin-top:20px}.number-clocks-controls>label{flex:1 1 100%;max-width:none;min-width:0}.number-clocks-order{flex:1}.design-v2 .number-clocks-order button{flex:1;padding:8px 10px;font-size:12px}.number-clocks-controls>.btn-outline{font-size:11px;padding:10px 12px}.number-clock{padding:14px}.number-clock__identity{gap:6px;min-height:90px;margin-bottom:18px}.number-clock__identity strong{font-size:48px}.number-clock__identity span{font-size:12px;min-height:34px}.number-clock__identity img{width:42px;height:52px}.number-clock__days b{font-size:32px}.number-clock__time{gap:4px;justify-content:space-between}.number-clock__time b{font-size:22px}.number-clock__time i{font-size:20px}.number-clock__last{font-size:9px;overflow-wrap:anywhere}.number-clocks-info{font-size:11px}}
+@media(max-width:350px){.number-clock{padding:12px}.number-clock__identity img{width:34px}.number-clock__identity strong{font-size:44px}.number-clock__time{gap:2px}.number-clock__time b{font-size:20px}.number-clock__time i{font-size:18px}}
+@media(prefers-reduced-motion:reduce){.number-clock__time i{animation:none}}
+html[data-theme=dark] .number-clock__days b,html[data-theme=dark] .number-clocks-order [aria-pressed=true]{color:#a3b3ff}

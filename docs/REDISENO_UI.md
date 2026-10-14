@@ -19,7 +19,7 @@ Se mantienen los motores, autenticación y persistencia existentes. El registro 
 
 ## Validación realizada
 
-- 202 pruebas de Vitest aprobadas.
+- 207 pruebas de Vitest aprobadas.
 - Comprobación de las 17 vistas a 1440 y 390 px, sin desbordamiento horizontal.
 - Navegación mediante los menús reales, cierre con Escape y cambio de tema.
 - Selectores de mes y año; consulta de enero de 2025 contra los 93 sorteos del respaldo.
@@ -59,3 +59,12 @@ Fecha y país usan desplegables propios con los tokens del sistema en ambos tema
 Transformaciones usa tarjetas y clases propias en `src/theme/number-tools.css`; se retiraron sus reglas anteriores de `style.css` y `base.css` y los estilos forzados desde JavaScript. Se conservan los cálculos, el orden de los resultados, cada número, imagen y símbolo. El número base se destaca y las demás tarjetas se organizan en columnas con un acento por categoría, sin sombra ni elevación de hover.
 
 Consulta usa una descripción breve, un campo con contraste en ambos temas y un historial que presenta cada aparición como ficha en móvil. Conserva fecha, turno y sorteos anterior/siguiente, así como las tablas de escritorio. Se comprobaron 320, 384, 412 y 1440 px en Chromium, con emulación móvil y cliente de Supabase simulado. Las transformaciones de 00, 11, 27 y 99 se compararon con las funciones del motor y los símbolos de la guía; se verificaron ambas paletas, ausencia de desbordamiento horizontal y conservación de las filas y columnas del historial. Las 202 pruebas existentes pasaron. La validación no se realizó en un S24 Ultra físico.
+
+## Tiempo sin salir
+
+El menú Por número incluye un panel con los 100 números, sus imágenes y símbolos, búsqueda exacta por número o por texto, y orden por número o por mayor tiempo sin aparecer. El cálculo usa la última fecha y el turno registrado de Honduras, con horas de referencia 11:00, 15:00 y 21:00 en UTC−6; no usa la fecha de inserción en la base. Las pruebas, pendientes, registros inválidos y horas futuras se excluyen. La ausencia de historial se muestra expresamente, sin fabricar una duración.
+
+Un único temporizador actualiza los valores visibles cada segundo. El tiempo se recalcula con `Date.now()` para evitar deriva y recuperar el tiempo transcurrido al volver al panel o a la pestaña. Se suspende fuera de la vista y cuando la pestaña está oculta. Las mutaciones de sorteos actualizan las últimas apariciones; Actualizar datos permite una lectura forzada. Los contadores tienen anuncios automáticos desactivados para los lectores de pantalla y el parpadeo respeta reducir movimiento.
+
+
+Se verificaron 207 pruebas de Vitest y el panel en Chromium a 320, 384 y 1440 px con autenticación y datos simulados. Se comprobó el avance de segundos y minutos con un reloj controlado, el reinicio al incorporar un sorteo, búsqueda y orden, ausencia de registros, suspensión fuera de la vista y recuperación al regresar. Un contexto con zona Asia/Tokyo obtuvo los mismos instantes de Honduras.

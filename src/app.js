@@ -53,6 +53,7 @@ import {
 import { initConsultaPanel } from "./views/consulta-panel.js";
 import { initHorarioPanel } from "./views/horario-panel.js";
 import { initMonthlyRankingPanel } from "./views/monthly-ranking-panel.js";
+import { initNumberClocksPanel } from "./views/number-clocks-panel.js";
     import { loadUserPreferences, saveUserPreferences } from "./user-preferences.js";
     import { getMyRole, getAllProfiles, updateUserRole, updateUserName, setBanStatus, roleLabel, roleColor, VALID_ROLES } from "./roles.js";
 import { initDecemberPanel } from "./views/december-panel.js";
@@ -2406,6 +2407,7 @@ import {
         refreshHistoryPanel({ forceReload: true }),
         renderMemoryBoard({ forceReload: true }),
         renderGapPanel({ forceReload: true }),
+        numberClocks.onDrawsChanged(),
       ]);
       await reopenMemoryDetail();
     }
@@ -2428,6 +2430,7 @@ import {
     });
     const consultarRankingMensual = initMonthlyRankingPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     initHorarioPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
+    const numberClocks = initNumberClocksPanel({ obtenerSorteos: force => getCachedDraws({ force, excludeTest: true }), obtenerGuia: () => GUIA });
     initConsultaPanel({
       obtenerSorteos: () => getCachedDraws(),
       pais: () => "HN",
@@ -4796,6 +4799,7 @@ import {
       pega3: "view-pega3",
       consulta: "view-consulta",
       horario: "view-horario",
+      clocks: "view-clocks",
       monthly: "view-monthly",
       geometry: "view-geometry",
       memory: "view-memory",
@@ -4818,6 +4822,7 @@ import {
       if (!el) return logWarn('Vista no encontrada:', key);
       document.querySelectorAll('.view').forEach(view => view.classList.toggle('hidden', view !== el));
       markNavigation(key);
+      numberClocks.setActive(key === 'clocks');
       if (key === 'history') refreshHistoryPanel().catch(() => {});
         if (id === "view-monthly") consultarRankingMensual();
         if (id === "view-guide") mostrarGuia();

@@ -23,6 +23,7 @@
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="./src/theme/redesign.css?v=5" />
   <link rel="stylesheet" href="./src/theme/number-tools.css?v=1" />
+  <link rel="stylesheet" href="./src/theme/number-clocks.css?v=1" />
   <style>
     /* The loading screen is public; all application content stays covered until auth and boot complete. */
     html:is(.auth-locked, .app-booting) body > :not(#boot-loader):not(script),
@@ -91,7 +92,7 @@
       <nav class="app-nav" aria-label="Navegación principal">
         <button data-view="day" data-primary-nav="day">Jornada</button>
         <button data-view="monthly" data-primary-nav="monthly"><span class="nav-label-desktop">Ranking mensual</span><span class="nav-label-mobile">Mensual</span></button>
-        <details class="app-menu" data-nav-group="numero"><summary>Por número <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel"><span class="app-menu__label">Historia de un número</span><button data-view="horario">Horario favorito</button><button data-view="consulta">Consulta histórica</button><button data-view="memory">Memoria</button></div></details>
+        <details class="app-menu" data-nav-group="numero"><summary>Por número <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel"><span class="app-menu__label">Historia de un número</span><button data-view="horario">Horario favorito</button><button data-view="clocks">Tiempo sin salir</button><button data-view="consulta">Consulta histórica</button><button data-view="memory">Memoria</button></div></details>
         <button data-view="history" data-primary-nav="history">Historial</button>
         <details class="app-menu" data-nav-group="tools"><summary>Herramientas <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel app-menu__panel--tools"><div><span class="app-menu__label">Análisis</span><button data-view="hypo">Hipótesis</button><button data-view="analysis">Escenarios</button></div><div><span class="app-menu__label">Juegos y relaciones</span><button data-view="superpremio">Super Premio</button><button data-view="pega3">Pega3</button><button data-view="transform">Transformaciones</button><button data-view="modes">Modos de juego</button></div><div class="app-menu__library"><span class="app-menu__label">Biblioteca</span><button data-view="guide">Guía de los Sueños</button></div></div></details>
       </nav>
@@ -380,6 +381,19 @@
         <button id="consulta-btn-buscar" class="btn-outline">Consultar</button>
       </div>
       <div id="consulta-resultado"></div>
+    </section>
+
+    <section id="view-clocks" class="view hidden">
+      <h2>Tiempo sin salir</h2>
+      <p class="hint">100 relojes en vivo desde la última aparición registrada de cada número. Horas de referencia: 11:00, 15:00 y 21:00 de Honduras.</p>
+      <div class="number-clocks-controls">
+        <label for="number-clocks-search">Buscar número o símbolo<input id="number-clocks-search" type="search" placeholder="67 o nombre del símbolo" autocomplete="off" /></label>
+        <div class="number-clocks-order" role="group" aria-label="Orden de los números"><button type="button" class="btn-ghost" data-clock-order="number" aria-pressed="true">00–99</button><button type="button" class="btn-ghost" data-clock-order="elapsed" aria-pressed="false">Más tiempo</button></div>
+        <button id="number-clocks-refresh" type="button" class="btn-outline">Actualizar datos</button>
+      </div>
+      <div class="number-clocks-info"><span id="number-clocks-status" role="status" aria-live="polite">100 números</span><span class="number-clocks-live"><i aria-hidden="true"></i> Relojes en vivo</span></div>
+      <p id="number-clocks-summary" class="number-clocks-summary"></p>
+      <div id="number-clocks-grid" class="number-clocks-grid"></div>
     </section>
 
     <section id="view-horario" class="view hidden">
@@ -1052,7 +1066,7 @@
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=8"></script>
+  <script type="module" src="./src/app.js?v=9"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">
