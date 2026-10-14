@@ -8,7 +8,7 @@ El diseño usa navegación superior por tareas, fondo claro, superficies blancas
 - **Ranking mensual**: conteos y porcentajes en filas con barras comparables; primeros diez números y detalles para los restantes.
 - **Por número**: Horario favorito, Consulta histórica y Memoria.
 - **Historial**: filtros por fecha, turno y país, y búsqueda por número o símbolo.
-- **Herramientas**: Hipótesis, Escenarios, Verificador, Super Premio, Pega3, Transformaciones, Modos de juego y Guía de los Sueños.
+- **Herramientas**: Hipótesis, Escenarios, Super Premio, Pega3, Transformaciones, Modos de juego y Guía de los Sueños.
 - **Cuenta**: Configuración y Mantenimiento para administradores, actualización de datos, tema, ayuda y sesión.
 
 Se mantienen los motores, autenticación y persistencia existentes. El registro conserva el flujo de pendientes: guardar primero, revisar y publicar después. Las funciones retiradas anteriormente no se reintroducen.
@@ -41,3 +41,7 @@ El login se reconstruyó con una composición de marca y formulario. Carga únic
 ## Entrada sin destello de la interfaz
 
 La pantalla de carga está visible desde el HTML inicial. El contenido permanece oculto y sus controles inactivos hasta que finalicen tanto la verificación de sesión y permisos como la preparación inicial de datos. Ambos procesos pueden terminar en cualquier orden sin revelar una jornada vacía. Se verificaron ambos órdenes con pruebas de regresión y, en Chromium a 1440 y 390 px, se observaron los fotogramas de entrada mientras se retrasaba deliberadamente la carga de datos con autenticación simulada: la primera vista fue la pantalla de carga y no apareció contenido del sistema antes de completar la preparación.
+
+## Verificador retirado
+
+Se retiró el panel Verificador estadístico, su acceso desde Herramientas, su ruta y su renderizado. Sus módulos exclusivos de análisis temporal y presentación de honestidad ya no forman parte de la aplicación. La ayuda no ofrece acceso a las funciones retiradas. Los enlaces antiguos a `#temporal` abren Jornada al entrar.

@@ -358,9 +358,7 @@ button:focus-visible,
 .guide-family-tag,
 .sp-date-chip,
 .trans-chip,
-.sp-rep-chip,
-.vt-corr-chip,
-.vt-aya-chip {
+.sp-rep-chip {
   border: none;
   background: transparent;
   box-shadow: none;
@@ -371,9 +369,6 @@ button:focus-visible,
 
 /* ── Indicadores de estado: tinte sutil, sin borde ── */
 .ht-chip,
-.vt-badge,
-.vt-sm-chip,
-.vt-num-chip,
 .vlt-badge,
 .sp-modo-badge--on,
 .sp-modo-badge--off,
@@ -395,10 +390,6 @@ button:focus-visible,
 [class*="pill--"],
 [class*="pill."],
 .ht-chip--hit,
-.vt-badge--ok,
-.vt-badge--no,
-.vt-badge--ins,
-.vt-badge--tend,
 .vlt-badge--activa,
 .vlt-badge--completo,
 .vlt-badge--confirmada,
@@ -722,67 +713,7 @@ html[data-theme="dark"] .memory-transform-chip.memory-transform-chip {
   min-width: 50px;
 }
 
-/* N. Panel de honestidad (Verificador estadístico) — métricas flat. */
-.honesty-section-title {
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  margin: 18px 0 10px;
-}
-
-.honesty-metrics-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.honesty-metric__empty,
-.mesa-loading {
-  color: var(--color-muted);
-  font-size: 0.85rem;
-}
-
-.honesty-metric__title {
-  font-size: 0.78rem;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.honesty-metric__main {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 6px 0 4px;
-}
-
-.honesty-metric__rate {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.honesty-metric__lift {
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.honesty-metric__ci,
-.honesty-metric__sub,
-.honesty-metric__desc {
-  font-size: 0.75rem;
-  color: var(--color-muted);
-}
-
-.honesty-verdict {
-  margin: 14px 0;
-  padding: 12px 14px;
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
+/* Estilos de tablas compartidos por las herramientas de consulta. */
 .honesty-table {
   width: 100%;
   border-collapse: collapse;
@@ -801,10 +732,7 @@ html[data-theme="dark"] .memory-transform-chip.memory-transform-chip {
   font-variant-numeric: tabular-nums;
 }
 
-.honesty-rand__head {
-  font-weight: 600;
-  margin-bottom: 6px;
-}
+.mesa-loading { color: var(--color-muted); font-size: 0.85rem; }
 
 /* ── Aviso de honestidad estadística (auditoría 2026-08) ─────────────── */
 .aviso-honestidad {

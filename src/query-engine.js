@@ -5,7 +5,7 @@
  * un número ("¿cada cuánto cae?", "¿cuál es su vuelta?", "¿qué suele caer
  * después?") con su frecuencia observada Y su comparación honesta contra
  * lo que el azar produciría, usando la misma metodología que
- * randomness-audit.js / honesty-panel.js (IC bayesiano, test binomial exacto).
+ * randomness-audit.js (IC bayesiano, test binomial exacto).
  *
  * Nada aquí se etiqueta como "recomendación": cada resultado se presenta
  * como evidencia cruda + su contraste contra azar, para que la decisión

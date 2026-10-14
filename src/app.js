@@ -29,7 +29,6 @@ import { initProductShell, renderRecentRecords } from './ui/product-shell.js';
     import { analizarPostRepeticion, renderPostRepeticionHTML } from "./post-repeticion-engine.js";
     import { analizarDejaVu, renderDejaVuHTML } from "./dejavu-engine.js";
     import { consultarNumero, renderConsultaHTML } from "./consulta-engine.js";
-    import { verificarAfirmaciones, verificarEstacionalidad, indexRobotelsa, compararAnioAnio } from "./temporal-engine.js";
     import { analizarAusencias, renderAusenciasHTML } from "./ausencia-engine.js";
     import { analizarVuelta, renderVueltaHTML } from "./vuelta-engine.js";
     import { analizarLineas, renderLineasHTML } from "./lineas-engine.js";
@@ -44,7 +43,6 @@ import { initProductShell, renderRecentRecords } from './ui/product-shell.js';
       obtenerResumenPredicciones,
     } from "./learning.js";
 
-    import { renderHonestyPanel } from "./honesty-panel.js";
 import {
   initPega3Panel,
   refreshPega3Historial,
@@ -4773,7 +4771,6 @@ import {
       history: "view-history",
       hypo: "view-hypo",
       analysis: "view-analysis",
-      temporal: "view-temporal",
       transform: "view-transform",
       pega3: "view-pega3",
       consulta: "view-consulta",
@@ -4810,7 +4807,6 @@ import {
         }
         if (id === "view-superpremio") renderSuperPremioPanel().catch(() => {});
         if (id === "view-transform") renderCompanerosPanel().catch(() => {});
-        if (id === "view-temporal") renderVerificador().catch(() => {});
         if (id === "view-maint") {
           refreshDuplicados();
           getCachedDraws().then((draws) => renderHistoryCoverage(draws)).catch(() => {});
@@ -4830,201 +4826,9 @@ import {
       if (location.hash !== `#${key}`) history.replaceState(null, '', `#${key}`);
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
-    window.addEventListener('hashchange', () => navigateTo(location.hash.slice(1) || 'day'));
-    navigateTo(views[location.hash.slice(1)] ? location.hash.slice(1) : 'day');
-
-    // ════════════════════════════════════════════════════════════════
-    // VERIFICADOR ESTADÍSTICO — renderVerificador
-    // ════════════════════════════════════════════════════════════════
-    async function renderVerificador() {
-      const PAD2 = n => String(n).padStart(2, "0");
-      const draws = (await getCachedDraws({ excludeTest: true })).filter(d => !d.isTest);
-      const spFechas = await listSpFromDb().catch(() => []);
-
-      // ── Helpers de render ─────────────────────────────────────────
-      function verdictBadge(v) {
-        const cfg = {
-          CONFIRMADO:  { cls: "vt-badge--ok",      label: "✓ Confirmado"         },
-          TENDENCIA:   { cls: "vt-badge--tend",     label: "⚠ Tendencia"          },
-          SIN_EFECTO:  { cls: "vt-badge--no",       label: "✗ Sin efecto"         },
-          insuficiente:{ cls: "vt-badge--ins",      label: "? Datos insuficientes" },
-        };
-        const c = cfg[v] || cfg.insuficiente;
-        return `<span class="vt-badge ${c.cls}">${c.label}</span>`;
-      }
-
-      function numChip(n, extra = "") {
-        const pd  = PAD2(n);
-        const sym = GUIA?.[pd]?.simbolo || "";
-        return `<span class="vt-num-chip ${extra}" title="${sym}">${pd}<small>${sym}</small></span>`;
-      }
-
-      // ── Honestidad del sistema (IC95 del lift + test de aleatoriedad) ──
-      renderHonestyPanel(document.getElementById("vt-honesty-out"), draws).catch((err) => {
-        console.warn("honesty-panel render falló:", err?.message || err);
-        const c = document.getElementById("vt-honesty-out");
-        if (c) c.innerHTML = `<p class="hint">No se pudieron calcular las métricas de honestidad.</p>`;
-      });
-
-      // ── Panel 1: Afirmaciones ─────────────────────────────────────
-      const claims = verificarAfirmaciones(draws, spFechas);
-      const claimsEl = document.getElementById("vt-claims-out");
-
-      if (!claims.length) {
-        claimsEl.innerHTML = `<p class="hint">Datos insuficientes para verificar hipótesis.</p>`;
-      } else {
-        claimsEl.innerHTML = claims.map(c => {
-          let extra = "";
-          if (c.id === "diciembre" && (c.numsSobre?.length || c.numsBajo?.length)) {
-            extra = `
-              <div class="vt-claim__nums">
-                ${c.numsSobre?.length ? `<div class="vt-claim__nums-row">
-                  <span class="vt-nums-lbl vt-nums-lbl--sobre">↑ Sobre-representados</span>
-                  ${c.numsSobre.map(a => numChip(a.num, "vt-num-chip--sobre")).join("")}
-                </div>` : ""}
-                ${c.numsBajo?.length ? `<div class="vt-claim__nums-row">
-                  <span class="vt-nums-lbl vt-nums-lbl--bajo">↓ Bajo-representados</span>
-                  ${c.numsBajo.map(a => numChip(a.num, "vt-num-chip--bajo")).join("")}
-                </div>` : ""}
-              </div>`;
-          }
-          if (c.id === "anio_anio" && c.correlaciones?.length) {
-            extra = `<div class="vt-corr-row">
-              ${c.correlaciones.map(cr => `
-                <span class="vt-corr-chip ${cr.r < 0.3 ? "vt-corr-chip--low" : cr.r < 0.6 ? "vt-corr-chip--mid" : "vt-corr-chip--high"}">
-                  ${cr.pair}<br><strong>r=${cr.r}</strong>
-                </span>`).join("")}
-            </div>`;
-          }
-          return `
-          <div class="vt-claim ${c.verdict === "CONFIRMADO" ? "vt-claim--ok" : c.verdict === "TENDENCIA" ? "vt-claim--tend" : ""}">
-            <div class="vt-claim__head">
-              ${verdictBadge(c.verdict)}
-              <span class="vt-claim__hipotesis">${c.hipotesis}</span>
-            </div>
-            <p class="vt-claim__fuente">Fuente de la afirmación: ${c.fuente}</p>
-            <p class="vt-claim__muestra">Muestra: ${c.muestra}</p>
-            <p class="vt-claim__evidencia">${c.evidencia}</p>
-            ${extra}
-            <p class="vt-claim__conclusion">${c.conclusion}</p>
-          </div>`;
-        }).join("");
-      }
-
-      // ── Panel 2: Mapa estacional ──────────────────────────────────
-      const { months } = verificarEstacionalidad(draws);
-      const seasonEl   = document.getElementById("vt-seasonal-out");
-      seasonEl.innerHTML = months.map(mo => {
-        const lvlCls = {
-          atipico:      "vt-month--atipico",
-          tendencia:    "vt-month--tend",
-          normal:       "vt-month--normal",
-          insuficiente: "vt-month--ins"
-        }[mo.verdictLevel] || "";
-        const badgeTxt = {
-          atipico:      "Atípico",
-          tendencia:    "Tendencia",
-          normal:       "Normal",
-          insuficiente: "Pocos datos"
-        }[mo.verdictLevel] || "";
-
-        const sobreChips = mo.topOver.slice(0,4).map(a =>
-          `<span class="vt-sm-chip vt-sm-chip--sobre" title="z=${a.z}">${PAD2(a.num)}</span>`
-        ).join("");
-        const bajoChips = mo.topUnder.slice(0,4).map(a =>
-          `<span class="vt-sm-chip vt-sm-chip--bajo" title="z=${a.z}">${PAD2(a.num)}</span>`
-        ).join("");
-
-        return `
-        <div class="vt-month ${lvlCls}">
-          <div class="vt-month__name">${mo.nameFull}</div>
-          <div class="vt-month__badge">${badgeTxt}</div>
-          <div class="vt-month__meta">${mo.total} sorteos · χ²=${mo.chi}</div>
-          <div class="vt-month__pval">${mo.pLabel}</div>
-          ${sobreChips || bajoChips ? `
-          <div class="vt-month__chips">
-            ${sobreChips}${bajoChips}
-          </div>` : `<div class="vt-month__chips" style="opacity:.35">sin anomalías</div>`}
-        </div>`;
-      }).join("");
-
-      // ── Panel 3: Índice ROBOTELSA ─────────────────────────────────
-      const robo    = indexRobotelsa(draws);
-      const roboEl  = document.getElementById("vt-robotelsa-out");
-
-      if (!robo.globalAvg) {
-        roboEl.innerHTML = `<p class="hint">Datos insuficientes para calcular entropía.</p>`;
-      } else {
-        const maxH   = Math.max(...robo.monthAvg.filter(m=>m.avg!==null).map(m=>m.avg), 1);
-        const minH   = Math.min(...robo.monthAvg.filter(m=>m.avg!==null).map(m=>m.avg), 0);
-        const range  = Math.max(maxH - minH, 0.01);
-        const globalPct = ((robo.globalAvg - minH) / range * 100).toFixed(0);
-
-        roboEl.innerHTML = `
-          <div class="vt-robo-bars">
-            ${robo.monthAvg.map(m => {
-              if (m.avg === null) return `<div class="vt-robo-bar"><div class="vt-robo-fill vt-robo-fill--ins" style="height:20%"></div><span class="vt-robo-label">${m.name}</span></div>`;
-              const pct = ((m.avg - minH) / range * 100).toFixed(0);
-              const aboveGlobal = m.relToGlobal > 2;
-              const belowGlobal = m.relToGlobal < -2;
-              return `
-              <div class="vt-robo-bar" title="${m.name}: H=${m.avg} (${m.relToGlobal > 0 ? "+" : ""}${m.relToGlobal}% vs promedio) · ${m.samples} muestras">
-                <div class="vt-robo-fill ${aboveGlobal ? "vt-robo-fill--high" : belowGlobal ? "vt-robo-fill--low" : ""}" style="height:${pct}%"></div>
-                <span class="vt-robo-label">${m.name}</span>
-              </div>`;
-            }).join("")}
-            <div class="vt-robo-baseline" style="bottom:${globalPct}%" title="Promedio global H=${robo.globalAvg}"></div>
-          </div>
-          <div class="vt-robo-legend">
-            <span class="vt-robo-leg vt-robo-leg--high">Más impredecible (+2%)</span>
-            <span class="vt-robo-leg">Promedio (línea naranja)</span>
-            <span class="vt-robo-leg vt-robo-leg--low">Más predecible (−2%)</span>
-          </div>`;
-      }
-
-      // ── Panel 4: Año vs año ───────────────────────────────────────
-      const ayaSelect = document.getElementById("vt-aya-mes");
-      const ayaOut    = document.getElementById("vt-aya-out");
-
-      function renderAya(month) {
-        const data       = compararAnioAnio(draws, month);
-        const recurSet   = new Set(data.recurring.map(r => r.num));
-        if (!data.years.length) {
-          ayaOut.innerHTML = `<p class="hint">Sin datos para ${data.monthName}.</p>`;
-          return;
-        }
-        ayaOut.innerHTML = `
-          <div class="vt-aya-grid">
-            ${data.years.map(y => `
-            <div class="vt-aya-year">
-              <div class="vt-aya-year__head">${y.year} <span class="vt-aya-year__total">${y.total} sorteos</span></div>
-              <div class="vt-aya-year__chips">
-                ${y.top.map(t => `
-                  <span class="vt-sm-chip ${recurSet.has(t.num) ? "vt-sm-chip--recur" : ""}" title="${t.count}× en ${y.year}">
-                    ${PAD2(t.num)}<small>×${t.count}</small>
-                  </span>`).join("")}
-              </div>
-            </div>`).join("")}
-          </div>
-          ${data.recurring.length ? `
-          <div class="vt-aya-recur">
-            <div class="vt-aya-recur__head">🔁 Presentes en ≥2 años — candidatos estacionales</div>
-            <div class="vt-aya-recur__chips">
-              ${data.recurring.map(r => `
-                <span class="vt-aya-chip" title="${r.years.join(", ")}">
-                  <img class="vt-aya-img" src="data/img/${PAD2(r.num)}.png"
-                    onerror="this.src='data/img/${PAD2(r.num)}.jpg';this.onerror=()=>this.style.display='none'">
-                  <span class="vt-aya-num">${PAD2(r.num)}</span>
-                  <span class="vt-aya-sym">${GUIA?.[PAD2(r.num)]?.simbolo || ""}</span>
-                  <span class="vt-aya-yrs">${r.years.length} años</span>
-                </span>`).join("")}
-            </div>
-          </div>` : ""}`;
-      }
-
-      ayaSelect.onchange = () => renderAya(parseInt(ayaSelect.value, 10));
-      renderAya(parseInt(ayaSelect.value, 10));
-    }
+    const navigateFromHash = () => navigateTo(views[location.hash.slice(1)] ? location.hash.slice(1) : 'day');
+    window.addEventListener('hashchange', navigateFromHash);
+    navigateFromHash();
 
     // ════════════════════════════════════════════════════════════════
     // TIRADA DE SUERTE — generador sin sesgo con crypto.getRandomValues

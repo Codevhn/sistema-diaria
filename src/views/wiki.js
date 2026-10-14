@@ -686,40 +686,12 @@ const debounce = (fn, ms = 300) => {
       },
       // ── Estadística y verificación ──────────────────────────────────────────
       {
-        id: "hipotesis-vs-afirmacion",
-        categoria: "Estadística y verificación",
-        titulo: "Hipótesis vs. afirmación — por qué el sistema no te cree",
-        contenido: `
-          <h2>Hipótesis vs. afirmación</h2>
-          <p class="wiki-lead">El sistema trata todo lo que el jugador o el analista afirman como una <strong>hipótesis a falsificar</strong>, no como una verdad. Esta es la regla más importante del Verificador estadístico.</p>
-
-          <h3>¿Por qué no creerte?</h3>
-          <p>Las observaciones humanas sobre La Diaria llegan de dos fuentes problemáticas:</p>
-          <div class="wiki-example">
-            <strong>1. Ingreso manual de datos</strong> — quien carga los sorteos uno a uno desarrolla inevitablemente la sensación de ver patrones que el azar normal produciría de todas formas.<br><br>
-            <strong>2. Boca a boca entre jugadores</strong> — los "pronosticadores" con años de experiencia comparten observaciones que se viralizan, pero ninguna ha sido verificada estadísticamente con todos los datos.
-          </div>
-          <p>Ambas fuentes producen <em>sesgo de confirmación</em>: recordamos los casos donde el patrón se cumplió y olvidamos los que no.</p>
-
-          <h3>Lo que hace el sistema</h3>
-          <p>Convierte la afirmación en una hipótesis estadística, aplica una prueba objetiva (chi-cuadrado, correlación de Pearson, entropía), y devuelve un veredicto con evidencia:</p>
-          <div class="wiki-states">
-            <div class="wiki-state wiki-state--ok"><strong>CONFIRMADO</strong><span>La prueba estadística supera el umbral de significancia. El patrón es real en los datos.</span></div>
-            <div class="wiki-state wiki-state--warn"><strong>TENDENCIA</strong><span>Hay una señal pero los datos aún no son suficientes para confirmar con certeza.</span></div>
-            <div class="wiki-state wiki-state--muted"><strong>SIN EFECTO</strong><span>Los datos no muestran evidencia del patrón. La percepción es probablemente sesgo.</span></div>
-          </div>
-
-          <h3>Principio general</h3>
-          <p>Si el sistema devuelve "Sin efecto", no significa que el jugador esté equivocado — significa que los datos actuales no tienen suficiente evidencia. Se necesitan más datos o la afirmación simplemente no es cierta.</p>
-        `,
-      },
-      {
         id: "chi-cuadrado",
         categoria: "Estadística y verificación",
         titulo: "Chi-cuadrado (χ²) — ¿La distribución es uniforme?",
         contenido: `
           <h2>Chi-cuadrado (χ²)</h2>
-          <p class="wiki-lead">Prueba si una distribución de frecuencias se aleja significativamente de lo que esperaría el azar puro. Es la herramienta principal del Verificador estadístico.</p>
+          <p class="wiki-lead">Prueba si una distribución de frecuencias se aleja significativamente de lo que esperaría el azar puro.</p>
 
           <h3>El concepto en simple</h3>
           <p>Si La Diaria fuera completamente aleatoria, cada uno de los 100 números debería aparecer con la misma frecuencia. El χ² mide qué tan lejos está la distribución real de esa uniformidad perfecta.</p>
@@ -760,8 +732,6 @@ const debounce = (fn, ms = 300) => {
           <h3>El error común</h3>
           <p>Un p-valor bajo NO dice "el patrón es grande o importante". Solo dice que el patrón es estadísticamente real, no producto del azar. Un patrón puede ser real pero pequeño (inútil para jugar) o puede ser grande pero con pocos datos (no confiable).</p>
 
-          <h3>En el sistema</h3>
-          <p>El Verificador estadístico muestra el p-valor calculado a partir del chi-cuadrado con 99 grados de libertad. Los valores críticos están tabulados — no se calculan exactamente sino que se clasifican en categorías (p&lt;0.001, p&lt;0.01, p&lt;0.05, etc.).</p>
         `,
       },
       {
@@ -770,7 +740,7 @@ const debounce = (fn, ms = 300) => {
         titulo: "Entropía de Shannon — ¿Qué tan predecible es un período?",
         contenido: `
           <h2>Entropía de Shannon normalizada</h2>
-          <p class="wiki-lead">Mide el <em>desorden</em> o <em>imprevisibilidad</em> de una distribución. Es la base del <strong>Índice ROBOTELSA</strong> que identifica meses o períodos donde La Diaria se vuelve más adversarial.</p>
+          <p class="wiki-lead">Mide el <em>desorden</em> o <em>imprevisibilidad</em> de una distribución. Permite describir qué tan concentradas o dispersas están las frecuencias de los números.</p>
 
           <h3>La intuición</h3>
           <p>Imagina dos casos extremos:</p>
@@ -785,7 +755,7 @@ const debounce = (fn, ms = 300) => {
           <p>Donde p es la frecuencia relativa de cada número. El resultado se normaliza dividiéndolo por log₂(100) para que quede en el rango [0, 1].</p>
 
           <h3>Cómo usarlo</h3>
-          <p>En el Índice ROBOTELSA, meses con entropía <em>más baja que el promedio</em> son períodos donde pocos números concentran los sorteos — más fácil de analizar. Meses con entropía <em>más alta</em> son caóticos — el sistema parece dispersar los resultados intencionalmente.</p>
+          <p>Una entropía baja indica que las apariciones se concentran en pocos números; una entropía alta indica una distribución más dispersa. Es una medida descriptiva del período analizado.</p>
         `,
       },
       {
@@ -814,8 +784,6 @@ const debounce = (fn, ms = 300) => {
             <div class="wiki-state wiki-state--muted"><strong>|z| &lt; 1.3</strong><span>Dentro del rango normal del azar. Sin señal relevante.</span></div>
           </div>
 
-          <h3>En el sistema</h3>
-          <p>El Verificador estacional muestra los números con mayor |z| por mes. En el mapa de calor, chips en rojo son números con z alto (sobre-representados ese mes); chips en azul tienen z bajo (sub-representados).</p>
         `,
       },
       {
@@ -835,62 +803,12 @@ const debounce = (fn, ms = 300) => {
             <strong>r negativo:</strong> Lo que era frecuente en un año tiende a ser raro en el otro (inversión de patrones).
           </div>
 
-          <h3>Interpretación en el Verificador</h3>
+          <h3>Interpretación de la correlación</h3>
           <div class="wiki-states">
             <div class="wiki-state wiki-state--ok"><strong>r promedio &lt; 0.25</strong><span>Baja correlación entre años consecutivos → La Diaria cambia significativamente de año en año. Hipótesis CONFIRMADA.</span></div>
             <div class="wiki-state wiki-state--warn"><strong>0.25 ≤ r &lt; 0.55</strong><span>Correlación moderada → hay cambios pero también continuidad. Hipótesis en TENDENCIA.</span></div>
             <div class="wiki-state wiki-state--muted"><strong>r ≥ 0.55</strong><span>Alta correlación → los patrones son relativamente estables entre años. Hipótesis SIN EFECTO.</span></div>
           </div>
-        `,
-      },
-      {
-        id: "robotelsa",
-        categoria: "Estadística y verificación",
-        titulo: "ROBOTELSA — el sobrenombre de diciembre y recuperaciones",
-        contenido: `
-          <h2>ROBOTELSA</h2>
-          <p class="wiki-lead">Sobrenombre popular que los jugadores de La Diaria le dan a LOTELHSA durante diciembre y los períodos de recuperación post-Super Premio, cuando incluso los pronosticadores con años de experiencia fallan consistentemente.</p>
-
-          <h3>El origen</h3>
-          <p>La combinación de "ROBO" + "LOTELHSA" refleja la percepción de que en ciertos períodos el sistema parece actuar de forma mecánica y adversarial: evitando los números más esperados, repitiendo combinaciones inusuales, y comportándose de una forma que "ningún humano predice".</p>
-
-          <h3>¿Es real o sesgo?</h3>
-          <p>Aquí entra el Verificador estadístico. La percepción del ROBOTELSA se viraliza por boca a boca y es amplificada por el sesgo de confirmación: recordamos los meses de diciembre malos y olvidamos los normales. El sistema verifica con chi-cuadrado si la distribución de diciembre realmente difiere de los demás meses.</p>
-
-          <h3>Índice ROBOTELSA</h3>
-          <p>El sistema calcula una medida objetiva del "efecto ROBOTELSA" usando ventanas deslizantes de 30 sorteos y calculando la entropía de Shannon de cada ventana. Un índice bajo (entropía baja) indica que el período es más predecible; un índice alto indica dispersión caótica — el comportamiento adversarial percibido por los jugadores.</p>
-
-          <h3>Dónde verlo</h3>
-          <p>En el panel <strong>Verificador estadístico → Índice ROBOTELSA</strong>. Las barras muestran la entropía promedio por mes. Los meses por encima del promedio global (línea punteada) son los más "robóticos" según los datos.</p>
-        `,
-      },
-      {
-        id: "indice-robotelsa",
-        categoria: "Estadística y verificación",
-        titulo: "Índice ROBOTELSA — entropía mensual por ventana deslizante",
-        contenido: `
-          <h2>Índice ROBOTELSA (técnico)</h2>
-          <p class="wiki-lead">Métrica cuantitativa que calcula la entropía de Shannon en ventanas deslizantes de 30 sorteos y agrupa los resultados por mes del año.</p>
-
-          <h3>Cómo se calcula</h3>
-          <ol>
-            <li>Se ordenan todos los sorteos cronológicamente.</li>
-            <li>Se avanzan ventanas de 30 sorteos en pasos de ~7 sorteos (1/4 de la ventana).</li>
-            <li>Para cada ventana se calcula la entropía normalizada de Shannon.</li>
-            <li>Cada entropía se asigna al mes del último sorteo de esa ventana.</li>
-            <li>Se promedian todas las entropías de cada mes → valor del índice por mes.</li>
-          </ol>
-
-          <h3>El índice relativo</h3>
-          <p>El valor que se muestra en el panel es la <em>desviación porcentual respecto al promedio global</em>:</p>
-          <div class="wiki-example">
-            Si el promedio global es 0.9500 y diciembre tiene 0.9617, el índice relativo de diciembre es:<br>
-            (0.9617 − 0.9500) / 0.9500 × 100 = <strong>+1.2%</strong><br>
-            Diciembre está 1.2% por encima del promedio global → más caótico.
-          </div>
-
-          <h3>Interpretación</h3>
-          <p>Un índice positivo significa que ese mes tiende a ser más disperso/caótico que el promedio anual. Un índice negativo significa que ese mes tiende a concentrarse en menos números — más predecible, o al menos más estructurado.</p>
         `,
       },
       {
@@ -972,62 +890,6 @@ const debounce = (fn, ms = 300) => {
 
           <h3>Por qué importa</h3>
           <p>Sin esta referencia, un pool de 80 números con 85% de acierto parecería impresionante — pero el azar puro con 80 números aleatorios lograría ~93%. La línea base convierte porcentajes absolutos en información útil.</p>
-        `,
-      },
-      {
-        id: "candidatos-estacionales",
-        categoria: "Estadística y verificación",
-        titulo: "Candidatos estacionales — números recurrentes en el mismo mes",
-        contenido: `
-          <h2>Candidatos estacionales</h2>
-          <p class="wiki-lead">Números que aparecen en el mismo mes calendario en <strong>al menos 2 años distintos</strong> del historial. Son candidatos con señal de estacionalidad.</p>
-
-          <h3>La lógica detrás</h3>
-          <p>Si el número 45 aparece todos los meses de marzo sin importar el año, eso podría ser coincidencia o podría ser un patrón real. El Verificador año-vs-año detecta estos números y los separa de los que solo aparecen de forma aislada.</p>
-
-          <h3>Cómo se identifican</h3>
-          <ol>
-            <li>Se agrupan los sorteos por mes y por año.</li>
-            <li>Para el mes seleccionado, se construye la frecuencia de cada número por año.</li>
-            <li>Los números presentes en ≥2 años distintos son "recurrentes" (candidatos estacionales).</li>
-            <li>Se ordenan por número de años en que aparecieron, luego por frecuencia total.</li>
-          </ol>
-
-          <h3>Dónde verlos</h3>
-          <p>En <strong>Verificador estadístico → Año vs. Año</strong>. Selecciona el mes que te interesa y verás la tabla comparativa por año más el panel de candidatos estacionales con chips marcados en color.</p>
-
-          <h3>Caveat</h3>
-          <p>Un candidato estacional recurrente en 2 de 3 años disponibles puede ser azar puro. Con 5+ años de historial, la señal se vuelve mucho más sólida. El panel muestra cuántos años lo respaldan para que puedas evaluarlo.</p>
-        `,
-      },
-      {
-        id: "verificador-estadistico",
-        categoria: "Estadística y verificación",
-        titulo: "Verificador estadístico — el panel de hipótesis",
-        contenido: `
-          <h2>Verificador estadístico</h2>
-          <p class="wiki-lead">Panel dedicado a verificar con evidencia estadística las afirmaciones más comunes sobre el comportamiento de La Diaria, en lugar de asumir que son verdad.</p>
-
-          <h3>Las 3 hipótesis que verifica</h3>
-          <div class="wiki-example">
-            <strong>1. "Diciembre es diferente — el mes del ROBOTELSA"</strong><br>
-            Prueba: chi-cuadrado de los sorteos de diciembre vs distribución uniforme.<br><br>
-            <strong>2. "Los períodos post-SP usan una distribución diferente"</strong><br>
-            Prueba: chi-cuadrado de períodos de recuperación + correlación de Pearson entre recuperación y período normal.<br><br>
-            <strong>3. "La Diaria cambia su sistema de año en año"</strong><br>
-            Prueba: correlación de Pearson promedio entre años consecutivos.
-          </div>
-
-          <h3>Los 4 sub-paneles</h3>
-          <div class="wiki-states">
-            <div class="wiki-state wiki-state--ok"><strong>Verificación de afirmaciones</strong><span>Veredicto (CONFIRMADO / TENDENCIA / SIN EFECTO) con evidencia y números sobre/bajo-representados.</span></div>
-            <div class="wiki-state wiki-state--ok"><strong>Mapa estacional</strong><span>Chi-cuadrado y entropía mes a mes. Cada mes coloreado según su nivel de atipicidad.</span></div>
-            <div class="wiki-state wiki-state--ok"><strong>Índice ROBOTELSA</strong><span>Entropía de Shannon por mes en ventanas deslizantes de 30 sorteos.</span></div>
-            <div class="wiki-state wiki-state--ok"><strong>Año vs. Año</strong><span>Comparación por mes entre diferentes años. Candidatos estacionales recurrentes.</span></div>
-          </div>
-
-          <h3>Principio fundamental</h3>
-          <p>El Verificador está diseñado para ser escéptico por defecto. Si los datos no son suficientes o no muestran evidencia clara, devuelve "Sin efecto" o "Datos insuficientes" — nunca inventa un patrón para satisfacer una expectativa.</p>
         `,
       },
       // ── Referencia ───────────────────────────────────────────────────────────

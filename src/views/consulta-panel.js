@@ -4,8 +4,7 @@
  * No genera candidatos ni predicciones. El jugador elige un número y el
  * panel muestra su evidencia histórica real (frecuencia, gap, vuelta,
  * transiciones) siempre junto a lo que el azar predice para esa misma
- * medida — el mismo criterio que honesty-panel.js aplica al sistema
- * completo, aplicado aquí a una consulta puntual.
+ * medida, aplicado aquí a una consulta puntual.
  */
 
 import { consultarNumero } from "../query-engine.js";

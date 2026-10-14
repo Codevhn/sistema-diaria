@@ -92,7 +92,7 @@
         <button data-view="monthly" data-primary-nav="monthly"><span class="nav-label-desktop">Ranking mensual</span><span class="nav-label-mobile">Mensual</span></button>
         <details class="app-menu" data-nav-group="numero"><summary>Por número <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel"><span class="app-menu__label">Historia de un número</span><button data-view="horario">Horario favorito</button><button data-view="consulta">Consulta histórica</button><button data-view="memory">Memoria</button></div></details>
         <button data-view="history" data-primary-nav="history">Historial</button>
-        <details class="app-menu" data-nav-group="tools"><summary>Herramientas <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel app-menu__panel--tools"><div><span class="app-menu__label">Análisis</span><button data-view="hypo">Hipótesis</button><button data-view="analysis">Escenarios</button><button data-view="temporal">Verificador</button></div><div><span class="app-menu__label">Juegos y relaciones</span><button data-view="superpremio">Super Premio</button><button data-view="pega3">Pega3</button><button data-view="transform">Transformaciones</button><button data-view="modes">Modos de juego</button></div><div class="app-menu__library"><span class="app-menu__label">Biblioteca</span><button data-view="guide">Guía de los Sueños</button></div></div></details>
+        <details class="app-menu" data-nav-group="tools"><summary>Herramientas <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel app-menu__panel--tools"><div><span class="app-menu__label">Análisis</span><button data-view="hypo">Hipótesis</button><button data-view="analysis">Escenarios</button></div><div><span class="app-menu__label">Juegos y relaciones</span><button data-view="superpremio">Super Premio</button><button data-view="pega3">Pega3</button><button data-view="transform">Transformaciones</button><button data-view="modes">Modos de juego</button></div><div class="app-menu__library"><span class="app-menu__label">Biblioteca</span><button data-view="guide">Guía de los Sueños</button></div></div></details>
       </nav>
       <div class="app-header__actions">
         <button class="btn-primary app-register requires-write" data-register-result>＋ Registrar resultado</button>
@@ -405,67 +405,6 @@
         <button type="submit" class="btn-primary">Consultar mes</button>
       </form>
       <div id="mr-result" role="status" aria-live="polite"><p class="mr-empty">Seleccioná un mes para ver las apariciones de cada número.</p></div>
-    </section>
-
-    <!-- VERIFICADOR ESTADÍSTICO -->
-    <section id="view-temporal" class="view hidden">
-      <div class="vt-header">
-        <h2 style="margin:0">🔬 Verificador estadístico</h2>
-        <p class="vt-subtitle">Las afirmaciones —propias o ajenas— se tratan como hipótesis, no como verdades. El sistema las contrasta con los datos reales usando chi-cuadrado y entropía de Shannon. Un veredicto <em>Sin efecto</em> no significa que la afirmación sea falsa: puede haber muestra insuficiente.</p>
-      </div>
-
-      <!-- Honestidad del sistema — ¿supera el azar? -->
-      <div class="vt-section">
-        <div class="vt-section__head">Honestidad del sistema — ¿supera al azar?</div>
-        <div id="vt-honesty-out">
-          <p class="hint">Cargando métricas de honestidad…</p>
-        </div>
-      </div>
-
-      <!-- Afirmaciones -->
-      <div class="vt-section">
-        <div class="vt-section__head">Verificación de afirmaciones</div>
-        <div id="vt-claims-out" class="vt-claims-grid">
-          <p class="hint">Cargando análisis…</p>
-        </div>
-      </div>
-
-      <!-- Mapa estacional -->
-      <div class="vt-section">
-        <div class="vt-section__head">Mapa estacional — distribución por mes</div>
-        <p class="vt-hint">Chi-cuadrado de uniformidad para cada mes. Verde = distribución normal. Naranja/rojo = mes con comportamiento atípico estadísticamente.</p>
-        <div id="vt-seasonal-out" class="vt-seasonal-grid">
-          <p class="hint">Cargando…</p>
-        </div>
-      </div>
-
-      <!-- Índice ROBOTELSA -->
-      <div class="vt-section">
-        <div class="vt-section__head">Índice ROBOTELSA — entropía por mes</div>
-        <p class="vt-hint">Entropía de Shannon en ventanas de 30 sorteos, promediada por mes. Valor alto = más impredecible (caótico). Valor bajo = más predecible (patterned). La línea naranja es el promedio global.</p>
-        <div id="vt-robotelsa-out" class="vt-robotelsa-wrap">
-          <p class="hint">Cargando…</p>
-        </div>
-      </div>
-
-      <!-- Año vs año -->
-      <div class="vt-section">
-        <div class="vt-section__head">Comparación año a año</div>
-        <p class="vt-hint">Selecciona un mes y observa qué números aparecieron en ese mismo mes en cada año registrado. Los marcados en verde han aparecido en ≥2 años distintos.</p>
-        <div class="vt-aya-controls">
-          <select id="vt-aya-mes" class="cq-select">
-            <option value="0">Enero</option><option value="1">Febrero</option>
-            <option value="2">Marzo</option><option value="3">Abril</option>
-            <option value="4">Mayo</option><option value="5">Junio</option>
-            <option value="6">Julio</option><option value="7">Agosto</option>
-            <option value="8">Septiembre</option><option value="9">Octubre</option>
-            <option value="10">Noviembre</option><option value="11" selected>Diciembre</option>
-          </select>
-        </div>
-        <div id="vt-aya-out" class="vt-aya-wrap">
-          <p class="hint">Selecciona un mes.</p>
-        </div>
-      </div>
     </section>
 
     <!-- SUPER PREMIO -->
@@ -1102,7 +1041,7 @@
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=5"></script>
+  <script type="module" src="./src/app.js?v=6"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">
