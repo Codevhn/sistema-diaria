@@ -104,8 +104,7 @@ function renderHistorialReciente(r) {
   return `
     <section class="consulta-section">
       <h4>Historial reciente — últimas ${h.length} apariciones</h4>
-      <p class="consulta-nota">Esto es la materia prima cruda: fecha, horario, y qué cayó justo antes/después
-        cada vez. Armá tu propia hipótesis a partir de esto — el sistema no la arma por vos.</p>
+      <p class="consulta-nota">Últimas apariciones del número consultado, con fecha, horario y los números que salieron en el sorteo anterior y en el siguiente.</p>
       <table class="consulta-table">
         <thead><tr><th>Fecha</th><th>Horario</th><th>Cayó antes</th><th>Cayó después</th></tr></thead>
         <tbody>
