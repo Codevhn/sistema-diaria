@@ -1074,6 +1074,24 @@ import {
       const sym = document.getElementById(config.symId);
       if (!ball || !sym) return;
       ball.removeAttribute("data-pending");
+      const image = ball.closest('.ball-row')?.querySelector('[data-slot-image]');
+      if (image) {
+        if (!draw) {
+          image.onload = image.onerror = null;
+          image.hidden = true;
+          image.removeAttribute('src');
+          image.alt = '';
+        } else {
+          const src = `data/img/${formatNumber(draw.numero)}.png`;
+          image.alt = getSymbol(draw.numero) || `Símbolo del número ${formatNumber(draw.numero)}`;
+          if (image.getAttribute('src') !== src) {
+            image.hidden = true;
+            image.onload = () => { image.hidden = false; };
+            image.onerror = () => { image.hidden = true; };
+            image.src = src;
+          }
+        }
+      }
       const state = ball.closest(".slot")?.querySelector("[data-slot-state]");
       if (state) { state.textContent = draw ? (draw.isTest ? "Prueba" : "Registrado") : "Sin registrar"; state.dataset.state = draw ? "registered" : "empty"; }
       if (!draw) {

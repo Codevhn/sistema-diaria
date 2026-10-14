@@ -45,3 +45,7 @@ La pantalla de carga está visible desde el HTML inicial. El contenido permanece
 ## Verificador retirado
 
 Se retiró el panel Verificador estadístico, su acceso desde Herramientas, su ruta y su renderizado. Sus módulos exclusivos de análisis temporal y presentación de honestidad ya no forman parte de la aplicación. La ayuda no ofrece acceso a las funciones retiradas. Los enlaces antiguos a `#temporal` abren Jornada al entrar.
+
+## Símbolos en Jornada
+
+Las tarjetas de cada turno muestran la imagen del símbolo junto al número grande. La imagen se actualiza al cambiar la fecha, el país o el resultado, incluidos los pendientes. Se oculta cuando el turno no tiene resultado o no se puede cargar su archivo, conservando el número y su nombre.
