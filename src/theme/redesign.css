@@ -116,7 +116,7 @@ html[data-role=lector] .requires-write{display:none!important}
 .design-v2 .day-picker__trigger[aria-expanded=true]{border-color:var(--color-accent)}
 .day-picker__popup{position:absolute;z-index:80;top:calc(100% + 8px);left:0;width:min(336px,calc(100vw - 40px));padding:12px;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border-strong);border-radius:10px;box-shadow:none;animation:day-picker-open .18s ease-out}
 .day-picker__popup[hidden],.day-picker [hidden]{display:none!important}
-.design-v2 .day-picker__popup button{background:transparent;color:var(--color-text);border:0;border-radius:4px;padding:0;min-height:40px;box-shadow:none;transform:none;font-size:12px;font-weight:500}
+.design-v2 .day-picker__popup button{background:transparent;color:var(--color-text);border:0;border-radius:4px;padding:0;min-height:40px;box-shadow:none;transform:none;font-size:12px;font-weight:500;transition:background .12s ease}
 .design-v2 .day-picker__popup button:hover{color:var(--color-accent);background:var(--color-accent-tint);box-shadow:none;transform:none}
 .day-calendar__head{display:grid;grid-template-columns:40px 1fr 40px;gap:6px;margin-bottom:8px}
 .design-v2 .day-calendar__head>button:first-child,.design-v2 .day-calendar__head>button:last-child{font-size:24px}
