@@ -53,3 +53,9 @@ Las tarjetas de cada turno muestran la imagen del símbolo junto al número gran
 ## Selectores de Jornada
 
 Fecha y país usan desplegables propios con los tokens del sistema en ambos temas. El calendario está en español, comienza el lunes y permite elegir mes y año directamente, volver a hoy y navegar con flechas, Inicio/Fin y AvPág/RePág. Escape cierra y devuelve el foco. Se mantienen `day-fecha`, `day-pais` y sus eventos para actualizar resultados y pendientes; los controles nativos permanecen ocultos. El selector de país ofrece únicamente las opciones existentes.
+
+## Herramientas por número en móvil
+
+Transformaciones usa tarjetas y clases propias en `src/theme/number-tools.css`; se retiraron sus reglas anteriores de `style.css` y `base.css` y los estilos forzados desde JavaScript. Se conservan los cálculos, el orden de los resultados, cada número, imagen y símbolo. El número base se destaca y las demás tarjetas se organizan en columnas con un acento por categoría, sin sombra ni elevación de hover.
+
+Consulta usa una descripción breve, un campo con contraste en ambos temas y un historial que presenta cada aparición como ficha en móvil. Conserva fecha, turno y sorteos anterior/siguiente, así como las tablas de escritorio. Se comprobaron 320, 384, 412 y 1440 px en Chromium, con emulación móvil y cliente de Supabase simulado. Las transformaciones de 00, 11, 27 y 99 se compararon con las funciones del motor y los símbolos de la guía; se verificaron ambas paletas, ausencia de desbordamiento horizontal y conservación de las filas y columnas del historial. Las 202 pruebas existentes pasaron. La validación no se realizó en un S24 Ultra físico.

@@ -1,0 +1,103 @@
+/* Estilos propios de las herramientas por número, sin tarjetas ni efectos heredados. */
+#view-transform,#view-consulta{min-width:0;max-width:100%}
+#view-transform>h2,#view-consulta .consulta-header h2{font-size:34px;line-height:1.12;letter-spacing:-.04em;margin:0 0 12px;overflow-wrap:anywhere}
+#view-transform>.hint,#view-consulta .consulta-header .hint{font-size:14px;line-height:1.6;max-width:680px;margin:0 0 24px;color:var(--color-muted)}
+.transform-workspace{margin:0 0 24px}
+.transform-query{display:flex;align-items:flex-end;gap:12px;margin:0 0 24px}
+.transform-query label{display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--color-muted)}
+.design-v2 #t-numero{width:120px;font-size:28px;font-weight:650;letter-spacing:-.03em;min-height:52px;padding:8px 14px;text-align:left;background:var(--color-surface);color:var(--color-text)}
+.transform-query .btn-primary{min-height:52px}
+.transform-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.transform-group{min-width:0;padding:0}
+.transform-group>b{display:block;margin-bottom:14px;font-size:12px;font-weight:650;color:var(--color-muted);letter-spacing:.01em}
+.transform-group__cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:12px;min-width:0}
+.transform-group__cards:has(>.transform-number:only-child){grid-template-columns:minmax(0,1fr)}
+.transform-group--base{grid-column:1/-1}
+.transform-number{--transform-tone:var(--color-accent);display:grid;grid-template-columns:minmax(0,1fr) 52px;grid-template-areas:'number image' 'symbol symbol';align-items:center;column-gap:8px;row-gap:12px;min-width:0;min-height:146px;padding:16px;border:1px solid var(--color-border-strong);border-top:3px solid var(--transform-tone);border-radius:8px;background:color-mix(in srgb,var(--transform-tone) 5%,var(--color-surface));box-shadow:none;animation:number-card-enter .24s ease-out}
+.transform-number[data-variant=inverted]{--transform-tone:#167985}
+.transform-number[data-variant=adjusted]{--transform-tone:#975c27}
+.transform-number[data-variant=simple]{--transform-tone:#7652b8}
+.transform-number[data-variant=composite]{--transform-tone:#b25346}
+.transform-number[data-variant=equivalent]{--transform-tone:#5a6877}
+.transform-number__img{grid-area:image;width:52px;height:64px;object-fit:contain;justify-self:end}
+.transform-number__num{grid-area:number;font-size:56px;font-weight:750;line-height:1.05;letter-spacing:-.065em;color:var(--color-text);font-variant-numeric:tabular-nums;min-width:0}
+.transform-number__sim{grid-area:symbol;font-size:15px;font-weight:500;line-height:1.35;color:var(--color-text);overflow-wrap:anywhere}
+.transform-number__badge{grid-column:1/-1;font-size:11px;color:var(--color-muted)}
+.transform-group--base .transform-number{grid-template-columns:minmax(0,1fr) 104px;grid-template-areas:'number image' 'symbol image';min-height:172px;background:var(--color-accent-tint);border-top-color:var(--color-accent)}
+.transform-group--base .transform-number__num{font-size:92px;color:var(--color-accent)}
+.transform-group--base .transform-number__img{width:104px;height:104px}
+.transform-group--base .transform-number__sim{font-size:22px}
+html[data-theme=dark] .transform-number[data-variant=inverted]{--transform-tone:#65bac5}
+html[data-theme=dark] .transform-number[data-variant=adjusted]{--transform-tone:#d8a877}
+html[data-theme=dark] .transform-number[data-variant=simple]{--transform-tone:#b6a0e8}
+html[data-theme=dark] .transform-number[data-variant=composite]{--transform-tone:#e9978c}
+html[data-theme=dark] .transform-number[data-variant=equivalent]{--transform-tone:#a5b5c7}
+#view-transform>.card,#view-transform #companeros-panel{min-width:0;max-width:100%}
+#view-transform .cq-controls{display:flex;flex-wrap:wrap;gap:10px}
+#view-transform .cq-controls>*{min-width:0;max-width:100%}
+#view-transform table{max-width:100%}
+.consulta-header{margin-bottom:20px}
+.consulta-form{display:flex;align-items:center;gap:12px;margin:0 0 20px}
+.design-v2 #consulta-numero-input{width:120px;min-height:52px;padding:8px 14px;font-size:28px;font-weight:650;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-border-strong);letter-spacing:-.03em}
+.consulta-form .btn-outline{min-height:52px}
+#view-consulta .consulta-card{min-width:0;max-width:100%;padding:24px;border:1px solid var(--color-border-strong);border-radius:10px;box-shadow:none;background:var(--color-surface)}
+.consulta-hero{display:grid;grid-template-columns:minmax(0,1fr) 104px;grid-template-areas:'number image' 'symbol image' 'last last';gap:8px 16px;padding:0 0 20px;text-align:left}
+.consulta-hero__img{grid-area:image;width:104px;height:104px;object-fit:contain;align-self:center;justify-self:end}
+.consulta-hero__num{grid-area:number;font-size:92px;font-weight:750;line-height:1;letter-spacing:-.065em;color:var(--color-accent)}
+.consulta-hero__sym{grid-area:symbol;font-size:22px;font-weight:500;color:var(--color-text);overflow-wrap:anywhere}
+.consulta-hero__ultima{grid-area:last;font-size:13px;color:var(--color-muted);line-height:1.6;margin-top:10px}
+.consulta-nota--total{font-size:12px;color:var(--color-muted);padding:12px 0;border-top:1px solid var(--color-border);margin:0}
+.consulta-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--color-border);min-width:0}
+.consulta-section h4{font-size:14px;line-height:1.45;margin:0 0 10px;letter-spacing:0;color:var(--color-text)}
+.consulta-section p,.consulta-nota,.consulta-lead{font-size:13px;line-height:1.6;color:var(--color-muted);margin:0 0 12px}
+.consulta-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.consulta-stat{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px;background:var(--color-surface-2);border-radius:6px}
+.consulta-stat__value{font-size:30px;line-height:1.1;font-weight:650;color:var(--color-text);overflow-wrap:anywhere}
+.consulta-stat__label{font-size:12px;line-height:1.4;color:var(--color-muted)}
+#view-consulta .consulta-table{width:100%;table-layout:fixed;margin-top:12px;font-size:13px}
+#view-consulta .consulta-table th,#view-consulta .consulta-table td{text-align:left;padding:14px 12px;overflow-wrap:anywhere;vertical-align:top}
+.consulta-sym{color:var(--color-muted);font-size:12px}
+.consulta-vecino-tag{display:inline-block;font-size:11px;color:var(--color-muted);line-height:1.4;margin-top:5px}
+.consulta-date-short{display:none}
+.consulta-loading,.consulta-error{font-size:14px;line-height:1.5;padding:16px 0;color:var(--color-muted)}
+.consulta-error{color:var(--color-danger)}
+@keyframes number-card-enter{from{opacity:0;clip-path:inset(0 0 8% 0)}to{opacity:1;clip-path:inset(0)}}
+@media(max-width:760px){
+  #view-transform>h2,#view-consulta .consulta-header h2{font-size:clamp(26px,7.2vw,32px)}
+  #view-transform>.hint,#view-consulta .consulta-header .hint{font-size:14px;margin-bottom:20px;line-height:1.55}
+  .transform-query{gap:10px;align-items:flex-end}
+  .design-v2 #t-numero{width:96px}
+  .transform-query .btn-primary{flex:1;min-width:0;font-size:12px;padding:10px}
+  .transform-results{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px}
+  .transform-group:has(.transform-number:nth-child(2)){grid-column:1/-1}
+  .transform-group__cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .transform-group--base .transform-group__cards{grid-template-columns:minmax(0,1fr)}
+  .transform-number{grid-template-columns:minmax(0,1fr) 44px;column-gap:6px;min-height:132px;padding:12px}
+  .transform-number__num{font-size:46px}
+  .transform-number__img{width:44px;height:56px}
+  .transform-number__sim{font-size:14px}
+  .transform-group--base .transform-number{grid-template-columns:minmax(0,1fr) 88px;min-height:154px;padding:16px}
+  .transform-group--base .transform-number__img{width:88px;height:88px}
+  .transform-group--base .transform-number__num{font-size:80px}
+  #view-transform table{display:block;overflow-x:auto}
+  #view-consulta .consulta-card{padding:16px}
+  .consulta-hero{grid-template-columns:minmax(0,1fr) 88px;gap:8px 12px}
+  .consulta-hero__img{width:88px;height:88px}
+  .consulta-hero__num{font-size:80px}
+  .consulta-hero__sym{font-size:20px}
+  .consulta-stat{padding:12px}
+  .consulta-stat__value{font-size:27px}
+  .consulta-date-long{display:none}.consulta-date-short{display:inline}
+  #view-consulta .consulta-table--recent{display:block;margin-top:16px;background:transparent}
+  .consulta-table--recent thead{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden}
+  .consulta-table--recent tbody{display:grid;gap:12px}
+  #view-consulta .consulta-table--recent tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:'date time' 'before after';gap:14px 10px;padding:14px;border:1px solid var(--color-border-strong);border-radius:8px;background:var(--color-surface)}
+  #view-consulta .consulta-table--recent tbody td{display:block;padding:0;border:0;font-size:14px;min-width:0}
+  .consulta-table--recent .consulta-date{grid-area:date;font-weight:650}
+  .consulta-table--recent .consulta-time{grid-area:time;text-align:right!important;color:var(--color-muted)!important;font-size:12px!important}
+  .consulta-table--recent .consulta-before{grid-area:before}
+  .consulta-table--recent .consulta-after{grid-area:after}
+  .consulta-table--recent [data-label]::before{content:attr(data-label);display:block;font-size:10px;color:var(--color-muted);margin-bottom:7px}
+}
+@media(max-width:350px){.transform-number{grid-template-columns:minmax(0,1fr) 36px;padding:10px}.transform-number__img{width:36px;height:48px}.transform-number__num{font-size:40px}}
+@media(prefers-reduced-motion:reduce){.transform-number{animation:none}}

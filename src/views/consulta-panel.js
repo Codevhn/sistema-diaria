@@ -10,6 +10,7 @@
 import { consultarNumero } from "../query-engine.js";
 import { GUIA } from "../loader.js";
 import { formatFriendlyDate } from "../ui/format.js";
+import { parseDrawDate } from "../date-utils.js";
 
 let getDraws = async () => [];
 let paisActivo = () => "HN";
@@ -32,7 +33,7 @@ export function initConsultaPanel(options = {}) {
 async function ejecutarConsulta(input, out) {
   const numero = parseInt(input.value, 10);
   if (!Number.isInteger(numero) || numero < 0 || numero > 99) {
-    out.innerHTML = `<div class="consulta-error">Ingresá un número entre 0 y 99.</div>`;
+    out.innerHTML = `<div class="consulta-error">Ingresa un número entre 0 y 99.</div>`;
     return;
   }
   out.innerHTML = `<div class="consulta-loading">Consultando historial…</div>`;
@@ -104,15 +105,15 @@ function renderHistorialReciente(r) {
     <section class="consulta-section">
       <h4>Historial reciente — últimas ${h.length} apariciones</h4>
       <p class="consulta-nota">Últimas apariciones del número consultado, con fecha, horario y los números que salieron en el sorteo anterior y en el siguiente.</p>
-      <table class="consulta-table">
+      <table class="consulta-table consulta-table--recent">
         <thead><tr><th>Fecha</th><th>Horario</th><th>Cayó antes</th><th>Cayó después</th></tr></thead>
         <tbody>
           ${h.map((ap) => `
             <tr>
-              <td>${formatFriendlyDate(ap.fecha)}</td>
-              <td>${ap.horario}</td>
-              <td>${renderVecino(ap.anterior, "anterior")}</td>
-              <td>${renderVecino(ap.siguiente, "siguiente")}</td>
+              <td class="consulta-date"><span class="consulta-date-long">${formatFriendlyDate(ap.fecha)}</span><span class="consulta-date-short">${new Intl.DateTimeFormat('es-HN', { day: 'numeric', month: 'short', year: 'numeric' }).format(parseDrawDate(ap.fecha))}</span></td>
+              <td class="consulta-time">${ap.horario}</td>
+              <td class="consulta-before" data-label="Sorteo anterior">${renderVecino(ap.anterior, "anterior")}</td>
+              <td class="consulta-after" data-label="Sorteo siguiente">${renderVecino(ap.siguiente, "siguiente")}</td>
             </tr>`).join("")}
         </tbody>
       </table>

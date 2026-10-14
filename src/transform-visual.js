@@ -1,6 +1,5 @@
 import { GUIA } from "./loader.js";
 import {
-  CONVERSION_MAP_NOTE,
   getSimpleConversions,
   getCompositeConversions,
   getEquivalencias,
@@ -16,27 +15,16 @@ function ajusteNumero(n) {
   return (100 - n) % 100;
 }
 
-/** Fuerza estilos transparentes via JS (anula cualquier CSS externo) */
-function clearBg(el) {
-  el.style.setProperty("background", "none", "important");
-  el.style.setProperty("border", "none", "important");
-  el.style.setProperty("box-shadow", "none", "important");
-}
-
-/**
- * Crea una card de número sin fondo ni borde — estilo mac-theme.
- */
 function buildNumCard(num, { variant = null, tag = null } = {}) {
   const pad = padNumber(num);
   const sim = GUIA[pad]?.simbolo || "—";
   const card = document.createElement("div");
-  card.className = "rezago-card";
-  if (variant) card.classList.add(`rezago-card--${variant}`);
-  clearBg(card); // forzar transparente siempre
+  card.className = "transform-number";
+  if (variant) card.dataset.variant = variant;
 
   const img = document.createElement("img");
-  img.className = "rezago-card__img";
-  img.alt = pad;
+  img.className = "transform-number__img";
+  img.alt = sim === "—" ? pad : `${pad} · ${sim}`;
   img.src = `data/img/${pad}.png`;
   img.addEventListener("error", function onErr() {
     img.removeEventListener("error", onErr);
@@ -46,18 +34,18 @@ function buildNumCard(num, { variant = null, tag = null } = {}) {
   card.appendChild(img);
 
   const numEl = document.createElement("span");
-  numEl.className = "rezago-card__num";
+  numEl.className = "transform-number__num";
   numEl.textContent = pad;
   card.appendChild(numEl);
 
   const symEl = document.createElement("span");
-  symEl.className = "rezago-card__sim";
+  symEl.className = "transform-number__sim";
   symEl.textContent = sim;
   card.appendChild(symEl);
 
   if (tag) {
     const badge = document.createElement("span");
-    badge.className = "rezago-card__badge";
+    badge.className = "transform-number__badge";
     badge.textContent = tag;
     card.appendChild(badge);
   }
@@ -66,13 +54,13 @@ function buildNumCard(num, { variant = null, tag = null } = {}) {
 
 function buildRow(label, valores, variant) {
   const row = document.createElement("div");
-  row.className = "trans-row";
+  row.className = "transform-group";
   const lbl = document.createElement("b");
   lbl.textContent = label;
   row.appendChild(lbl);
 
   const wrap = document.createElement("div");
-  wrap.className = "trans-card-wrap";
+  wrap.className = "transform-group__cards";
   if (!valores || !valores.length) {
     const muted = document.createElement("span");
     muted.className = "muted";
@@ -110,34 +98,28 @@ export function mostrarTransformaciones(numero) {
   const compositeConversions = getCompositeConversions(numero);
   const equivalencias = getEquivalencias(numero);
 
-  // Wrapper principal — sin fondo ni borde
+  // Contenedor de resultados
   const desc = document.createElement("div");
-  desc.className = "desc trans-desc trans-desc--cards";
-  clearBg(desc);
+  desc.className = "transform-results";
 
   // Base — destacada
   const baseRow = document.createElement("div");
-  baseRow.className = "trans-row trans-row--base";
+  baseRow.className = "transform-group transform-group--base";
   const baseLbl = document.createElement("b");
   baseLbl.textContent = "Base";
   baseRow.appendChild(baseLbl);
   const baseWrap = document.createElement("div");
-  baseWrap.className = "trans-card-wrap";
-  baseWrap.appendChild(buildNumCard(numero, { variant: "variante-seed" }));
+  baseWrap.className = "transform-group__cards";
+  baseWrap.appendChild(buildNumCard(numero, { variant: "base" }));
   baseRow.appendChild(baseWrap);
   desc.appendChild(baseRow);
 
   // Filas de transformaciones
-  desc.appendChild(buildRow("Invertido", [inv], "variante"));
-  desc.appendChild(buildRow("Ajuste (100−n)", [adj], "variante"));
-  desc.appendChild(buildRow("Conversión simple", simpleConversions, "variante"));
-  desc.appendChild(buildRow("Conversión compuesta", compositeConversions, "variante"));
-  desc.appendChild(buildRow("Equivalencias", equivalencias, "pop-cool"));
+  desc.appendChild(buildRow("Invertido", [inv], "inverted"));
+  desc.appendChild(buildRow("Ajuste (100−n)", [adj], "adjusted"));
+  desc.appendChild(buildRow("Conversión simple", simpleConversions, "simple"));
+  desc.appendChild(buildRow("Conversión compuesta", compositeConversions, "composite"));
+  desc.appendChild(buildRow("Equivalencias", equivalencias, "equivalent"));
 
-  // Nota técnica eliminada — innecesaria para el usuario final
-
-  // Limpiar clases y estilos del contenedor — nunca mostrar fondo blanco
-  cont.className = "";
-  clearBg(cont);
   cont.appendChild(desc);
 }

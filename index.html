@@ -13,8 +13,8 @@
     } catch { document.documentElement.dataset.theme = 'light'; }
   </script>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./style.css?v=16" />
-  <link rel="stylesheet" href="./src/theme/base.css?v=16" />
+  <link rel="stylesheet" href="./style.css?v=17" />
+  <link rel="stylesheet" href="./src/theme/base.css?v=17" />
   <!-- Rediseño (fase 1 — shell): carga al final, gana sobre lo que ya migró -->
   <link rel="stylesheet" href="./src/theme/tokens.css?v=4" />
   <link rel="stylesheet" href="./src/theme/components.css?v=3" />
@@ -22,6 +22,7 @@
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="./src/theme/redesign.css?v=5" />
+  <link rel="stylesheet" href="./src/theme/number-tools.css?v=1" />
   <style>
     /* The loading screen is public; all application content stays covered until auth and boot complete. */
     html:is(.auth-locked, .app-booting) body > :not(#boot-loader):not(script),
@@ -370,14 +371,12 @@
       <div class="consulta-header">
         <h2>Consulta histórica</h2>
         <p class="hint">
-          Elegí un número y mirá su evidencia real en el historial: frecuencia, gap,
-          vuelta y qué suele caer después — siempre comparado contra lo que el azar
-          predice. Esto no es una predicción ni un candidato: es el mismo dato que
-          un anotador de papel busca a mano, pero con memoria completa del histórico.
+          Consulta las apariciones de un número: frecuencia, fechas, turnos y resultados anteriores y posteriores.
         </p>
       </div>
       <div class="consulta-form">
-        <input id="consulta-numero-input" type="number" min="0" max="99" placeholder="Ej: 53" />
+        <label class="sr-only" for="consulta-numero-input">Número a consultar</label>
+        <input id="consulta-numero-input" inputmode="numeric" type="number" min="0" max="99" placeholder="Ej: 53" />
         <button id="consulta-btn-buscar" class="btn-outline">Consultar</button>
       </div>
       <div id="consulta-resultado"></div>
@@ -591,14 +590,13 @@
     <section id="view-transform" class="view hidden">
       <h2>Transformaciones visuales</h2>
       <p class="hint">
-        Explora el número base, sus inversiones y conversiones simples/compuestas con los símbolos de la guía.
-        Útil para detectar radios alrededor de un número favorito.
+        Consulta el número base, su inversión, ajuste y conversiones con los símbolos de la guía.
       </p>
-      <div id="transform-panel" class="card">
-        <div class="transform-controls">
+      <div id="transform-panel" class="transform-workspace">
+        <div class="transform-query">
           <label>
             Número base
-            <input id="t-numero" placeholder="Ej. 25" maxlength="2" inputmode="numeric" />
+            <input id="t-numero" placeholder="00–99" maxlength="2" inputmode="numeric" />
           </label>
           <button id="t-ver" class="btn-primary">Ver transformaciones</button>
         </div>
@@ -1054,7 +1052,7 @@
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=7"></script>
+  <script type="module" src="./src/app.js?v=8"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">
