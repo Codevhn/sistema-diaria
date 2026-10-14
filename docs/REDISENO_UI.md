@@ -33,3 +33,7 @@ La validación de integración usa registros del respaldo y autenticación simul
 ## Historial compacto e interacciones planas
 
 El historial usa una cabecera única, búsqueda visible, filtros desplegables y paginación real. Se evita el sombreado alterno de filas. Los efectos de elevación y sombra de hover se retiraron; el menú usa cambios de texto y una marca lateral. Los submenús se revelan con una transición de recorte y opciones escalonadas, desactivada con reducir movimiento. Se verificaron la ausencia de desplazamiento/sombra al hacer hover, los filtros, el cambio de página y el reinicio de página al buscar.
+
+## Acceso independiente
+
+El login se reconstruyó con una composición de marca y formulario. Carga únicamente `src/theme/login.css` y conserva los módulos de autenticación existentes; no hereda tarjetas ni efectos de las hojas antiguas. Incluye autocompletado, mostrar/ocultar contraseña, mensajes de error y una vista propia para la sesión existente. Se comprobaron tamaños de 1440, 390 y 320 px, envío por teclado, errores de credenciales, redirección tras verificar la sesión y cambio de cuenta con autenticación simulada.

@@ -5,43 +5,37 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La Diaria — Acceso</title>
-  <link rel="stylesheet" href="./style.css?v=13" />
-  <link rel="stylesheet" href="./src/theme/base.css?v=13" />
-  <link rel="stylesheet" href="./src/theme/tokens.css?v=4" />
-  <link rel="stylesheet" href="./src/theme/redesign.css?v=1" />
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="./src/theme/login.css?v=1" />
   <script>
     // Variables de entorno. En producción, sobreescribe estas valores.
     window.__ENV__ = window.__ENV__ || {};
   </script>
 </head>
 
-<body class="login-page design-v2">
-  <main class="login-shell">
-    <section class="login-card">
-      <div class="login-card__head">
-        <p class="login-tag">LA DIARIA · REGISTRO &amp; ESTADÍSTICA</p>
-        <h1>Tu registro,<br>siempre contigo.</h1>
-        <p class="login-lead">Inicia sesión para consultar tu historial y registrar resultados.</p>
+<body class="access-page">
+  <main class="access-layout">
+    <section class="access-brand" aria-label="La Diaria">
+      <a class="access-logo" href="./login.html" aria-label="La Diaria"><svg viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M11 10v16h14" fill="none" stroke="white" stroke-width="3"/><circle cx="24" cy="12" r="3" fill="#b9ceff"/></svg><span>La Diaria<small>REGISTRO &amp; ESTADÍSTICA</small></span></a>
+      <div class="access-brand__content"><span class="access-eyebrow">Cada dato tiene su lugar</span><h2>Cada resultado.<br>Su historia.</h2><p>Registra los sorteos, consulta tus números y entiende su recorrido en el tiempo.</p>
+        <div class="access-art" aria-hidden="true"><div class="access-art__rule"></div><span class="access-art__zero">00</span><span class="access-art__range">—</span><span class="access-art__ninety">99</span><div class="access-art__baseline"><span>UN REGISTRO</span><span>CIEN NÚMEROS</span></div></div>
       </div>
-      <form id="login-form" class="login-form">
-        <label>
-          Email
-          <input type="email" id="login-email" placeholder="tucorreo@example.com" required />
-        </label>
-        <label>
-          Contraseña
-          <input type="password" id="login-password" placeholder="********" required />
-        </label>
-        <div id="login-error" class="hint hidden" role="alert"></div>
-        <button type="submit" class="btn-primary">Entrar</button>
-      </form>
-      <div id="login-session" class="login-session hidden">
-        <p class="hint">Ya tienes una sesión activa. ¿Deseas continuar o cambiar de cuenta?</p>
-        <div class="login-session__actions">
-          <button type="button" id="login-continue" class="btn-primary">Ir al panel</button>
-          <button type="button" id="login-switch" class="btn-outline">Cambiar de usuario</button>
-        </div>
+      <div class="access-brand__footer"><span>La Diaria · Honduras</span><span>Registro histórico</span></div>
+    </section>
+    <section class="access-form-side" aria-labelledby="access-title">
+      <div class="access-form-side__top"><span>Tu espacio de trabajo</span><span class="access-country"><span aria-hidden="true">●</span> Honduras</span></div>
+      <div class="access-form-wrap">
+        <div class="access-heading"><span class="access-step">Acceso a tu cuenta</span><h1 id="access-title">Bienvenido de nuevo.</h1><p id="access-lead">Ingresa tus datos para continuar con tu registro.</p></div>
+        <div id="login-error" class="access-error hidden" role="alert"></div>
+        <form id="login-form" class="access-form">
+          <div class="access-field"><label for="login-email">Correo electrónico</label><input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="username" aria-describedby="login-error" spellcheck="false" autocapitalize="none" required /></div>
+          <div class="access-field"><label for="login-password">Contraseña</label><div class="access-password"><input type="password" id="login-password" placeholder="Tu contraseña" autocomplete="current-password" aria-describedby="login-error" required /><button id="login-show-password" type="button" aria-controls="login-password" aria-pressed="false" aria-label="Mostrar contraseña">Mostrar</button></div></div>
+          <button type="submit" class="access-submit">Iniciar sesión <span aria-hidden="true">→</span></button>
+        </form>
+        <div id="login-session" class="access-session hidden"><div class="access-session__account"><span>Sesión disponible</span><strong id="login-session-account">Tu cuenta</strong></div><p>Puedes abrir tu registro o entrar con otra cuenta.</p><div class="access-session__actions"><button type="button" id="login-continue" class="access-submit">Continuar a La Diaria <span aria-hidden="true">→</span></button><button type="button" id="login-switch" class="access-secondary">Usar otra cuenta</button></div></div>
+        <div class="access-help"><span>¿Necesitas acceso?</span><p>Contacta al administrador del sistema.</p></div>
       </div>
+      <footer class="access-form-side__footer">La Diaria <span>Registro e información histórica</span></footer>
     </section>
   </main>
 
@@ -55,6 +49,14 @@
     const sessionBox = document.getElementById("login-session");
     const sessionContinue = document.getElementById("login-continue");
     const sessionSwitch = document.getElementById("login-switch");
+    const visibilityButton = document.getElementById('login-show-password');
+    visibilityButton.addEventListener('click', () => {
+      const visible = passwordInput.type === 'password';
+      passwordInput.type = visible ? 'text' : 'password';
+      visibilityButton.textContent = visible ? 'Ocultar' : 'Mostrar';
+      visibilityButton.setAttribute('aria-pressed', String(visible));
+      visibilityButton.setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    });
     const searchParams = new URLSearchParams(window.location.search);
     const forceSwitchMode = searchParams.get("mode") === "switch";
     // Mostrar aviso si el usuario fue baneado
@@ -63,7 +65,6 @@
       if (errorBox) {
         errorBox.textContent = "⛔ Tu cuenta ha sido suspendida. Contacta al administrador.";
         errorBox.classList.remove("hidden");
-        errorBox.style.color = "var(--color-danger)";
       }
     }
     const sessionContinueLabel = sessionContinue?.textContent?.trim() || "Ir al panel";
@@ -73,14 +74,22 @@
 
     function showError(message) {
       if (!errorBox) return;
-      errorBox.textContent = message;
+      const friendly = /invalid login credentials/i.test(message) ? 'El correo o la contraseña no coinciden. Revisa tus datos.'
+        : /failed to fetch|network request failed/i.test(message) ? 'No se pudo conectar. Revisa tu conexión y vuelve a intentarlo.' : message;
+      errorBox.textContent = friendly;
       errorBox.classList.remove("hidden");
+      if (/invalid login credentials/i.test(message)) {
+        emailInput.setAttribute('aria-invalid', 'true');
+        passwordInput.setAttribute('aria-invalid', 'true');
+      }
     }
 
     function clearError() {
       if (!errorBox) return;
       errorBox.textContent = "";
       errorBox.classList.add("hidden");
+      emailInput.removeAttribute("aria-invalid");
+      passwordInput.removeAttribute("aria-invalid");
     }
 
     emailInput?.addEventListener("input", clearError);
@@ -93,6 +102,8 @@
         sessionViewToken += 1;
       }
       currentViewMode = mode === "prompt" ? "prompt" : "form";
+      document.getElementById('access-title').textContent = currentViewMode === 'prompt' ? 'Tu registro te espera.' : 'Bienvenido de nuevo.';
+      document.getElementById('access-lead').textContent = currentViewMode === 'prompt' ? 'Ya tienes una sesión disponible en este dispositivo.' : 'Ingresa tus datos para continuar con tu registro.';
       if (currentViewMode === "prompt") {
         form.classList.add("hidden");
         sessionBox.classList.remove("hidden");
@@ -128,6 +139,7 @@
         return !!user && !forceSwitchMode;
       }
       if (user && !forceSwitchMode) {
+        document.getElementById("login-session-account").textContent = user.email || "Tu cuenta";
         setViewMode("prompt", { bumpToken: false });
         return true;
       }
@@ -143,6 +155,9 @@
       const email = (emailInput?.value || "").trim();
       const password = passwordInput?.value || "";
       const button = form.querySelector("button[type='submit']");
+      const submitLabel = button?.innerHTML;
+      form.setAttribute('aria-busy', 'true');
+      if (button) button.textContent = 'Iniciando sesión…';
       button?.setAttribute("disabled", "true");
       button?.classList.add("loading");
       try {
@@ -155,6 +170,8 @@
       } catch (err) {
         showError(err?.message || "No se pudo iniciar sesión.");
       } finally {
+        form.removeAttribute('aria-busy');
+        if (button) button.innerHTML = submitLabel;
         button?.removeAttribute("disabled");
         button?.classList.remove("loading");
       }
