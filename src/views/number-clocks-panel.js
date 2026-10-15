@@ -1,5 +1,8 @@
 import { buildNumberClocks, elapsedParts } from '../number-clocks.js';
 
+const lastDateFormat = new Intl.DateTimeFormat('es-HN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const formatLastDate = iso => lastDateFormat.format(new Date(`${iso}T00:00:00Z`));
+
 const pad = n => String(n).padStart(2, '0');
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -60,7 +63,7 @@ export function initNumberClocksPanel({ obtenerSorteos, obtenerGuia }) {
       element.dataset.number = number;
       const last = record.last;
       element.innerHTML = `<div class="number-clock__identity"><div><strong>${number}</strong><span>${escape(symbol)}</span></div><img src="data/img/${number}.png" alt="${escape(symbol)}" loading="lazy" decoding="async"></div>
-        ${last ? `<div class="number-clock__elapsed" role="timer" aria-live="off" aria-label="Tiempo sin salir"><div class="number-clock__days"><b data-unit="days"></b><span>días</span></div><div class="number-clock__time"><span><b data-unit="hours"></b><small>horas</small></span><i aria-hidden="true">:</i><span><b data-unit="minutes"></b><small>min</small></span><i aria-hidden="true">:</i><span><b data-unit="seconds"></b><small>seg</small></span></div></div><p class="number-clock__waiting" hidden>La hora del sorteo es posterior a la hora actual.</p><p class="number-clock__last">Última aparición<br><b>${last.fecha} · ${last.horario}</b></p>` : '<p class="number-clock__missing">Sin aparición registrada</p>'}`;
+        ${last ? `<div class="number-clock__elapsed" role="timer" aria-live="off" aria-label="Tiempo sin salir"><div class="number-clock__days"><b data-unit="days"></b><span>días</span></div><div class="number-clock__time"><span><b data-unit="hours"></b><small>horas</small></span><i aria-hidden="true">:</i><span><b data-unit="minutes"></b><small>min</small></span><i aria-hidden="true">:</i><span><b data-unit="seconds"></b><small>seg</small></span></div></div><p class="number-clock__waiting" hidden>La hora del sorteo es posterior a la hora actual.</p><p class="number-clock__last">Última aparición<br><b>${formatLastDate(last.fecha)} · ${last.horario}</b></p>` : '<p class="number-clock__missing">Sin aparición registrada</p>'}`;
       element.querySelector('img').addEventListener('error', event => { event.currentTarget.hidden = true; });
       return {
         record, symbol, element,
@@ -69,7 +72,7 @@ export function initNumberClocksPanel({ obtenerSorteos, obtenerGuia }) {
         units: Object.fromEntries([...element.querySelectorAll('[data-unit]')].map(node => [node.dataset.unit, node])),
       };
     });
-    summary.textContent = result.latest ? `Último sorteo disponible: ${result.latest.fecha} · ${result.latest.horario}. ${result.total.toLocaleString('es-HN')} registros analizados.${result.future ? ` ${result.future} registros con hora futura excluidos.` : ''}` : 'No hay sorteos válidos disponibles en el historial.';
+    summary.textContent = result.latest ? `Último sorteo disponible: ${formatLastDate(result.latest.fecha)} · ${result.latest.horario}. ${result.total.toLocaleString('es-HN')} registros analizados.${result.future ? ` ${result.future} registros con hora futura excluidos.` : ''}` : 'No hay sorteos válidos disponibles en el historial.';
     filter();
   }
   async function refresh(force = false) {
