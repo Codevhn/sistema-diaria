@@ -1,6 +1,6 @@
 import { buildNumberClocks, elapsedParts } from '../number-clocks.js';
 
-const lastDateFormat = new Intl.DateTimeFormat('es-HN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const lastDateFormat = new Intl.DateTimeFormat('es-HN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 const formatLastDate = iso => lastDateFormat.format(new Date(`${iso}T00:00:00Z`));
 
 const pad = n => String(n).padStart(2, '0');
