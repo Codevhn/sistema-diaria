@@ -7,6 +7,7 @@
  * medida, aplicado aquí a una consulta puntual.
  */
 
+import { drawTimestamp, elapsedParts } from "../number-clocks.js";
 import { consultarNumero } from "../query-engine.js";
 import { GUIA } from "../loader.js";
 import { formatFriendlyDate } from "../ui/format.js";
@@ -41,7 +42,7 @@ async function ejecutarConsulta(input, out) {
     const draws = await getDraws();
     const pais = typeof paisActivo === "function" ? paisActivo() : paisActivo;
     const r = consultarNumero(numero, draws, { pais });
-    out.innerHTML = renderResultado(r);
+    out.innerHTML = renderResultado(r, pais);
   } catch (err) {
     out.innerHTML = `<div class="consulta-error">No se pudo consultar: ${err?.message || err}</div>`;
   }
@@ -65,10 +66,11 @@ function statTile(value, label) {
   </div>`;
 }
 
-function renderHero(r) {
+function renderHero(r, pais) {
   const pd = pad2(r.numero);
   const sym = simbolo(r.numero);
   const u = r.ultimaAparicion;
+  const elapsed = u ? elapsedParts(drawTimestamp({ ...u, pais })) : null;
   const ultimaTexto = u
     ? `Salió por última vez el <b>${formatFriendlyDate(u.fecha)}</b>, turno <b>${u.horario}</b>.`
     : `Sin registro de ninguna aparición en el historial cargado.`;
@@ -79,7 +81,7 @@ function renderHero(r) {
         onerror="this.src='data/img/${pd}.jpg';this.onerror=()=>this.style.display='none'">
       <div class="consulta-hero__num">${pd}</div>
       <div class="consulta-hero__sym">${sym}</div>
-      <div class="consulta-hero__ultima">${ultimaTexto}</div>
+      <div class="consulta-hero__ultima"><span>${ultimaTexto}</span>${elapsed ? `<div class="consulta-hero__days"><b>${elapsed.days}</b><span>${elapsed.days === 1 ? "día" : "días"} sin salir</span></div>` : ""}</div>
     </div>`;
 }
 
@@ -120,7 +122,7 @@ function renderHistorialReciente(r) {
     </section>`;
 }
 
-function renderResultado(r) {
+function renderResultado(r, pais) {
   const f = r.frecuencia;
   const g = r.gap;
   const v = r.vuelta;
@@ -128,7 +130,7 @@ function renderResultado(r) {
 
   return `
     <div class="consulta-card">
-      ${renderHero(r)}
+      ${renderHero(r, pais)}
       <p class="consulta-nota consulta-nota--total">${r.totalSorteos} sorteos analizados en total.</p>
 
       ${renderHistorialReciente(r)}

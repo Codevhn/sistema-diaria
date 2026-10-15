@@ -45,7 +45,7 @@ html[data-theme=dark] .transform-number[data-variant=equivalent]{--transform-ton
 .consulta-hero__img{grid-area:image;width:104px;height:104px;object-fit:contain;align-self:center;justify-self:end}
 .consulta-hero__num{grid-area:number;font-size:92px;font-weight:750;line-height:1;letter-spacing:-.065em;color:var(--color-accent)}
 .consulta-hero__sym{grid-area:symbol;font-size:22px;font-weight:500;color:var(--color-text);overflow-wrap:anywhere}
-.consulta-hero__ultima{grid-area:last;font-size:13px;color:var(--color-muted);line-height:1.6;margin-top:10px}
+.consulta-hero__ultima{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;grid-area:last;font-size:13px;color:var(--color-muted);line-height:1.6;margin-top:10px}
 .consulta-nota--total{font-size:12px;color:var(--color-muted);padding:12px 0;border-top:1px solid var(--color-border);margin:0}
 .consulta-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--color-border);min-width:0}
 .consulta-section h4{font-size:14px;line-height:1.45;margin:0 0 10px;letter-spacing:0;color:var(--color-text)}
@@ -101,3 +101,7 @@ html[data-theme=dark] .transform-number[data-variant=equivalent]{--transform-ton
 }
 @media(max-width:350px){.transform-number{grid-template-columns:minmax(0,1fr) 36px;padding:10px}.transform-number__img{width:36px;height:48px}.transform-number__num{font-size:40px}}
 @media(prefers-reduced-motion:reduce){.transform-number{animation:none}}
+
+.consulta-hero__days{display:flex;align-items:baseline;gap:8px;color:var(--color-muted)}
+.consulta-hero__days b{font-size:36px;line-height:1.1;letter-spacing:-.04em;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.consulta-hero__days span{font-size:13px}
