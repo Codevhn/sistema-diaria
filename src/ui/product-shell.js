@@ -1,5 +1,15 @@
 export function initProductShell({ navigate, getDayContext }) {
   const header = document.querySelector('.app-header');
+  const numberTabs = document.getElementById('number-workspace-tabs');
+  const tabs = [...(numberTabs?.querySelectorAll('[role="tab"]') || [])];
+  numberTabs?.addEventListener('keydown', event => {
+    const index = tabs.indexOf(event.target);
+    if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    navigate(tabs[next].dataset.view);
+    tabs[next].focus({ preventScroll: true });
+  });
   const menus = [...header.querySelectorAll('.app-menu')];
   menus.forEach(menu => menu.querySelectorAll('.app-menu__panel button').forEach((button, index) => button.style.setProperty('--menu-order', String(index))));
   menus.forEach(menu => menu.addEventListener('toggle', () => {
@@ -46,6 +56,13 @@ export function initProductShell({ navigate, getDayContext }) {
     document.getElementById('hf-form').requestSubmit();
   });
   return key => {
+    const isNumberWorkspace = tabs.some(tab => tab.dataset.view === key);
+    if (numberTabs) numberTabs.hidden = !isNumberWorkspace;
+    tabs.forEach(tab => {
+      const selected = tab.dataset.view === key;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
     header.querySelectorAll('[data-view]').forEach(button => {
       const active = button.dataset.view === key;
       button.classList.toggle('active', active);

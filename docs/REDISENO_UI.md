@@ -76,3 +76,9 @@ Escenarios presenta los números con la misma jerarquía de Transformaciones: n�
 La consulta antes/después tiene etiquetas explícitas y campos alineados; sus resultados usan tarjetas legibles. El mapa de compañeros organiza semilla, compañero y justificación, separa los contadores de estado y presenta cada relación como ficha en móvil. El selector de semillas permite buscar por número o símbolo. Ambos selectores conservan sus valores y eventos originales, permiten teclado y cierran con Escape devolviendo el foco. La edición, eliminación, importación y exportación del mapa se mantienen.
 
 Se compararon exactamente los textos, imágenes y títulos de 228 tarjetas de Escenarios con la versión anterior, usando el mismo historial y reloj. Se verificaron 320, 384 y 1440 px en Chromium, ambos temas, ausencia de desbordamiento horizontal, consulta por turno, navegación de selectores y operaciones del mapa con persistencia simulada. Las 207 pruebas de Vitest pasaron. No se realizaron escrituras reales en Supabase ni pruebas en un S24 Ultra físico.
+
+## Pestañas de consultas por número
+
+Tiempo sin salir, Horario favorito y Consulta histórica comparten una barra de pestañas tipo navegador encima del contenido. La selección se sincroniza con las rutas existentes y los accesos del menú; la barra se oculta en las demás vistas. Los campos, filtros y resultados permanecen al alternar. Los relojes conservan su suspensión fuera de la vista.
+
+La barra usa roles tablist/tab/tabpanel, indica la pestaña seleccionada y admite flechas, Inicio y Fin con foco en la pestaña activa. En móvil las tres etiquetas se distribuyen en el ancho disponible; los cambios de color respetan reducir movimiento. Se verificaron navegación, enlaces directos, persistencia de consultas y filtros, teclado, ambos temas y ausencia de desbordamiento en Chromium a 320, 384 y 1440 px, con Supabase simulado. Las 207 pruebas existentes pasaron.

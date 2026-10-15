@@ -22,7 +22,7 @@
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="./src/theme/redesign.css?v=5" />
-  <link rel="stylesheet" href="./src/theme/number-tools.css?v=2" />
+  <link rel="stylesheet" href="./src/theme/number-tools.css?v=3" />
   <link rel="stylesheet" href="./src/theme/number-clocks.css?v=1" />
   <link rel="stylesheet" href="./src/theme/scenarios.css?v=1" />
   <style>
@@ -368,8 +368,14 @@
       </div>
     </section>
 
+    <nav id="number-workspace-tabs" class="number-workspace-tabs" role="tablist" aria-label="Consultas por número" hidden>
+      <button id="number-tab-clocks" class="btn-ghost" type="button" role="tab" data-view="clocks" aria-controls="view-clocks" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><span>Tiempo sin salir</span></button>
+      <button id="number-tab-horario" class="btn-ghost" type="button" role="tab" data-view="horario" aria-controls="view-horario" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M7 15v-4m5 4V5m5 10V8"/></svg><span>Horario favorito</span></button>
+      <button id="number-tab-consulta" class="btn-ghost" type="button" role="tab" data-view="consulta" aria-controls="view-consulta" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5M7 8h6m-6 4h4"/></svg><span>Consulta histórica</span></button>
+    </nav>
+
     <!-- CONSULTA HISTÓRICA -->
-    <section id="view-consulta" class="view hidden">
+    <section id="view-consulta" class="view hidden" role="tabpanel" aria-labelledby="number-tab-consulta">
       <div class="consulta-header">
         <h2>Consulta histórica</h2>
         <p class="hint">
@@ -384,7 +390,7 @@
       <div id="consulta-resultado"></div>
     </section>
 
-    <section id="view-clocks" class="view hidden">
+    <section id="view-clocks" class="view hidden" role="tabpanel" aria-labelledby="number-tab-clocks">
       <h2>Tiempo sin salir</h2>
       <p class="hint">100 relojes en vivo desde la última aparición registrada de cada número. Horas de referencia: 11:00, 15:00 y 21:00 de Honduras.</p>
       <div class="number-clocks-controls">
@@ -397,7 +403,7 @@
       <div id="number-clocks-grid" class="number-clocks-grid"></div>
     </section>
 
-    <section id="view-horario" class="view hidden">
+    <section id="view-horario" class="view hidden" role="tabpanel" aria-labelledby="number-tab-horario">
       <div class="product-heading"><div><span class="product-eyebrow">Consulta histórica</span><h1>Cada número tiene su historia.</h1><p>Consulta el horario con más apariciones de un número.</p></div></div>
       <p class="hint">¿A qué hora ha salido más un número? Consulta sus apariciones en todo el historial disponible de La Diaria Honduras.</p>
       <form id="hf-form" class="hf-form">
@@ -1054,7 +1060,7 @@
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=10"></script>
+  <script type="module" src="./src/app.js?v=11"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">
