@@ -129,3 +129,11 @@ html[data-theme=dark] .transform-number[data-variant=equivalent]{--transform-ton
 .consulta-successor span{grid-area:symbol;font-size:16px;line-height:1.4;color:var(--color-muted);overflow-wrap:anywhere}
 #view-consulta .consulta-table--successors .consulta-successor__count{text-align:right;font-size:28px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-accent)}
 @media(max-width:600px){#view-consulta .consulta-table--successors th:last-child{width:58px}#view-consulta .consulta-table--successors th,#view-consulta .consulta-table--successors td{padding:16px 6px}.consulta-successor{grid-template-columns:48px minmax(0,1fr);gap:3px 10px}.consulta-successor img{width:48px;height:60px}.consulta-successor strong{font-size:40px}.consulta-successor span{font-size:14px}#view-consulta .consulta-table--successors .consulta-successor__count{font-size:24px}}
+
+/* Identidades compactas de los sorteos anterior y siguiente. */
+.consulta-neighbor{display:grid;grid-template-columns:44px minmax(0,1fr);grid-template-areas:'image number' 'image symbol';align-items:center;gap:3px 10px;min-width:0}
+.consulta-neighbor img{grid-area:image;width:44px;height:48px;object-fit:contain}
+.consulta-neighbor strong{grid-area:number;font-size:32px;line-height:1.05;letter-spacing:-.04em;font-weight:700;font-variant-numeric:tabular-nums;color:var(--color-text)}
+.consulta-neighbor span{grid-area:symbol;font-size:13px;line-height:1.4;color:var(--color-muted);overflow-wrap:anywhere}
+.consulta-table--recent .consulta-vecino-tag{margin-top:8px}
+@media(max-width:760px){.consulta-neighbor{grid-template-columns:32px minmax(0,1fr);grid-template-areas:'image number' 'symbol symbol';gap:6px 8px}.consulta-neighbor img{width:32px;height:36px}.consulta-neighbor strong{font-size:28px}.consulta-neighbor span{font-size:12px}}

@@ -92,7 +92,12 @@ function renderVecino(vecino, direccion) {
   const cuando = vecino.mismoDia
     ? "mismo día"
     : direccion === "anterior" ? "día anterior" : "día siguiente";
-  return `${numSym(vecino.numero)}<br><span class="consulta-vecino-tag">${cuando} · ${vecino.horario}</span>`;
+  return `<div class="consulta-neighbor">
+    <img src="data/img/${pad2(vecino.numero)}.png" alt="" loading="lazy" decoding="async"
+      onerror="this.src='data/img/${pad2(vecino.numero)}.jpg';this.onerror=()=>this.style.display='none'">
+    <strong>${pad2(vecino.numero)}</strong>
+    <span>${escapeHtml(simbolo(vecino.numero))}</span>
+  </div><span class="consulta-vecino-tag">${cuando} · ${vecino.horario}</span>`;
 }
 
 function renderHistorialReciente(r) {

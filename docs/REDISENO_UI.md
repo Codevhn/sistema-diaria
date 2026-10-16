@@ -109,3 +109,7 @@ Pasaron 213 pruebas en 26 archivos: se añadieron comprobaciones de validación 
 La tabla «Qué suele caer justo después» conserva sus filas, orden y conteos, con el número a 48 px en escritorio y 40 px en móvil. Cada sucesor incluye su imagen original y nombre; el conteo se alinea a la derecha y también se amplía. Si la imagen falla se intenta JPG y luego se oculta, conservando el texto y el conteo. Las reglas se limitan a esta tabla.
 
 Se verificaron las 11 pruebas del motor de consulta y, en Chromium a 320, 384 y 1440 px, ambos temas, imágenes, tamaños, ausencia de desbordamiento y conservación exacta de los cinco sucesores y sus conteos con datos simulados.
+
+## Símbolos compactos en el historial reciente
+
+Cayó antes y Cayó después incluyen imagen, número y nombre, con números de 32 px en escritorio y 28 px en móvil, menores que los de Sucesores. Se conservan fecha, turno, orden de las ocho apariciones y referencias al mismo día o al día anterior/siguiente. Se verificaron las 11 pruebas del motor y la correspondencia completa de las ocho filas en Chromium a 320, 384 y 1440 px, en ambos temas, sin desbordamiento.
