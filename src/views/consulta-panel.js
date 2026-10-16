@@ -10,7 +10,7 @@
 import { drawTimestamp, elapsedParts } from "../number-clocks.js";
 import { consultarNumero } from "../query-engine.js";
 import { GUIA } from "../loader.js";
-import { formatFriendlyDate } from "../ui/format.js";
+import { formatFriendlyDate, escapeHtml } from "../ui/format.js";
 import { parseDrawDate } from "../date-utils.js";
 
 let getDraws = async () => [];
@@ -169,13 +169,18 @@ function renderResultado(r, pais) {
         <h4>Qué suele caer justo después</h4>
         ${t.total === 0
           ? `<p>No hay suficientes apariciones para analizar transiciones.</p>`
-          : `<table class="consulta-table">
-               <thead><tr><th>Sucesor</th><th>Veces</th></tr></thead>
+          : `<table class="consulta-table consulta-table--successors">
+               <thead><tr><th scope="col">Sucesor</th><th scope="col">Veces</th></tr></thead>
                <tbody>
                  ${t.filas.map((fila) => `
                    <tr>
-                     <td>${numSym(fila.sucesor)}</td>
-                     <td>${fila.hits}</td>
+                     <td><div class="consulta-successor">
+                       <img src="data/img/${pad2(fila.sucesor)}.png" alt="" loading="lazy" decoding="async"
+                         onerror="this.src='data/img/${pad2(fila.sucesor)}.jpg';this.onerror=()=>this.style.display='none'">
+                       <strong>${pad2(fila.sucesor)}</strong>
+                       <span>${escapeHtml(simbolo(fila.sucesor))}</span>
+                     </div></td>
+                     <td class="consulta-successor__count">${fila.hits}</td>
                    </tr>`).join("")}
                </tbody>
              </table>`}

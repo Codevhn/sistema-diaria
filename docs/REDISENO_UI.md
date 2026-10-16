@@ -103,3 +103,9 @@ La corrección automática de fechas, cierre de eventos, preparación del select
 Medición controlada en Chromium con el respaldo de 12.921 sorteos y 80 ms simulados por consulta: antes, 12,1 s y 213 consultas de sorteos al llegar al panel; después, 3,1 s y 28 consultas observadas (incluyen la consulta de pendientes y el comienzo del mantenimiento secundario). Equivale a aproximadamente un 74% menos de espera en ese escenario. No es una medición de latencia real del Supabase del usuario ni una garantía de ese tiempo en producción.
 
 Pasaron 213 pruebas en 26 archivos: se añadieron comprobaciones de validación compartida, permisos pendientes, sesión ausente, usuario bloqueado y equivalencia de perfiles con el historial reutilizado. Se verificó en Chromium a 320, 384 y 1440 px la secuencia cargador → Tiempo sin salir, sin destello de Jornada, así como pestañas, registro, rutas directas y entrada desde el login con autenticación simulada. Memoria y su monitor se comprobaron al abrirlos. No se realizaron escrituras reales en Supabase.
+
+## Sucesores con número e imagen ampliados
+
+La tabla «Qué suele caer justo después» conserva sus filas, orden y conteos, con el número a 48 px en escritorio y 40 px en móvil. Cada sucesor incluye su imagen original y nombre; el conteo se alinea a la derecha y también se amplía. Si la imagen falla se intenta JPG y luego se oculta, conservando el texto y el conteo. Las reglas se limitan a esta tabla.
+
+Se verificaron las 11 pruebas del motor de consulta y, en Chromium a 320, 384 y 1440 px, ambos temas, imágenes, tamaños, ausencia de desbordamiento y conservación exacta de los cinco sucesores y sus conteos con datos simulados.

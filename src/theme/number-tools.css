@@ -119,3 +119,13 @@ html[data-theme=dark] .transform-number[data-variant=equivalent]{--transform-ton
 @media(prefers-reduced-motion:reduce){.design-v2 .number-workspace-tabs [role=tab]{transition:none}}
 
 @media(hover:none){.design-v2 .number-workspace-tabs [role=tab][aria-selected=false]:hover{background:transparent;color:var(--color-muted)}}
+
+/* Sucesores de la consulta: identidad legible con el símbolo original. */
+#view-consulta .consulta-table--successors th:last-child{width:112px;text-align:right}
+#view-consulta .consulta-table--successors td{vertical-align:middle;padding:18px 12px}
+.consulta-successor{display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-areas:'image number' 'image symbol';align-items:center;gap:4px 18px;min-width:0}
+.consulta-successor img{grid-area:image;width:72px;height:72px;object-fit:contain}
+.consulta-successor strong{grid-area:number;font-size:48px;line-height:1.05;letter-spacing:-.055em;font-weight:750;font-variant-numeric:tabular-nums;color:var(--color-text)}
+.consulta-successor span{grid-area:symbol;font-size:16px;line-height:1.4;color:var(--color-muted);overflow-wrap:anywhere}
+#view-consulta .consulta-table--successors .consulta-successor__count{text-align:right;font-size:28px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-accent)}
+@media(max-width:600px){#view-consulta .consulta-table--successors th:last-child{width:58px}#view-consulta .consulta-table--successors th,#view-consulta .consulta-table--successors td{padding:16px 6px}.consulta-successor{grid-template-columns:48px minmax(0,1fr);gap:3px 10px}.consulta-successor img{width:48px;height:60px}.consulta-successor strong{font-size:40px}.consulta-successor span{font-size:14px}#view-consulta .consulta-table--successors .consulta-successor__count{font-size:24px}}
