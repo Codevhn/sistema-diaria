@@ -64,7 +64,7 @@ export function initProductShell({ navigate, getDayContext }) {
       tab.tabIndex = selected ? 0 : -1;
     });
     header.querySelectorAll('[data-view]').forEach(button => {
-      const active = button.dataset.view === key;
+      const active = button.dataset.primaryNav === 'number-workspace' ? isNumberWorkspace : button.dataset.view === key;
       button.classList.toggle('active', active);
       if (active) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');

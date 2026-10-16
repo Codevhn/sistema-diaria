@@ -4855,7 +4855,7 @@ import {
       if (location.hash !== `#${key}`) history.replaceState(null, '', `#${key}`);
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
-    const navigateFromHash = () => navigateTo(views[location.hash.slice(1)] ? location.hash.slice(1) : 'day');
+    const navigateFromHash = () => navigateTo(views[location.hash.slice(1)] ? location.hash.slice(1) : 'clocks');
     window.addEventListener('hashchange', navigateFromHash);
     navigateFromHash();
 

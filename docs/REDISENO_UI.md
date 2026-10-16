@@ -44,7 +44,7 @@ La pantalla de carga está visible desde el HTML inicial. El contenido permanece
 
 ## Verificador retirado
 
-Se retiró el panel Verificador estadístico, su acceso desde Herramientas, su ruta y su renderizado. Sus módulos exclusivos de análisis temporal y presentación de honestidad ya no forman parte de la aplicación. La ayuda no ofrece acceso a las funciones retiradas. Los enlaces antiguos a `#temporal` abren Jornada al entrar.
+Se retiró el panel Verificador estadístico, su acceso desde Herramientas, su ruta y su renderizado. Sus módulos exclusivos de análisis temporal y presentación de honestidad ya no forman parte de la aplicación. La ayuda no ofrece acceso a las funciones retiradas. Los enlaces antiguos a `#temporal` abren la pantalla de inicio al entrar.
 
 ## Símbolos en Jornada
 
@@ -82,3 +82,12 @@ Se compararon exactamente los textos, imágenes y títulos de 228 tarjetas de Es
 Tiempo sin salir, Horario favorito y Consulta histórica comparten una barra de pestañas tipo navegador encima del contenido. La selección se sincroniza con las rutas existentes y los accesos del menú; la barra se oculta en las demás vistas. Los campos, filtros y resultados permanecen al alternar. Los relojes conservan su suspensión fuera de la vista.
 
 La barra usa roles tablist/tab/tabpanel, indica la pestaña seleccionada y admite flechas, Inicio y Fin con foco en la pestaña activa. En móvil las tres etiquetas se distribuyen en el ancho disponible; los cambios de color respetan reducir movimiento. Se verificaron navegación, enlaces directos, persistencia de consultas y filtros, teclado, ambos temas y ausencia de desbordamiento en Chromium a 320, 384 y 1440 px, con Supabase simulado. Las 207 pruebas existentes pasaron.
+
+
+## Inicio en las consultas por número
+
+La entrada sin ruta, incluido el retorno desde el login y Continuar con una sesión existente, abre Tiempo sin salir después de la pantalla de carga. Las rutas desconocidas también vuelven a este inicio; los enlaces directos a vistas válidas se conservan. Jornada permanece disponible para consultar y registrar resultados.
+
+Se retiró el desplegable Por número y sus tres accesos duplicados. Inicio permite volver al conjunto de pestañas y permanece seleccionado al usar Horario favorito o Consulta histórica; el logotipo también vuelve a Tiempo sin salir. Memoria está en Herramientas, dentro de Biblioteca. Todas las vistas permanecen ocultas en el HTML inicial hasta que el enrutador seleccione la correspondiente.
+
+Se verificaron las 207 pruebas existentes y el flujo en Chromium a 320, 384 y 1440 px con autenticación simulada: cargador antes del contenido, primera vista Tiempo sin salir sin destello de Jornada, pestañas, accesos Inicio/logotipo, registro de resultados, Memoria y rutas directas. También se comprobó la entrada desde credenciales y desde una sesión disponible. No se realizaron escrituras reales en Supabase.

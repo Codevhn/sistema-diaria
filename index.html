@@ -89,13 +89,13 @@
   <a class="skip-link" href="#main-content">Ir al contenido</a>
   <header class="app-header" data-app-shell inert aria-hidden="true">
     <div class="app-header__inner">
-      <button class="app-brand" data-view="day" aria-label="La Diaria, jornada"><svg viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M11 10v16h14" fill="none" stroke="white" stroke-width="3"/><circle cx="24" cy="12" r="3" fill="#b9ceff"/></svg><span>La Diaria<small>REGISTRO &amp; ESTADÍSTICA</small></span></button>
+      <button class="app-brand" data-view="clocks" aria-label="La Diaria, inicio"><svg viewBox="0 0 36 36" aria-hidden="true"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M11 10v16h14" fill="none" stroke="white" stroke-width="3"/><circle cx="24" cy="12" r="3" fill="#b9ceff"/></svg><span>La Diaria<small>REGISTRO &amp; ESTADÍSTICA</small></span></button>
       <nav class="app-nav" aria-label="Navegación principal">
+        <button data-view="clocks" data-primary-nav="number-workspace">Inicio</button>
         <button data-view="day" data-primary-nav="day">Jornada</button>
         <button data-view="monthly" data-primary-nav="monthly"><span class="nav-label-desktop">Ranking mensual</span><span class="nav-label-mobile">Mensual</span></button>
-        <details class="app-menu" data-nav-group="numero"><summary>Por número <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel"><span class="app-menu__label">Historia de un número</span><button data-view="horario">Horario favorito</button><button data-view="clocks">Tiempo sin salir</button><button data-view="consulta">Consulta histórica</button><button data-view="memory">Memoria</button></div></details>
         <button data-view="history" data-primary-nav="history">Historial</button>
-        <details class="app-menu" data-nav-group="tools"><summary>Herramientas <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel app-menu__panel--tools"><div><span class="app-menu__label">Análisis</span><button data-view="hypo">Hipótesis</button><button data-view="analysis">Escenarios</button></div><div><span class="app-menu__label">Juegos y relaciones</span><button data-view="superpremio">Super Premio</button><button data-view="pega3">Pega3</button><button data-view="transform">Transformaciones</button><button data-view="modes">Modos de juego</button></div><div class="app-menu__library"><span class="app-menu__label">Biblioteca</span><button data-view="guide">Guía de los Sueños</button></div></div></details>
+        <details class="app-menu" data-nav-group="tools"><summary>Herramientas <span aria-hidden="true">⌄</span></summary><div class="app-menu__panel app-menu__panel--tools"><div><span class="app-menu__label">Análisis</span><button data-view="hypo">Hipótesis</button><button data-view="analysis">Escenarios</button></div><div><span class="app-menu__label">Juegos y relaciones</span><button data-view="superpremio">Super Premio</button><button data-view="pega3">Pega3</button><button data-view="transform">Transformaciones</button><button data-view="modes">Modos de juego</button></div><div class="app-menu__library"><span class="app-menu__label">Biblioteca</span><button data-view="guide">Guía de los Sueños</button><button data-view="memory">Memoria</button></div></div></details>
       </nav>
       <div class="app-header__actions">
         <button class="btn-primary app-register requires-write" data-register-result>＋ Registrar resultado</button>
@@ -106,7 +106,7 @@
   <main class="content" id="main-content" tabindex="-1" data-app-shell inert aria-hidden="true">
     <div class="app-context"><span>La Diaria · Honduras</span><div id="countdown-banner" class="countdown-banner"><div class="countdown-label" data-countdown-label>Próximo sorteo</div><div class="countdown-target" data-countdown-target>—</div><div class="countdown-timer" data-countdown-timer>--:--:--</div></div></div>
     <!-- PANEL DEL DÍA -->
-    <section id="view-day" class="view">
+    <section id="view-day" class="view hidden">
       <div class="product-heading"><div><span class="product-eyebrow">Tu registro, más claro</span><h1>La jornada,<br>de un vistazo.</h1><p>Resultados, horarios y símbolos. Toda la información del día en un mismo lugar.</p></div><button class="btn-outline requires-write" data-register-result>Registrar resultado →</button></div>
       <div class="row day-filters">
         <div class="day-picker day-date-field" id="day-date-picker">
@@ -1060,7 +1060,7 @@
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=11"></script>
+  <script type="module" src="./src/app.js?v=12"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">
