@@ -1,3 +1,4 @@
+import { prepareStartupSession } from './startup-session.js';
 import { paginateHistory } from './history-pagination.js';
 import { initProductShell, renderRecentRecords } from './ui/product-shell.js';
 import { initToolSelect } from './ui/tool-select.js';
@@ -121,7 +122,7 @@ import {
       if (!_signalEngine) _signalEngine = await import("./signal-engine.js");
       return _signalEngine;
     }
-    import { logout as supabaseLogout, requireAuthOrRedirect } from "./auth.js";
+    import { logout as supabaseLogout } from "./auth.js";
     import { showBootLoader, hideBootLoader, setBootStatus } from "./boot-loader.js";
 
     const bootOverlay = document.getElementById("boot-loader");
@@ -175,7 +176,7 @@ import {
       }, 350);
     }
 
-    const currentUser = await requireAuthOrRedirect("./login.html");
+    const currentUser = await prepareStartupSession();
     if (!currentUser) throw new Error("Auth requerida");
     // ── Diagnóstico de auth: guardamos los últimos 20 eventos en window.__authLog
     //    y los imprimimos en consola para poder auditar expulsiones espurias.
@@ -224,25 +225,6 @@ import {
       setBootStatus("Preparando tu jornada y el historial…");
     } catch (err) {
       guideLoadError = err instanceof Error ? err : new Error(String(err));
-    }
-
-    try {
-      const autoFix = await DB.fixFutureDatedDraws({ maxAheadDays: 1 });
-      if (autoFix?.length) {
-        logInfo("Sorteos corregidos automáticamente:", autoFix);
-        showToast(`Se corrigieron ${autoFix.length} sorteos con fecha adelantada.`, { variant: "info" });
-      }
-    } catch (err) {
-      logWarn("No se pudieron corregir fechas adelantadas automáticamente", err);
-    }
-
-    try {
-      const closed = await closeTriggerEvents();
-      if (closed) {
-        logInfo(`Trigger engine cerró ${closed} evento(s) vencidos al iniciar.`);
-      }
-    } catch (err) {
-      logWarn("No se pudieron cerrar eventos vencidos automáticamente", err);
     }
 
     function withButtonBusy(button, label = null) {
@@ -887,6 +869,7 @@ import {
 
     let drawsCache = null;
     let drawsCacheTs = 0;
+    let drawsRequest = null;
     let localSnapshotState = null;
     let preferLocalSnapshot = isLocalDrawSnapshotModeEnabled();
 
@@ -977,18 +960,23 @@ import {
       }
       if (!source) {
         if (!drawsCache || force || now - drawsCacheTs > DRAW_CACHE_TTL) {
-          const remoteDraws = await DB.listDraws({ excludeTest: false });
-          drawsCache = Array.isArray(remoteDraws) ? remoteDraws : [];
-          drawsCacheTs = now;
-          if (drawsCache.length) {
-            const saved = saveLocalDrawSnapshot(drawsCache);
-            if (saved) {
-              localSnapshotState = saved;
-            }
+          if (!drawsRequest) {
+            const pending = DB.listDraws({ excludeTest: false }).then(remoteDraws => {
+              const rows = Array.isArray(remoteDraws) ? remoteDraws : [];
+              if (drawsRequest !== pending) return rows;
+              drawsCache = rows;
+              drawsCacheTs = Date.now();
+              if (rows.length) {
+                const saved = saveLocalDrawSnapshot(rows);
+                if (saved) localSnapshotState = saved;
+              }
+              updateLocalModeUI();
+              return rows;
+            }).finally(() => { if (drawsRequest === pending) drawsRequest = null; });
+            drawsRequest = pending;
           }
-          updateLocalModeUI();
-        }
-        source = drawsCache;
+          source = await drawsRequest;
+        } else source = drawsCache;
       }
       if (!source || !source.length) {
         const snapshot = ensureLocalSnapshotState({ reload: true });
@@ -1004,6 +992,7 @@ import {
     function invalidateDrawCache() {
       drawsCache = null;
       drawsCacheTs = 0;
+      drawsRequest = null;
     }
 
     const OPERACION_LABELS = {
@@ -2413,7 +2402,7 @@ import {
       await reopenMemoryDetail();
     }
 
-    configurarMemoriaNav({ jumpToDayView });
+    configurarMemoriaNav({ jumpToDayView, obtenerSorteos: getCachedDraws });
     configurarSuperPremio({ invalidatePulso, cacheSorteos: () => drawsCache });
     initDecemberPanel({
       preferencias: () => userPreferences,
@@ -2443,7 +2432,7 @@ import {
       ]);
     }
 
-    await bootstrapExtendedPanels();
+    // Secondary history rendering runs after the initial view is ready.
 
     // ── Refs para archivo de notas libres (historial antiguo) ────────────────
     const hypoFechaInput = null;   // eliminado del formulario
@@ -4789,8 +4778,7 @@ import {
 
     syncRemoteBtn?.addEventListener("click", () => runRemoteSync());
 
-    // Auto-sync al iniciar: espera a que todo se asiente y consulta Supabase
-    setTimeout(() => runRemoteSync(), 1500);
+    // The initial history fetch is shared; avoid starting a second full sync during boot.
 
     // ✅ Cambio de vistas
     const views = {
@@ -4826,6 +4814,7 @@ import {
       document.querySelectorAll('.view').forEach(view => view.classList.toggle('hidden', view !== el));
       markNavigation(key);
       numberClocks.setActive(key === 'clocks');
+      if (key === 'day') refreshSlots().catch(() => {});
       if (key === 'history') refreshHistoryPanel().catch(() => {});
         if (id === "view-monthly") consultarRankingMensual();
         if (id === "view-guide") mostrarGuia();
@@ -5082,27 +5071,61 @@ import {
     // ── Notificaciones del navegador ──
     initNotifications().catch(() => {});
 
-    // ── Super Premio Picker: inyectar en panel Números Rápidos al arranque ──
+    // Only the shared history and the selected view belong to the critical path.
     try {
-      const spDraws = await DB.listDraws({ excludeTest: true });
-      initSuperPremioPicker(spDraws, GUIA);
-    } catch (err) {
-      console.warn("[superpremio-picker] No se pudo inicializar:", err?.message || err);
-    }
-
-    try {
-      await refreshHypotesis();
+      setBootStatus("Cargando el historial de sorteos…");
+      await getCachedDraws();
+      if (location.hash === '#clocks') await numberClocks.setActive(true);
       await refreshSlots();
-      await rebuildKnowledge();
-      await refreshModesPanel();
     } catch (err) {
       console.error("initial load error", err);
-      showToast("La app no pudo cargar completamente. Revisa la consola para más detalles.", { variant: "danger" });
+      showToast("No se pudo completar la carga inicial. Intenta actualizar los datos.", { variant: "danger" });
     } finally {
       hideSavingModal();
       await waitForFirstPaint();
       hideBootLoader();
     }
+
+    // Keep maintenance and other panels functional without holding the loading screen.
+    async function finishSecondaryStartup() {
+      try {
+        const autoFix = await DB.fixFutureDatedDraws({ maxAheadDays: 1 });
+        if (autoFix?.length) {
+          startupDrawsCorrected = true;
+          logInfo("Sorteos corregidos automáticamente:", autoFix);
+          showToast(`Se corrigieron ${autoFix.length} sorteos con fecha adelantada.`, { variant: "info" });
+        }
+      } catch (err) {
+        logWarn("No se pudieron corregir fechas adelantadas automáticamente", err);
+      }
+
+      try {
+        const closed = await closeTriggerEvents();
+        if (closed) {
+          logInfo(`Trigger engine cerró ${closed} evento(s) vencidos al iniciar.`);
+        }
+      } catch (err) {
+        logWarn("No se pudieron cerrar eventos vencidos automáticamente", err);
+      }
+
+      try {
+        // If automatic maintenance changed a draw, refresh the shared cache and visible clocks.
+        if (startupDrawsCorrected) {
+          await handleDrawsMutated();
+          await refreshSlots();
+        }
+        const draws = await getCachedDraws();
+        initSuperPremioPicker(draws, GUIA);
+        await bootstrapExtendedPanels();
+        await refreshHypotesis();
+        await rebuildKnowledge({ draws });
+        await refreshModesPanel();
+      } catch (err) {
+        logWarn("No se pudieron preparar todos los paneles secundarios", err);
+      }
+    }
+    let startupDrawsCorrected = false;
+    setTimeout(() => finishSecondaryStartup().catch(err => logWarn("Preparación secundaria", err)), 0);
 
     // === Presencia en tiempo real ===
     (async () => {

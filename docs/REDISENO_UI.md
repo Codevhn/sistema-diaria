@@ -91,3 +91,15 @@ La entrada sin ruta, incluido el retorno desde el login y Continuar con una sesi
 Se retiró el desplegable Por número y sus tres accesos duplicados. Inicio permite volver al conjunto de pestañas y permanece seleccionado al usar Horario favorito o Consulta histórica; el logotipo también vuelve a Tiempo sin salir. Memoria está en Herramientas, dentro de Biblioteca. Todas las vistas permanecen ocultas en el HTML inicial hasta que el enrutador seleccione la correspondiente.
 
 Se verificaron las 207 pruebas existentes y el flujo en Chromium a 320, 384 y 1440 px con autenticación simulada: cargador antes del contenido, primera vista Tiempo sin salir sin destello de Jornada, pestañas, accesos Inicio/logotipo, registro de resultados, Memoria y rutas directas. También se comprobó la entrada desde credenciales y desde una sesión disponible. No se realizaron escrituras reales en Supabase.
+
+## Arranque sin descargas repetidas
+
+El documento y la aplicación comparten una única promesa de validación de sesión, comprobación de bloqueo y aplicación de permisos (`startup-session.js`). El cargador distingue sesión, permisos, guía e historial. La interfaz sigue bloqueada hasta completar autenticación y datos iniciales; no se omite la comprobación del usuario.
+
+Memoria ya no descarga sorteos mediante `await` al importar su módulo: se prepara al navegar a ella y comparte el historial de la aplicación. Las lecturas concurrentes del caché comparten su petición en curso y las invalidaciones impiden que una lectura anterior reemplace el caché nuevo. El panel inicial espera su historial y sus relojes antes de levantar el cargador. Se elimina la sincronización completa redundante programada durante el propio arranque.
+
+La corrección automática de fechas, cierre de eventos, preparación del selector de superpremio, historial secundario, perfiles y modos se ejecutan después de mostrar la vista inicial. Si se corrige un sorteo, se invalidan y actualizan los datos y relojes. Los perfiles reutilizan el historial cargado; los demás llamadores de `rebuildKnowledge()` conservan su funcionamiento.
+
+Medición controlada en Chromium con el respaldo de 12.921 sorteos y 80 ms simulados por consulta: antes, 12,1 s y 213 consultas de sorteos al llegar al panel; después, 3,1 s y 28 consultas observadas (incluyen la consulta de pendientes y el comienzo del mantenimiento secundario). Equivale a aproximadamente un 74% menos de espera en ese escenario. No es una medición de latencia real del Supabase del usuario ni una garantía de ese tiempo en producción.
+
+Pasaron 213 pruebas en 26 archivos: se añadieron comprobaciones de validación compartida, permisos pendientes, sesión ausente, usuario bloqueado y equivalencia de perfiles con el historial reutilizado. Se verificó en Chromium a 320, 384 y 1440 px la secuencia cargador → Tiempo sin salir, sin destello de Jornada, así como pestañas, registro, rutas directas y entrada desde el login con autenticación simulada. Memoria y su monitor se comprobaron al abrirlos. No se realizaron escrituras reales en Supabase.

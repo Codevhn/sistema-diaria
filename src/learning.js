@@ -370,8 +370,8 @@ function buildMetaEntry(totalDraws) {
   };
 }
 
-export async function rebuildKnowledge() {
-  const draws = await DB.listDraws({ excludeTest: true });
+export async function rebuildKnowledge({ draws: suppliedDraws } = {}) {
+  const draws = suppliedDraws ?? await DB.listDraws({ excludeTest: true });
   const hyps = await DB._getAll("hypotheses");
   const logs = await DB.getHypothesisLogs();
 

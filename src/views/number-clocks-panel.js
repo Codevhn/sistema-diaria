@@ -106,7 +106,7 @@ export function initNumberClocksPanel({ obtenerSorteos, obtenerGuia }) {
     setActive(value) {
       active = value;
       if (!active) { stop(); return; }
-      if (!loaded || dirty) refresh();
+      if (!loaded || dirty) return refresh();
       else start();
     },
     onDrawsChanged() {

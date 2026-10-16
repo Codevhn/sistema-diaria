@@ -35,21 +35,8 @@
   </style>
 
   <script type="module">
-    import { revealBootWhenReady } from "./src/boot-loader.js";
-    import { requireAuthOrRedirect } from "./src/auth.js";
-    import { applyRoleToDOM, checkBanOrRedirect } from "./src/roles.js";
-    const user = await requireAuthOrRedirect("./login.html");
-    if (!user) {
-      throw new Error("Redirigiendo a login por sesión inválida.");
-    }
-    // Verificar si el usuario está baneado antes de mostrar nada
-    const isBanned = await checkBanOrRedirect("./login.html");
-    if (isBanned) throw new Error("Usuario baneado.");
-    // Apply permissions before the application can become visible.
-    await applyRoleToDOM();
-    document.documentElement.classList.remove("auth-locked");
-    window.__LD_AUTH_UNLOCKED__ = true;
-    revealBootWhenReady();
+    import { prepareStartupSession } from "./src/startup-session.js";
+    await prepareStartupSession();
   </script>
 
   <script>
@@ -1060,7 +1047,7 @@
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=12"></script>
+  <script type="module" src="./src/app.js?v=13"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">

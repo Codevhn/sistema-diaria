@@ -33,7 +33,9 @@ export function configurarMemoriaNav(callbacks = {}) {
     let memoryGapTimer = null;
     async function getMemoryDraws({ force = false } = {}) {
       if (!memoryCachedDraws || force) {
-        memoryCachedDraws = await DB.listDraws({ excludeTest: false });
+        memoryCachedDraws = nav.obtenerSorteos
+          ? await nav.obtenerSorteos({ force, excludeTest: false })
+          : await DB.listDraws({ excludeTest: false });
       }
       return memoryCachedDraws.slice();
     }
@@ -594,8 +596,7 @@ function buildVariantEntries(profile) {
       openMemoryDetail(numero);
     });
 
-    await renderMemoryBoard();
-    await renderGapPanel();
+    // Loaded on navigation; importing this module must not fetch the whole history.
 
     const toggleTech = document.getElementById("toggle-tech");
     const memOut = document.getElementById("mem-out");
