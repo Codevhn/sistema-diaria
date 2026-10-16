@@ -1,0 +1,33 @@
+#view-turnos>.hint{font-size:14px;line-height:1.6;max-width:680px;margin-bottom:24px}
+.turn-ranking-controls{display:flex;flex-wrap:wrap;align-items:end;gap:16px;margin:24px 0 16px}
+.turn-ranking-switch{display:flex;gap:4px;padding:3px;border:1px solid var(--color-border-strong);border-radius:8px;background:var(--color-surface)}
+.design-v2 .turn-ranking-switch button{min-height:42px;padding:10px 18px;border-radius:5px;color:var(--color-muted);font-weight:550}
+.design-v2 .turn-ranking-switch [aria-pressed=true]{color:var(--color-accent);background:var(--color-accent-tint)}
+.turn-ranking-search{display:flex;flex-direction:column;gap:8px;flex:1;min-width:180px;max-width:400px}
+#turn-ranking-search{width:100%;min-height:48px}
+.design-v2 .turn-ranking-favorite{display:flex;align-items:center;gap:10px;font-size:13px;line-height:1.5;min-height:44px;cursor:pointer}
+.design-v2 #turn-ranking-favorite{width:18px;height:18px;min-height:18px;margin:0;flex-shrink:0;accent-color:var(--color-accent)}
+.turn-ranking-summary{font-size:13px;line-height:1.6;color:var(--color-text);margin:18px 0 8px}
+.turn-ranking-note,.turn-ranking-status{font-size:12px;line-height:1.6;color:var(--color-muted);margin:0 0 18px}
+.turn-ranking-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.turn-ranking-number{min-width:0;padding:20px;border:1px solid var(--color-border-strong);border-radius:10px;background:var(--color-surface)}
+.turn-ranking-number__rank{font-size:11px;font-weight:550;color:var(--color-muted);margin-bottom:16px}
+.turn-ranking-number__identity{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.turn-ranking-number__identity>div{min-width:0}
+.turn-ranking-number__identity strong{font-size:60px;font-weight:750;line-height:1;letter-spacing:-.06em;color:var(--color-text)}
+.turn-ranking-number__identity span{display:block;font-size:14px;line-height:1.4;color:var(--color-muted);margin-top:8px;overflow-wrap:anywhere}
+.turn-ranking-number__identity img{width:64px;height:72px;object-fit:contain;flex-shrink:0}
+.turn-ranking-number img[hidden]{display:none}
+.turn-ranking-number__counts{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;border-top:1px solid var(--color-border);padding-top:16px;margin-top:20px}
+.turn-ranking-number__counts b{font-size:30px;line-height:1.1;font-weight:650;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.turn-ranking-number__counts span,.turn-ranking-number>p{font-size:11px;line-height:1.5;color:var(--color-muted)}
+.turn-ranking-number>p{margin:10px 0 0}
+html[data-theme=dark] .turn-ranking-number__counts b,html[data-theme=dark] .turn-ranking-switch [aria-pressed=true]{color:#a3b3ff}
+@media(max-width:1100px){.turn-ranking-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.turn-ranking-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.turn-ranking-controls{gap:12px}.turn-ranking-search{order:-1;flex-basis:100%;max-width:none;min-width:0}.turn-ranking-switch{flex:1}.design-v2 .turn-ranking-switch button{flex:1;padding:8px 10px;font-size:12px}.turn-ranking-controls>.btn-outline{font-size:11px;padding:10px 12px}.turn-ranking-number{padding:14px}.turn-ranking-number__identity strong{font-size:44px}.turn-ranking-number__identity img{width:38px;height:48px}.turn-ranking-number__identity span{font-size:12px;min-height:34px}.turn-ranking-number__counts b{font-size:26px}.turn-ranking-number__counts{gap:4px}.turn-ranking-number__rank{margin-bottom:12px}}
+@media(max-width:350px){.turn-ranking-number{padding:12px}.turn-ranking-number__identity{gap:6px}.turn-ranking-number__identity img{width:32px}.turn-ranking-number__identity strong{font-size:40px}.design-v2 .turn-ranking-switch button{padding:8px}.turn-ranking-controls>.btn-outline{padding:10px;font-size:10px}}
+
+.design-v2 .turn-ranking-switch button{white-space:nowrap}
+.turn-ranking-help{margin:0 0 18px;font-size:12px;color:var(--color-muted)}
+.turn-ranking-help summary{cursor:pointer;min-height:32px;padding:6px 0;line-height:1.6}
+.turn-ranking-help .turn-ranking-note{margin:8px 0 0;max-width:760px}

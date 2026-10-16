@@ -1,3 +1,4 @@
+import { initTurnRankingPanel } from './views/turn-ranking-panel.js';
 import { prepareStartupSession } from './startup-session.js';
 import { paginateHistory } from './history-pagination.js';
 import { initProductShell, renderRecentRecords } from './ui/product-shell.js';
@@ -2398,6 +2399,7 @@ import {
         renderMemoryBoard({ forceReload: true }),
         renderGapPanel({ forceReload: true }),
         numberClocks.onDrawsChanged(),
+        turnRanking.onDrawsChanged(),
       ]);
       await reopenMemoryDetail();
     }
@@ -2421,6 +2423,7 @@ import {
     const consultarRankingMensual = initMonthlyRankingPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     initHorarioPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     const numberClocks = initNumberClocksPanel({ obtenerSorteos: force => getCachedDraws({ force, excludeTest: true }), obtenerGuia: () => GUIA });
+    const turnRanking = initTurnRankingPanel({ obtenerSorteos: force => getCachedDraws({ force }), obtenerGuia: () => GUIA });
     initConsultaPanel({
       obtenerSorteos: () => getCachedDraws(),
       pais: () => "HN",
@@ -4791,6 +4794,7 @@ import {
       consulta: "view-consulta",
       horario: "view-horario",
       clocks: "view-clocks",
+      turnos: "view-turnos",
       monthly: "view-monthly",
       geometry: "view-geometry",
       memory: "view-memory",
@@ -4814,6 +4818,7 @@ import {
       document.querySelectorAll('.view').forEach(view => view.classList.toggle('hidden', view !== el));
       markNavigation(key);
       numberClocks.setActive(key === 'clocks');
+      turnRanking.setActive(key === 'turnos');
       if (key === 'day') refreshSlots().catch(() => {});
       if (key === 'history') refreshHistoryPanel().catch(() => {});
         if (id === "view-monthly") consultarRankingMensual();

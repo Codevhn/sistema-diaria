@@ -113,3 +113,13 @@ Se verificaron las 11 pruebas del motor de consulta y, en Chromium a 320, 384 y 
 ## Símbolos compactos en el historial reciente
 
 Cayó antes y Cayó después incluyen imagen, número y nombre, con números de 32 px en escritorio y 28 px en móvil, menores que los de Sucesores. Se conservan fecha, turno, orden de las ocho apariciones y referencias al mismo día o al día anterior/siguiente. Se verificaron las 11 pruebas del motor y la correspondencia completa de las ocho filas en Chromium a 320, 384 y 1440 px, en ambos temas, sin desbordamiento.
+
+## Ranking histórico por horario
+
+La cuarta pestaña del conjunto de consultas, Por horario (`#turnos`), invierte la consulta individual: selecciona 11AM, 3PM o 9PM y compara los 100 números dentro de ese turno. Presenta imagen, símbolo, apariciones, porcentaje sobre sorteos del turno y puesto. Los empates comparten puesto y los números sin apariciones no reciben uno. La búsqueda exacta por número o por nombre del símbolo conserva el orden y puesto global.
+
+El filtro opcional de horario favorito muestra únicamente los números cuyo máximo conteo entre turnos incluye el seleccionado; incluye empates y excluye números sin historial. La ayuda distingue este filtro del ranking general, explica su denominador y la posible diferencia de cobertura entre horarios. Se muestran cantidad y período de registros del turno.
+
+El panel reutiliza el caché y solo consulta al abrirse, al actualizar o si cambian los datos mientras está visible. No añade descargas al inicio de Tiempo sin salir ni escribe datos. Los resultados excluyen pruebas, pendientes, otros países, números y fechas inválidos, de forma compatible con la consulta individual.
+
+Pasaron 219 pruebas en 27 archivos. Las seis nuevas cubren conteos, empates, porcentajes, favoritos, filtros de validez, historial vacío y equivalencia con la consulta individual para los 100 números. Se comprobó en Chromium a 320, 384 y 1440 px, ambos temas, ruta directa, cuarta pestaña y teclado, búsquedas con y sin acentos, filtro de favoritos en los tres turnos, persistencia del turno, actualización e historial vacío con Supabase simulado. No se hicieron escrituras reales ni pruebas en un S24 Ultra físico.
