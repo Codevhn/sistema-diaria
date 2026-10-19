@@ -54,10 +54,11 @@ export function initConsonantsPanel({ obtenerGuia }) {
     explanation.textContent = mode === 'ending' ? `Se comparan las últimas ${length} letras de la última palabra, sin distinguir tildes. El grupo puede incluir rimas diferentes.` : 'Se compara la terminación desde la última vocal acentuada. Se mantienen los plurales y se usa la última palabra de cada símbolo.';
     directory.replaceChildren();
     const groups = index.groups.filter(group => group.members.length > 1);
-    root.querySelector('#consonants-group-count').textContent = String(groups.length);
+    root.querySelector('#consonants-group-count').textContent = `${groups.length} ${groups.length === 1 ? 'grupo' : 'grupos'}`;
     groups.forEach(group => {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'btn-ghost consonants-group';
-      button.innerHTML = `<b>-${escapeHtml(group.ending)}</b><span>${group.members.length} números</span><small>${group.members.map(n=>n.pad).join(' · ')}</small>`;
+      button.setAttribute('aria-label', `Ver grupo -${group.ending}: ${group.members.length} números, ${group.members.map(n=>n.pad).join(', ')}`);
+      button.innerHTML = `<b>-${escapeHtml(group.ending)}</b><span>${group.members.length} números</span><small aria-label="Números del grupo">${group.members.map(n=>`<span>${n.pad}</span>`).join(' ')}</small>`;
       button.addEventListener('click', () => { input.value = group.members[0].pad; showResult(input.value); output.scrollIntoView({ block: 'start', behavior: 'instant' }); });
       directory.append(button);
     });

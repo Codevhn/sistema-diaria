@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="./src/theme/number-tools.css?v=7" />
   <link rel="stylesheet" href="./src/theme/number-clocks.css?v=1" />
   <link rel="stylesheet" href="./src/theme/turn-ranking.css?v=1" />
-  <link rel="stylesheet" href="./src/theme/consonants.css?v=1" />
+  <link rel="stylesheet" href="./src/theme/consonants.css?v=2" />
   <link rel="stylesheet" href="./src/theme/scenarios.css?v=1" />
   <style>
     /* The loading screen is public; all application content stays covered until auth and boot complete. */
@@ -433,7 +433,7 @@
       <p id="consonants-rule" class="consonants-note"></p>
       <p id="consonants-status" class="consonants-note" role="status" aria-live="polite"></p>
       <div id="consonants-result"></div>
-      <details class="consonants-directory" open><summary>Explorar grupos <span id="consonants-group-count"></span></summary><div id="consonants-groups" class="consonants-directory__grid"></div></details>
+      <details class="consonants-directory" open><summary><span>Explorar grupos</span><span id="consonants-group-count"></span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5"/></svg></summary><div id="consonants-groups" class="consonants-directory__grid"></div></details>
     </section>
 
     <section id="view-monthly" class="view hidden">
@@ -1080,7 +1080,7 @@
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=15"></script>
+  <script type="module" src="./src/app.js?v=16"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">

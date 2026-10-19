@@ -133,3 +133,9 @@ Misma terminación compara las últimas 2, 3 o 4 letras de la última palabra; p
 El panel trabaja sobre la guía ya cargada, sin consultas adicionales al historial ni escrituras. Conserva búsqueda, modo y longitud al alternar pestañas. Incluye estados de número inválido, guía vacía, palabra corta y ausencia de coincidencias. En móvil las cinco pestañas se desplazan horizontalmente; la activa se centra al navegar y se mantiene el manejo de flechas, Inicio y Fin.
 
 Pasaron 226 pruebas en 28 archivos. Las siete nuevas comprueban los 100 nombres, grupos por longitud y rima, tildes/ñ, diptongos, plurales, símbolos compuestos, valores desconocidos, orden y exclusión del número consultado. Se verificó en Chromium a 320, 384 y 1440 px, ambos temas, búsqueda por número/nombre, directorio, estados vacíos e inválidos, imágenes y su respaldo, persistencia de controles, teclado y visibilidad de la quinta pestaña sin desbordamiento de página. Se usó Supabase simulado sin escrituras reales; no se probó en un S24 Ultra físico.
+
+### Corrección de la presentación de Explorar grupos
+
+Las tarjetas del directorio heredaban una altura fija de los botones comunes y centraban verticalmente un contenido mayor que esa altura. Se restableció altura automática, distribución en cuadrícula y alineación superior. La terminación, el conteo y los números tienen espacios propios; los números se presentan como etiquetas que se ajustan en varias líneas. El encabezado desplegable muestra la cantidad de grupos y un indicador de apertura, con foco de teclado delimitado.
+
+Se comprobaron en Chromium los límites de cada texto y etiqueta dentro de su tarjeta, ausencia de superposición entre tarjetas y desbordamiento de página, con 2/3/4 letras y rima consonante, ambos temas y anchos de 320, 384 y 1440 px. Se verificaron también apertura/cierre del directorio y selección de grupos, y pasaron las siete pruebas del motor de consonantes.
