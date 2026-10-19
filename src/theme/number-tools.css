@@ -137,3 +137,5 @@ html[data-theme=dark] .transform-number[data-variant=equivalent]{--transform-ton
 .consulta-neighbor span{grid-area:symbol;font-size:13px;line-height:1.4;color:var(--color-muted);overflow-wrap:anywhere}
 .consulta-table--recent .consulta-vecino-tag{margin-top:8px}
 @media(max-width:760px){.consulta-neighbor{grid-template-columns:32px minmax(0,1fr);grid-template-areas:'image number' 'symbol symbol';gap:6px 8px}.consulta-neighbor img{width:32px;height:36px}.consulta-neighbor strong{font-size:28px}.consulta-neighbor span{font-size:12px}}
+
+@media(max-width:760px){.number-workspace-tabs{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding-top:2px;padding-bottom:3px}.design-v2 .number-workspace-tabs [role=tab]{flex:0 0 108px;min-width:108px}.number-workspace-tabs svg{display:none}}

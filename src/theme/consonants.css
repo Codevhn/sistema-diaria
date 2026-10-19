@@ -1,0 +1,37 @@
+#view-consonantes>.hint{font-size:14px;line-height:1.6;max-width:680px;margin-bottom:24px}
+.consonants-form{display:flex;align-items:end;gap:12px;margin:24px 0 20px}
+.consonants-form>label{display:flex;flex-direction:column;gap:8px;flex:1;max-width:380px;min-width:0}
+#consonants-search{width:100%;min-height:48px}
+.consonants-options{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.consonants-switch{display:flex;gap:4px;padding:3px;border:1px solid var(--color-border-strong);border-radius:8px;background:var(--color-surface)}
+.consonants-switch[hidden]{display:none!important}
+.design-v2 .consonants-switch button{min-height:42px;padding:10px 14px;border-radius:5px;color:var(--color-muted);font-weight:550}
+.design-v2 .consonants-switch [aria-pressed=true]{color:var(--color-accent);background:var(--color-accent-tint)}
+.consonants-note,.consonants-empty{font-size:13px;line-height:1.6;color:var(--color-muted);margin:0 0 16px}
+#consonants-result{scroll-margin-top:20px}
+.consonant-seed,.consonant-number{min-width:0;padding:20px;border:1px solid var(--color-border-strong);border-radius:10px;background:var(--color-surface)}
+.consonant-seed{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,1fr);gap:24px;background:var(--color-accent-tint);margin:20px 0}
+.consonant-identity{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0}
+.consonant-identity>div{min-width:0}
+.consonant-identity strong{display:block;font-size:56px;line-height:1;font-weight:750;letter-spacing:-.06em;color:var(--color-text)}
+.consonant-identity span{display:block;font-size:16px;line-height:1.4;margin-top:8px;color:var(--color-muted);overflow-wrap:anywhere}
+.consonant-identity img{width:64px;height:72px;flex-shrink:0;object-fit:contain}
+.consonant-identity img[hidden]{display:none}
+.consonant-seed .consonant-identity strong{font-size:80px;color:var(--color-accent)}
+.consonant-seed .consonant-identity img{width:96px;height:96px}
+.consonant-seed__detail{display:flex;flex-direction:column;justify-content:center;gap:10px;border-left:1px solid var(--color-border-strong);padding-left:24px;min-width:0}
+.consonant-seed__detail>span{font-size:12px;line-height:1.5;color:var(--color-muted)}
+.consonant-seed__detail>b{font-size:32px;line-height:1.2;letter-spacing:-.03em;color:var(--color-accent);overflow-wrap:anywhere}
+#consonants-result>h3{font-size:16px;margin:24px 0 16px}
+.consonants-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.consonants-directory{margin-top:28px;border-top:1px solid var(--color-border);padding-top:16px}
+.consonants-directory summary{font-size:14px;font-weight:550;cursor:pointer;min-height:44px;padding:12px 0;color:var(--color-text)}
+#consonants-group-count{font-size:12px;color:var(--color-muted);font-weight:400;margin-left:8px}
+.consonants-directory__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
+.design-v2 .consonants-group{display:flex;flex-direction:column;align-items:start;gap:8px;min-width:0;padding:16px;border:1px solid var(--color-border-strong);border-radius:8px;background:var(--color-surface);color:var(--color-text);text-align:left;box-shadow:none;transform:none}
+.consonants-group b{font-size:24px;line-height:1.2;color:var(--color-accent)}
+.consonants-group span,.consonants-group small{font-size:12px;font-weight:400;line-height:1.5;color:var(--color-muted);overflow-wrap:anywhere}
+html[data-theme=dark] .consonant-seed .consonant-identity strong,html[data-theme=dark] .consonant-seed__detail>b,html[data-theme=dark] .consonants-group b,html[data-theme=dark] .consonants-switch [aria-pressed=true]{color:#a3b3ff}
+@media(max-width:1100px){.consonants-grid,.consonants-directory__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.consonants-grid,.consonants-directory__grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.consonants-form{gap:10px;align-items:end}.consonants-form>label{max-width:none}.consonants-form>.btn-primary{font-size:12px;padding:10px 12px;min-height:48px}.consonants-options{gap:10px}.consonants-switch{width:100%}.design-v2 .consonants-switch button{flex:1;font-size:12px;padding:8px}.consonant-seed{grid-template-columns:minmax(0,1fr);gap:18px;padding:16px}.consonant-seed .consonant-identity strong{font-size:64px}.consonant-seed .consonant-identity img{width:80px;height:80px}.consonant-seed__detail{border-left:0;border-top:1px solid var(--color-border-strong);padding:16px 0 0;gap:6px}.consonant-seed__detail>b{font-size:28px}.consonant-number{padding:14px}.consonant-identity{gap:8px}.consonant-number strong{font-size:44px}.consonant-number img{width:38px;height:48px}.consonant-number .consonant-identity span{font-size:13px}.design-v2 .consonants-group{padding:14px}.consonants-group small{font-size:11px}}
+@media(max-width:350px){.consonant-number{padding:12px}.consonant-number strong{font-size:40px}.consonant-number img{width:32px}.consonants-form>.btn-primary{font-size:11px;padding:10px}.consonants-group b{font-size:22px}}

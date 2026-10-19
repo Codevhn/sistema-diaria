@@ -22,9 +22,10 @@
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="./src/theme/redesign.css?v=5" />
-  <link rel="stylesheet" href="./src/theme/number-tools.css?v=6" />
+  <link rel="stylesheet" href="./src/theme/number-tools.css?v=7" />
   <link rel="stylesheet" href="./src/theme/number-clocks.css?v=1" />
   <link rel="stylesheet" href="./src/theme/turn-ranking.css?v=1" />
+  <link rel="stylesheet" href="./src/theme/consonants.css?v=1" />
   <link rel="stylesheet" href="./src/theme/scenarios.css?v=1" />
   <style>
     /* The loading screen is public; all application content stays covered until auth and boot complete. */
@@ -361,6 +362,7 @@
       <button id="number-tab-horario" class="btn-ghost" type="button" role="tab" data-view="horario" aria-controls="view-horario" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M7 15v-4m5 4V5m5 10V8"/></svg><span>Horario favorito</span></button>
       <button id="number-tab-consulta" class="btn-ghost" type="button" role="tab" data-view="consulta" aria-controls="view-consulta" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5M7 8h6m-6 4h4"/></svg><span>Consulta histórica</span></button>
       <button id="number-tab-turnos" class="btn-ghost" type="button" role="tab" data-view="turnos" aria-controls="view-turnos" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M7 15v-4m5 4V5m5 10V8"/></svg><span>Por horario</span></button>
+      <button id="number-tab-consonantes" class="btn-ghost" type="button" role="tab" data-view="consonantes" aria-controls="view-consonantes" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 18 5-12 5 12M5 14h6M16 9h5l-5 9h5"/></svg><span>Consonantes</span></button>
     </nav>
 
     <!-- CONSULTA HISTÓRICA -->
@@ -418,6 +420,20 @@
       <details class="turn-ranking-help"><summary>Cómo se calcula este ranking</summary><p class="turn-ranking-note">El porcentaje se calcula sobre los sorteos del turno seleccionado. El filtro de horario favorito compara conteos entre turnos e incluye empates; la cobertura puede variar. Frecuencias históricas, no probabilidades del próximo sorteo.</p></details>
       <p id="turn-ranking-status" class="turn-ranking-status" role="status" aria-live="polite"></p>
       <div id="turn-ranking-grid" class="turn-ranking-grid"></div>
+    </section>
+
+    <section id="view-consonantes" class="view hidden" role="tabpanel" aria-labelledby="number-tab-consonantes">
+      <h2>Consonantes</h2>
+      <p class="hint">Encuentra números cuyos símbolos comparten una terminación. La relación se basa únicamente en sus nombres.</p>
+      <form id="consonants-form" class="consonants-form"><label for="consonants-search">Número o símbolo<input id="consonants-search" type="search" placeholder="10 o Anillo" autocomplete="off" maxlength="60" aria-describedby="consonants-status" required /></label><button type="submit" class="btn-primary">Buscar grupo</button></form>
+      <div class="consonants-options">
+        <div class="consonants-switch" role="group" aria-label="Tipo de coincidencia"><button type="button" class="btn-ghost" data-consonant-mode="ending" aria-pressed="true">Misma terminación</button><button type="button" class="btn-ghost" data-consonant-mode="rhyme" aria-pressed="false">Rima consonante</button></div>
+        <div id="consonants-length" class="consonants-switch" role="group" aria-label="Letras de la terminación"><button type="button" class="btn-ghost" data-consonant-length="2" aria-pressed="false">2 letras</button><button type="button" class="btn-ghost" data-consonant-length="3" aria-pressed="true">3 letras</button><button type="button" class="btn-ghost" data-consonant-length="4" aria-pressed="false">4 letras</button></div>
+      </div>
+      <p id="consonants-rule" class="consonants-note"></p>
+      <p id="consonants-status" class="consonants-note" role="status" aria-live="polite"></p>
+      <div id="consonants-result"></div>
+      <details class="consonants-directory" open><summary>Explorar grupos <span id="consonants-group-count"></span></summary><div id="consonants-groups" class="consonants-directory__grid"></div></details>
     </section>
 
     <section id="view-monthly" class="view hidden">
@@ -1064,7 +1080,7 @@
               <input type="checkbox" id="test-9" /> Modo prueba
             </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><button id="save-day" class="btn-primary requires-write">Guardar en pendientes</button></dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=14"></script>
+  <script type="module" src="./src/app.js?v=15"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">

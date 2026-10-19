@@ -1,3 +1,4 @@
+import { initConsonantsPanel } from './views/consonants-panel.js';
 import { initTurnRankingPanel } from './views/turn-ranking-panel.js';
 import { prepareStartupSession } from './startup-session.js';
 import { paginateHistory } from './history-pagination.js';
@@ -2423,6 +2424,7 @@ import {
     const consultarRankingMensual = initMonthlyRankingPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     initHorarioPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     const numberClocks = initNumberClocksPanel({ obtenerSorteos: force => getCachedDraws({ force, excludeTest: true }), obtenerGuia: () => GUIA });
+    const consonants = initConsonantsPanel({ obtenerGuia: () => GUIA });
     const turnRanking = initTurnRankingPanel({ obtenerSorteos: force => getCachedDraws({ force }), obtenerGuia: () => GUIA });
     initConsultaPanel({
       obtenerSorteos: () => getCachedDraws(),
@@ -4795,6 +4797,7 @@ import {
       horario: "view-horario",
       clocks: "view-clocks",
       turnos: "view-turnos",
+      consonantes: "view-consonantes",
       monthly: "view-monthly",
       geometry: "view-geometry",
       memory: "view-memory",
@@ -4819,6 +4822,7 @@ import {
       markNavigation(key);
       numberClocks.setActive(key === 'clocks');
       turnRanking.setActive(key === 'turnos');
+      consonants.setActive(key === 'consonantes');
       if (key === 'day') refreshSlots().catch(() => {});
       if (key === 'history') refreshHistoryPanel().catch(() => {});
         if (id === "view-monthly") consultarRankingMensual();

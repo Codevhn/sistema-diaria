@@ -63,6 +63,11 @@ export function initProductShell({ navigate, getDayContext }) {
       tab.setAttribute('aria-selected', String(selected));
       tab.tabIndex = selected ? 0 : -1;
     });
+    const selectedTab = tabs.find(tab => tab.dataset.view === key);
+    if (selectedTab && numberTabs.scrollWidth > numberTabs.clientWidth) {
+      const tabRect = selectedTab.getBoundingClientRect(), stripRect = numberTabs.getBoundingClientRect();
+      numberTabs.scrollLeft += tabRect.left - stripRect.left - (numberTabs.clientWidth - tabRect.width) / 2;
+    }
     header.querySelectorAll('[data-view]').forEach(button => {
       const active = button.dataset.primaryNav === 'number-workspace' ? isNumberWorkspace : button.dataset.view === key;
       button.classList.toggle('active', active);
