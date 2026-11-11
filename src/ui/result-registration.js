@@ -2,7 +2,7 @@ import { registrationDay, registrationResume, shiftRegistrationDate, unchangedRe
 import { getTodayISODate } from '../date-utils.js';
 import { formatFriendlyDate } from './format.js';
 
-export function initResultRegistration({ getContext, getData, getSlots, getSymbol, userId }) {
+export function initResultRegistration({ getContext, getData, getSlots, getSymbol, userId, onEdit }) {
   const dialog = document.getElementById('register-result-dialog');
   const dateInput = document.getElementById('day-fecha');
   const picker = document.getElementById('day-date-picker');
@@ -36,6 +36,11 @@ export function initResultRegistration({ getContext, getData, getSlots, getSymbo
     active.forEach(config => {
       const input = document.getElementById(config.inputId), test = document.getElementById(config.checkboxId);
       const field = input.closest('[data-register-field]'), record = baseline.get(config.key);
+      input.readOnly = !!record?.record;
+      test.disabled = busy || !!record?.record;
+      const edit = field.querySelector('[data-register-correct]');
+      edit.hidden = !record?.record;
+      edit.disabled = busy;
       const raw = input.value.trim(), valid = /^\d{1,2}$/.test(raw);
       if (valid) entered++;
       const changed = valid && !unchangedRegistrationValue(raw, test.checked, record?.record);
@@ -60,7 +65,14 @@ export function initResultRegistration({ getContext, getData, getSlots, getSymbo
   for (const config of getSlots('HN')) {
     const input = document.getElementById(config.inputId), field = input.closest('[data-register-field]');
     const state = document.createElement('span'); state.className = 'register-field__state'; state.dataset.registerState = '';
-    field.querySelector('label').append(state);
+    const label = field.querySelector('label');
+    label.append(state);
+    const head = document.createElement('div');head.className='register-field__head';
+    label.before(head);head.append(label);
+    const edit = document.createElement('button');edit.type='button';edit.className='btn-ghost register-correct';edit.dataset.registerCorrect=config.key;edit.textContent='Corregir';edit.hidden=true;
+    edit.setAttribute('aria-label',`Corregir fecha, horario o número del sorteo ${config.key}`);
+    edit.addEventListener('click',()=>{const record=baseline.get(config.key)?.record;if(record&&!busy)onEdit(record)});
+    head.append(edit);
     const identity = document.createElement('div'); identity.className = 'register-field__symbol';
     const image = document.createElement('img'); image.dataset.registerImage = ''; image.alt = ''; image.hidden = true;
     image.addEventListener('error',()=>{ image.hidden = true; });
@@ -77,7 +89,7 @@ export function initResultRegistration({ getContext, getData, getSlots, getSymbo
     const draft = drafts.get(key(currentDate));
     slots().forEach(config => {
       const original = baseline.get(config.key)?.record;
-      const savedDraft = draft?.find(row=>row.horario===config.key);
+      const savedDraft = original ? null : draft?.find(row=>row.horario===config.key);
       const input = document.getElementById(config.inputId);
       input.value = savedDraft ? savedDraft.value : original ? String(Number(original.numero)).padStart(2,'0') : '';
       input.removeAttribute('aria-invalid');
@@ -159,7 +171,13 @@ export function initResultRegistration({ getContext, getData, getSlots, getSymbo
         if (current===request) { setSaving(false); if (failure) progress.textContent = failure; else if(dialog.open) focusMissing(suffix); }
       }
     },
-    unchanged(config,raw,isTest) { return unchangedRegistrationValue(raw,isTest,baseline.get(config.key)?.record); },
+    async reload() {
+      stashDraft();
+      data = await getData({refreshPending:true});
+      if(dialog.open)hydrate();
+      else { currentDate=dateInput.value;remember(); }
+    },
+    isExisting(config) { return !!baseline.get(config.key)?.record; },
     canSave: () => loaded && !busy,
     canAdvance: () => loaded && !busy && fieldsComplete() && currentDate < getTodayISODate(),
     setSaving,

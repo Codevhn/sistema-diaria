@@ -1,3 +1,4 @@
+import { prepareDrawCorrection, sameDrawVersion } from '../draw-corrections.js';
 import { supabase } from "../supabaseClient.js";
 import { parseDrawDate, formatDateISO } from "../date-utils.js";
 import {
@@ -187,6 +188,27 @@ export const DB = {
       }
     }
     return { confirmed, count: confirmed.length };
+  },
+
+  async getDrawById(id) {
+    return selectSingle("draws", [q => q.eq("id", id)], "getDrawById");
+  },
+
+  async correctDraw(id, changes, expected) {
+    const original = await this.getDrawById(id);
+    if (!original) throw new Error("No se pudo recuperar el sorteo. Puede haberse eliminado; vuelve a abrirlo.");
+    if (expected && !sameDrawVersion(original, expected)) throw new Error("Este sorteo cambió mientras lo editabas. Vuelve a abrirlo antes de corregirlo.");
+    const valid = prepareDrawCorrection(original, changes);
+    const destination = await supabase.from("draws").select("*").eq("fecha", valid.fecha).eq("pais", original.pais).eq("horario", valid.horario);
+    if (destination.error) throw new Error("No se pudo comprobar si el horario de destino ya tiene un sorteo. Intenta nuevamente.");
+    prepareDrawCorrection(original, valid, { others: decodeRows(destination.data) });
+    let query = supabase.from("draws").update(encodeRecord(valid)).eq("id", original.id);
+    for (const key of ['fecha','pais','horario','numero']) query = query.eq(key, original[key]);
+    for (const [column,value] of [['is_pending',original.isPending],['is_test',original.isTest]]) query = value == null ? query.is(column,null) : query.eq(column,value);
+    const { data, error } = await query.select().maybeSingle();
+    if (error) throw new Error(isDuplicatePrimaryError(error) ? "Ya existe un sorteo en ese destino. Revisa la fecha y el horario." : "No se pudo guardar la corrección. Los datos ingresados se conservan para reintentar.");
+    if (!data) throw new Error("El registro cambió o no tienes permiso para corregirlo. Actualiza y vuelve a abrirlo.");
+    return decodeRecord(data);
   },
 
   async deleteDraw(id) {

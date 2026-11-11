@@ -1,13 +1,15 @@
-import { initResultRegistration } from './ui/result-registration.js';
+import { initDrawCorrection } from './ui/draw-correction.js';
+import { registrationDay } from './registration.js';
+import { initResultRegistration } from './ui/result-registration.js?v=2';
 import { initConsonantsPanel } from './views/consonants-panel.js';
 import { initTurnRankingPanel } from './views/turn-ranking-panel.js';
 import { prepareStartupSession } from './startup-session.js';
 import { paginateHistory } from './history-pagination.js';
 import { initProductShell, renderRecentRecords } from './ui/product-shell.js';
 import { initToolSelect } from './ui/tool-select.js';
-import { initDayPickers } from './ui/day-pickers.js';
+import { initDayPickers } from './ui/day-pickers.js?v=2';
     import { mostrarGuia } from "./guide-grid.js";
-    import { DB } from "./storage.js";
+    import { DB } from "./storage.js?v=2";
     import { importarManual } from "./importer.js";
     import { crearHipotesis, actualizarHipotesis, eliminarHipotesis, registrarResultado } from "./narrative.js";
     import { analizarYProponer } from "./reasoning.js";
@@ -1080,6 +1082,8 @@ import {
           }
         }
       }
+      const editButton = ball.closest('.slot')?.querySelector('[data-register-turn]');
+      if (editButton) editButton.textContent = draw ? 'Editar sorteo →' : 'Registrar resultado →';
       const state = ball.closest(".slot")?.querySelector("[data-slot-state]");
       if (state) { state.textContent = draw ? (draw.isTest ? "Prueba" : "Registrado") : "Sin registrar"; state.dataset.state = draw ? "registered" : "empty"; }
       if (!draw) {
@@ -1127,13 +1131,7 @@ import {
     const pendingTableBody = document.getElementById("pending-table-body");
     const pendingTableWrap = document.getElementById("pending-table-wrap");
     const pendingEmptyState = document.getElementById("pending-empty-state");
-    const pendingEditorForm = document.getElementById("pending-editor-form");
-    const pendingEditorMeta = document.getElementById("pending-editor-meta");
-    const pendingEditorNumeroInput = document.getElementById("pending-editor-numero");
-    const pendingEditorTestInput = document.getElementById("pending-editor-test");
-    const pendingEditorCancelBtn = document.getElementById("pending-editor-cancel");
     let pendingDayQueue = [];
-    let pendingEditorIndex = null;
     const buildPendingKey = (entry) =>
       entry && entry.fecha && entry.pais && entry.horario
         ? `${entry.fecha}|${entry.pais}|${entry.horario}`
@@ -1179,15 +1177,6 @@ import {
       });
     }
 
-    const PENDING_EDITOR_DEFAULT_META = "Selecciona un sorteo para editarlo";
-
-    function resetPendingEditor() {
-      pendingEditorIndex = null;
-      if (pendingEditorNumeroInput) pendingEditorNumeroInput.value = "";
-      if (pendingEditorTestInput) pendingEditorTestInput.checked = false;
-      if (pendingEditorMeta) pendingEditorMeta.textContent = PENDING_EDITOR_DEFAULT_META;
-      pendingEditorForm?.classList.add("hidden");
-    }
 
     function refreshPendingSlotsView() {
       if (typeof refreshSlots !== "function") return;
@@ -1207,7 +1196,6 @@ import {
       if (!pendingDayQueue.length) {
         pendingEmptyState.classList.remove("hidden");
         pendingTableWrap.classList.add("hidden");
-        resetPendingEditor();
         return;
       }
       pendingEmptyState.classList.add("hidden");
@@ -1243,19 +1231,6 @@ import {
     function closePendingModalUI() {
       if (!pendingModal) return;
       pendingModal.classList.add("hidden");
-      resetPendingEditor();
-    }
-
-    function startPendingEdit(index) {
-      if (!Number.isInteger(index) || index < 0) return;
-      const entry = pendingDayQueue[index];
-      if (!entry || !pendingEditorForm || !pendingEditorNumeroInput || !pendingEditorMeta) return;
-      pendingEditorIndex = index;
-      pendingEditorNumeroInput.value = formatNumber(entry.numero);
-      if (pendingEditorTestInput) pendingEditorTestInput.checked = !!entry.isTest;
-      pendingEditorMeta.textContent = `${entry.fecha} · ${entry.pais} · ${entry.horario}`;
-      pendingEditorForm.classList.remove("hidden");
-      pendingEditorNumeroInput.focus();
     }
 
     pendingDayQueue = await loadPendingDayQueue();
@@ -1272,7 +1247,8 @@ import {
       if (editBtn) {
         const index = Number(editBtn.dataset.editPending);
         if (Number.isFinite(index)) {
-          startPendingEdit(index);
+          const entry = pendingDayQueue[index];
+          if (entry) drawCorrection.open(entry);
         }
         return;
       }
@@ -1291,55 +1267,11 @@ import {
         await DB.deleteDraw(entry.id);
         pendingDayQueue = await loadPendingDayQueue();
         updatePendingIndicator();
-        resetPendingEditor();
         renderPendingTable();
         refreshPendingSlotsView();
         showToast("Sorteo eliminado de pendientes.", { variant: "success" });
       }
     });
-    pendingEditorCancelBtn?.addEventListener("click", resetPendingEditor);
-    pendingEditorForm?.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      if (!Number.isInteger(pendingEditorIndex) || pendingEditorIndex < 0) {
-        showToast("Selecciona un sorteo antes de editar.", { variant: "warning" });
-        return;
-      }
-      const entry = pendingDayQueue[pendingEditorIndex];
-      if (!entry) {
-        showToast("El elemento seleccionado ya no existe.", { variant: "warning" });
-        resetPendingEditor();
-        renderPendingTable();
-        return;
-      }
-      const rawValue = pendingEditorNumeroInput?.value.trim() ?? "";
-      if (!/^\d{1,2}$/.test(rawValue)) {
-        showToast("Ingresa un número válido (00–99).", { variant: "warning" });
-        pendingEditorNumeroInput?.focus();
-        return;
-      }
-      const numero = parseInt(rawValue, 10);
-      if (numero < 0 || numero > 99) {
-        showToast("El número debe estar entre 00 y 99.", { variant: "warning" });
-        pendingEditorNumeroInput?.focus();
-        return;
-      }
-      const symbol = getSymbol(numero);
-      if (!symbol) {
-        showToast(`El número ${formatNumber(numero)} no tiene símbolo registrado.`, { variant: "danger" });
-        return;
-      }
-      await DB.updatePendingDrawEntry(entry.id, { numero, isTest: !!pendingEditorTestInput?.checked });
-      pendingDayQueue = await loadPendingDayQueue();
-      updatePendingIndicator();
-      renderPendingTable();
-      refreshPendingSlotsView();
-      showToast(
-        `Actualizaste ${entry.horario} a ${formatNumber(numero)}${pendingEditorTestInput?.checked ? " (modo prueba)" : ""}.`,
-        { variant: "success" },
-      );
-      resetPendingEditor();
-    });
-
     // === PANEL: Rachas por línea ===
     async function saveRegistration(event) {
       if (!registration.canSave()) return;
@@ -1354,6 +1286,7 @@ import {
       const paisValue = normalizeCountry(pais);
       const payloads = [];
       for (const config of getActiveSlotConfigs(paisValue)) {
+        if (registration.isExisting(config)) continue;
         const input = document.getElementById(config.inputId);
         const raw = input?.value.trim() ?? "";
         if (!raw) continue;
@@ -1381,13 +1314,12 @@ import {
         }
 
         const testCheck = document.getElementById(config.checkboxId);
-        if (registration.unchanged(config, raw, !!testCheck?.checked)) continue;
         payloads.push({ config, numero, input, testCheck, isTest: !!testCheck?.checked });
       }
 
       if (!payloads.length) {
         if (advance) await registration.afterSave({ advance: true });
-        else showToast("No hay resultados nuevos o modificados para guardar.", { variant: "info" });
+        else showToast("No hay resultados nuevos para guardar. Usa Corregir para cambiar un sorteo existente.", { variant: "info" });
         return;
       }
 
@@ -2367,6 +2299,10 @@ import {
           <td>${draw.pais || "—"}</td>
           <td><span class="history-recorded">Registrado</span>${draw.isTest ? '<span class="history-test">Prueba</span>' : ''}</td>
         `;
+        const edit = document.createElement('button'); edit.type='button'; edit.className='btn-ghost requires-write history-correct';edit.textContent='Corregir';
+        edit.setAttribute('aria-label',`Corregir ${formatNumber(draw.numero)} del ${draw.fecha} a las ${draw.horario}`);
+        edit.addEventListener('click',()=>drawCorrection.open(draw));
+        tr.lastElementChild.append(edit);
         tbody.appendChild(tr);
       });
       historyTableWrap.innerHTML = "";
@@ -2422,13 +2358,42 @@ import {
     initHorarioPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     const numberClocks = initNumberClocksPanel({ obtenerSorteos: force => getCachedDraws({ force, excludeTest: true }), obtenerGuia: () => GUIA });
     const registration = initResultRegistration({
-      getContext: getFilters, getSlots: getActiveSlotConfigs, getSymbol, userId: currentUser.id,
+      getContext: getFilters, getSlots: getActiveSlotConfigs, getSymbol, userId: currentUser.id, onEdit: record => drawCorrection.open(record),
       getData: async ({ refreshPending = false } = {}) => {
         const draws = await getCachedDraws({ excludeTest: false });
         if (refreshPending) { pendingDayQueue = await loadPendingDayQueue(); updatePendingIndicator(); }
         return { draws, pending: pendingDayQueue };
       },
     });
+    const drawCorrection = initDrawCorrection({
+      getDraw: id => DB.getDrawById(id), saveDraw: (id, changes, expected) => DB.correctDraw(id, changes, expected), getSymbol,
+      onCorrected: async updated => {
+        showToast(`Corrección guardada: ${formatFriendlyDate(updated.fecha)} · ${updated.horario} · ${formatNumber(updated.numero)}.`, { variant: 'success' });
+        try {
+          pendingDayQueue = await loadPendingDayQueue(); updatePendingIndicator(); renderPendingTable();
+          dayFecha.value = updated.fecha; dayPais.value = updated.pais;
+          dayFecha.dispatchEvent(new Event('change', { bubbles: true }));
+          await handleDrawsMutated();
+          await refreshSlots();
+          await registration.reload();
+          await rebuildKnowledge({ draws: await getCachedDraws() });
+        } catch (err) {
+          logWarn('La corrección se guardó pero no se actualizaron todas las vistas', err);
+          showToast('La corrección está guardada. Actualiza los datos para recargar las vistas.', { variant: 'warning' });
+        }
+      },
+    });
+    async function openRegistration(suffix) {
+      if (!suffix) return registration.open();
+      try {
+        const config = SLOT_CONFIG.find(slot => slot.inputId === `n-${suffix}`);
+        const draws = await getCachedDraws({ excludeTest: false });
+        pendingDayQueue = await loadPendingDayQueue(); updatePendingIndicator();
+        const day = registrationDay(draws, pendingDayQueue, { ...getFilters(), horarios: config ? [config.key] : [] });
+        if (day[0]?.record) return drawCorrection.open(day[0].record);
+        return registration.open(suffix);
+      } catch (err) { showToast('No se pudo recuperar el sorteo para editarlo. Intenta nuevamente.', { variant: 'danger' }); }
+    }
     const consonants = initConsonantsPanel({ obtenerGuia: () => GUIA });
     const turnRanking = initTurnRankingPanel({ obtenerSorteos: force => getCachedDraws({ force }), obtenerGuia: () => GUIA });
     initConsultaPanel({
@@ -4816,7 +4781,7 @@ import {
       suerte: "view-suerte",
     };
     const sidebarButtons = document.querySelectorAll('[data-view]');
-    const markNavigation = initProductShell({ navigate: navigateTo, openRegistration: suffix => registration.open(suffix) });
+    const markNavigation = initProductShell({ navigate: navigateTo, openRegistration });
     function navigateTo(key) {
       if (key === 'login') { window.location.href = './login.html?mode=switch'; return; }
       if (['config', 'maint'].includes(key) && document.documentElement.dataset.role !== 'admin') return;
@@ -5104,17 +5069,6 @@ import {
     // Keep maintenance and other panels functional without holding the loading screen.
     async function finishSecondaryStartup() {
       try {
-        const autoFix = await DB.fixFutureDatedDraws({ maxAheadDays: 1 });
-        if (autoFix?.length) {
-          startupDrawsCorrected = true;
-          logInfo("Sorteos corregidos automáticamente:", autoFix);
-          showToast(`Se corrigieron ${autoFix.length} sorteos con fecha adelantada.`, { variant: "info" });
-        }
-      } catch (err) {
-        logWarn("No se pudieron corregir fechas adelantadas automáticamente", err);
-      }
-
-      try {
         const closed = await closeTriggerEvents();
         if (closed) {
           logInfo(`Trigger engine cerró ${closed} evento(s) vencidos al iniciar.`);
@@ -5124,11 +5078,6 @@ import {
       }
 
       try {
-        // If automatic maintenance changed a draw, refresh the shared cache and visible clocks.
-        if (startupDrawsCorrected) {
-          await handleDrawsMutated();
-          await refreshSlots();
-        }
         const draws = await getCachedDraws();
         initSuperPremioPicker(draws, GUIA);
         await bootstrapExtendedPanels();
@@ -5139,7 +5088,6 @@ import {
         logWarn("No se pudieron preparar todos los paneles secundarios", err);
       }
     }
-    let startupDrawsCorrected = false;
     setTimeout(() => finishSecondaryStartup().catch(err => logWarn("Preparación secundaria", err)), 0);
 
     // === Presencia en tiempo real ===

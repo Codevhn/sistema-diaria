@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="./src/theme/number-clocks.css?v=1" />
   <link rel="stylesheet" href="./src/theme/turn-ranking.css?v=1" />
   <link rel="stylesheet" href="./src/theme/consonants.css?v=2" />
-  <link rel="stylesheet" href="./src/theme/registration.css?v=1" />
+  <link rel="stylesheet" href="./src/theme/registration.css?v=2" />
   <link rel="stylesheet" href="./src/theme/scenarios.css?v=1" />
   <style>
     /* The loading screen is public; all application content stays covered until auth and boot complete. */
@@ -1079,9 +1079,21 @@
             <label class="register-field__label" for="n-9">9 PM</label><input id="n-9" placeholder="00–99" inputmode="numeric" maxlength="2" aria-label="Número 9PM" />
           </div>            <label class="slot-flag">
               <input type="checkbox" id="test-9" /> Modo prueba
-            </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><p class="register-save-note">Solo se guardan los turnos nuevos o modificados. Guardar no cambia la fecha.</p><div class="register-actions"><button id="save-day" type="button" class="btn-primary requires-write">Guardar en pendientes</button><button id="save-day-next" type="button" class="btn-outline requires-write">Guardar y día siguiente →</button></div></dialog>
+            </label></div></div><p class="hint">Los resultados se guardan en pendientes. Puedes revisarlos antes de publicarlos.</p><p class="register-save-note">Guardar añade los turnos nuevos y conserva la fecha. Para cambiar un sorteo existente, pulsa Corregir.</p><div class="register-actions"><button id="save-day" type="button" class="btn-primary requires-write">Guardar en pendientes</button><button id="save-day-next" type="button" class="btn-outline requires-write">Guardar y día siguiente →</button></div></dialog>
+  <dialog id="draw-correction-dialog" aria-labelledby="draw-correction-title">
+    <div class="register-dialog__head"><div><span class="product-eyebrow">Corregir registro</span><h2 id="draw-correction-title">Editar sorteo</h2></div><button type="button" id="draw-correction-close" class="btn-ghost" aria-label="Cerrar corrección">✕</button></div>
+    <p id="draw-correction-status" class="hint"></p>
+    <form id="draw-correction-form">
+      <div id="draw-correction-date-host"></div><div id="draw-correction-country-host" hidden></div>
+      <div class="draw-correction-fields"><label for="draw-correction-turn">Horario<select id="draw-correction-turn"><option value="11AM">11 AM</option><option value="3PM">3 PM</option><option value="9PM">9 PM</option></select></label><label for="draw-correction-number">Número<input id="draw-correction-number" inputmode="numeric" maxlength="2" placeholder="00–99" required /></label></div>
+      <p id="draw-correction-symbol" class="hint"></p>
+      <label class="draw-correction-test"><input id="draw-correction-test" type="checkbox" /> Modo prueba</label>
+      <p class="hint">Se actualiza el mismo registro. Cambiar la fecha o el horario lo mueve a ese destino; un pendiente continúa sin publicar.</p>
+      <p id="draw-correction-error" role="alert"></p><button id="draw-correction-save" type="submit" class="btn-primary requires-write">Guardar corrección</button>
+    </form>
+  </dialog>
   <footer class="app-footer" data-app-shell inert aria-hidden="true"><strong>La Diaria</strong><span>Registro e información histórica</span><button class="btn-ghost" data-view="wiki">Ayuda →</button></footer>
-  <script type="module" src="./src/app.js?v=17"></script>
+  <script type="module" src="./src/app.js?v=18"></script>
 
   <!-- === MODAL PENDIENTES === -->
   <div id="pending-modal" class="modal hidden">
@@ -1111,26 +1123,7 @@
             <tbody id="pending-table-body"></tbody>
           </table>
         </div>
-        <form id="pending-editor-form" class="pending-editor hidden">
-          <div class="pending-editor__meta">
-            <strong id="pending-editor-meta">Selecciona un sorteo para editarlo</strong>
-            <span class="pending-editor__hint">Solo puedes ajustar el número y el modo de prueba.</span>
-          </div>
-          <div class="pending-editor__fields">
-            <label>
-              Número
-              <input id="pending-editor-numero" type="text" inputmode="numeric" pattern="\d{1,2}" maxlength="2" placeholder="00-99" />
-            </label>
-            <label class="pending-editor__checkbox">
-              <input type="checkbox" id="pending-editor-test" />
-              Modo prueba
-            </label>
-          </div>
-          <div class="pending-editor__actions">
-            <button type="button" id="pending-editor-cancel" class="btn-ghost btn-compact">Cancelar</button>
-            <button type="submit" class="btn-primary btn-compact">Guardar cambios</button>
-          </div>
-        </form>
+
       </div>
     </div>
   </div>

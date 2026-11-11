@@ -1,4 +1,4 @@
-export { DB, db } from "./storage/index.js";
+export { DB, db } from "./storage/index.js?v=2";
 
 export {
   camelToSnake,

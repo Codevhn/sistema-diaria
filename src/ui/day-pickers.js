@@ -22,20 +22,20 @@ export function shiftCalendarMonth(date, step) {
   return result;
 }
 
-export function initDayPickers() {
-  const input = document.getElementById('day-fecha');
-  const select = document.getElementById('day-pais');
-  const dateRoot = document.getElementById('day-date-picker');
-  const countryRoot = document.getElementById('day-country-picker');
+export function initDayPickers({ prefix = 'day' } = {}) {
+  const input = document.getElementById(`${prefix}-fecha`);
+  const select = document.getElementById(`${prefix}-pais`);
+  const dateRoot = document.getElementById(`${prefix}-date-picker`);
+  const countryRoot = document.getElementById(`${prefix}-country-picker`);
   if (!input || !select || !dateRoot || !countryRoot) return () => {};
   const controls = [dateRoot, countryRoot].map(root => ({ root, trigger: root.querySelector('.day-picker__trigger'), popup: root.querySelector('.day-picker__popup') }));
   const [dateControl, countryControl] = controls;
-  const grid = document.getElementById('day-calendar-grid');
-  const months = document.getElementById('day-calendar-months');
-  const year = document.getElementById('day-calendar-year');
-  const title = document.getElementById('day-calendar-title');
-  const monthPanel = document.getElementById('day-calendar-month-panel');
-  const datePanel = document.getElementById('day-calendar-date-panel');
+  const grid = document.getElementById(`${prefix}-calendar-grid`);
+  const months = document.getElementById(`${prefix}-calendar-months`);
+  const year = document.getElementById(`${prefix}-calendar-year`);
+  const title = document.getElementById(`${prefix}-calendar-title`);
+  const monthPanel = document.getElementById(`${prefix}-calendar-month-panel`);
+  const datePanel = document.getElementById(`${prefix}-calendar-date-panel`);
   let viewDate = parseDrawDate(input.value) || parseDrawDate(getTodayISODate());
 
   const close = control => {
@@ -202,7 +202,7 @@ export function initDayPickers() {
   year.addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); months.querySelector('button:not(:disabled)')?.focus(); }
   });
-  document.getElementById('day-calendar-today').addEventListener('click', () => choose(parseDrawDate(getTodayISODate())));
+  document.getElementById(`${prefix}-calendar-today`).addEventListener('click', () => choose(parseDrawDate(getTodayISODate())));
   input.addEventListener('change', sync);
   select.addEventListener('change', sync);
   sync();
