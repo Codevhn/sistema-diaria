@@ -1,3 +1,4 @@
+import { initResultRegistration } from './ui/result-registration.js';
 import { initConsonantsPanel } from './views/consonants-panel.js';
 import { initTurnRankingPanel } from './views/turn-ranking-panel.js';
 import { prepareStartupSession } from './startup-session.js';
@@ -297,14 +298,6 @@ import {
       const dow = DOW_FULL_LABEL[parsed.getDay()] || "";
       const monthName = MONTH_NAMES[parsed.getMonth()] || "";
       dayFechaDow.textContent = dow ? `${dow} · ${monthName}` : monthName || "—";
-    }
-
-    function autoAdvanceDayFecha() {
-      if (!dayFecha || !dayFecha.value) return;
-      const nextValue = incrementISODate(dayFecha.value, 1);
-      if (!nextValue || nextValue === dayFecha.value) return;
-      dayFecha.value = nextValue;
-      dayFecha.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
     async function procesarAprendizajeDia({
@@ -1110,11 +1103,14 @@ import {
       sym.title = draw.isTest ? "Modo prueba" : symbol || "";
     }
 
+    let slotsRenderRequest = 0;
     async function refreshSlots({ forceReload = false } = {}) {
+      const request = ++slotsRenderRequest;
       syncDayPickers();
       const { fecha, pais } = getFilters();
       const normalizedPais = normalizeCountry(pais);
       const draws = await getCachedDraws({ force: forceReload, excludeTest: false });
+      if (request !== slotsRenderRequest) return;
       getActiveSlotConfigs(normalizedPais).forEach((config) => {
         const draw = pickDraw(draws, fecha, normalizedPais, config.key);
         applyDrawToSlot(config, draw);
@@ -1345,7 +1341,10 @@ import {
     });
 
     // === PANEL: Rachas por línea ===
-    saveDayBtn?.addEventListener("click", async () => {
+    async function saveRegistration(event) {
+      if (!registration.canSave()) return;
+      const advance = event.currentTarget.id === "save-day-next";
+      if (advance && !registration.canAdvance()) return;
       const { fecha, pais } = getFilters();
       if (!fecha || !pais) {
         showToast("Selecciona fecha y país antes de guardar.", { variant: "warning" });
@@ -1382,15 +1381,18 @@ import {
         }
 
         const testCheck = document.getElementById(config.checkboxId);
+        if (registration.unchanged(config, raw, !!testCheck?.checked)) continue;
         payloads.push({ config, numero, input, testCheck, isTest: !!testCheck?.checked });
       }
 
       if (!payloads.length) {
-        showToast("Ingresa al menos un número antes de guardar.", { variant: "warning" });
+        if (advance) await registration.afterSave({ advance: true });
+        else showToast("No hay resultados nuevos o modificados para guardar.", { variant: "info" });
         return;
       }
 
-      const release = withButtonBusy(saveDayBtn, "Guardando…");
+      const release = withButtonBusy(event.currentTarget, "Guardando…");
+      registration.setSaving(true);
       try {
         const queueEntries = payloads.map(({ config, numero, isTest }) => ({
           fecha,
@@ -1402,16 +1404,12 @@ import {
         await notifyHypothesisMatches(queueEntries);
 
         for (const entry of queueEntries) {
-          await DB.savePendingDraw(entry);
+          const savedId = await DB.savePendingDraw(entry);
+          if (savedId == null) throw new Error(`No se confirmó el guardado del turno ${entry.horario}.`);
         }
 
         pendingDayQueue = await loadPendingDayQueue();
         updatePendingIndicator();
-
-        payloads.forEach(({ input, testCheck }) => {
-          if (input) input.value = "";
-          if (testCheck) testCheck.checked = false;
-        });
 
         const detail = queueEntries
           .map((entry) => `${entry.horario} ${formatNumber(entry.numero)}${entry.isTest ? " (test)" : ""}`)
@@ -1421,20 +1419,19 @@ import {
           { variant: "success" },
         );
         applyPendingSlots(fecha, paisValue);
-        document.getElementById("register-result-dialog")?.close();
-        autoAdvanceDayFecha();
+        await registration.afterSave({ advance });
+        await refreshSlots();
       } catch (err) {
         console.error("saveDay queue error", err);
         showToast(`No se pudieron preparar los sorteos: ${err.message}`, { variant: "danger" });
-        throw err;
       } finally {
         release();
+        registration.setSaving(false);
+        updateCountdownDisplay();
       }
-    });
-
-    saveDayBtn?.addEventListener("click", () => {
-      updateCountdownDisplay();
-    });
+    }
+    saveDayBtn?.addEventListener("click", saveRegistration);
+    document.getElementById("save-day-next")?.addEventListener("click", saveRegistration);
 
     async function notifyHypothesisMatches(entries = []) {
       if (!entries.length) return;
@@ -2424,6 +2421,14 @@ import {
     const consultarRankingMensual = initMonthlyRankingPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     initHorarioPanel({ obtenerSorteos: () => getCachedDraws({ excludeTest: true }), obtenerGuia: () => GUIA });
     const numberClocks = initNumberClocksPanel({ obtenerSorteos: force => getCachedDraws({ force, excludeTest: true }), obtenerGuia: () => GUIA });
+    const registration = initResultRegistration({
+      getContext: getFilters, getSlots: getActiveSlotConfigs, getSymbol, userId: currentUser.id,
+      getData: async ({ refreshPending = false } = {}) => {
+        const draws = await getCachedDraws({ excludeTest: false });
+        if (refreshPending) { pendingDayQueue = await loadPendingDayQueue(); updatePendingIndicator(); }
+        return { draws, pending: pendingDayQueue };
+      },
+    });
     const consonants = initConsonantsPanel({ obtenerGuia: () => GUIA });
     const turnRanking = initTurnRankingPanel({ obtenerSorteos: force => getCachedDraws({ force }), obtenerGuia: () => GUIA });
     initConsultaPanel({
@@ -4811,7 +4816,7 @@ import {
       suerte: "view-suerte",
     };
     const sidebarButtons = document.querySelectorAll('[data-view]');
-    const markNavigation = initProductShell({ navigate: navigateTo, getDayContext: getFilters });
+    const markNavigation = initProductShell({ navigate: navigateTo, openRegistration: suffix => registration.open(suffix) });
     function navigateTo(key) {
       if (key === 'login') { window.location.href = './login.html?mode=switch'; return; }
       if (['config', 'maint'].includes(key) && document.documentElement.dataset.role !== 'admin') return;
@@ -5084,6 +5089,7 @@ import {
     try {
       setBootStatus("Cargando el historial de sorteos…");
       await getCachedDraws();
+      await registration.restoreInitialDate();
       if (location.hash === '#clocks') await numberClocks.setActive(true);
       await refreshSlots();
     } catch (err) {

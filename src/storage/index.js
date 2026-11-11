@@ -143,7 +143,8 @@ export const DB = {
     }
     const existing = await findPendingDrawBySlot(fecha, pais, horario);
     if (existing) {
-      await updateByPrimary("draws", existing.id, { numero, isTest }, "updatePendingSlot");
+      const updated = await updateByPrimary("draws", existing.id, { numero, isTest }, "updatePendingSlot");
+      if (!updated) throw new Error(`No se pudo actualizar el pendiente de ${horario}. Intenta nuevamente.`);
       return existing.id;
     }
     const rec = { fecha, pais, horario, numero, isTest, isPending: true, createdAt: Date.now() };

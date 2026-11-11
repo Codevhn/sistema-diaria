@@ -1,4 +1,4 @@
-export function initProductShell({ navigate, getDayContext }) {
+export function initProductShell({ navigate, openRegistration }) {
   const header = document.querySelector('.app-header');
   const numberTabs = document.getElementById('number-workspace-tabs');
   const tabs = [...(numberTabs?.querySelectorAll('[role="tab"]') || [])];
@@ -31,22 +31,16 @@ export function initProductShell({ navigate, getDayContext }) {
     document.addEventListener('pointerdown', event => { if (!historyFilters.contains(event.target)) historyFilters.open = false; });
     historyFilters.addEventListener('keydown', event => { if (event.key === 'Escape' && historyFilters.open) { event.preventDefault(); historyFilters.open = false; historyFilters.querySelector('summary').focus(); } });
   }
-  const dialog = document.getElementById('register-result-dialog');
   const openRegister = suffix => {
     if (document.documentElement.dataset.role === 'lector') return;
     navigate('day');
-    const context = getDayContext();
-    document.getElementById('register-result-context').textContent = `${context.fecha || ''} · ${context.pais || 'HN'}`;
-    if (!dialog.open) dialog.showModal();
-    const field = document.getElementById(`n-${suffix || '11'}`);
-    if (field && field.closest('[data-register-field]')?.classList.contains('hidden') !== true) field.focus();
+    openRegistration(suffix);
   };
   document.addEventListener('click', event => {
     if (event.target.closest('[data-register-result]')) openRegister();
     const button = event.target.closest('[data-register-turn]');
     if (button) openRegister(button.dataset.registerTurn);
   });
-  document.getElementById('close-register-result')?.addEventListener('click', () => dialog.close());
   document.getElementById('day-number-query')?.addEventListener('submit', event => {
     event.preventDefault();
     const value = document.getElementById('day-explore-number').value.trim();

@@ -1,0 +1,17 @@
+.register-date-row{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;align-items:end;gap:10px;margin-top:22px}
+#register-date-host{min-width:0}#register-date-host .day-picker{width:100%}#register-date-host .day-date-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}#register-date-host .day-picker__popup{width:min(320px,calc(100vw - 76px));max-width:none;left:50%;transform:translateX(-50%)}
+.design-v2 .register-date-row>button{height:46px;font-size:24px;padding:6px;width:40px}
+.design-v2 #register-result-context{margin:12px 0 4px;font-size:12px}
+.design-v2 .register-resume{display:block;text-align:left;font-size:11px;height:auto;min-height:36px;padding:6px 0;white-space:normal;line-height:1.5}
+.register-progress{font-size:12px;line-height:1.6;color:var(--color-muted);padding-top:12px;margin:4px 0 0;border-top:1px solid var(--color-border)}
+.design-v2 .register-field__label{display:flex;flex-direction:row;text-align:left;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;font-weight:600}
+.register-field__state{font-size:10px;font-weight:400;color:var(--color-muted)}
+.register-field__symbol{display:flex;align-items:center;gap:8px;min-height:44px;margin-top:8px;color:var(--color-muted);font-size:12px;line-height:1.4}
+.register-field__symbol img{width:36px;height:40px;object-fit:contain}.register-field__symbol img[hidden]{display:none}
+.register-save-note{font-size:11px;color:var(--color-muted);line-height:1.6;margin:6px 0 14px}
+.register-actions{display:flex;flex-wrap:wrap;gap:10px}.register-actions>button{height:auto;white-space:normal}
+@media(max-width:760px){.design-v2 #register-result-dialog{max-height:94dvh}.register-date-row{grid-template-columns:32px minmax(0,1fr) 32px;gap:6px}.design-v2 .register-date-row>button{width:32px}.design-v2 .register-fields{gap:14px;margin:16px 0}.register-field{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 12px;border-bottom:1px solid var(--color-border);padding-bottom:10px}.register-field .slot-controls{grid-column:1/-1}.register-field .slot-flag{grid-column:2;grid-row:2}.register-field__symbol{grid-column:1;grid-row:2}.register-actions{display:grid;grid-template-columns:minmax(0,1fr)}.register-actions>button{width:100%;min-height:44px}.register-field__state{font-size:11px}}
+
+#register-date-host .day-picker__popup{animation:registration-calendar-open .16s ease-out}
+@keyframes registration-calendar-open{from{opacity:0;clip-path:inset(0 0 8% 0)}to{opacity:1;clip-path:inset(0)}}
+@media(prefers-reduced-motion:reduce){#register-date-host .day-picker__popup{animation:none}}
