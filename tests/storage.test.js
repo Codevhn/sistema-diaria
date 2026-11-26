@@ -35,6 +35,7 @@ vi.mock("../src/triggers/triggerEngine.js", () => ({
 }));
 
 import { DB, db } from "../src/storage.js";
+import { supabase } from "../src/supabaseClient.js";
 
 describe("storage.js — helpers internos (a través de DB)", () => {
   beforeEach(() => {
@@ -60,6 +61,40 @@ describe("storage.js — helpers internos (a través de DB)", () => {
     it("retorna array", async () => {
       const draws = await DB.listDraws();
       expect(Array.isArray(draws)).toBe(true);
+    });
+  });
+
+  describe("DB.exportDraws", () => {
+    const page = (data, error = null) => {
+      const query = {
+        select: vi.fn(() => query),
+        eq: vi.fn(() => query),
+        order: vi.fn(() => query),
+        range: vi.fn(() => query),
+        then: (resolve) => resolve({ data, error }),
+      };
+      return query;
+    };
+
+    it("lee todas las páginas y conserva los sorteos de prueba", async () => {
+      const first = page(Array.from({ length: 500 }, (_, id) => ({ id, is_test: id === 0 })));
+      const second = page([{ id: 500, is_test: false }]);
+      supabase.from.mockReturnValueOnce(first).mockReturnValueOnce(second);
+
+      const draws = await DB.exportDraws();
+
+      expect(draws).toHaveLength(501);
+      expect(draws[0]).toMatchObject({ id: 0, isTest: true });
+      expect(draws[500].id).toBe(500);
+      expect(first.range).toHaveBeenCalledWith(0, 499);
+      expect(second.range).toHaveBeenCalledWith(500, 999);
+    });
+
+    it("rechaza un fallo de lectura en lugar de entregar un archivo parcial", async () => {
+      supabase.from.mockReturnValueOnce(page(Array.from({ length: 500 }, (_, id) => ({ id }))));
+      supabase.from.mockReturnValueOnce(page(null, new Error("Sin conexión")));
+
+      await expect(DB.exportDraws()).rejects.toThrow("Sin conexión");
     });
   });
 

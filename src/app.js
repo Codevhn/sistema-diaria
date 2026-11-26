@@ -1706,6 +1706,7 @@ import {
     const historySearchBtn = document.getElementById("history-search");
     const historyClearBtn = document.getElementById("history-clear");
     const historyRefreshBtn = document.getElementById("history-refresh");
+    const historyExportBtn = document.getElementById("history-export");
     const drawsLocalToggle = document.getElementById("draws-local-toggle");
     const drawsLocalStatus = document.getElementById("draws-local-status");
 
@@ -2088,6 +2089,33 @@ import {
     });
     historyRefreshBtn?.addEventListener("click", () => {
       refreshHistoryPanel({ forceReload: true });
+    });
+    historyExportBtn?.addEventListener("click", async () => {
+      historyExportBtn.disabled = true;
+      historyExportBtn.textContent = "Exportando…";
+      try {
+        const draws = await DB.exportDraws();
+        if (!draws.length) {
+          showToast("No hay sorteos registrados para exportar.", { variant: "info" });
+          return;
+        }
+        const blob = new Blob([JSON.stringify(draws, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `sorteos-${getTodayISODate()}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(`${draws.length} sorteos exportados en JSON.`, { variant: "success" });
+      } catch (err) {
+        console.error("export draws error", err);
+        showToast("No se pudieron exportar los sorteos. Intenta de nuevo.", { variant: "danger" });
+      } finally {
+        historyExportBtn.disabled = false;
+        historyExportBtn.textContent = "Exportar JSON";
+      }
     });
     historyNumberFilter?.addEventListener("input", () => { historyPageIndex = 0; refreshHistoryPanel(); });
     historyClearBtn?.addEventListener("click", () => {

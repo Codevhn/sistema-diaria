@@ -3,6 +3,7 @@ import { supabase } from "../supabaseClient.js";
 import { parseDrawDate, formatDateISO } from "../date-utils.js";
 import {
   DAY_MS,
+  PAGE_SIZE,
   PEGAS_TURNOS,
   TABLES_TO_RESET,
   camelToSnake,
@@ -125,6 +126,19 @@ export const DB = {
       order: [{ column: "created_at", ascending: true }],
     });
     return excludeTest ? rows.filter((row) => !row.isTest) : rows;
+  },
+
+  async exportDraws() {
+    const rows = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase.from("draws").select("*")
+        .eq("is_pending", false).order("id", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+      if (!Array.isArray(data)) throw new Error("Respuesta inválida al leer sorteos");
+      rows.push(...decodeRows(data));
+      if (data.length < PAGE_SIZE) return rows;
+    }
   },
 
   async listPendingDraws() {
